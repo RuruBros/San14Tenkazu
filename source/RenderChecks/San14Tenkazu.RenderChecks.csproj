@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>San14Tenkazu.Tests</AssemblyName>
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\San14Tenkazu.csproj" />
+    <Compile Include="..\Tests\TestGame.cs" Link="TestGame.cs" />
+    <Compile Include="..\Tests\FormationFixture.cs" Link="FormationFixture.cs" />
+    <Compile Include="..\Tests\TacticFixture.cs" Link="TacticFixture.cs" />
+    <Compile Include="..\Tests\PolicyFixture.cs" Link="PolicyFixture.cs" />
+    <Compile Include="..\Tests\PlainRuleFixture.cs" Link="PlainRuleFixture.cs" />
+    <Compile Include="..\Tests\OfficeFixture.cs" Link="OfficeFixture.cs" />
+  </ItemGroup>
+</Project>

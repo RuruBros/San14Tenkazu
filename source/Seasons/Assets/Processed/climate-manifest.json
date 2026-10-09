@@ -1,0 +1,1359 @@
+{
+  "file": "climate-monthly.dds",
+  "sha256": "ba15dba21b8e5c597acf4592d5fc73f67b4c52145bc2fa501b980bd54a87d97e",
+  "source": "climate.json",
+  "sourceSha256": "4c6c6af2a4779c42b82ca2cc0e0ab715789e9d2f003ce9c21b4e908cbc92c36b",
+  "provider": "Japan Meteorological Agency ClimatView",
+  "license": "CC-BY-4.0 (JMA alternative terms)",
+  "terms": "https://www.jma.go.jp/jma/en/copyright.html",
+  "termsVerifiedDate": "2026-10-06",
+  "attribution": "Created by San14Tenkazu based on JMA ClimatView monthly normals; spatially interpolated for game artwork. Not created by JMA. No ancient temperature correction.",
+  "sourceStations": [
+    {
+      "stationId": 54511,
+      "cityId": 3,
+      "cityName": "\uACC4",
+      "sourceUrl": "https://www.data.jma.go.jp/tcc/tcc/products/climate/climatview/graph_mkhtml_nrm.php?m=1\u0026n=54511",
+      "sourceSha256": "a036aa9896637ddfea6908917f409e49bfacf87abfbd1e3686dfdb747bbd1167",
+      "correspondence": "Representative modern Beijing metropolitan area; anchored to the recorded game city centre. No ancient temperature correction."
+    },
+    {
+      "stationId": 53772,
+      "cityId": 4,
+      "cityName": "\uC9C4\uC591",
+      "sourceUrl": "https://www.data.jma.go.jp/tcc/tcc/products/climate/climatview/graph_mkhtml_nrm.php?m=1\u0026n=53772",
+      "sourceSha256": "58d39a1e522295a51d4634e4b98b414f944b622839d067443cc97479b17fb470",
+      "correspondence": "Representative modern Taiyuan metropolitan area; anchored to the recorded game city centre. No ancient temperature correction."
+    },
+    {
+      "stationId": 57036,
+      "cityId": 20,
+      "cityName": "\uC7A5\uC548",
+      "sourceUrl": "https://www.data.jma.go.jp/tcc/tcc/products/climate/climatview/graph_mkhtml_nrm.php?m=1\u0026n=57036",
+      "sourceSha256": "2d579989132aff2836a0fd51e923c0f6ed461070f3b199b9de618002d7a3afa7",
+      "correspondence": "Representative modern Xian metropolitan area; anchored to the recorded game city centre. No ancient temperature correction."
+    },
+    {
+      "stationId": 58238,
+      "cityId": 25,
+      "cityName": "\uAC74\uC5C5",
+      "sourceUrl": "https://www.data.jma.go.jp/tcc/tcc/products/climate/climatview/graph_mkhtml_nrm.php?m=1\u0026n=58238",
+      "sourceSha256": "ab96cb2fb77ee65c1272de34bd905bcf1b36ac8a3f73cbf1800b8f352f1ed7e8",
+      "correspondence": "Representative modern Nanjing metropolitan area; anchored to the recorded game city centre. No ancient temperature correction."
+    },
+    {
+      "stationId": 59287,
+      "cityId": 30,
+      "cityName": "\uB0A8\uD574",
+      "sourceUrl": "https://www.data.jma.go.jp/tcc/tcc/products/climate/climatview/graph_mkhtml_nrm.php?m=1\u0026n=59287",
+      "sourceSha256": "57e8e3ba6851ed1f9fade7169d33ecf031a292be4641ee5caaa7fc9eac44e1c1",
+      "correspondence": "Representative modern Guangzhou metropolitan area; anchored to the recorded game city centre. No ancient temperature correction."
+    },
+    {
+      "stationId": 57494,
+      "cityId": 32,
+      "cityName": "\uAC15\uD558",
+      "sourceUrl": "https://www.data.jma.go.jp/tcc/tcc/products/climate/climatview/graph_mkhtml_nrm.php?m=1\u0026n=57494",
+      "sourceSha256": "f2a0922a46fcdde126d76950e9f9b75fec8e1094c859a87ab363b55d3fbe0382",
+      "correspondence": "Representative modern Wuhan metropolitan area; anchored to the recorded game city centre. No ancient temperature correction."
+    },
+    {
+      "stationId": 56778,
+      "cityId": 46,
+      "cityName": "\uC6B4\uB0A8",
+      "sourceUrl": "https://www.data.jma.go.jp/tcc/tcc/products/climate/climatview/graph_mkhtml_nrm.php?m=1\u0026n=56778",
+      "sourceSha256": "b5941edd90a8b01057955fa7bbb4d9d4a98d126a93a7691240981df8e4d918e6",
+      "correspondence": "Representative modern Kunming metropolitan area; anchored to the recorded game city centre. No ancient temperature correction."
+    }
+  ],
+  "width": 512,
+  "height": 512,
+  "arraySize": 12,
+  "mipLevels": 1,
+  "format": "R32G32_FLOAT",
+  "channels": [
+    "TemperatureC",
+    "PrecipitationMm"
+  ],
+  "payloadBytes": 25165824,
+  "extent": {
+    "MinX": 0,
+    "MinZ": 0,
+    "MaxX": 204800,
+    "MaxZ": 204800
+  },
+  "coordinateBasis": "Full FieldEditor4 texture, 4096 texels * 50 game units; cities use GameTerrain origin and hex transform",
+  "sampling": "Clamp \u002B bilinear, explicit LOD 0; array slice = month - 1; interpolate adjacent months by (day - 1) / 30",
+  "spatialInterpolation": "All verified city anchors; inverse squared distance; exact anchor retains source normal",
+  "texelMapping": "gameXZ = extent.min \u002B (pixelXY \u002B 0.5) / size * (extent.max - extent.min)",
+  "anchorValidation": {
+    "count": 84,
+    "maxTemperatureErrorC": 0.0005898430158488566,
+    "maxPrecipitationErrorMm": 0.01161500356789702,
+    "checks": [
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 1,
+        "source": {
+          "TemperatureC": -2.8,
+          "PrecipitationMm": 2.1
+        },
+        "atlas": {
+          "TemperatureC": -2.7999659887442907,
+          "PrecipitationMm": 2.1010341535869808
+        },
+        "temperatureError": 3.4011255709121E-05,
+        "precipitationError": 0.0010341535869806684
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 2,
+        "source": {
+          "TemperatureC": 0.6,
+          "PrecipitationMm": 5.6
+        },
+        "atlas": {
+          "TemperatureC": 0.6000660127665818,
+          "PrecipitationMm": 5.600821982269667
+        },
+        "temperatureError": 6.601276658180222E-05,
+        "precipitationError": 0.0008219822696675649
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 3,
+        "source": {
+          "TemperatureC": 7.5,
+          "PrecipitationMm": 8.5
+        },
+        "atlas": {
+          "TemperatureC": 7.499983902472746,
+          "PrecipitationMm": 8.501722968429714
+        },
+        "temperatureError": 1.609752725428848E-05,
+        "precipitationError": 0.0017229684297142
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 4,
+        "source": {
+          "TemperatureC": 15.1,
+          "PrecipitationMm": 21.9
+        },
+        "atlas": {
+          "TemperatureC": 15.099880591107627,
+          "PrecipitationMm": 21.901863497950018
+        },
+        "temperatureError": 0.00011940889237216368,
+        "precipitationError": 0.0018634979500191662
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 5,
+        "source": {
+          "TemperatureC": 21.3,
+          "PrecipitationMm": 36.5
+        },
+        "atlas": {
+          "TemperatureC": 21.2997926891586,
+          "PrecipitationMm": 36.50183422995273
+        },
+        "temperatureError": 0.00020731084140024336,
+        "precipitationError": 0.0018342299527276396
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 6,
+        "source": {
+          "TemperatureC": 25.3,
+          "PrecipitationMm": 72.7
+        },
+        "atlas": {
+          "TemperatureC": 25.299759453113598,
+          "PrecipitationMm": 72.70042358243848
+        },
+        "temperatureError": 0.00024054688640262611,
+        "precipitationError": 0.0004235824384721809
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 7,
+        "source": {
+          "TemperatureC": 27.2,
+          "PrecipitationMm": 170.6
+        },
+        "atlas": {
+          "TemperatureC": 27.199742000596366,
+          "PrecipitationMm": 170.59380598955235
+        },
+        "temperatureError": 0.00025799940363313567,
+        "precipitationError": 0.00619401044764345
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 8,
+        "source": {
+          "TemperatureC": 26,
+          "PrecipitationMm": 114.1
+        },
+        "atlas": {
+          "TemperatureC": 25.999680778854845,
+          "PrecipitationMm": 114.09981084389902
+        },
+        "temperatureError": 0.00031922114515481326,
+        "precipitationError": 0.00018915610097280933
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 9,
+        "source": {
+          "TemperatureC": 21.2,
+          "PrecipitationMm": 53.3
+        },
+        "atlas": {
+          "TemperatureC": 21.19968470220957,
+          "PrecipitationMm": 53.30181197646268
+        },
+        "temperatureError": 0.00031529779042926975,
+        "precipitationError": 0.0018119764626831625
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 10,
+        "source": {
+          "TemperatureC": 13.8,
+          "PrecipitationMm": 29.3
+        },
+        "atlas": {
+          "TemperatureC": 13.799810534187582,
+          "PrecipitationMm": 29.30134415654891
+        },
+        "temperatureError": 0.00018946581241863214,
+        "precipitationError": 0.0013441565489102913
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 11,
+        "source": {
+          "TemperatureC": 5.2,
+          "PrecipitationMm": 13.7
+        },
+        "atlas": {
+          "TemperatureC": 5.199995967212885,
+          "PrecipitationMm": 13.700678142355692
+        },
+        "temperatureError": 4.032787114915948E-06,
+        "precipitationError": 0.0006781423556923016
+      },
+      {
+        "Id": 54511,
+        "CityId": 3,
+        "month": 12,
+        "source": {
+          "TemperatureC": -1,
+          "PrecipitationMm": 2.5
+        },
+        "atlas": {
+          "TemperatureC": -0.999993579871381,
+          "PrecipitationMm": 2.5006225050841024
+        },
+        "temperatureError": 6.4201286189558004E-06,
+        "precipitationError": 0.0006225050841024427
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 1,
+        "source": {
+          "TemperatureC": -4.6,
+          "PrecipitationMm": 3.3
+        },
+        "atlas": {
+          "TemperatureC": -4.599423892493912,
+          "PrecipitationMm": 3.3009624828017667
+        },
+        "temperatureError": 0.0005761075060872756,
+        "precipitationError": 0.0009624828017669174
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 2,
+        "source": {
+          "TemperatureC": -0.7,
+          "PrecipitationMm": 4.6
+        },
+        "atlas": {
+          "TemperatureC": -0.6995147774704683,
+          "PrecipitationMm": 4.601216551897116
+        },
+        "temperatureError": 0.00048522252953164813,
+        "precipitationError": 0.00121655189711678
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 3,
+        "source": {
+          "TemperatureC": 6.1,
+          "PrecipitationMm": 9.7
+        },
+        "atlas": {
+          "TemperatureC": 6.100386107544074,
+          "PrecipitationMm": 9.702042796658947
+        },
+        "temperatureError": 0.0003861075440747541,
+        "precipitationError": 0.0020427966589480206
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 4,
+        "source": {
+          "TemperatureC": 13.2,
+          "PrecipitationMm": 21.4
+        },
+        "atlas": {
+          "TemperatureC": 13.200374894080117,
+          "PrecipitationMm": 21.402606206864135
+        },
+        "temperatureError": 0.0003748940801173717,
+        "precipitationError": 0.0026062068641365954
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 5,
+        "source": {
+          "TemperatureC": 19,
+          "PrecipitationMm": 31.8
+        },
+        "atlas": {
+          "TemperatureC": 19.000352263269374,
+          "PrecipitationMm": 31.80366718283098
+        },
+        "temperatureError": 0.00035226326937376484,
+        "precipitationError": 0.0036671828309806642
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 6,
+        "source": {
+          "TemperatureC": 22.7,
+          "PrecipitationMm": 49.1
+        },
+        "atlas": {
+          "TemperatureC": 22.70041048861546,
+          "PrecipitationMm": 49.106474740490164
+        },
+        "temperatureError": 0.0004104886154614462,
+        "precipitationError": 0.0064747404901623895
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 7,
+        "source": {
+          "TemperatureC": 24.3,
+          "PrecipitationMm": 104.5
+        },
+        "atlas": {
+          "TemperatureC": 24.300467885657817,
+          "PrecipitationMm": 104.50848135211295
+        },
+        "temperatureError": 0.0004678856578159696,
+        "precipitationError": 0.008481352112951868
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 8,
+        "source": {
+          "TemperatureC": 22.5,
+          "PrecipitationMm": 108.6
+        },
+        "atlas": {
+          "TemperatureC": 22.50053153943626,
+          "PrecipitationMm": 108.60046903600411
+        },
+        "temperatureError": 0.0005315394362597203,
+        "precipitationError": 0.0004690360041195163
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 9,
+        "source": {
+          "TemperatureC": 17.5,
+          "PrecipitationMm": 59.7
+        },
+        "atlas": {
+          "TemperatureC": 17.50058984301585,
+          "PrecipitationMm": 59.70098769029
+        },
+        "temperatureError": 0.0005898430158488566,
+        "precipitationError": 0.0009876902899961237
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 10,
+        "source": {
+          "TemperatureC": 10.8,
+          "PrecipitationMm": 31.4
+        },
+        "atlas": {
+          "TemperatureC": 10.800570836205063,
+          "PrecipitationMm": 31.40170680744649
+        },
+        "temperatureError": 0.000570836205062264,
+        "precipitationError": 0.00170680744649232
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 11,
+        "source": {
+          "TemperatureC": 3.3,
+          "PrecipitationMm": 12
+        },
+        "atlas": {
+          "TemperatureC": 3.300534809296259,
+          "PrecipitationMm": 12.001437149218303
+        },
+        "temperatureError": 0.0005348092962593753,
+        "precipitationError": 0.0014371492183027357
+      },
+      {
+        "Id": 53772,
+        "CityId": 4,
+        "month": 12,
+        "source": {
+          "TemperatureC": -3,
+          "PrecipitationMm": 2.6
+        },
+        "atlas": {
+          "TemperatureC": -2.999416304602458,
+          "PrecipitationMm": 2.6007978043746833
+        },
+        "temperatureError": 0.0005836953975419945,
+        "precipitationError": 0.000797804374683242
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 1,
+        "source": {
+          "TemperatureC": 0.5,
+          "PrecipitationMm": 6.5
+        },
+        "atlas": {
+          "TemperatureC": 0.499917144694839,
+          "PrecipitationMm": 6.500843428263475
+        },
+        "temperatureError": 8.285530516100037E-05,
+        "precipitationError": 0.0008434282634750545
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 2,
+        "source": {
+          "TemperatureC": 4,
+          "PrecipitationMm": 6
+        },
+        "atlas": {
+          "TemperatureC": 3.999904120677839,
+          "PrecipitationMm": 6.001149393135239
+        },
+        "temperatureError": 9.587932216081896E-05,
+        "precipitationError": 0.0011493931352388742
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 3,
+        "source": {
+          "TemperatureC": 9.4,
+          "PrecipitationMm": 26.9
+        },
+        "atlas": {
+          "TemperatureC": 9.399941775899583,
+          "PrecipitationMm": 26.90044185456664
+        },
+        "temperatureError": 5.8224100417447744E-05,
+        "precipitationError": 0.00044185456664180833
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 4,
+        "source": {
+          "TemperatureC": 15.9,
+          "PrecipitationMm": 36.7
+        },
+        "atlas": {
+          "TemperatureC": 15.89995015075497,
+          "PrecipitationMm": 36.70124897005313
+        },
+        "temperatureError": 4.98492450304866E-05,
+        "precipitationError": 0.001248970053126186
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 5,
+        "source": {
+          "TemperatureC": 20.9,
+          "PrecipitationMm": 50.2
+        },
+        "atlas": {
+          "TemperatureC": 20.89997648342013,
+          "PrecipitationMm": 50.20184659427799
+        },
+        "temperatureError": 2.351657986920941E-05,
+        "precipitationError": 0.0018465942779855027
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 6,
+        "source": {
+          "TemperatureC": 25.8,
+          "PrecipitationMm": 65
+        },
+        "atlas": {
+          "TemperatureC": 25.799872558625786,
+          "PrecipitationMm": 65.00360917841539
+        },
+        "temperatureError": 0.00012744137421449864,
+        "precipitationError": 0.0036091784153882145
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 7,
+        "source": {
+          "TemperatureC": 27.7,
+          "PrecipitationMm": 91.3
+        },
+        "atlas": {
+          "TemperatureC": 27.69987217715606,
+          "PrecipitationMm": 91.30543478931735
+        },
+        "temperatureError": 0.00012782284393964005,
+        "precipitationError": 0.005434789317348532
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 8,
+        "source": {
+          "TemperatureC": 25.4,
+          "PrecipitationMm": 79.6
+        },
+        "atlas": {
+          "TemperatureC": 25.399950755574633,
+          "PrecipitationMm": 79.60350037166945
+        },
+        "temperatureError": 4.9244425365913E-05,
+        "precipitationError": 0.003500371669460378
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 9,
+        "source": {
+          "TemperatureC": 20.7,
+          "PrecipitationMm": 81.1
+        },
+        "atlas": {
+          "TemperatureC": 20.699968677219957,
+          "PrecipitationMm": 81.09930388866367
+        },
+        "temperatureError": 3.132278004258637E-05,
+        "precipitationError": 0.0006961113363246341
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 10,
+        "source": {
+          "TemperatureC": 14.2,
+          "PrecipitationMm": 63.4
+        },
+        "atlas": {
+          "TemperatureC": 14.199991666164392,
+          "PrecipitationMm": 63.39845357889115
+        },
+        "temperatureError": 8.333835607388096E-06,
+        "precipitationError": 0.0015464211088485058
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 11,
+        "source": {
+          "TemperatureC": 7.4,
+          "PrecipitationMm": 24.1
+        },
+        "atlas": {
+          "TemperatureC": 7.399971660599913,
+          "PrecipitationMm": 24.100086942021445
+        },
+        "temperatureError": 2.8339400087062927E-05,
+        "precipitationError": 8.69420214435479E-05
+      },
+      {
+        "Id": 57036,
+        "CityId": 20,
+        "month": 12,
+        "source": {
+          "TemperatureC": 1.7,
+          "PrecipitationMm": 8.2
+        },
+        "atlas": {
+          "TemperatureC": 1.6999526559122102,
+          "PrecipitationMm": 8.200260707963595
+        },
+        "temperatureError": 4.7344087789724654E-05,
+        "precipitationError": 0.0002607079635961185
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 1,
+        "source": {
+          "TemperatureC": 3.2,
+          "PrecipitationMm": 50
+        },
+        "atlas": {
+          "TemperatureC": 3.2000404632955504,
+          "PrecipitationMm": 49.999283399223785
+        },
+        "temperatureError": 4.046329555018602E-05,
+        "precipitationError": 0.0007166007762151594
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 2,
+        "source": {
+          "TemperatureC": 5.6,
+          "PrecipitationMm": 54.2
+        },
+        "atlas": {
+          "TemperatureC": 5.600066359228922,
+          "PrecipitationMm": 54.199545990262216
+        },
+        "temperatureError": 6.63592289225079E-05,
+        "precipitationError": 0.0004540097377869756
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 3,
+        "source": {
+          "TemperatureC": 10.2,
+          "PrecipitationMm": 80.2
+        },
+        "atlas": {
+          "TemperatureC": 10.20007738654979,
+          "PrecipitationMm": 80.19927787935315
+        },
+        "temperatureError": 7.738654979050352E-05,
+        "precipitationError": 0.0007221206468557284
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 4,
+        "source": {
+          "TemperatureC": 16.2,
+          "PrecipitationMm": 82.4
+        },
+        "atlas": {
+          "TemperatureC": 16.200082901400187,
+          "PrecipitationMm": 82.40155939424035
+        },
+        "temperatureError": 8.29014001872963E-05,
+        "precipitationError": 0.0015593942403455685
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 5,
+        "source": {
+          "TemperatureC": 21.5,
+          "PrecipitationMm": 83.9
+        },
+        "atlas": {
+          "TemperatureC": 21.50005061329786,
+          "PrecipitationMm": 83.9037789441562
+        },
+        "temperatureError": 5.06132978586038E-05,
+        "precipitationError": 0.0037789441561955073
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 6,
+        "source": {
+          "TemperatureC": 25,
+          "PrecipitationMm": 193.5
+        },
+        "atlas": {
+          "TemperatureC": 25.000045814239638,
+          "PrecipitationMm": 193.49993724601603
+        },
+        "temperatureError": 4.5814239637564924E-05,
+        "precipitationError": 6.275398396837772E-05
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 7,
+        "source": {
+          "TemperatureC": 28.4,
+          "PrecipitationMm": 231.8
+        },
+        "atlas": {
+          "TemperatureC": 28.39998129494404,
+          "PrecipitationMm": 231.7994443668417
+        },
+        "temperatureError": 1.870505595746863E-05,
+        "precipitationError": 0.0005556331583136398
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 8,
+        "source": {
+          "TemperatureC": 27.9,
+          "PrecipitationMm": 156.9
+        },
+        "atlas": {
+          "TemperatureC": 27.8999599268353,
+          "PrecipitationMm": 156.89874191231223
+        },
+        "temperatureError": 4.0073164697673747E-05,
+        "precipitationError": 0.0012580876877734681
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 9,
+        "source": {
+          "TemperatureC": 23.7,
+          "PrecipitationMm": 71.8
+        },
+        "atlas": {
+          "TemperatureC": 23.69997063206179,
+          "PrecipitationMm": 71.80099215901176
+        },
+        "temperatureError": 2.9367938207514044E-05,
+        "precipitationError": 0.000992159011758531
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 10,
+        "source": {
+          "TemperatureC": 18,
+          "PrecipitationMm": 55.4
+        },
+        "atlas": {
+          "TemperatureC": 17.999978027571302,
+          "PrecipitationMm": 55.40019679689921
+        },
+        "temperatureError": 2.197242869783622E-05,
+        "precipitationError": 0.00019679689921048293
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 11,
+        "source": {
+          "TemperatureC": 11.6,
+          "PrecipitationMm": 52.3
+        },
+        "atlas": {
+          "TemperatureC": 11.599983282605965,
+          "PrecipitationMm": 52.29948767078389
+        },
+        "temperatureError": 1.6717394034415634E-05,
+        "precipitationError": 0.0005123292161073323
+      },
+      {
+        "Id": 58238,
+        "CityId": 25,
+        "month": 12,
+        "source": {
+          "TemperatureC": 5.4,
+          "PrecipitationMm": 35.1
+        },
+        "atlas": {
+          "TemperatureC": 5.400014907368206,
+          "PrecipitationMm": 35.099305398497705
+        },
+        "temperatureError": 1.4907368205641092E-05,
+        "precipitationError": 0.000694601502296166
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 1,
+        "source": {
+          "TemperatureC": 13.8,
+          "PrecipitationMm": 50.9
+        },
+        "atlas": {
+          "TemperatureC": 13.799471222495827,
+          "PrecipitationMm": 50.89923488758527
+        },
+        "temperatureError": 0.0005287775041740161,
+        "precipitationError": 0.000765112414725877
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 2,
+        "source": {
+          "TemperatureC": 15.5,
+          "PrecipitationMm": 54.4
+        },
+        "atlas": {
+          "TemperatureC": 15.499527919909573,
+          "PrecipitationMm": 54.399328596205265
+        },
+        "temperatureError": 0.00047208009042698507,
+        "precipitationError": 0.000671403794733294
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 3,
+        "source": {
+          "TemperatureC": 18.3,
+          "PrecipitationMm": 96.2
+        },
+        "atlas": {
+          "TemperatureC": 18.299627107399402,
+          "PrecipitationMm": 96.19814288752492
+        },
+        "temperatureError": 0.0003728926005983624,
+        "precipitationError": 0.0018571124750792478
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 4,
+        "source": {
+          "TemperatureC": 22.5,
+          "PrecipitationMm": 193.3
+        },
+        "atlas": {
+          "TemperatureC": 22.499708711275435,
+          "PrecipitationMm": 193.29427353235897
+        },
+        "temperatureError": 0.00029128872456496424,
+        "precipitationError": 0.00572646764103979
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 5,
+        "source": {
+          "TemperatureC": 26,
+          "PrecipitationMm": 330.1
+        },
+        "atlas": {
+          "TemperatureC": 25.999764227834163,
+          "PrecipitationMm": 330.0883849964321
+        },
+        "temperatureError": 0.00023577216583703375,
+        "precipitationError": 0.01161500356789702
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 6,
+        "source": {
+          "TemperatureC": 27.9,
+          "PrecipitationMm": 364.6
+        },
+        "atlas": {
+          "TemperatureC": 27.89983434920237,
+          "PrecipitationMm": 364.5900499258222
+        },
+        "temperatureError": 0.00016565079762997925,
+        "precipitationError": 0.009950074177822898
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 7,
+        "source": {
+          "TemperatureC": 28.9,
+          "PrecipitationMm": 242.5
+        },
+        "atlas": {
+          "TemperatureC": 28.8998999860771,
+          "PrecipitationMm": 242.49874362073064
+        },
+        "temperatureError": 0.00010001392289993305,
+        "precipitationError": 0.0012563792693640607
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 8,
+        "source": {
+          "TemperatureC": 28.6,
+          "PrecipitationMm": 270.2
+        },
+        "atlas": {
+          "TemperatureC": 28.599876269421696,
+          "PrecipitationMm": 270.1930145193777
+        },
+        "temperatureError": 0.0001237305783057252,
+        "precipitationError": 0.006985480622290652
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 9,
+        "source": {
+          "TemperatureC": 27.4,
+          "PrecipitationMm": 202.3
+        },
+        "atlas": {
+          "TemperatureC": 27.39973260952165,
+          "PrecipitationMm": 202.29365543288938
+        },
+        "temperatureError": 0.0002673904783492276,
+        "precipitationError": 0.0063445671106308055
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 10,
+        "source": {
+          "TemperatureC": 24.5,
+          "PrecipitationMm": 67.3
+        },
+        "atlas": {
+          "TemperatureC": 24.49960168562211,
+          "PrecipitationMm": 67.29966700883875
+        },
+        "temperatureError": 0.0003983143778896192,
+        "precipitationError": 0.0003329911612439673
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 11,
+        "source": {
+          "TemperatureC": 20.1,
+          "PrecipitationMm": 37.4
+        },
+        "atlas": {
+          "TemperatureC": 20.09951321306681,
+          "PrecipitationMm": 37.40032912198404
+        },
+        "temperatureError": 0.00048678693319104127,
+        "precipitationError": 0.0003291219840448889
+      },
+      {
+        "Id": 59287,
+        "CityId": 30,
+        "month": 12,
+        "source": {
+          "TemperatureC": 15.5,
+          "PrecipitationMm": 34.3
+        },
+        "atlas": {
+          "TemperatureC": 15.49946755319754,
+          "PrecipitationMm": 34.299414134722305
+        },
+        "temperatureError": 0.000532446802459674,
+        "precipitationError": 0.0005858652776922213
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 1,
+        "source": {
+          "TemperatureC": 4.2,
+          "PrecipitationMm": 52.6
+        },
+        "atlas": {
+          "TemperatureC": 4.199980055343974,
+          "PrecipitationMm": 52.59840328511125
+        },
+        "temperatureError": 1.9944656026282814E-05,
+        "precipitationError": 0.0015967148887483518
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 2,
+        "source": {
+          "TemperatureC": 7,
+          "PrecipitationMm": 67.8
+        },
+        "atlas": {
+          "TemperatureC": 6.999965756157428,
+          "PrecipitationMm": 67.7972780739857
+        },
+        "temperatureError": 3.424384257222357E-05,
+        "precipitationError": 0.002721926014302767
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 3,
+        "source": {
+          "TemperatureC": 11.6,
+          "PrecipitationMm": 90.9
+        },
+        "atlas": {
+          "TemperatureC": 11.599973033238538,
+          "PrecipitationMm": 90.89731555535391
+        },
+        "temperatureError": 2.6966761462077216E-05,
+        "precipitationError": 0.002684444646092743
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 4,
+        "source": {
+          "TemperatureC": 17.9,
+          "PrecipitationMm": 136.9
+        },
+        "atlas": {
+          "TemperatureC": 17.899927474813815,
+          "PrecipitationMm": 136.89534513993664
+        },
+        "temperatureError": 7.252518618372505E-05,
+        "precipitationError": 0.00465486006336846
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 5,
+        "source": {
+          "TemperatureC": 22.7,
+          "PrecipitationMm": 166
+        },
+        "atlas": {
+          "TemperatureC": 22.69993047678579,
+          "PrecipitationMm": 165.99571290180882
+        },
+        "temperatureError": 6.952321420783392E-05,
+        "precipitationError": 0.004287098191184668
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 6,
+        "source": {
+          "TemperatureC": 26.3,
+          "PrecipitationMm": 216.7
+        },
+        "atlas": {
+          "TemperatureC": 26.29990509315982,
+          "PrecipitationMm": 216.69714059830693
+        },
+        "temperatureError": 9.490684018231832E-05,
+        "precipitationError": 0.0028594016930583166
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 7,
+        "source": {
+          "TemperatureC": 29.3,
+          "PrecipitationMm": 269
+        },
+        "atlas": {
+          "TemperatureC": 29.29983857191759,
+          "PrecipitationMm": 268.9936586401728
+        },
+        "temperatureError": 0.00016142808241070838,
+        "precipitationError": 0.00634135982721773
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 8,
+        "source": {
+          "TemperatureC": 28.7,
+          "PrecipitationMm": 113.4
+        },
+        "atlas": {
+          "TemperatureC": 28.699813968202434,
+          "PrecipitationMm": 113.40422936024882
+        },
+        "temperatureError": 0.0001860317975648229,
+        "precipitationError": 0.004229360248814373
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 9,
+        "source": {
+          "TemperatureC": 24.2,
+          "PrecipitationMm": 70.3
+        },
+        "atlas": {
+          "TemperatureC": 24.19988655444054,
+          "PrecipitationMm": 70.30243076498486
+        },
+        "temperatureError": 0.0001134455594602457,
+        "precipitationError": 0.0024307649848651636
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 10,
+        "source": {
+          "TemperatureC": 18.4,
+          "PrecipitationMm": 64.2
+        },
+        "atlas": {
+          "TemperatureC": 18.39992850654754,
+          "PrecipitationMm": 64.19928185781549
+        },
+        "temperatureError": 7.149345245949235E-05,
+        "precipitationError": 0.0007181421845103841
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 11,
+        "source": {
+          "TemperatureC": 12.1,
+          "PrecipitationMm": 59.7
+        },
+        "atlas": {
+          "TemperatureC": 12.099937492603344,
+          "PrecipitationMm": 59.698060215471884
+        },
+        "temperatureError": 6.250739665603078E-05,
+        "precipitationError": 0.0019397845281190484
+      },
+      {
+        "Id": 57494,
+        "CityId": 32,
+        "month": 12,
+        "source": {
+          "TemperatureC": 6.2,
+          "PrecipitationMm": 30.4
+        },
+        "atlas": {
+          "TemperatureC": 6.199959261981019,
+          "PrecipitationMm": 30.399468641250298
+        },
+        "temperatureError": 4.073801898130114E-05,
+        "precipitationError": 0.0005313587497006722
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 1,
+        "source": {
+          "TemperatureC": 9.3,
+          "PrecipitationMm": 21
+        },
+        "atlas": {
+          "TemperatureC": 9.299891722271061,
+          "PrecipitationMm": 21.000367908544796
+        },
+        "temperatureError": 0.0001082777289393988,
+        "precipitationError": 0.0003679085447956254
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 2,
+        "source": {
+          "TemperatureC": 11.6,
+          "PrecipitationMm": 11.3
+        },
+        "atlas": {
+          "TemperatureC": 11.599901392528631,
+          "PrecipitationMm": 11.300753982021178
+        },
+        "temperatureError": 9.860747136869463E-05,
+        "precipitationError": 0.0007539820211768244
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 3,
+        "source": {
+          "TemperatureC": 14.9,
+          "PrecipitationMm": 20.1
+        },
+        "atlas": {
+          "TemperatureC": 14.899934067068346,
+          "PrecipitationMm": 20.101193619726583
+        },
+        "temperatureError": 6.593293165479963E-05,
+        "precipitationError": 0.0011936197265818294
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 4,
+        "source": {
+          "TemperatureC": 17.8,
+          "PrecipitationMm": 27.3
+        },
+        "atlas": {
+          "TemperatureC": 17.800009269714355,
+          "PrecipitationMm": 27.30217764159602
+        },
+        "temperatureError": 9.269714354331882E-06,
+        "precipitationError": 0.0021776415960204076
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 5,
+        "source": {
+          "TemperatureC": 19.7,
+          "PrecipitationMm": 72.9
+        },
+        "atlas": {
+          "TemperatureC": 19.7000815806163,
+          "PrecipitationMm": 72.902414245252
+        },
+        "temperatureError": 8.158061629970348E-05,
+        "precipitationError": 0.0024142452519981816
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 6,
+        "source": {
+          "TemperatureC": 20.7,
+          "PrecipitationMm": 177.4
+        },
+        "atlas": {
+          "TemperatureC": 20.700140934741608,
+          "PrecipitationMm": 177.40079482307019
+        },
+        "temperatureError": 0.00014093474160858932,
+        "precipitationError": 0.000794823070179973
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 7,
+        "source": {
+          "TemperatureC": 20.5,
+          "PrecipitationMm": 216.6
+        },
+        "atlas": {
+          "TemperatureC": 20.500197781267914,
+          "PrecipitationMm": 216.5996211447807
+        },
+        "temperatureError": 0.00019778126791436534,
+        "precipitationError": 0.00037885521928160415
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 8,
+        "source": {
+          "TemperatureC": 20.3,
+          "PrecipitationMm": 196.1
+        },
+        "atlas": {
+          "TemperatureC": 20.300178826444284,
+          "PrecipitationMm": 196.09913539722845
+        },
+        "temperatureError": 0.00017882644428368621,
+        "precipitationError": 0.0008646027715428772
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 9,
+        "source": {
+          "TemperatureC": 18.8,
+          "PrecipitationMm": 121.4
+        },
+        "atlas": {
+          "TemperatureC": 18.80012663384864,
+          "PrecipitationMm": 121.3997641386363
+        },
+        "temperatureError": 0.00012663384864097793,
+        "precipitationError": 0.00023586136370568056
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 10,
+        "source": {
+          "TemperatureC": 16.2,
+          "PrecipitationMm": 80.8
+        },
+        "atlas": {
+          "TemperatureC": 16.20005897687736,
+          "PrecipitationMm": 80.79941228121709
+        },
+        "temperatureError": 5.897687736222679E-05,
+        "precipitationError": 0.0005877187829099739
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 11,
+        "source": {
+          "TemperatureC": 12.5,
+          "PrecipitationMm": 30.6
+        },
+        "atlas": {
+          "TemperatureC": 12.499997777110025,
+          "PrecipitationMm": 30.600175355069773
+        },
+        "temperatureError": 2.2228899752008147E-06,
+        "precipitationError": 0.00017535506977139903
+      },
+      {
+        "Id": 56778,
+        "CityId": 46,
+        "month": 12,
+        "source": {
+          "TemperatureC": 9.5,
+          "PrecipitationMm": 13.1
+        },
+        "atlas": {
+          "TemperatureC": 9.49993137028092,
+          "PrecipitationMm": 13.100271140382786
+        },
+        "temperatureError": 6.862971907928284E-05,
+        "precipitationError": 0.00027114038278597263
+      }
+    ]
+  },
+  "cpuGpuReferenceVectors": 6016,
+  "gameDrawTransformVerified": false,
+  "gameApplied": false
+}

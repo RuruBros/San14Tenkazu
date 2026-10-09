@@ -1,0 +1,363 @@
+# Info nodes: every case of the kind switch in their execute functions (row "params" = which param is the source, the kind, the output).
+# Labelled from decompiled code and copied native execution; high describes the stated numeric/pointer rule, not recovery of every original game label.
+# class name	kind	output type	meaning (field/offset/function)	Korean label	used in trees	confidence
+CVariableGetPersonInfoNode	params	-	0 object var person (CPersonData); 1 kind 0..38 (literal); 2 output var (int, or object/list by kind). Execute 0x8E7C0; returns 2 if the source var is missing/invalid, the kind is unknown or the write fails, else 1	장수 정보 노드: 0 장수 변수, 1 종류, 2 출력 변수	392	high
+CVariableGetPersonInfoNode	0	int	+0x10 ushort officer ID	장수 번호	20	high
+CVariableGetPersonInfoNode	1	object	corps (CDistrictData) by +0xE0 (0x40160)	장수 소속 군단	0	high
+CVariableGetPersonInfoNode	2	object	base: World_GetBase(+0xE2)	장수 소속 거점	86	high
+CVariableGetPersonInfoNode	3	int	+0xE4 ushort current place code (1..0x33 city, 0x34.. gate, 0x3E.. unit, 0x232.. corps)	장수 현재 위치 코드	0	high
+CVariableGetPersonInfoNode	4	int	+0xBE byte 상성 (0..149)	장수 상성	0	high
+CVariableGetPersonInfoNode	5	int	+0xE6 status (1 군주 2 군단장 3 태수 4 일반 5 재야 6 포로 7 미발견 9 사망)	장수 신분	3	high
+CVariableGetPersonInfoNode	6	int	+0xE8 loyalty	장수 충성	10	high
+CVariableGetPersonInfoNode	7	int	Person_GetAbility(p,0,0xFFF) with all bonuses	장수 통솔	7	high
+CVariableGetPersonInfoNode	8	int	Person_GetAbility(p,1,0xFFF)	장수 무력	7	high
+CVariableGetPersonInfoNode	9	int	Person_GetAbility(p,2,0xFFF)	장수 지력	45	high
+CVariableGetPersonInfoNode	10	int	Person_GetAbility(p,3,0xFFF) (computed twice, first result dropped)	장수 정치	26	high
+CVariableGetPersonInfoNode	11	int	Person_GetAbility(p,3) = politics, not index 4; output variable is named $Charisma in stock trees	장수 매력 (실제로는 정치 반환, 버그)	10	high
+CVariableGetPersonInfoNode	12	int	+0x15E bit 0 (officers with it are left out of the base's free-officer list, Foothold kind 32)	장수 +0x15E bit0 플래그	0	medium
+CVariableGetPersonInfoNode	13	int	+0x16A short AI trait Warlike (var names $PersonalityWarlike/$Warlike/$WarLike, hash-cracked); also inflates troop counts by 1.5%/pt in other INFO nodes	장수 호전 성향	7	medium
+CVariableGetPersonInfoNode	14	int	+0x16C short AI trait Duty ($PersonalityDuty/$Duty, cracked); Recruit_Chance uses it too	장수 의리 성향	12	medium
+CVariableGetPersonInfoNode	15	int	+0x16E signed short; hash 9300703f matches Personalityfame (case-word recovery, not an exe literal). Fame in recruitment focus, office/title score and war relation 0x26BD40; signed field read verified by ai_traits_probe.py	장수 명성 성향	7	medium
+CVariableGetPersonInfoNode	16	int	+0x170 short $PersonalityMoney (money held back 1.5%/pt in usable-gold kinds)	장수 금 중시 성향	6	high
+CVariableGetPersonInfoNode	17	int	+0x172 short $PersonalityFood (food held back 1.5%/pt)	장수 병량 중시 성향	6	high
+CVariableGetPersonInfoNode	18	int	+0x174 short $PersonalitySoldier	장수 병사 중시 성향	3	high
+CVariableGetPersonInfoNode	19	int	+0x176 short $PersonalityTalent (cracked)	장수 인재 중시 성향	6	medium
+CVariableGetPersonInfoNode	20	int	+0x178 short $PersonalityDiplomacy	장수 외교 성향	14	high
+CVariableGetPersonInfoNode	21	int	office (CPostData by +0xE7) command troops 0x92550: office +0x34 (or decoded first word of its +0x40 vector); office only, no 작위/개성	장수 관직 지휘 병력	17	high
+CVariableGetPersonInfoNode	22	list	formations 1..20 with Person_HasFormation (list type 12)	장수 사용 가능 진형 목록	15	high
+CVariableGetPersonInfoNode	23	list	tactics 1..200 held in any of his 10 tactic slots (0x92730/0x22A320; list type 13)	장수 보유 전법 목록	1	high
+CVariableGetPersonInfoNode	24	int	office +0x36 byte x 10 (0x1A4A16C=10); office 73 (없음) when Office_Index is 0. +0x36 runs 20 (1품) .. 2 (9품), 1 for 없음	장수 관직 등급값x10	0	medium
+CVariableGetPersonInfoNode	25	int	+8 AI evaluation (written by CMiscSetPersonEvaluationNode)	장수 AI 평가값	4	high
+CVariableGetPersonInfoNode	26	int	max of the 5 abilities	장수 최고 능력치	3	high
+CVariableGetPersonInfoNode	27	int	sum of the 5 abilities	장수 능력 합계	33	high
+CVariableGetPersonInfoNode	28	list	officers in +0xC0 8 slots (0x22E310; $FavoritePersonList)	장수 친애 장수 목록	6	high
+CVariableGetPersonInfoNode	29	list	officers in +0xD0 8 slots (0x22B840; $HatePersonList)	장수 혐오 장수 목록	6	high
+CVariableGetPersonInfoNode	30	int	Officer_Away(p) bool	장수 부재 중인가	0	high
+CVariableGetPersonInfoNode	31	int	+0x17A signed short Han inclination; game message 7EB and formatter 35B400 verified by ai_field_names.py; native read verified by ai_traits_probe.py; 0x26BD40 changes cooperation penalty -60 to -10 when both rulers >=20; real save/load/undo verified by ai_save_probe.py --trial-offset 0x17A; original English variable name remains unrecovered	장수 한조 성향	0	high
+CVariableGetPersonInfoNode	32	int	+0x17C short $PersonalityAmbition (cracked)	장수 야망 성향	8	medium
+CVariableGetPersonInfoNode	33	int	office +0x37 byte = 품 1..9 (1 highest)	장수 관직 품계	6	medium
+CVariableGetPersonInfoNode	34	int	+0x17E short $PersonalityStrategic / $TrickStrategicValue	장수 계략 성향	4	high
+CVariableGetPersonInfoNode	35	int	+0x180 short $PersonalityBuilding	장수 건설 성향	2	high
+CVariableGetPersonInfoNode	36	int	0x2A9D30(p,2)+1: 공훈 step bonus of kind 2 (+0x1C2/+0x1C3 steps; ruler 2) plus 1; 0 in challenge screens. Compared with +0x1E8 (kind 37)	장수 공훈 보너스(종류2)+1	6	medium
+CVariableGetPersonInfoNode	37	int	+0x1E8 int (count compared with kind 36); native boundary reads in ai_raw_info.py; original display name unverified	장수 +0x1E8 값	3	high
+CVariableGetPersonInfoNode	38	int	bool 0x42C20: kind36 <= +0x1E8 (the cap is reached)	장수 +0x1E8 상한 도달	3	medium
+CVariableGetFootholdInfoNode	params	-	0 object var foothold (city or gate record); 1 kind 0..45; 2 output var. Execute 0x8A160; 'city' below = 0x22A7B0: the city whose county holds the base's hex (a city itself). Agent personality P = troops agent: its highest-통솔 commander; district agent: 군단장; force agent: 군주; army agent: 0	거점 정보 노드: 0 거점 변수, 1 종류, 2 출력 변수	379	high
+CVariableGetFootholdInfoNode	0	int	+0x4E base number	거점 번호	3	high
+CVariableGetFootholdInfoNode	1	object	hex of the base's building (world+0x6DA98[+0x4E] +0x10)	거점 칸	16	high
+CVariableGetFootholdInfoNode	2	object	태수: officer by +0x2E ($Viceroy, cracked)	거점 태수	8	high
+CVariableGetFootholdInfoNode	3	object	Base_Force	거점 세력	27	high
+CVariableGetFootholdInfoNode	4	object	corps by +0x30 (vtable +0x80; a gate: its city's corps when same force)	거점 군단	5	high
+CVariableGetFootholdInfoNode	5	int	city +0xB8 scale 1..4	도시 규모	0	high
+CVariableGetFootholdInfoNode	6	int	vtable +0xB8: gold cap = scale x 50,000 (0x267DB0; 250,000 when 0x232FB0)	거점 금 상한	0	high
+CVariableGetFootholdInfoNode	7	int	vtable +0xC0: food cap = scale x 100,000 (500,000)	거점 병량 상한	3	high
+CVariableGetFootholdInfoNode	8	int	vtable +0xC8: troops cap = 50,000 + 0/20,000/50,000/100,000 for scale 1..4 (300,000)	거점 병사 상한	0	high
+CVariableGetFootholdInfoNode	9	int	usable gold = gold - gold x 150 x P(+0x170 PersonalityMoney) / 10000	거점 가용 금 (금 중시 유보 제외)	10	high
+CVariableGetFootholdInfoNode	10	int	usable food = food - food x 150 x P(+0x172) / 10000	거점 가용 병량	6	high
+CVariableGetFootholdInfoNode	11	int	troops + troops x 150 x P(+0x16A Warlike) / 10000	거점 병사 수 (호전 가중)	12	high
+CVariableGetFootholdInfoNode	12	int	+0x40 wounded	거점 부상병	0	high
+CVariableGetFootholdInfoNode	13	int	city +0xD0 int (0 in a snapshot); native boundary reads in ai_raw_info.py; original display name unverified	도시 +0xD0 값	0	high
+CVariableGetFootholdInfoNode	14	int	city +0xD4 int; native boundary reads in ai_raw_info.py; original display name unverified	도시 +0xD4 값	0	high
+CVariableGetFootholdInfoNode	15	int	city +0xD8 int; native boundary reads in ai_raw_info.py; original display name unverified	도시 +0xD8 값	0	high
+CVariableGetFootholdInfoNode	16	int	city +0x50 int (0..1038 in a snapshot); native boundary reads in ai_raw_info.py; original display name unverified	도시 +0x50 값	0	high
+CVariableGetFootholdInfoNode	17	int	city +0x54 int (100..10000); native boundary reads in ai_raw_info.py; original display name unverified	도시 +0x54 값	0	high
+CVariableGetFootholdInfoNode	18	int	city +0xC8 byte (20..40); native boundary reads in ai_raw_info.py; original display name unverified	도시 +0xC8 값	0	high
+CVariableGetFootholdInfoNode	19	int	city +0xC9 bit 0; native boundary reads in ai_raw_info.py; original display name unverified	도시 +0xC9 bit0	0	high
+CVariableGetFootholdInfoNode	20	object	city +0xCA officer ($RecruitOfficer, set by CRecruitOfficerSetNode)	도시 징병 담당 장수	6	high
+CVariableGetFootholdInfoNode	21	object	city +0xCC officer ($TrainingOfficer)	도시 훈련 담당 장수	3	high
+CVariableGetFootholdInfoNode	22	int	+0x44 morale	거점 사기	5	high
+CVariableGetFootholdInfoNode	23	int	building +0x14 durability (6000 without building)	거점 내구	7	high
+CVariableGetFootholdInfoNode	24	int	city vtable +0x60: durability cap (0x267DB0: 2,000 + (scale-1) x 1,000 + force effect, x slider 0x27, <= 9,999)	도시 내구 상한	0	high
+CVariableGetFootholdInfoNode	25	int	city +0x67 bit 0 (vtable +0x68; a heavily injured officer stays in kind 32 only when set); native boundary reads in ai_raw_info.py; original display name unverified	도시 +0x67 bit0 플래그	0	high
+CVariableGetFootholdInfoNode	26	list	bases in +0x58..+0x61 (10 numbers), valid, not itself	인접 거점 목록	4	high
+CVariableGetFootholdInfoNode	27	list	officers of the base (FootholdPersonIterator) with +0xE0 corps = base corps	거점 소속 장수 목록	3	high
+CVariableGetFootholdInfoNode	28	list	as 27, and in a city now (place kind 5, +0xE4 = the city)	거점에 있는 소속 장수 목록	0	high
+CVariableGetFootholdInfoNode	29	list	counties of the city (+0x35 = city) whose hex owner = base force	도시 소속 군 목록	12	high
+CVariableGetFootholdInfoNode	30	int	sum over own officers of max command troops (0x2B2920: 작위 +0xAA for 군주, else office troops; 20,000 tribe/special; + 개성 kind 0x4D)	소속 장수 지휘 병력 합	0	medium
+CVariableGetFootholdInfoNode	31	list	units belonging to the base (unit list world+0x60, filter by base number)	거점 소속 부대 목록	1	high
+CVariableGetFootholdInfoNode	32	list	officers present (+0xE4 = base) with +0x1C7 = 0, +0x15E bit0 clear, not on a command (CCmdAction); then 0x2A0780 drops 중상 (+0x161 = 3) unless base +0x67 bit0, and drops the 군주 when the force has no other officer	거점의 행동 가능 장수 목록	20	medium
+CVariableGetFootholdInfoNode	33	int	+8 AI evaluation (CMiscSetFootholdEvaluationNode)	거점 AI 평가값	5	high
+CVariableGetFootholdInfoNode	34	int	vtable +0x90 gold (city +0x34; a gate: its city's)	거점 금	54	high
+CVariableGetFootholdInfoNode	35	int	vtable +0xA0 food (city +0x38)	거점 병량	27	high
+CVariableGetFootholdInfoNode	36	int	+0x3C troops	거점 병사 수	43	high
+CVariableGetFootholdInfoNode	37	int	force morale cap (0x22EA10 -> 0x268C50)	거점 사기 상한	0	high
+CVariableGetFootholdInfoNode	38	int	+0x94 AI need food (written by CGetAllFootholdNeedFoodNode)	거점 필요 병량	19	high
+CVariableGetFootholdInfoNode	39	int	+0x98 AI need gold (written by CCGetAllFootholdNeedMoneyNode)	거점 필요 금	66	high
+CVariableGetFootholdInfoNode	40	object	+0xA8 pointer (object kind not identified); native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	거점 +0xA8 객체	0	high
+CVariableGetFootholdInfoNode	41	object	+0xB0 pointer to a county ($DangerArea, cracked; trees add it to TargetAreaList)	거점 위험 군	4	medium
+CVariableGetFootholdInfoNode	42	list	own officers of the base + (city, number < 0x34) own officers of the bases whose city is this one (0x22CFD0, its gates)	도시와 딸린 관문 소속 장수 목록	3	high
+CVariableGetFootholdInfoNode	43	object	지역 이점 of the city's 주 (city +0xCE -> CStateData +0x30 -> CAdvantageData)	도시 주의 지역 이점	1	high
+CVariableGetFootholdInfoNode	44	list	scenery (world+0x85A90) valid, +0x5F bit0, in the city's counties on its force's hexes, +0x64 = 1, +0x6C 1..5, +0x66 = 0, +0x68 < 1 (list type 18)	도시 투자 가능 명소 목록	3	medium
+CVariableGetFootholdInfoNode	45	int	own officers based here, -1 per force officer on a move command (vtable +0x98 = 1) leaving this base, +1 per one heading here	이동 반영 소속 장수 수	3	medium
+CVariableGetDistrictInfoNode	params	-	0 object var district (CDistrictData 군단); 1 kind 0..20; 2 output var. Execute 0x87750; source not validity-checked beyond being read	군단 정보 노드: 0 군단 변수, 1 종류, 2 출력 변수	170	high
+CVariableGetDistrictInfoNode	0	int	Corps_Index	군단 번호	7	high
+CVariableGetDistrictInfoNode	1	int	+0x16 sbyte (0 in a snapshot); native boundary reads in ai_raw_info.py; original display name unverified	군단 +0x16 값	0	high
+CVariableGetDistrictInfoNode	2	object	force by +0x10	군단 세력	52	high
+CVariableGetDistrictInfoNode	3	-	no case: returns 2 (failure)	(없음)	0	high
+CVariableGetDistrictInfoNode	4	object	군단장 by +0x12	군단장	46	high
+CVariableGetDistrictInfoNode	5	int	+0x14 byte (0..7; trees test = 0 and cap the officers sent with it); native boundary reads in ai_raw_info.py; original display name unverified	군단 +0x14 (남은 행동 수?)	15	high
+CVariableGetDistrictInfoNode	6	int	sum over its bases of morale x (troops + troops x 1.5% x 군단장 +0x16A) / 100	군단 병력 평가 (병사x사기)	0	high
+CVariableGetDistrictInfoNode	7	list	units of the corps (list type 3)	군단 소속 부대 목록	4	high
+CVariableGetDistrictInfoNode	8	list	the corps agent's blackboard var AREA_OF_INFLUENCE	군단 세력권 목록	0	medium
+CVariableGetDistrictInfoNode	9	list	corps agent var CAUTION_FOOTHOLD_LIST	군단 경계 거점 목록	0	medium
+CVariableGetDistrictInfoNode	10	list	corps agent var CAUTION_TROOPS_LIST	군단 경계 부대 그룹 목록	3	medium
+CVariableGetDistrictInfoNode	11	list	corps agent var CAUTION_ARMY_LIST	군단 경계 부대 목록	0	medium
+CVariableGetDistrictInfoNode	12	int	+8 AI evaluation	군단 AI 평가값	0	high
+CVariableGetDistrictInfoNode	13	list	corps of the bases next to its bases, other than itself (list type 1)	인접 군단 목록	0	high
+CVariableGetDistrictInfoNode	14	list	bases of the corps	군단 거점 목록	6	high
+CVariableGetDistrictInfoNode	15	list	officers of the corps (+0xE0 = corps)	군단 소속 장수 목록	27	high
+CVariableGetDistrictInfoNode	16	list	bases next to its bases that belong to another corps	군단 인접 타군단 거점 목록	10	high
+CVariableGetDistrictInfoNode	17	list	officers due a 공훈 promotion (0x6D7650/0x1EF5A0): not 군주/special, +0x15E bits 14-15 clear, not on a command or leading a unit with an order, 공훈 step +0x1BC >= 2 and 0x42AD0 (step by points > +0x1BC); the player's main corps uses the whole force	승급 가능 장수 목록	0	medium
+CVariableGetDistrictInfoNode	18	list	officers within 1,000 of the next 공훈 step (+0x1BE < step +0x2C <= +0x1BE+1000); here only the first candidate is tested and the case FALLS THROUGH into kind 19 (no break), which clears the list and fills it with kind 19's bases	승급 임박 장수 목록 (19로 넘어가는 버그)	0	high
+CVariableGetDistrictInfoNode	19	list	bases near its bases (0x2A8100: cities of other non-tribe forces not allied by 0x2C38D0) that are the home base of a unit attacking (order 4/5) a base of a corps of a force with relation 1 (0x26BD40), or the target of a unit of a relation-2 force's corps; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	주변 공격 기회 거점 목록	0	high
+CVariableGetDistrictInfoNode	20	int	corps level 1..4: +0x24 x 100 / 작위 cap (0x2311F0: 작위 1-3 200,000, 4-5 150,000, 6-7 100,000, 8-9 50,000): >=75 4, >=50 3, >=25 2, else 1	군단 규모 단계	0	medium
+CGetMyselfDistrictInfoNode	params	-	0 kind 0..20; 1 output var. Execute 0x3B7D0; source = the running agent's district (0xB60E0: district agent itself, troops agent its corps, army agent its commander's corps; force agent fails). Same kinds as CVariableGetDistrictInfoNode, but kind 18 loops all candidates and returns (no fall-through)	자기 군단 정보 노드: 0 종류, 1 출력 변수	108	high
+CGetMyselfDistrictInfoNode	0	int	Corps_Index	자기 군단 번호	19	high
+CGetMyselfDistrictInfoNode	1	int	+0x16 sbyte; native boundary reads in ai_raw_info.py; original display name unverified	자기 군단 +0x16 값	0	high
+CGetMyselfDistrictInfoNode	2	object	force by +0x10	자기 군단 세력	17	high
+CGetMyselfDistrictInfoNode	3	-	no case: returns 2	(없음)	0	high
+CGetMyselfDistrictInfoNode	4	object	군단장 by +0x12	자기 군단장	6	high
+CGetMyselfDistrictInfoNode	5	int	+0x14 byte; native boundary reads in ai_raw_info.py; original display name unverified	자기 군단 +0x14 (남은 행동 수?)	30	high
+CGetMyselfDistrictInfoNode	6	int	sum morale x troops (군단장 +0x16A weighted) / 100	자기 군단 병력 평가	0	high
+CGetMyselfDistrictInfoNode	7	list	units of the corps	자기 군단 부대 목록	0	high
+CGetMyselfDistrictInfoNode	8	list	agent var AREA_OF_INFLUENCE	자기 군단 세력권 목록	0	medium
+CGetMyselfDistrictInfoNode	9	list	agent var CAUTION_FOOTHOLD_LIST	자기 군단 경계 거점 목록	0	medium
+CGetMyselfDistrictInfoNode	10	list	agent var CAUTION_TROOPS_LIST	자기 군단 경계 부대 그룹 목록	2	medium
+CGetMyselfDistrictInfoNode	11	list	agent var CAUTION_ARMY_LIST	자기 군단 경계 부대 목록	0	medium
+CGetMyselfDistrictInfoNode	12	int	+8 AI evaluation	자기 군단 AI 평가값	0	high
+CGetMyselfDistrictInfoNode	13	list	neighbouring corps	자기 인접 군단 목록	0	high
+CGetMyselfDistrictInfoNode	14	list	bases of the corps	자기 군단 거점 목록	6	high
+CGetMyselfDistrictInfoNode	15	list	officers of the corps	자기 군단 소속 장수 목록	0	high
+CGetMyselfDistrictInfoNode	16	list	bases next to its bases in another corps	자기 군단 인접 타군단 거점 목록	3	high
+CGetMyselfDistrictInfoNode	17	list	officers due a 공훈 promotion (as District kind 17)	자기 군단 승급 가능 장수 목록	3	medium
+CGetMyselfDistrictInfoNode	18	list	officers within 1,000 of the next 공훈 step (every candidate)	자기 군단 승급 임박 장수 목록	3	medium
+CGetMyselfDistrictInfoNode	19	list	nearby attack-opportunity bases (as District kind 19); native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 군단 주변 공격 기회 거점 목록	1	high
+CGetMyselfDistrictInfoNode	20	int	corps level 1..4 (as District kind 20)	자기 군단 규모 단계	18	medium
+CVariableGetForceInfoNode	params	-	0 object var force (CForceData); 1 kind 0..39; 2 output var. Execute 0x8BAB0; agent force = 0xB6180 (force agent itself, district/troops/army agents their force)	세력 정보 노드: 0 세력 변수, 1 종류, 2 출력 변수	155	high
+CVariableGetForceInfoNode	0	int	force number (vtable +0x60)	세력 번호	17	high
+CVariableGetForceInfoNode	1	int	+0x4B sbyte ($ForceStrategy)	세력 전략 방침	1	medium
+CVariableGetForceInfoNode	2	object	군주 by +0x10	세력 군주	42	high
+CVariableGetForceInfoNode	3	int	morale cap 0x268C50 (100 + 주의/effect terms)	세력 사기 상한	0	high
+CVariableGetForceInfoNode	4	int	sum over corps and bases of morale x (troops + troops x 1.5% x 군주 +0x16A) / 100, at least 1	세력 병력 평가 (병사x사기)	22	high
+CVariableGetForceInfoNode	5	int	친선 of the agent's force toward this force (agent force +0x14+n-1) x (1 + 1.5% x agent's +0x16C Duty)	에이전트 세력과의 친선 (의리 가중)	3	high
+CVariableGetForceInfoNode	6	object	force by +0x17A (first AI target force)	세력 목표 세력	3	high
+CVariableGetForceInfoNode	7	object	force by +0x17F ($FriendForce)	세력 우호 세력	5	high
+CVariableGetForceInfoNode	8	int	+8 AI evaluation (CSetForceEvaluationNode)	세력 AI 평가값	2	high
+CVariableGetForceInfoNode	9	list	forces holding bases next to its bases (list type 0)	인접 세력 목록	6	high
+CVariableGetForceInfoNode	10	list	its bases ($SelfFootholdList, cracked)	세력 거점 목록	16	high
+CVariableGetForceInfoNode	11	int	bool: 군사 (+0x52) valid	세력 군사 있음	0	high
+CVariableGetForceInfoNode	12	int	전투 정책 free slots: 군주 주의 record (0x78CF8 by 군주 +0x14C) +0x6B + force +0x70 - officers in the 7 slots at +0x54	전투 정책 빈 슬롯 수	0	medium
+CVariableGetForceInfoNode	13	int	지원 정책 free slots (+0x6C, +0x8E, slots +0x72)	지원 정책 빈 슬롯 수	0	medium
+CVariableGetForceInfoNode	14	int	모략 정책 free slots (+0x6D, +0xAC, slots +0x90)	모략 정책 빈 슬롯 수	0	medium
+CVariableGetForceInfoNode	15	int	내정 정책 free slots (+0x6E, +0xCA, slots +0xAE)	내정 정책 빈 슬롯 수	0	medium
+CVariableGetForceInfoNode	16	int	인사 정책 free slots (+0x6F, +0xE8, slots +0xCC)	인사 정책 빈 슬롯 수	0	medium
+CVariableGetForceInfoNode	17	list	units of the force	세력 부대 목록	1	high
+CVariableGetForceInfoNode	18	object	Force_MainCorps	세력 주 군단	5	high
+CVariableGetForceInfoNode	19	list	copy of the force's +0x218 base list (trees move officers and transports to it); native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	세력 +0x218 거점 목록	4	high
+CVariableGetForceInfoNode	20	-	no-op: returns 1 without writing	(없음, 기록 안 함)	0	high
+CVariableGetForceInfoNode	21	list	copy of the +0x228 base list; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	세력 +0x228 거점 목록	0	high
+CVariableGetForceInfoNode	22	list	counties next to its counties (+0x56) owned by others (list type 6)	세력 인접 타세력 군 목록	0	high
+CVariableGetForceInfoNode	23	list	forces met along the 6 hex lines and the row up to 200 hexes from its 본거지 (0xB8BE0, 0x22E8C0)	본거지 직선 200칸 안 타세력 목록	0	medium
+CVariableGetForceInfoNode	24	object	군사 by +0x52 ($Strategist)	세력 군사	0	high
+CVariableGetForceInfoNode	25	list	all officers of the force	세력 소속 장수 목록	3	high
+CVariableGetForceInfoNode	26	list	병서: entry k of world+0x79118 (k 1..30) added +0x120+2k times (list type 17)	세력 보유 병서 목록	1	high
+CVariableGetForceInfoNode	27	list	forces at +0x17A..+0x17E	세력 목표 세력 목록	4	high
+CVariableGetForceInfoNode	28	list	bases next to the +0x218 bases held by another force	+0x218 거점 인접 타세력 거점 목록	4	medium
+CVariableGetForceInfoNode	29	object	force by +0x15F; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	세력 +0x15F 세력	0	high
+CVariableGetForceInfoNode	30	object	World_GetBase(+0x160) ($RequestTargetFoothold)	세력 요청 목표 거점	3	high
+CVariableGetForceInfoNode	31	list	counties (world+0xB0) with +0x73 = this force but owned by another; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	세력 표시(+0x73) 타세력 군 목록	0	high
+CVariableGetForceInfoNode	32	int	작위 record (0x78490 by +0x47) +0xAC = grade 1..9 (1 황제 .. 9 없음)	세력 작위 등급	1	high
+CVariableGetForceInfoNode	33	list	copy of the +0x238 base list ($LastFootholdList); native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	세력 +0x238 거점 목록 (Last)	6	high
+CVariableGetForceInfoNode	34	list	troops of its units (unit +0x58, list type 2)	세력 출진 그룹 목록	1	high
+CVariableGetForceInfoNode	35	list	prisoners in its bases (status 6, +0xE4 = base; 0x230C70)	세력 포로 목록	2	high
+CVariableGetForceInfoNode	36	int	main corps level (District kind 20)	주 군단 규모 단계	0	medium
+CVariableGetForceInfoNode	37	list	officers at +0x196/+0x198/+0x19A (0x58440); native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	세력 +0x196 장수 3명	3	high
+CVariableGetForceInfoNode	38	list	officers in the force's +0x250 list; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	세력 +0x250 장수 목록	0	high
+CVariableGetForceInfoNode	39	list	its cities (city table iterated by force; list type 8)	세력 도시 목록	0	high
+CGetMyselfForceInfoNode	params	-	0 kind 0..39; 1 output var. Execute 0x55F50; source = the agent's force (0xB6180). Same kinds as CVariableGetForceInfoNode	자기 세력 정보 노드: 0 종류, 1 출력 변수	72	high
+CGetMyselfForceInfoNode	0	int	force number	자기 세력 번호	23	high
+CGetMyselfForceInfoNode	1	int	+0x4B sbyte	자기 세력 전략 방침	0	medium
+CGetMyselfForceInfoNode	2	object	군주	자기 세력 군주	19	high
+CGetMyselfForceInfoNode	3	int	morale cap	자기 세력 사기 상한	0	high
+CGetMyselfForceInfoNode	4	int	force strength (morale x troops)	자기 세력 병력 평가	6	high
+CGetMyselfForceInfoNode	5	int	친선 of the agent's force toward itself (100, Duty weighted)	자기 세력 친선 (자기 자신)	0	high
+CGetMyselfForceInfoNode	6	object	force +0x17A	자기 목표 세력	0	high
+CGetMyselfForceInfoNode	7	object	force +0x17F	자기 우호 세력	0	high
+CGetMyselfForceInfoNode	8	int	+8 AI evaluation	자기 세력 AI 평가값	0	high
+CGetMyselfForceInfoNode	9	list	neighbouring forces	자기 인접 세력 목록	3	high
+CGetMyselfForceInfoNode	10	list	its bases	자기 세력 거점 목록	0	high
+CGetMyselfForceInfoNode	11	int	bool 군사 valid	자기 세력 군사 있음	0	high
+CGetMyselfForceInfoNode	12	int	전투 정책 free slots	자기 전투 정책 빈 슬롯 수	0	medium
+CGetMyselfForceInfoNode	13	int	지원 정책 free slots	자기 지원 정책 빈 슬롯 수	0	medium
+CGetMyselfForceInfoNode	14	int	모략 정책 free slots	자기 모략 정책 빈 슬롯 수	0	medium
+CGetMyselfForceInfoNode	15	int	내정 정책 free slots	자기 내정 정책 빈 슬롯 수	0	medium
+CGetMyselfForceInfoNode	16	int	인사 정책 free slots	자기 인사 정책 빈 슬롯 수	0	medium
+CGetMyselfForceInfoNode	17	list	units of the force	자기 세력 부대 목록	0	high
+CGetMyselfForceInfoNode	18	object	Force_MainCorps ($FirstDistrict)	자기 세력 주 군단	3	high
+CGetMyselfForceInfoNode	19	list	+0x218 base list; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 세력 +0x218 거점 목록	4	high
+CGetMyselfForceInfoNode	20	-	no-op: returns 1	(없음, 기록 안 함)	0	high
+CGetMyselfForceInfoNode	21	list	+0x228 base list; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 세력 +0x228 거점 목록	1	high
+CGetMyselfForceInfoNode	22	list	counties next to its counties owned by others	자기 인접 타세력 군 목록	0	high
+CGetMyselfForceInfoNode	23	list	forces on the lines from its 본거지 (200 hexes)	자기 본거지 직선 200칸 안 타세력 목록	0	medium
+CGetMyselfForceInfoNode	24	object	군사 +0x52 ($Strategist)	자기 세력 군사	1	high
+CGetMyselfForceInfoNode	25	list	all officers	자기 세력 소속 장수 목록	0	high
+CGetMyselfForceInfoNode	26	list	병서 held	자기 세력 보유 병서 목록	0	high
+CGetMyselfForceInfoNode	27	list	forces +0x17A..+0x17E	자기 목표 세력 목록	0	high
+CGetMyselfForceInfoNode	28	list	other forces' bases next to the +0x218 bases	자기 +0x218 거점 인접 타세력 거점 목록	0	medium
+CGetMyselfForceInfoNode	29	object	force +0x15F; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 세력 +0x15F 세력	0	high
+CGetMyselfForceInfoNode	30	object	World_GetBase(+0x160)	자기 세력 요청 목표 거점	0	high
+CGetMyselfForceInfoNode	31	list	counties marked +0x73 = this force, owned by others; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 세력 표시(+0x73) 타세력 군 목록	3	high
+CGetMyselfForceInfoNode	32	int	작위 grade 1..9	자기 세력 작위 등급	1	high
+CGetMyselfForceInfoNode	33	list	+0x238 base list ($LastFootholdList); native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 세력 +0x238 거점 목록 (Last)	3	high
+CGetMyselfForceInfoNode	34	list	troops of its units ($ForceTroopsList)	자기 세력 출진 그룹 목록	2	high
+CGetMyselfForceInfoNode	35	list	prisoners in its bases	자기 세력 포로 목록	0	high
+CGetMyselfForceInfoNode	36	int	main corps level	자기 주 군단 규모 단계	0	medium
+CGetMyselfForceInfoNode	37	list	officers +0x196..+0x19A; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 세력 +0x196 장수 3명	0	high
+CGetMyselfForceInfoNode	38	list	officers in its +0x250 list; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	자기 세력 +0x250 장수 목록	3	high
+CGetMyselfForceInfoNode	39	list	its cities	자기 세력 도시 목록	0	high
+CVariableGetArmyInfoNode	params	-	0 object var army (CArmyUnitData 부대); 1 kind 0..29; 2 output var. Execute 0x861A0	부대 정보 노드: 0 부대 변수, 1 종류, 2 출력 변수	137	high
+CVariableGetArmyInfoNode	0	int	unit slot index	부대 번호	0	high
+CVariableGetArmyInfoNode	1	object	commander by +0x12	부대 대장	1	high
+CVariableGetArmyInfoNode	2	int	+0x10 kind (1 전투 부대, 2 수송)	부대 종류	0	high
+CVariableGetArmyInfoNode	3	object	troops by +0x58 (world+0x7F8D8)	부대 출진 그룹	6	high
+CVariableGetArmyInfoNode	4	object	commander's base: World_GetBase(commander +0xE2)	부대 소속 거점	31	high
+CVariableGetArmyInfoNode	5	object	force (commander's corps)	부대 세력	14	high
+CVariableGetArmyInfoNode	6	object	hex +0x2A	부대 현재 칸	28	high
+CVariableGetArmyInfoNode	7	int	+0x37 order	부대 명령	0	high
+CVariableGetArmyInfoNode	8	object	target by +0x38/+0x3A: 5 city, 6 gate, 9 hex, 11 building, 27 unit; else null	부대 목표	18	high
+CVariableGetArmyInfoNode	9	int	+0x3C 도발 source kind	부대 도발 상대 종류	0	high
+CVariableGetArmyInfoNode	10	int	+0x3E 도발 source number	부대 도발 상대 번호	0	high
+CVariableGetArmyInfoNode	11	int	min(+0x1A morale, force morale cap)	부대 사기	9	high
+CVariableGetArmyInfoNode	12	object	land formation by +0x1B	부대 육상 진형	0	high
+CVariableGetArmyInfoNode	13	int	+0x5C gold carried - 1.5% x P(+0x170) (agent personality as Foothold kind 9)	부대 가용 금	0	high
+CVariableGetArmyInfoNode	14	int	+0x60 food carried - 1.5% x P(+0x172)	부대 가용 병량	0	high
+CVariableGetArmyInfoNode	15	int	+0x16 troops x (1 + 1.5% x P(+0x16A))	부대 병사 수 (호전 가중)	1	high
+CVariableGetArmyInfoNode	16	object	county of its hex (hex +0x12)	부대 위치 군	3	high
+CVariableGetArmyInfoNode	17	int	+8 AI evaluation	부대 AI 평가값	0	high
+CVariableGetArmyInfoNode	18	list	hexes at +0x2C..+0x34 (5 words, list type 7); native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	부대 +0x2C 칸 목록	0	high
+CVariableGetArmyInfoNode	19	int	target kind +0x38 as AI type: 2->5 거점, 5->8 도시, 6->9 관문, 7->0 세력, 8->1 군단, 9->7 칸, 10->6 군, 11->10 시설, 14->4 장수, 27->3 부대, 29->2 출진 그룹; other kinds: nothing written	부대 목표 종류	0	high
+CVariableGetArmyInfoNode	20	int	+0x5C gold carried	부대 금	0	high
+CVariableGetArmyInfoNode	21	int	+0x60 food carried	부대 병량	0	high
+CVariableGetArmyInfoNode	22	int	+0x16 troops	부대 병사 수	3	high
+CVariableGetArmyInfoNode	23	int	0xB5EC0: BattlePower_Evaluate(unit,0,1,0) x troops / 1000	부대 전투력 평가	15	high
+CVariableGetArmyInfoNode	24	object	nearest base (Hex_Distance) of a force its force may attack (0x2CA280)	가장 가까운 공격 가능 거점	3	high
+CVariableGetArmyInfoNode	25	int	Unit_MobilityFactor(unit, formation, 1,0,0)	부대 기동력	1	high
+CVariableGetArmyInfoNode	26	int	Battle_AttackVsUnit(BattlePower_Evaluate(unit,0,1,1), unit, 0, formation, 1, 0)	부대 대부대 공격력	3	high
+CVariableGetArmyInfoNode	27	int	Battle_AttackVsBase(same)	부대 공성 공격력	0	high
+CVariableGetArmyInfoNode	28	int	0x2AA2E0(unit, formation, 1): breach value built on the formation's 0x2B27B0 value ($Destroy)	부대 파성력	1	medium
+CVariableGetArmyInfoNode	29	int	Battle_Defense(same)	부대 방어력	0	high
+CVariableGetTroopsInfoNode	params	-	0 object var troops (출진 그룹, world+0x7F8D8, 0x40 each); 1 kind 0..15; 2 output var. Execute 0x8F0C0	출진 그룹 정보 노드: 0 출진 그룹 변수, 1 종류, 2 출력 변수	106	high
+CVariableGetTroopsInfoNode	0	int	troops index	출진 그룹 번호	0	high
+CVariableGetTroopsInfoNode	1	int	+0x14 purpose (CTroopsSetPurposeNode)	출진 그룹 목적	0	high
+CVariableGetTroopsInfoNode	2	object	unit led by its leader (+0x2C officer, 0x22E1B0), else its lowest-numbered unit	출진 그룹 대표 부대	30	high
+CVariableGetTroopsInfoNode	3	list	its units	출진 그룹 부대 목록	14	high
+CVariableGetTroopsInfoNode	4	object	target by purpose +0x14 and +0x16: 0,2,8-12,17,18,22 base; 1,19 caution troops (world+0x80BA8); 3,13-16,21,23 county; 4,20 building; 5-7 hex; else nothing written	출진 그룹 목표	26	high
+CVariableGetTroopsInfoNode	5	int	QUIRK: sums the AGENT's troops (0xB6260), not the variable's, x (1 + 1.5% x P(+0x16A))	에이전트 출진 그룹 병사 수 (호전 가중)	0	high
+CVariableGetTroopsInfoNode	6	int	+8 AI evaluation	출진 그룹 AI 평가값	0	high
+CVariableGetTroopsInfoNode	7	object	its corps (0x22BAA0)	출진 그룹 군단	6	high
+CVariableGetTroopsInfoNode	8	int	sum +0x5C gold carried	출진 그룹 금	0	high
+CVariableGetTroopsInfoNode	9	int	sum +0x60 food carried	출진 그룹 병량	0	high
+CVariableGetTroopsInfoNode	10	int	sum +0x16 troops	출진 그룹 병사 수	4	high
+CVariableGetTroopsInfoNode	11	int	sum gold - 1.5% x agent P(+0x170)	출진 그룹 가용 금	0	high
+CVariableGetTroopsInfoNode	12	int	sum food - 1.5% x agent P(+0x172)	출진 그룹 가용 병량	0	high
+CVariableGetTroopsInfoNode	13	int	sum of unit battle power (0xB5EC0)	출진 그룹 전투력 평가	15	high
+CVariableGetTroopsInfoNode	14	list	hexes +0x18..+0x2A (10 words, 0xBD10 skipped)	출진 그룹 경유 칸 목록	10	high
+CVariableGetTroopsInfoNode	15	object	its force (0x22CB10)	출진 그룹 세력	1	high
+CGetMyselfTroopsInfoNode	params	-	0 kind 0..15; 1 output var. Execute 0x6C4D0; source = the agent's troops (0xB6260: troops agent itself, army agent its troops). Same kinds; 5/11/12 weigh by the troops' own highest-통솔 commander	자기 출진 그룹 정보 노드: 0 종류, 1 출력 변수	5	high
+CGetMyselfTroopsInfoNode	0	int	troops index	자기 출진 그룹 번호	0	high
+CGetMyselfTroopsInfoNode	1	int	+0x14 purpose	자기 출진 그룹 목적	0	high
+CGetMyselfTroopsInfoNode	2	object	lead unit	자기 출진 그룹 대표 부대	2	high
+CGetMyselfTroopsInfoNode	3	list	its units	자기 출진 그룹 부대 목록	0	high
+CGetMyselfTroopsInfoNode	4	object	target by purpose	자기 출진 그룹 목표	2	high
+CGetMyselfTroopsInfoNode	5	int	sum troops x (1 + 1.5% x own top commander +0x16A)	자기 출진 그룹 병사 수 (호전 가중)	0	high
+CGetMyselfTroopsInfoNode	6	int	+8 AI evaluation	자기 출진 그룹 AI 평가값	0	high
+CGetMyselfTroopsInfoNode	7	object	its corps	자기 출진 그룹 군단	1	high
+CGetMyselfTroopsInfoNode	8	int	sum gold carried	자기 출진 그룹 금	0	high
+CGetMyselfTroopsInfoNode	9	int	sum food carried	자기 출진 그룹 병량	0	high
+CGetMyselfTroopsInfoNode	10	int	sum troops	자기 출진 그룹 병사 수	0	high
+CGetMyselfTroopsInfoNode	11	int	sum gold - 1.5% x P(+0x170)	자기 출진 그룹 가용 금	0	medium
+CGetMyselfTroopsInfoNode	12	int	sum food - 1.5% x P(+0x172)	자기 출진 그룹 가용 병량	0	medium
+CGetMyselfTroopsInfoNode	13	int	sum battle power	자기 출진 그룹 전투력 평가	0	high
+CGetMyselfTroopsInfoNode	14	list	relay hexes +0x18..	자기 출진 그룹 경유 칸 목록	0	high
+CGetMyselfTroopsInfoNode	15	object	its force	자기 출진 그룹 세력	0	high
+CVariableGetAreaInfoNode	params	-	0 object var area (CAreaData 군); 1 kind 0..24; 2 output var. Execute 0x856F0	군 정보 노드: 0 군 변수, 1 종류, 2 출력 변수	97	high
+CVariableGetAreaInfoNode	0	int	county index	군 번호	2	high
+CVariableGetAreaInfoNode	1	object	hex +0x3A	군 중심 칸	13	high
+CVariableGetAreaInfoNode	2	object	city by +0x34 (home city)	군 본래 도시	3	high
+CVariableGetAreaInfoNode	3	object	city by +0x35 ($BelongCityCurrent, cracked)	군 소속 도시	15	high
+CVariableGetAreaInfoNode	4	object	officer by +0x36	군 담당 장수	4	medium
+CVariableGetAreaInfoNode	5	int	level 1..5 of +0x3C 상업 (100/300/600/1000)	군 상업 개발 단계	0	high
+CVariableGetAreaInfoNode	6	int	+0x44 ushort; native boundary reads in ai_raw_info.py; original display name unverified	군 +0x44 값	0	high
+CVariableGetAreaInfoNode	7	int	+0x46 ushort; native boundary reads in ai_raw_info.py; original display name unverified	군 +0x46 값	3	high
+CVariableGetAreaInfoNode	8	int	+0x48 ushort; native boundary reads in ai_raw_info.py; original display name unverified	군 +0x48 값	0	high
+CVariableGetAreaInfoNode	9	-	no-op: returns 1 without writing	(없음, 기록 안 함)	0	high
+CVariableGetAreaInfoNode	10	int	constant 1000 (0x22E9A0)	군 개발 상한 1000	0	high
+CVariableGetAreaInfoNode	11	int	constant 1000 (same function)	군 개발 상한 1000	0	high
+CVariableGetAreaInfoNode	12	int	constant 1000 (same function)	군 개발 상한 1000	0	high
+CVariableGetAreaInfoNode	13	int	+0x52 population	군 인구	0	high
+CVariableGetAreaInfoNode	14	int	+0x54 치안 ($Morale)	군 치안	5	high
+CVariableGetAreaInfoNode	15	int	0x22D910 (0x2BCE80 with officer +0x36) - 1.5% x P(+0x170): gold yield less reserve	군 금 산출 (유보 제외)	0	medium
+CVariableGetAreaInfoNode	16	int	0x2319C0 (0x2BC950 with the season) - 1.5% x P(+0x172): food yield less reserve	군 병량 산출 (유보 제외)	0	medium
+CVariableGetAreaInfoNode	17	int	BUG: computes 0x22D960 (with the city's +0xCA officer) and the agent's commander, drops both, writes +0x54 치안	군 치안 (계산 버림, 버그)	0	high
+CVariableGetAreaInfoNode	18	int	+0x54 치안 (0x22C810 called and dropped)	군 치안	0	high
+CVariableGetAreaInfoNode	19	list	neighbour counties (+0x56, 8 words)	인접 군 목록	22	high
+CVariableGetAreaInfoNode	20	object	owner force of its hex	군 세력	2	high
+CVariableGetAreaInfoNode	21	int	+8 AI evaluation (CMiscSetAreaEvaluationNode)	군 AI 평가값	0	high
+CVariableGetAreaInfoNode	22	list	its hexes	군 칸 목록	3	high
+CVariableGetAreaInfoNode	23	object	base standing on its hex (hex +0x1A < 0x3E), else city +0x35 ($BelongFootholdCurrent, cracked)	군 소속 거점	19	high
+CVariableGetAreaInfoNode	24	list	buildings on its hexes whose kind record +0x2C != 1 (list type 10)	군 시설 목록	6	medium
+CVariableGetHexInfoNode	params	-	0 object var hex (CHexData 칸); 1 kind 0..6; 2 output var. Execute 0x8DCF0	칸 정보 노드: 0 칸 변수, 1 종류, 2 출력 변수	34	high
+CVariableGetHexInfoNode	0	int	hex index	칸 번호	0	high
+CVariableGetHexInfoNode	1	object	county by +0x12	칸 소속 군	28	high
+CVariableGetHexInfoNode	2	object	owner force +0x14	칸 세력	0	high
+CVariableGetHexInfoNode	3	int	+0x16 ushort (0 on all but one hex in a snapshot); native boundary reads in ai_raw_info.py; original display name unverified	칸 +0x16 값	0	high
+CVariableGetHexInfoNode	4	int	+8 AI evaluation (CMiscSetHexEvaluationNode)	칸 AI 평가값	0	high
+CVariableGetHexInfoNode	5	object	nearest base (Hex_Distance)	가장 가까운 거점	0	high
+CVariableGetHexInfoNode	6	object	building by +0x1A	칸 위 시설	6	high
+CVariableGetFormationInfoNode	params	-	0 object var formation (CFormationData 진형); 1 kind 0..5; 2 output var. Execute 0x8DA10; kinds 0..4 = 0x2A8C30(agent force, formation, kind+1), which adds force +0x193 bonuses for formation types 5/7	진형 정보 노드: 0 진형 변수, 1 종류, 2 출력 변수	26	high
+CVariableGetFormationInfoNode	0	int	Formation_Mobility (<= 30)	진형 기동	2	high
+CVariableGetFormationInfoNode	1	int	0x2B2720 attack (<= 45)	진형 공격	11	high
+CVariableGetFormationInfoNode	2	int	0x2B2690 siege (<= 70)	진형 공성	0	high
+CVariableGetFormationInfoNode	3	int	0x2B27B0 (vector byte 0x14, <= 60): breach	진형 파성	0	medium
+CVariableGetFormationInfoNode	4	int	0x2A9DC0 defense (<= 40)	진형 방어	11	high
+CVariableGetFormationInfoNode	5	int	+0x9A ushort ($Cost)	진형 비용	2	medium
+CVariableGetBuildingInfoNode	params	-	0 object var building (CObjectData 시설); 1 kind 0..4; 2 output var. Execute 0x86FB0	시설 정보 노드: 0 시설 변수, 1 종류, 2 출력 변수	16	high
+CVariableGetBuildingInfoNode	0	object	hex +0x10	시설 칸	10	high
+CVariableGetBuildingInfoNode	1	int	vtable +0x10 = 11 (object kind code)	시설 객체 종류 (11)	0	high
+CVariableGetBuildingInfoNode	2	object	force +0x13	시설 세력	6	high
+CVariableGetBuildingInfoNode	3	int	+0x14 durability	시설 내구	0	high
+CVariableGetBuildingInfoNode	4	int	+8 AI evaluation	시설 AI 평가값	0	high
+CVariableGetSceneryInfoNode	params	-	0 object var scenery (명소, world+0x85A90, 0x78 each); 1 kind 0..7; 2 output var. Execute 0x8EF50	명소 정보 노드: 0 명소 변수, 1 종류, 2 출력 변수	12	high
+CVariableGetSceneryInfoNode	0	int	scenery index	명소 번호	3	high
+CVariableGetSceneryInfoNode	1	object	hex +0x5C	명소 칸	0	high
+CVariableGetSceneryInfoNode	2	int	+0x64 byte (1 = investable); native boundary reads in ai_raw_info.py; original display name unverified	명소 상태	0	high
+CVariableGetSceneryInfoNode	3	int	+0x6C byte level (<= 5)	명소 단계	3	medium
+CVariableGetSceneryInfoNode	4	object	owner force of its hex when +0x5F bit0	명소 세력	0	high
+CVariableGetSceneryInfoNode	5	object	its county (0x229ED0)	명소 소속 군	3	high
+CVariableGetSceneryInfoNode	6	int	investment cost 0x22ABB0: from its county's 상업/농업/병영 levels and level+1 tables, x option slider 0x13 ($CheckMoney)	명소 투자 비용	3	medium
+CVariableGetSceneryInfoNode	7	int	+0x66 unsigned short (movzx at 0x8F06C) (0 = investable); native boundary reads in ai_raw_info.py; original display name unverified	명소 +0x66 값	0	high
+CVariableGetCautionTroopsInfoNode	params	-	0 object var caution troops (경계 부대 그룹, world+0x80BA8); 1 kind 0..8; 2 output var. Execute 0x872B0	경계 그룹 정보 노드: 0 경계 그룹 변수, 1 종류, 2 출력 변수	58	high
+CVariableGetCautionTroopsInfoNode	0	int	+0x18 unsigned short; 0x28730 assigns the smallest unused positive number within its provided caution list; numeric node read verified	경계 그룹 목록 내 번호	0	high
+CVariableGetCautionTroopsInfoNode	1	int	sum of battle power (0xB5EC0) of its units (+0x30 list); ALSO WRITES the float sum into +0x20	경계 그룹 전투력 (+0x20에 기록)	12	high
+CVariableGetCautionTroopsInfoNode	2	list	its units (+0x30)	경계 그룹 부대 목록	24	high
+CVariableGetCautionTroopsInfoNode	3	int	+0x3C ($Status)	경계 그룹 상태	3	medium
+CVariableGetCautionTroopsInfoNode	4	object	World_GetBase(+0x1A) (CSetCautionTroopsVirtualTargetFootholdNode)	경계 그룹 예상 목표 거점	13	high
+CVariableGetCautionTroopsInfoNode	5	int	sum troops x (1 + 1.5% x top-통솔 commander +0x16A); 0 without commander	경계 그룹 병사 수 (호전 가중)	0	high
+CVariableGetCautionTroopsInfoNode	6	int	+8 AI evaluation (CSetCautionTroopsEvaluationNode)	경계 그룹 AI 평가값	0	high
+CVariableGetCautionTroopsInfoNode	7	int	sum troops	경계 그룹 병사 수	3	high
+CVariableGetCautionTroopsInfoNode	8	object	force via its corps (0x22BB40)	경계 그룹 세력	3	high
+CVariableGetCautionArmyInfoNode	params	-	0 object var caution army (경계 부대, world+0x81B50, 0x18 each); 1 kind 0..4; 2 output var. Execute 0x87110	경계 부대 정보 노드: 0 경계 부대 변수, 1 종류, 2 출력 변수	11	high
+CVariableGetCautionArmyInfoNode	0	int	record index	경계 부대 번호	0	high
+CVariableGetCautionArmyInfoNode	1	int	battle power of its unit (0xB5EC0)	경계 부대 전투력	1	high
+CVariableGetCautionArmyInfoNode	2	object	World_GetBase(+0x12)	경계 부대 예상 목표 거점	5	high
+CVariableGetCautionArmyInfoNode	3	object	unit by +0x10	경계 부대의 부대	5	high
+CVariableGetCautionArmyInfoNode	4	int	+8 AI evaluation	경계 부대 AI 평가값	0	high
+CVariableGetAdvantageInfoNode	params	-	0 object var advantage (CAdvantageData 지역 이점); 1 kind (only 0, others fail); 2 output var. Execute 0x85650	지역 이점 정보 노드: 0 지역 이점 변수, 1 종류, 2 출력 변수	1	high
+CVariableGetAdvantageInfoNode	0	int	0x92440: required bases (+0x95, or decoded from the +0xA0 vector)	지역 이점 필요 거점 수	1	high
+CVariableGetGameDataNode	params	-	0 kind 0..6; 1 output var (no source object). Execute 0x8DB40; world state = world+0x871E8	게임 정보 노드: 0 종류, 1 출력 변수	64	high
+CVariableGetGameDataNode	0	int	year (world state +0x34 short)	현재 연도	0	high
+CVariableGetGameDataNode	1	int	month (+0x36)	현재 월	7	high
+CVariableGetGameDataNode	2	int	day (+0x37) ($Date)	현재 일	16	high
+CVariableGetGameDataNode	3	int	world state +0x454 int ($ElapsedTurn, cracked; also salts AI dice with World_RandomSalt)	경과 턴 수	19	medium
+CVariableGetGameDataNode	4	object	force by world state +0x1656 ($AllianceTargetForce)	동맹 대상 세력	2	medium
+CVariableGetGameDataNode	5	object	force by world state +0x1657; native node output logged by ai_info_audit.py (numeric/pointer rule verified; original role names not recovered)	월드 +0x1657 세력	0	high
+CVariableGetGameDataNode	6	int	Options_Slider(0x29): a 상세 설정 slider value (%)	상세 설정 슬라이더 0x29	20	medium

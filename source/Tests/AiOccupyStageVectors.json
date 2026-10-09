@@ -1,0 +1,235 @@
+{
+  "utc": "2026-10-04T11:11:23.283770+00:00",
+  "pid": 2964,
+  "clockBefore": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "clockAfter": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "clockStable": true,
+  "listPoolSnapshot": {
+    "attempts": 1,
+    "start": 1810963300352,
+    "length": 6295552,
+    "sha256": "d40e8e043cad1fd624b6b4d14f6b6013d14fb0c6e05161f1a106cd13a43a422d",
+    "validatedLists": 81920,
+    "validatedActiveNodes": 17748,
+    "validatedFreeNodes": 80556,
+    "validatedIndices": 41411,
+    "validatedFreeIndices": 40509
+  },
+  "sourceGroup": 1810954829880,
+  "sourceUnit": 1810951087896,
+  "ownedCity": {
+    "id": 24,
+    "city": 1810951330104,
+    "owner": 10,
+    "area": 1810951016112,
+    "center": 9266
+  },
+  "nativeDistance": 0,
+  "constructionBuilding": 1810953633880,
+  "method": "registered executor full native calls; explicit initialized state stages and logged copied record inputs; no game writes, hooks, forced return or helper replacement",
+  "oracle_sha256": "96741ec7f5db1d3257c25c9bdd9d51820577271f606f0acf196554d2020c52f3",
+  "failures": [
+    {
+      "variant": "stage2MissingTile",
+      "inputStage": 2,
+      "inputEnabled": true,
+      "pollInputs": {
+        "validHex": false,
+        "validBuilding": false,
+        "durability": 0,
+        "maximum": 0
+      },
+      "copiedInputChanges": [
+        {
+          "address": 1810954829900,
+          "before": 13,
+          "after": 3,
+          "size": 2,
+          "role": "group purpose in copied input"
+        },
+        {
+          "address": 1810954829902,
+          "before": 8177,
+          "after": 24,
+          "size": 2,
+          "role": "group target base in copied input"
+        },
+        {
+          "address": 1810954829904,
+          "before": 8177,
+          "after": 9266,
+          "size": 2,
+          "role": "group first relay in copied input"
+        },
+        {
+          "address": 1810994451384,
+          "before": 0,
+          "after": 1810951016112,
+          "size": 8,
+          "role": "state current area in copied input"
+        },
+        {
+          "address": 1810994451392,
+          "before": 0,
+          "after": 0,
+          "size": 8,
+          "role": "state next area in copied input"
+        },
+        {
+          "address": 1810994451400,
+          "before": 0,
+          "after": 1,
+          "size": 4,
+          "role": "state initialized in copied input"
+        },
+        {
+          "address": 1810994451404,
+          "before": 0,
+          "after": 2,
+          "size": 1,
+          "role": "state construction stage in copied input"
+        },
+        {
+          "address": 1810994451405,
+          "before": 0,
+          "after": 1,
+          "size": 1,
+          "role": "state construction enabled in copied input"
+        },
+        {
+          "address": 1810994451408,
+          "before": 48400,
+          "after": 13219,
+          "size": 4,
+          "role": "state construction hex in copied input"
+        },
+        {
+          "address": 1810954829906,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829908,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829910,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829912,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829914,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829916,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829918,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829920,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1810954829922,
+          "before": 48400,
+          "after": 48400,
+          "size": 2,
+          "role": "group remaining relay in copied input"
+        },
+        {
+          "address": 1808645387432,
+          "before": 1810951812104,
+          "after": 0,
+          "size": 8,
+          "role": "missing construction tile pointer in copied world table input"
+        }
+      ],
+      "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000",
+      "error": "Invalid memory read (UC_ERR_READ_UNMAPPED) at rip 0x7ff76eb22f95 (rva 0x332f95); last fault ('0x12', '0x7ff76eb22f95')",
+      "frames": [
+        {
+          "rva": 419431,
+          "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000",
+          "currentArea": 1810951016112,
+          "nextArea": 0,
+          "stage": 2,
+          "enabled": 1,
+          "constructionHex": 13219
+        },
+        {
+          "rva": 419539,
+          "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000401ffffa333000000000000",
+          "currentArea": 1810951016112,
+          "nextArea": 0,
+          "stage": 4,
+          "enabled": 1,
+          "constructionHex": 13219
+        }
+      ],
+      "events": []
+    }
+  ],
+  "sourceLog": ".cache\\ai_occupy_stage\\20261004T111123Z.json",
+  "cases": [
+    {"variant": "stage0", "inputStage": 0, "inputEnabled": false, "pollInputs": {"validHex": true, "validBuilding": true, "durability": 500, "maximum": 500}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 0, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 0, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 13219, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000000ffffa333000000000000", "status": 1, "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000000ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 0, "enabled": 0, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000000ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 0, "enabled": 0, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f000000000000000000000000000000000000010000000000ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 0, "enabled": 0, "constructionHex": 13219}, {"rva": 420014, "state": "08b2b36ff77f000000000000000000000000000000000000010000000000ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 0, "enabled": 0, "constructionHex": 13219}, {"rva": 420026, "state": "08b2b36ff77f000000000000000000000000000000000000010000000000ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 0, "enabled": 0, "constructionHex": 13219}], "events": [{"rva": 3072480, "args": [1810951087896, 0, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 1, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 2, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 3, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 4, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}]},
+    {"variant": "stage0BuildEnabled", "inputStage": 0, "inputEnabled": true, "pollInputs": {"validHex": true, "validBuilding": true, "durability": 500, "maximum": 500}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 0, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 1, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 13219, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000001ffffa333000000000000", "status": 3, "stateAfter": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff5123000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000001ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 0, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000001ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 0, "enabled": 1, "constructionHex": 13219}, {"rva": 420014, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000101ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 1, "enabled": 1, "constructionHex": 13219}, {"rva": 420026, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000101ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 1, "enabled": 1, "constructionHex": 13219}], "events": [{"rva": 467936, "args": [73014444032, 1810954829880, 1810991190768, 1810994451376], "return_address": 420156, "rsp": 68720524800, "result64": 0, "result": 0}, {"rva": 757872, "args": [1810951016112, 1810954216936, 1810951344608, 68720524720], "return_address": 468337, "rsp": 68720524640, "result64": 0, "result": 0, "list": [1810951678408, 1810951671400, 1810951678376, 1810951678440, 1810951685448, 1810951671432, 1810951678472, 1810951685416, 1810951685480, 1810951685512, 1810951692488, 1810951664424, 1810951671464, 1810951678504, 1810951685544, 1810951692520, 1810951692552, 1810951699528, 1810951664456, 1810951671496, 1810951678536, 1810951685576, 1810951692584, 1810951692616, 1810951699560, 1810951699592, 1810951650312, 1810951650344, 1810951664488, 1810951671528, 1810951678568, 1810951692648, 1810951699624, 1810951699656, 1810951706632, 1810951643304, 1810951671560, 1810951678600, 1810951685640, 1810951692680, 1810951699688, 1810951699720, 1810951706664, 1810951706696, 1810951713672, 1810951664552, 1810951671592, 1810951678632, 1810951685672, 1810951692712, 1810951699752, 1810951706728, 1810951706760, 1810951713704, 1810951713736, 1810951664584, 1810951671624, 1810951678664, 1810951685704, 1810951692744, 1810951699784, 1810951678696, 1810951685736, 1810951692776, 1810951706856, 1810951720808, 1810951720840, 1810951692808]}, {"rva": 3058400, "args": [1810951087896, 8, 36293, 81920], "return_address": 468640, "rsp": 68720524640, "result64": 17, "result": 17}, {"rva": 3058496, "args": [1810951087896, 9, 9041, 81920], "return_address": 468664, "rsp": 68720524640, "result64": 1, "result": 1}, {"rva": 3072016, "args": [1810951087896, 3, 2, 81920], "return_address": 468749, "rsp": 68720524640, "result64": 2, "result": 2}]},
+    {"variant": "stage1", "inputStage": 1, "inputEnabled": true, "pollInputs": {"validHex": true, "validBuilding": true, "durability": 500, "maximum": 500}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 1, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 1, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 13219, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000101ffffa333000000000000", "status": 1, "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000101ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 1, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000101ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 1, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f000000000000000000000000000000000000010000000101ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 1, "enabled": 1, "constructionHex": 13219}, {"rva": 420014, "state": "08b2b36ff77f000000000000000000000000000000000000010000000101ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 1, "enabled": 1, "constructionHex": 13219}, {"rva": 420026, "state": "08b2b36ff77f000000000000000000000000000000000000010000000101ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 1, "enabled": 1, "constructionHex": 13219}], "events": [{"rva": 3072480, "args": [1810951087896, 0, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 1, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 2, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 3, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 4, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}]},
+    {"variant": "stage4", "inputStage": 4, "inputEnabled": true, "pollInputs": {"validHex": true, "validBuilding": true, "durability": 500, "maximum": 500}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 4, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 1, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 13219, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000401ffffa333000000000000", "status": 1, "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000401ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 4, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000401ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 4, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f000000000000000000000000000000000000010000000401ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 4, "enabled": 1, "constructionHex": 13219}, {"rva": 420014, "state": "08b2b36ff77f000000000000000000000000000000000000010000000401ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 4, "enabled": 1, "constructionHex": 13219}, {"rva": 420026, "state": "08b2b36ff77f000000000000000000000000000000000000010000000001ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 0, "enabled": 1, "constructionHex": 13219}], "events": [{"rva": 3072480, "args": [1810951087896, 0, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 1, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 2, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 3, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 4, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}]},
+    {"variant": "stage2Complete", "inputStage": 2, "inputEnabled": true, "pollInputs": {"validHex": true, "validBuilding": true, "durability": 500, "maximum": 500}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 2, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 1, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 13219, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810953633900, "before": 500, "after": 500, "size": 2, "role": "construction durability in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000", "status": 1, "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000401ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 4, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f000000000000000000000000000000000000010000000401ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 4, "enabled": 1, "constructionHex": 13219}, {"rva": 420014, "state": "08b2b36ff77f000000000000000000000000000000000000010000000401ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 4, "enabled": 1, "constructionHex": 13219}, {"rva": 420026, "state": "08b2b36ff77f000000000000000000000000000000000000010000000001ffffa333000000000000", "currentArea": 0, "nextArea": 0, "stage": 0, "enabled": 1, "constructionHex": 13219}], "events": [{"rva": 3072480, "args": [1810951087896, 0, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 1, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 2, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 3, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}, {"rva": 3072480, "args": [1810951087896, 4, 48400, 0], "return_address": 420368, "rsp": 68720524800, "result64": 1, "result": 1}]},
+    {"variant": "stage2Incomplete", "inputStage": 2, "inputEnabled": true, "pollInputs": {"validHex": true, "validBuilding": true, "durability": 499, "maximum": 500}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 2, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 1, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 13219, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810953633900, "before": 500, "after": 499, "size": 2, "role": "construction durability in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000", "status": 3, "stateAfter": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff5123000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 13219}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 13219}, {"rva": 420014, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 13219}, {"rva": 420026, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffa333000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 13219}], "events": [{"rva": 467936, "args": [73014444032, 1810954829880, 1810991190768, 1810994451376], "return_address": 420156, "rsp": 68720524800, "result64": 0, "result": 0}, {"rva": 757872, "args": [1810951016112, 1810954216936, 1810951344608, 68720524720], "return_address": 468337, "rsp": 68720524640, "result64": 0, "result": 0, "list": [1810951678408, 1810951671400, 1810951678376, 1810951678440, 1810951685448, 1810951671432, 1810951678472, 1810951685416, 1810951685480, 1810951685512, 1810951692488, 1810951664424, 1810951671464, 1810951678504, 1810951685544, 1810951692520, 1810951692552, 1810951699528, 1810951664456, 1810951671496, 1810951678536, 1810951685576, 1810951692584, 1810951692616, 1810951699560, 1810951699592, 1810951650312, 1810951650344, 1810951664488, 1810951671528, 1810951678568, 1810951692648, 1810951699624, 1810951699656, 1810951706632, 1810951643304, 1810951671560, 1810951678600, 1810951685640, 1810951692680, 1810951699688, 1810951699720, 1810951706664, 1810951706696, 1810951713672, 1810951664552, 1810951671592, 1810951678632, 1810951685672, 1810951692712, 1810951699752, 1810951706728, 1810951706760, 1810951713704, 1810951713736, 1810951664584, 1810951671624, 1810951678664, 1810951685704, 1810951692744, 1810951699784, 1810951678696, 1810951685736, 1810951692776, 1810951706856, 1810951720808, 1810951720840, 1810951692808]}, {"rva": 3058400, "args": [1810951087896, 8, 36293, 81920], "return_address": 468640, "rsp": 68720524640, "result64": 17, "result": 17}, {"rva": 3058496, "args": [1810951087896, 9, 9041, 81920], "return_address": 468664, "rsp": 68720524640, "result64": 1, "result": 1}, {"rva": 3072016, "args": [1810951087896, 3, 2, 81920], "return_address": 468749, "rsp": 68720524640, "result64": 2, "result": 2}]},
+    {"variant": "stage2EmptyHex", "inputStage": 2, "inputEnabled": true, "pollInputs": {"validHex": true, "validBuilding": false, "durability": 0, "maximum": 0}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 2, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 1, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 12998, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffc632000000000000", "status": 3, "stateAfter": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff5123000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffc632000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 12998}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffc632000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 12998}, {"rva": 420014, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffc632000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 12998}, {"rva": 420026, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffffc632000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 12998}], "events": [{"rva": 467936, "args": [73014444032, 1810954829880, 1810991190768, 1810994451376], "return_address": 420156, "rsp": 68720524800, "result64": 0, "result": 0}, {"rva": 757872, "args": [1810951016112, 1810954216936, 1810951344608, 68720524720], "return_address": 468337, "rsp": 68720524640, "result64": 0, "result": 0, "list": [1810951678408, 1810951671400, 1810951678376, 1810951678440, 1810951685448, 1810951671432, 1810951678472, 1810951685416, 1810951685480, 1810951685512, 1810951692488, 1810951664424, 1810951671464, 1810951678504, 1810951685544, 1810951692520, 1810951692552, 1810951699528, 1810951664456, 1810951671496, 1810951678536, 1810951685576, 1810951692584, 1810951692616, 1810951699560, 1810951699592, 1810951650312, 1810951650344, 1810951664488, 1810951671528, 1810951678568, 1810951692648, 1810951699624, 1810951699656, 1810951706632, 1810951643304, 1810951671560, 1810951678600, 1810951685640, 1810951692680, 1810951699688, 1810951699720, 1810951706664, 1810951706696, 1810951713672, 1810951664552, 1810951671592, 1810951678632, 1810951685672, 1810951692712, 1810951699752, 1810951706728, 1810951706760, 1810951713704, 1810951713736, 1810951664584, 1810951671624, 1810951678664, 1810951685704, 1810951692744, 1810951699784, 1810951678696, 1810951685736, 1810951692776, 1810951706856, 1810951720808, 1810951720840, 1810951692808]}, {"rva": 3058400, "args": [1810951087896, 8, 36293, 81920], "return_address": 468640, "rsp": 68720524640, "result64": 17, "result": 17}, {"rva": 3058496, "args": [1810951087896, 9, 9041, 81920], "return_address": 468664, "rsp": 68720524640, "result64": 1, "result": 1}, {"rva": 3072016, "args": [1810951087896, 3, 2, 81920], "return_address": 468749, "rsp": 68720524640, "result64": 2, "result": 2}]},
+    {"variant": "stage2OutOfRangeHex", "inputStage": 2, "inputEnabled": true, "pollInputs": {"validHex": true, "validBuilding": false, "durability": 0, "maximum": 0}, "copiedInputChanges": [{"address": 1810954829900, "before": 13, "after": 3, "size": 2, "role": "group purpose in copied input"}, {"address": 1810954829902, "before": 8177, "after": 24, "size": 2, "role": "group target base in copied input"}, {"address": 1810954829904, "before": 8177, "after": 9266, "size": 2, "role": "group first relay in copied input"}, {"address": 1810994451384, "before": 0, "after": 1810951016112, "size": 8, "role": "state current area in copied input"}, {"address": 1810994451392, "before": 0, "after": 0, "size": 8, "role": "state next area in copied input"}, {"address": 1810994451400, "before": 0, "after": 1, "size": 4, "role": "state initialized in copied input"}, {"address": 1810994451404, "before": 0, "after": 2, "size": 1, "role": "state construction stage in copied input"}, {"address": 1810994451405, "before": 0, "after": 1, "size": 1, "role": "state construction enabled in copied input"}, {"address": 1810994451408, "before": 48400, "after": 48400, "size": 4, "role": "state construction hex in copied input"}, {"address": 1810954829906, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829908, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829910, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829912, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829914, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829916, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829918, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829920, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}, {"address": 1810954829922, "before": 48400, "after": 48400, "size": 2, "role": "group remaining relay in copied input"}], "stateBefore": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff10bd000000000000", "status": 3, "stateAfter": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff5123000000000000", "frames": [{"rva": 419431, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff10bd000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 48400}, {"rva": 419539, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff10bd000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 48400}, {"rva": 420014, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff10bd000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 48400}, {"rva": 420026, "state": "08b2b36ff77f0000b08e17a5a50100000000000000000000010000000201ffff10bd000000000000", "currentArea": 1810951016112, "nextArea": 0, "stage": 2, "enabled": 1, "constructionHex": 48400}], "events": [{"rva": 467936, "args": [73014444032, 1810954829880, 1810991190768, 1810994451376], "return_address": 420156, "rsp": 68720524800, "result64": 0, "result": 0}, {"rva": 757872, "args": [1810951016112, 1810954216936, 1810951344608, 68720524720], "return_address": 468337, "rsp": 68720524640, "result64": 0, "result": 0, "list": [1810951678408, 1810951671400, 1810951678376, 1810951678440, 1810951685448, 1810951671432, 1810951678472, 1810951685416, 1810951685480, 1810951685512, 1810951692488, 1810951664424, 1810951671464, 1810951678504, 1810951685544, 1810951692520, 1810951692552, 1810951699528, 1810951664456, 1810951671496, 1810951678536, 1810951685576, 1810951692584, 1810951692616, 1810951699560, 1810951699592, 1810951650312, 1810951650344, 1810951664488, 1810951671528, 1810951678568, 1810951692648, 1810951699624, 1810951699656, 1810951706632, 1810951643304, 1810951671560, 1810951678600, 1810951685640, 1810951692680, 1810951699688, 1810951699720, 1810951706664, 1810951706696, 1810951713672, 1810951664552, 1810951671592, 1810951678632, 1810951685672, 1810951692712, 1810951699752, 1810951706728, 1810951706760, 1810951713704, 1810951713736, 1810951664584, 1810951671624, 1810951678664, 1810951685704, 1810951692744, 1810951699784, 1810951678696, 1810951685736, 1810951692776, 1810951706856, 1810951720808, 1810951720840, 1810951692808]}, {"rva": 3058400, "args": [1810951087896, 8, 36293, 81920], "return_address": 468640, "rsp": 68720524640, "result64": 17, "result": 17}, {"rva": 3058496, "args": [1810951087896, 9, 9041, 81920], "return_address": 468664, "rsp": 68720524640, "result64": 1, "result": 1}, {"rva": 3072016, "args": [1810951087896, 3, 2, 81920], "return_address": 468749, "rsp": 68720524640, "result64": 2, "result": 2}]}
+  ]
+}

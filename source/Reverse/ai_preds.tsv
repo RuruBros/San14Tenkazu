@@ -1,0 +1,170 @@
+# Condition predicates (dispatcher 0xC2610, ids 1..167), read from their functions; `python ai.py preds` lists them with uses.
+# Labelled 2026-10-03 from the decompiled code; confidence: high = read to the end, medium = callee named from use, low = guess.
+# id	name	args	meaning	ko	confidence
+20	Greater	v n	int var args[0] > literal args[1] (false if the var is missing)	값 > 기준	high
+21	GreaterEqual	v n	int var args[0] >= literal args[1]	값 ≥ 기준	high
+65	IsPlayerDistrict	o	district var's force (+0x10) == the player's force (0x233750)	플레이어 세력 군단인가	high
+28	TroopsKindIs	o n	object var valid and u16 +0x14 == args[1] (troops' purpose/kind)	출진 그룹 종류 == n	high
+23	Equal	v|o v|o	both read as int vars and equal; if either is not an int var, both read as object vars and the pointers are equal	두 변수 같음	high
+24	ListContains	e:listkind o l	list var args[2] contains object var args[1]; args[0] = element kind 0..18 (AI object kind); kind 14 = int list, args[1] then read as an int var	목록에 포함	high
+18	GreaterVar	v v	int var args[0] > int var args[1]	값 > 값	high
+116	AIThrottle	o n	district var valid; true if it belongs to the player's force; else true if the player holds >= args[1]% of all bases (list raw+0x80); otherwise a seeded gate: (Corps_Index + CWorldData+0x454 + World_RandomSalt) mod 3 <= min(difficulty preset, 2)	난이도별 AI 행동 제한 통과	high
+22	IsValid	o	object var args[0] exists and passes Obj_IsValid and its class check (vtable +0x18)	객체 유효	high
+115	DifficultyIs	e:difficulty	difficulty preset (options +0x134, or +0x28 when options +0xE58 != 0; 0x3E9E60) == args[0] (0..4)	난이도 == n	high
+125	IdeologyIs	o e:ideology	person +0x14C (주의) == args[1]+1 (0 왕도,1 패도,2 아도,3 할거,4 명리,5 예교)	장수 주의 == n	high
+111	DistrictSettingIs	o e e	valid district var byte +0x20 (args[1]=0), +0x22 (1) or +0x21 (2) == normalized args[2]: 1/2 unchanged, everything else 0; invalid field selector false; native 144 cases in ai_district_predicates.py	군단 위임 설정값 == n	high
+114	HasPersonality	o n	person has a 개성 whose index (raw+0x7DD18) == args[1]	개성 보유	high
+19	GreaterEqualVar	v v	int var args[0] >= int var args[1]	값 ≥ 값	high
+63	IsPlayerForce	o	force var's index == player force (CWorldData +0x3A; 0x2337B0)	플레이어 세력인가	high
+124	HexFacilityIs	o e:facility	building on hex var (+0x1A) has kind (+0x12) == facility enum 0 진,1 요새,2 망루,3 투석대,4 군악대,5 석병팔진,6 토성,7 석벽,8 불함정,9 맹화함정,10 구덩이,11 화선,12 망대,13 철쇄,14 낙석 (-> kinds 3..17)	칸의 시설 종류 == n	high
+110	DistrictDirectiveIs	o e	valid district var byte +0x17 == args[1]+1, only selectors 0..4 accepted; native 64 cases in ai_district_predicates.py; stored 5 with +0x19=8/+0x18 supports another corps	군단 방침 == n	high
+118	DistrictNumberIs	o n	district var +0x11 (its number within the force) == args[1] (1 = 제1군단)	군단 번호 == n	high
+5	HexDistanceAtMost	e:objkind o e:objkind o n	hexes of two objects (0xBEB30); Hex_Distance <= args[4]; false if either has no hex	칸 거리 ≤ n	high
+129	ArmyFormationIs	o e:formation	army's formation (0x22B140: +0x1C on water terrain, else +0x1B) == enum args[1] (1 어린,2 봉시,3 안행,4 방원,5 학익,7 장사,8 추행,9 주가,10 몽충,11 누선,12 정란,13 충차,14 투석,15 수송,16 수선)	부대 진형 == n	high
+29	ArmyOrderIs	o n	army var byte +0x37 (order: 1 이동, 2 수송, 4 거점 공격, 7 부대 공격, 11 귀환…) == args[1]	부대 임무 == n	high
+1	IsHostileToMe	e:objkind o	my force (agent's force 0xB6180) and the object's force (0xBE700) are hostile per 0x2CA280: different forces, no agreement months (force +0xEA+idx), no 종속 (+0x194), not both coalition-flagged; a blank force counts as hostile	나와 적대 세력 소속인가	high
+113	HasPersonalityEffect	o n	person has a 개성 with effect kind (+0xB6 or +0xBA) == args[1]	개성 효과 보유	high
+2	IsMine	e:objkind o	the object's force (0xBE700) == my force (0xB6180)	내 세력 소속인가	high
+108	DistrictFlag	o e	valid district var flag n: 0..4 -> byte +0x1B bits 2..6; 5..12 -> u32 +0x1C bits 3..10; 13 -> bit 14; 14..16 -> bits 11..13; 17 -> +0x1B bit 7; invalid selector false; native 1276 cases in ai_district_predicates.py	군단 위임 허용 항목	high
+48	Likes	o o	person args[1] is in person args[0]'s 친애 list (+0xC0)	친애 장수인가	high
+84	NoForeignUnitsNear	e:objkind o o n	no unit within args[3] hexes of the object's hex (0x2AE130, plus the unit on it) is of a force not friendly to force var args[2] (0x2C38D0)	반경 n 안에 비우호 부대 없음	high
+119	FacilityKindIs	o e:facility	building-kind var (table raw+0x73958) index == facility enum 0 진,1 요새,2 망루,3 투석대,4 군악대,5 석병팔진,6 토성,7 석벽,8 불함정,9 맹화함정,10 구덩이,11 화선,12 망대,13 철쇄,14 낙석 (-> kinds 3..17)	시설 종류 == n	high
+61	IsGateArea	o	area var's seat hex +0x3A has terrain 17 (gate) (0x232BF0)	관문 군인가	high
+54	IsTribeOrSpecialForce	e:objkind o	the object's force index is 51 or 46..50 (tribes)	이민족·특수 세력 소속인가	high
+59	IsAvailableOfficer	o o	person args[1] is a free officer of force args[0]'s main corps (0x6DA700: +0x161 < 2, +0x15E bit 0 clear, not away, not special)	명령 가능 장수인가	high
+151	IsSpyHomeCandidate	o o	lookup/Obj_IsValid for arg0 and arg1; source=District; arg1 pointer in 0x6D8670 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	주재 첩자 후보 장수	high
+152	IsSpyHomeTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=District; arg1 pointer in 0x6D6440 output list argument 1; only first of two lists checked; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	주재 첩자 대상 세력	high
+36	IsBlankFoothold	o	foothold var's owner force index (vtable +0xB0) == 0	공백 거점인가	high
+121	InCoalition	o	force var +0x12 bit 1 after successful lookup, without Obj_IsValid; native 513 cases in ai_object_predicates.py; 0x2CA280 suppresses hostility for two such forces while WorldData +0x165C is set	포위망(연합) 참가 세력	high
+140	AdvantageIs	o e	지역 이점 var's index (raw+0x85990) == args[1]+1	지역 이점 == n	high
+123	HexTerrainIs	o n	object var byte +0x10 (hex terrain) == args[1]+1 (e.g. 14 -> 15 county seat, 17 -> 18 port)	칸 지형 == n	high
+16	HasAgreementWithMe	o	my force's byte +0xEA + other force's index (agreement months, +0xEB per force) & 0x7F != 0	나와 동맹/정전 기간 남음	high
+39	IsCity	o	foothold var +0x4E (base id) < 52 (a city, not a gate)	도시인가	high
+49	IsSwornHeadOf	o o	person args[1] +0xBC (의형제) == person args[0]'s ID	의형제 우두머리인가	high
+51	IsParentOf	o o	person args[1] +0xB4 or +0xB6 (부/모) == person args[0]'s ID	부모인가	high
+83	ForceDateReached	o	valid force; signed year short/month/day/hour bytes: hour+(day-31+(month+12*year)*30)*24 at force +4C <= WorldData +34; 49 native cases	세력 +0x4C 날짜 도래	high
+122	SearchFindsSomething	o o o	a search by person in area would find something: a free officer (0x280490), else seeded 15% a 명소 (0x280910), else 0x27F6E0	탐색 성과 있음	high
+132	RouteHasHostileBase	e:objkind o e:objkind o o	on the path between the two objects some city/gate area's building belongs to a force hostile to force var args[4]	경로에 적대 거점	high
+147	TacticsBookTacticIs	o n	tactics book var +0x52 (tactic index, raw+0x774D0) == args[1]	전법서 전법 == n	high
+7	InPlayerMainDistrict	e:objkind o	district of the object (0xBE430) == the player force's main corps (0x32E8D0)	플레이어 주 군단 소속인가	high
+31	IsOne	v	int var args[0] == 1	값 == 1	high
+38	IsCityArea	o	area var's home city building sits on the area's seat hex +0x3A (0x232680)	도시 소재 군인가	high
+40	HasNoOwner	e:objkind o	inline case: Obj_IsValid(force of the object, 0xBE700) == 0 (blank, or var missing)	소유 세력 없음(공백)	high
+135	IsTribe	o o o o o	first existing var of five (force, district, city, army, person; 0 = absent) is tribe: force 0x2328B0, district 0x2327B0, city City_TribeWithGovernor, army 0x232730, person Officer_InTribeForce	이민족인가	high
+141	InChallengeMode		exe+2143268 manager pointer nonnull and raw World+871E8 state pointer nonnull and state +BC signed byte != -1; 20 native cases	도전(전기제패) 모드 중	high
+8	InMyDistrict	e:objkind o	district of the object (0xBE430) == agent's district (0xB60E0)	내 군단 소속인가	high
+11	AreaDevLevelIs	o [e] n	area var's development level (100/300/600/1000 steps -> 1..5) == last arg; kind args[1] 0 상업 +0x3C, 1 농업 +0x3E, 2 병영 +0x40 (2-arg form: 상업)	군 개발 단계 == n	high
+12	AreaHasDomesticOfficer	o	area var +0x36 (officer ID) in 1..6000	군 내정 담당 있음	high
+62	FriendshipAtLeast	o o n	force args[0]'s byte +0x13 + idx(force args[1]) (친선 toward it) >= args[2]	친선 ≥ n	high
+64	IsPlayerRulerDistrict	o	district var belongs to the player's force and its leader (+0x12) has status 1 (군주) (0x233960)	플레이어 직할 군단인가	high
+9	BelongsToForce	e:objkind o o	the object's force index == force var args[2]'s index	그 세력 소속인가	high
+32	IsDomesticOfficer	o	person's area list (+0x1D0, count +0x1E8) holds a valid area	군 내정 담당인가	high
+33	IsTrainingOfficer	o	the city of the person's base (+0xE2) has him at +0xCC	훈련 담당인가	high
+34	IsRecruitOfficer	o	the city of the person's base has him at +0xCA	징병 담당인가	high
+37	EqualValue	v n	int var args[0] == literal args[1] (false if missing)	값 == n	high
+43	RouteCostAtMost	e:objkind o e:objkind o n	path search between the two objects' hexes for my force (0x185620) cost <= args[4]; area-seat to area-seat costs cached at [exe+0x1B9A4A0]+0xC0 (the predicate writes that cache)	경로 비용 ≤ n	high
+47	Dislikes	o o	person args[1] is in person args[0]'s 혐오 list (+0xD0)	혐오 장수인가	high
+50	IsSpouseOf	o o	person args[1] +0xBA (배우자) == person args[0]'s ID	배우자인가	high
+70	CanSearch	o	lookup/Obj_IsValid for arg0; source=AgentDistrictOrMain; gate 0x70ACF0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	탐색 가능	high
+131	HasFormation	o e:formation	Person_HasFormation(person, formation of enum args[1]) (enum as id 129)	장수 진형 보유	high
+160	IsCooperatingDistrict	n o o	B=args[2] not tribe/51; other force: 0x26BD40(mode args[0], force A, force B); same force: mode != 0, or A not the player's, or A +0x17 == 1, or A supports B (+0x17=5,+0x19=8,+0x18=B); other-force gate friendship>=100 and ((agreement&0x7F)>5 or both +0x12 bit1); no hated ruler; weighted own traits minus 60 (minus 10 if both +0x17A>=20), score>0; ai_cooperation.py 418 native cases	협력 대상 군단인가	high
+4	InCautionTroopsList	l o	some caution troops in list var args[0] has army var args[1] in its army list (+0x30)	경계 그룹 목록의 부대인가	high
+25	MyForceGoalIs	n	agent's force (0xB6180) valid and signed byte +0x4A == full int args[0]; native signed boundary cases in ai_district_predicates.py; trees use 0..3 to set $TargetNumber 62/15/5/+bases	내 세력 목표 유형 == n	high
+58	IsGoodwillTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; gate 0x70BEE0; arg1 pointer in 0x6DE910 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	친선 대상인가	high
+81	IsDualDestructionTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; gate 0x70BBF0; arg1 pointer in 0x6DE4C0 output list argument 2; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	이호경식 대상 세력	high
+17	ObjectKindIs	o e:objkind	object var's class code (vtable +0x10) matches AI kind args[1]: 0 force(7),1 district(8),2 troops(0x1D),3 army(0x1B),4 person(0xE),5 foothold(2),6 area(10),7 hex(9),8 city(5),9 gate(6),10 building(0xB),18 scenery(0x2A)	객체 종류 == n	high
+26	MyDistrictTypeIs	n	agent's district (0xB60E0) valid and signed byte +0x15 == full int args[0]; native signed boundary cases in ai_district_predicates.py; trees use 0..2 for three big corps subtrees	내 군단 유형(+0x15) == n	high
+44	CanEmploy	o	lookup/Obj_IsValid for arg0; source=District; gate 0x709CF0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	등용 가능	high
+53	RecruitSucceeds	o o	Recruit_Chance(target args[1], recruiter args[0], seeded) != 0	등용 성공	high
+73	IsPrizeCandidate	o o	lookup/Obj_IsValid for arg0 and arg1; source=District; gate 0x70DF40; arg1 pointer in 0x6D8350 output list argument 1; gate uses arg0 district, candidate list uses arg1 person district; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	포상 대상인가	high
+74	CanGiveItem	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x709E30; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	명품 하사 가능	high
+75	IsItemRecipient	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; gate 0x709E30; arg1 pointer in 0x6D7AA0 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	명품 하사 대상인가	high
+104	CanPrisonerReturn	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x70C2F0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	포로 반환 가능	high
+105	IsPrisonerReturnTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; arg1 pointer in 0x6DF3F0 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	포로 반환 대상 세력	high
+106	CanAnnul	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x70B9E0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	파기 가능	high
+107	IsAnnulTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; arg1 pointer in 0x6DE310 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	파기 대상 세력	high
+112	AreaHasHostileHex	o o	area var has a hex owned (+0x14) by a force hostile to force var args[1]; false when the area is that force's and +0x68 == +0x76	군에 적대 칸 있음	high
+120	RankFlag	o n	force var's rank byte +0x47 selects raw+0x78490[0..12], rank>12 falls back to entry 0; selected rank byte +0xB2 bit args[1], only 0..3; lookup required, no Obj_IsValid; native 1793 cases in ai_object_predicates.py	작위 플래그 n	high
+126	TroopsHasUnitAtBase	o	some army of troops var (0x22A110) is not engaged (0x233440), not force 51 (tribe needs 0x232730), and stands on its commander's base hex (0x2C9310)	그룹에 거점 대기 부대 있음	high
+128	HasTerrainPersonality	o o	person has a terrain 개성 (#68..76) matching terrain var args[1] (68: 14; 69,71..74: 8..11; 70,76: 5,6; 75: 4,5,6,12,14)	지형 개성 맞음	high
+133	IsMarkedPersonCity	o	arg0 foothold ID <52 and converted city ID equals valid 0x32CB30(WorldData) city; marked person is WorldData +1654	+0x1654 장수 소재 도시	high
+134	RouteHasHostileArea	e:objkind o e:objkind o o	on the path some area's owner (seat hex +0x14) differs from force args[4] and is hostile to it	경로에 적대 군	high
+136	CanTrade	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x70CF00; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	교역 가능	high
+142	CanExchange	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x70CD30; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	교환 가능	high
+143	IsExchangeTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; arg1 pointer in 0x6E0720 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	교환 대상 세력	high
+149	EnemyAllianceBreaksFrequent		options +0x41C (sliders) / +0x110 (presets) == 1; ORed into diplomacy candidate selection; +0xE58==0 selects custom, any nonzero selects preset; numeric getter/predicate behavior verified in ai_options_probe.py (128 cases); native UI copy +F8 and message 7F4: enemy alliance breaks frequent, ai_field_names.py	적세력의 파기실행: 많음	high
+153	CanSpyAway	o	lookup/Obj_IsValid for arg0; source=Force; gate 0x70AE70; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	첩자 파견 가능	high
+154	IsSpyAwayTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; arg1 pointer in 0x6DD920 output list argument 1; only first of two lists checked; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	첩자 파견 대상 세력	high
+155	IsSpyAwayAgent	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; arg1 pointer in 0x6DABE0 output list argument 1; 0xB4EB0 filters the list before membership; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	첩자 파견 장수 후보	high
+158	CanHire	o	lookup/Obj_IsValid for arg0; source=DistrictForce; gate 0x70D930; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	고용 가능	high
+159	PersonFlag15E	o	lookup and Obj_IsValid required, then person u16 +0x15E bit 14; flag's original name unverified; native 70 cases in ai_object_predicates.py	장수 +0x15E bit 14 있음	high
+166	CanInspect	o	lookup/Obj_IsValid for arg0; source=District; gate 0x70B390; 0x224C00(arg0,25) required before gate; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	시찰 가능	high
+167	NeedsReward	o	officer loyalty +0xE8 < threshold: 100 if his force is the player's; preset 0: 86, 1: 91; else 95..100 by ties and 주의 with his lord (+1 when lord +0x176 + +0x16E > 29)	포상 필요(충성 기준 미만)	high
+57	CanGoodwill	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x70BEE0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	친선 가능	high
+66	CanAlliance	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x70B810; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	동맹 가능	high
+67	IsAllianceTarget	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; gate 0x70B810; arg1 pointer in 0x6DE160 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	동맹 대상인가	high
+79	CanDualDestruction	o	lookup/Obj_IsValid for arg0; source=AgentDistrictOrMain; gate 0x70BBF0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	이호경식 가능	high
+80	IsSchemeExecutor	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; gate 0x70BBF0; arg1 pointer in 0x6DAF20 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	계략 실행 장수 후보	high
+85	CanAttackRequest	o	lookup/Obj_IsValid for arg0; source=MainDistrict; gate 0x70C530; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	출병 요청 가능	high
+86	IsAttackRequestForce	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; gate 0x70C530; arg1 pointer in 0x6DF9B0 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	출병 요청 상대인가	high
+87	IsAttackRequestTarget	o o o	86 holds and foothold in 0x6DCAE0(main corps, that force)	출병 요청 목표 거점	high
+88	CanUnattendedHome	o	lookup/Obj_IsValid for arg0; source=AgentDistrictOrMain; gate 0x70CC00; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	빈집 계략 가능	high
+92	CanEstrange	o	lookup/Obj_IsValid for arg0; source=AgentDistrictOrMain; gate 0x70C8D0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	이간 가능	high
+96	CanHiddenPoison	o	lookup/Obj_IsValid for arg0; source=AgentDistrictOrMain; gate 0x70C0B0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	매복의 독 가능	high
+100	CanPlacation	o	lookup/Obj_IsValid for arg0; source=AgentDistrictOrMain; gate 0x70C1E0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	회유 계략 가능	high
+117	CanBuildFacility	o o	facility kind args[1] +0x32 == 0, or person args[0] has a 개성 with effect kind == that value	시설 건설 가능(개성)	high
+144	CanBuildingDestruction	o	lookup/Obj_IsValid for arg0; source=AgentDistrictOrMain; gate 0x70BDD0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	시설 파괴 가능	high
+161	UnattendedHomeBlocked	o o o	0x1EAE20(person, base) != 0: the base's officer is tied to its ruler (의형제, 배우자, 부모, 혈연, 친애) or too loyal; trees use !	빈집 계략 불가 대상	high
+162	EstrangeBlocked	o o o	0x1EACE0(person, target) != 0: target tied to his ruler or loyal enough; trees use !	이간 불가 대상	high
+163	HiddenPoisonBlocked	o o o	always false for stable inputs: invalid/missing object rejected, 0x1EAAF0(valid person,valid area) returns zero	매복의 독 불가 (항상 false)	high
+164	PlacationBlocked	o o o	0x1EAB60(person, area) != 0: a unit on its seat hex, an owned city/gate area, its officer with 개성 kind 100, or 치안 (+0x54) high; trees use !	회유 불가 군	high
+165	CanRumor	o	lookup/Obj_IsValid for arg0; source=District; gate 0x70C7D0; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	유언 가능	high
+10	InDistrict	e:objkind o o	district of the object (args[0],args[1]) has the same Corps_Index as district var args[2]	그 군단 소속인가	high
+56	RouteExists	e:objkind o e:objkind o	path search (0x1843E0) for my force between the two objects' hexes succeeds	경로 있음	high
+76	CanLearn	o	lookup/Obj_IsValid for arg0; source=Force; gate 0x70A0D0; gate second input is arg0 force main district; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	학습 가능	high
+77	IsLearner	o o	lookup/Obj_IsValid for arg0 and arg1; source=Force; gate 0x70A0D0; arg1 pointer in 0x6DBF00 output list argument 1; gate second input is arg1 person district; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	학습 대상 장수인가	high
+78	CanLearnTactic	o o	person args[1] does not know tactics book args[0]'s tactic (+0x52), has a formation it uses (tactic +0x6C mask; water ones by force +0x15E), and has fewer than 10 tactics	전법서 학습 가능	high
+127	ArmyCanReachSoon	o o	valid army arg0 and HEX arg1; actual 0x1843E0 path cost < trunc(float Unit_MobilityFactor)*120 (strict, truncate before multiply)	부대가 곧 도달 가능	high
+130	RouteMidHasHostileBase	e:objkind o e:objkind o o	ignores path return; actual path city/gate areas excluding source/destination areas contain a hostile owner	경로 중간에 적대 거점	high
+137	CanFakeNews	o o	both army objects valid; at least one of target +23/+24/+25 bytes zero, +140 zero, +10 !=2; 0x2AC170(area of target hex, first army force,0,1)>0; 72 native cases	허보 대상 가능	high
+138	ArmyStatus	o e	army var: 0 혼란 (+0x23) != 0, 1 저지 (+0x24), 2 도발 (+0x25), 3 +0x140 != 0	부대 상태 이상	high
+139	StateAdvantageWithinReach	o o	in the foothold's 주 (city +0xCE): force args[0] holds fewer cities than the 이점 needs (advantage via state +0x30, 0x92440) and own + hostile cities reach it	주 이점 달성 가능	high
+146	ArmyNotFlagged140	o	lookup and Obj_IsValid required, then army byte +0x140 == 0; native 261 cases in ai_object_predicates.py; unit tree #3 then clears its AI action	부대 +0x140 없음	high
+148	EnemyStratagemsEnabled		options +0x404 (sliders) / +0x10C (presets) == 0; when not, the trees zero $TrickBase for AI corps; +0xE58==0 selects custom, any nonzero selects preset; numeric getter/predicate behavior verified in ai_options_probe.py (128 cases); native UI copy +F4 and message 7F3: enemy stratagems present, ai_field_names.py	적세력의 계략실행: 있음	high
+3	TroopsHasArmy	o o	caution troops var's army list (+0x30) contains army var	그룹 소속 부대인가	high
+6	BordersMyBase	o	foothold var appears in 0x22F5C0 of one of my force's bases (base list raw+0x80)	내 거점과 인접?	high
+13	CityHasTrainingOfficer	o	city of the foothold (0x22A7B0) +0xCC in 1..6000	훈련 담당 있음	high
+14	CityHasRecruitOfficer	o	city of the foothold +0xCA in 1..6000	징병 담당 있음	high
+15	?	o	force var's bases/areas (0x2243E0/0x224220) next to (0x22F2D0) a base of my force	?	high
+27	MyTroopsKindIs	n	agent's sortie (0xB6260) valid and unsigned u16 +0x14 == full int args[0]; native 0/32768/65535 and out-of-range comparisons in ai_district_predicates.py	내 출진 그룹 종류 == n	high
+30	IsArmyCommanderHomeBase	o o	army arg0 and foothold arg1 lookup/valid; arg0 +12 commander ID selects world +158 table (id<6001, else placeholder); valid commander home +E2 else 0 equals base +4E; native boundary fixture	부대 대장의 소속 거점인가	high
+35	IsPersonAt	o o	valid person arg0 +E4 ushort == valid foothold arg1 +4E; native signed-bit boundary fixture	장수가 그 거점에 있음	high
+41	DistrictHasAllowed6D9060	o	any base of arg0 district has 0x6D9060(base)==0	군단에 0x6D9060 허용 거점 존재	high
+42	BordersMyDistrict	o	a foothold in 0x22F5C0(foothold) has corps (vtable +0x78) == my district	내 군단 거점과 인접?	high
+45	IsFormerLordOf	o o	valid district arg0 and person arg1; person +162 ushort equals 0x22E970(0x40190(district)) ruler ID; native boundary fixture	옛 주군인가	high
+46	InList6DD5E0	o o	lookup/Obj_IsValid for arg0 and arg1; source=District; arg1 pointer in 0x6DD5E0 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	?	high
+52	IsEmployCandidate	o o	lookup/Obj_IsValid for arg0 and arg1; source=District; arg1 pointer in 0x6DA8A0 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	등용 후보인가	high
+55	RouteCostAtMostVar	e:objkind o e:objkind o v	as 43 with the limit read from int var args[4]	경로 비용 ≤ 값	high
+60	DiplomacyAccepted	o o o	0x2AD610(A, C) == 5, or Exchange_Judge kind 4 (0x3224D0/0x324E20) succeeds	외교 성사?	high
+68	CanMerchant	o	lookup/Obj_IsValid for arg0; source=Foothold; gate 0x70DC70; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	도시 상인 이용 가능	high
+69	IsMerchantOfficer	o o	lookup/Obj_IsValid for arg0 and arg1; source=Foothold; gate 0x70DC70; arg1 pointer in 0x6D7EA0 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	도시 상인 실행 장수 후보	high
+71	IsSearchCandidate	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; gate 0x70ACF0; arg1 pointer in 0x6DAA10 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	탐색 후보	high
+72	CanPrize	o o	lookup/Obj_IsValid for arg0 and arg1; source=District; gate 0x70DF40; arg1 only a validity gate; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	포상 가능	high
+82	DualDestructionLikely	o o o o	all object vars lookup/valid; agent district preferred else arg0 force main district; 70BBF0 then 1EB880(person,forceA,forceB,bonus); if player is forceA/B accept 1 or 2, else 2; bonus=1DEF80(command); numeric tail read to end and actual outcomes recorded by ai_remaining_predicates.py	이호경식 성공 예상	high
+89	InList6E0590	o o	city of foothold args[1] in 0x6E0590(corps)	?	high
+90	IsSchemeExecutor2	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; arg1 pointer in 0x6DAF20 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	계략 실행 후보	high
+91	UnattendedHomeLikely	o o o	all object vars lookup/valid; agent district preferred else arg0 force main district; 70CC00 then 1EBEE0(person,city(arg2),bonus); player target accepts 1/2, else 2; bonus=1DEF80(command); numeric tail read to end and actual outcomes recorded by ai_remaining_predicates.py	빈집 계략 성공 예상	high
+93	IsSchemeExecutor3	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; arg1 pointer in 0x6DAF20 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	계략 실행 후보	high
+94	InList6E0210	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; arg1 pointer in 0x6E0210 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	?	high
+95	EstrangeLikely	o o o	all object vars lookup/valid; agent district preferred else arg0 force main district; 70C8D0 then 1EBE30(person,target,bonus); player target accepts 1/2, else 2; bonus=1DEF80(command); numeric tail read to end and actual outcomes recorded by ai_remaining_predicates.py	이간 성공 예상	high
+97	IsSchemeExecutor4	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; arg1 pointer in 0x6DAF20 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	계략 실행 후보	high
+98	InList6DEB30	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; arg1 pointer in 0x6DEB30 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	?	high
+99	HiddenPoisonLikely	o o o	all object vars lookup/valid; agent district preferred else arg0 force main district; NO COMMAND GATE; 1EBBA0(person,area,bonus); player target accepts 1/2, else 2; bonus=1DEF80(command); numeric tail read to end and actual outcomes recorded by ai_remaining_predicates.py	매복의 독 성공 예상	high
+101	IsSchemeExecutor5	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; arg1 pointer in 0x6DAF20 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	계략 실행 후보	high
+102	InList6DECA0	o o	lookup/Obj_IsValid for arg0 and arg1; source=AgentDistrictOrMain; arg1 pointer in 0x6DECA0 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	?	high
+103	PlacationLikely	o o o	all object vars lookup/valid; agent district preferred else arg0 force main district; 70C1E0 then 1EBCA0(person,area,bonus)==1 only; bonus=1DEF80(command); numeric tail read to end and actual outcomes recorded by ai_remaining_predicates.py	회유 성공 예상	high
+109	NeighborAreaHasMyBase	o	city/gate areas from 0x22F060(arg0 foothold) have a home base owned by the agent force	인접 군에 자기 세력 거점 존재	high
+145	BuildingDestructionLikely	o o o	all object vars lookup/valid; agent district preferred else arg0 force main district; 70BDD0 then 1EB980(person,hex,bonus) in 1/2 irrespective of player; bonus=1DEF80(command); numeric tail read to end and actual outcomes recorded by ai_remaining_predicates.py	시설 파괴 성공 예상	high
+150	IsDemoPlay		CWorldData +0x16A8 bit 0x100 (데모 플레이/AUTO)	데모 플레이 중	high
+156	InList6D7650	o o	lookup/Obj_IsValid for arg0 and arg1; source=MainDistrict; arg1 pointer in 0x6D7650 output list argument 1; wrapper routing/membership verified by 402 native calls in ai_command_predicates.py; helper internals separate	?	high
+157	?	o o	person in 0x6D7320(main corps) with a scenery (raw+0x85DB8) +0x2C in (+0x1BE, +0x1BE+const]	?	high

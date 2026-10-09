@@ -1,0 +1,67 @@
+{
+  "utc": "2026-10-04T08:42:12.128265+00:00",
+  "pid": 2964,
+  "listPoolSnapshot": {
+    "attempts": 1,
+    "start": 1810963300352,
+    "length": 6295552,
+    "sha256": "260557978d1e54e2662bedc356102a51774de53239d359e059c76a08a8ebf125",
+    "validatedLists": 81920,
+    "validatedActiveNodes": 16466,
+    "validatedFreeNodes": 81838,
+    "validatedIndices": 40733,
+    "validatedFreeIndices": 41187
+  },
+  "method": "native reset and full executor; copied purpose/target/one actual area-center relay inputs; no game writes or helper result replacements",
+  "oracle_sha256": "96741ec7f5db1d3257c25c9bdd9d51820577271f606f0acf196554d2020c52f3",
+  "failures": [
+    {
+      "class": "CExecuteAttackAreaBuildingNode",
+      "inputPurpose": 3,
+      "inputRelay": 12550,
+      "error": "Invalid memory read (UC_ERR_READ_UNMAPPED) at rip 0x7ff76ea19ea0 (rva 0x229ea0); last fault ('0x12', '0x7ff76ea19ea0')",
+      "events": []
+    },
+    {
+      "class": "CExecuteAttackAreaBuildingNode",
+      "inputPurpose": 9,
+      "inputRelay": 12550,
+      "error": "Invalid memory read (UC_ERR_READ_UNMAPPED) at rip 0x7ff76ea19ea0 (rva 0x229ea0); last fault ('0x12', '0x7ff76ea19ea0')",
+      "events": []
+    },
+    {
+      "class": "CExecuteAttackAreaBuildingNode",
+      "inputPurpose": 13,
+      "inputRelay": 12550,
+      "error": "Invalid memory read (UC_ERR_READ_UNMAPPED) at rip 0x7ff76ea19ea0 (rva 0x229ea0); last fault ('0x12', '0x7ff76ea19ea0')",
+      "events": []
+    }
+  ],
+  "cases": [
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 0, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 0, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 3, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 1, "outputPurpose": 3, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 7, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 7, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 9, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 1, "outputPurpose": 9, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 13, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 1, "outputPurpose": 13, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 17, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 17, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 18, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 18, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 0, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 0, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 3, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f0000208b17a5a50100000000000000000000010000000001ffff10bd000000000000", "status": 3, "outputPurpose": 3, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 7, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 7, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 9, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f0000208b17a5a50100000000000000000000010000000001ffff10bd000000000000", "status": 3, "outputPurpose": 9, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 13, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f0000208b17a5a50100000000000000000000010000000001ffff10bd000000000000", "status": 3, "outputPurpose": 13, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 17, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 17, "events": []},
+    {"class": "CExecuteAreaOccupyNode", "inputPurpose": 18, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "stateAfter": "08b2b36ff77f000000000000000000000000000000000000000000000000ffff10bd000000000000", "status": 2, "outputPurpose": 18, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 0, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 0, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 3, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "outputPurpose": 3, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 7, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 7, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 9, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "outputPurpose": 9, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 13, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "outputPurpose": 13, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 17, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 17, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 18, "inputRelay": 11166, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 18, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 0, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 0, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 7, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 7, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 17, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 17, "events": []},
+    {"class": "CExecuteAttackAreaBuildingNode", "inputPurpose": 18, "inputRelay": 12550, "inputTargetBase": 23, "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 2, "outputPurpose": 18, "events": []}
+  ]
+}

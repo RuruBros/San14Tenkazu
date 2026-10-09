@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- The window, the map and every card are WPF, which ships with the .NET Desktop Runtime. -->
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>San14Tenkazu</AssemblyName>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- The name Windows shows for the exe (Task Manager, the file's properties). -->
+    <Product>天下圖</Product>
+    <AssemblyTitle>天下圖 (천하도) - 삼국지14 CE 메모리 편집기</AssemblyTitle>
+    <!-- The core engine and its tests are projects of their own in the folders below. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);Core/**;Tests/**;RenderChecks/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="Core\San14Tenkazu.Core.csproj" />
+    <InternalsVisibleTo Include="San14Tenkazu.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The same icon for the window (EditorForm reads it by this name). -->
+    <EmbeddedResource Include="app.ico" LogicalName="app.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- UseWPF drops System.IO from the implicit usings (Path would clash with WPF's Shapes.Path). -->
+    <Using Include="System.IO" />
+    <!-- GDI+ draws the map's layers and decodes the game's pictures off screen, on worker threads; its colours
+         (System.Drawing.Color) are the editor's palette (Theme). -->
+    <Using Include="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
+    <PackageReference Include="Vortice.Direct2D1" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D9" Version="3.8.3" />
+  </ItemGroup>
+</Project>

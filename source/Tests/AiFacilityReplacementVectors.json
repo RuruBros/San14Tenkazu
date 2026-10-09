@@ -1,0 +1,118 @@
+{
+  "utc": "2026-10-04T10:58:53.608442+00:00",
+  "pid": 2964,
+  "clockBefore": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "clockAfter": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "clockStable": true,
+  "listPoolSnapshot": {
+    "attempts": 2,
+    "start": 1810963300352,
+    "length": 6295552,
+    "sha256": "8c4a5c7d16e739f14a593daef68bf38c82248ed06aad5296562ec275b945b6c1",
+    "validatedLists": 81920,
+    "validatedActiveNodes": 17748,
+    "validatedFreeNodes": 80556,
+    "validatedIndices": 41411,
+    "validatedFreeIndices": 40509
+  },
+  "structures": [
+    {
+      "building": 1810953633880,
+      "hex": 1810951812104,
+      "hexId": 13219,
+      "kind": 9,
+      "area": 1810951014896
+    },
+    {
+      "building": 1810953633912,
+      "hex": 1810951805096,
+      "hexId": 13000,
+      "kind": 9,
+      "area": 1810951015656
+    },
+    {
+      "building": 1810953633976,
+      "hex": 1810951805128,
+      "hexId": 13001,
+      "kind": 9,
+      "area": 1810951015656
+    },
+    {
+      "building": 1810953634040,
+      "hex": 1810951805160,
+      "hexId": 13002,
+      "kind": 9,
+      "area": 1810951015656
+    }
+  ],
+  "definitionCategories": {
+    "0": 0,
+    "1": 1,
+    "2": 1,
+    "3": 2,
+    "4": 2,
+    "5": 2,
+    "6": 2,
+    "7": 2,
+    "8": 2,
+    "9": 3,
+    "10": 3,
+    "11": 4,
+    "12": 4,
+    "13": 4,
+    "14": 4,
+    "15": 2,
+    "16": 3,
+    "17": 4,
+    "18": 0,
+    "19": 0,
+    "20": 0,
+    "21": 0,
+    "22": 0,
+    "23": 0,
+    "24": 0,
+    "25": 0,
+    "26": 0,
+    "27": 0,
+    "28": 0,
+    "29": 0,
+    "30": 0
+  },
+  "method": "full native second facility replacement path; actual source facilities and logged copied input controls; emulator observers only, no game writes or helper substitution",
+  "oracle_sha256": "96741ec7f5db1d3257c25c9bdd9d51820577271f606f0acf196554d2020c52f3",
+  "failures": [],
+  "cases": [
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "actual", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [], "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [6], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 0}, {"rva": 233920, "candidates": [10, 4, 6, 15, 11], "sourceHex": 1810951805128, "category3Neighbors": 2, "category2Neighbors": 0}, {"rva": 234244, "candidates": [10, 4, 6, 15, 11], "neighborHex": 1810951798056, "placementResult": 1}, {"rva": 234264, "candidates": [10, 4, 6, 15, 11]}, {"rva": 234527, "candidates": [6]}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}, {"rva": 2783904, "args": [1810951805128, 1, 68720524568, 0], "return_address": 233747, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951798056, 1810951798088, 1810951798120, 1810951805160, 1810951812168, 1810951805096]}, {"rva": 2593168, "args": [1810951375344, 1810951798056, 1810951344920, 0], "return_address": 234222, "rsp": 68720524464, "result64": 1, "result": 1}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "mode1", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [], "status": 1, "outputMode": 1, "special": 0, "nativeKinds": [11, 14, 4, 15, 6, 7, 10, 17], "frames": [], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 1, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 4, "result": 4}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "kind10", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810953633994, "before": 9, "after": 10, "size": 1, "role": "source kind in copied input"}], "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [6], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 0}, {"rva": 233920, "candidates": [10, 4, 6, 15, 11], "sourceHex": 1810951805128, "category3Neighbors": 2, "category2Neighbors": 0}, {"rva": 234244, "candidates": [10, 4, 6, 15, 11], "neighborHex": 1810951798056, "placementResult": 1}, {"rva": 234264, "candidates": [10, 4, 6, 15, 11]}, {"rva": 234527, "candidates": [6]}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}, {"rva": 2783904, "args": [1810951805128, 1, 68720524568, 0], "return_address": 233747, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951798056, 1810951798088, 1810951798120, 1810951805160, 1810951812168, 1810951805096]}, {"rva": 2593168, "args": [1810951375344, 1810951798056, 1810951344920, 0], "return_address": 234222, "rsp": 68720524464, "result64": 1, "result": 1}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "lowFunds", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810951329796, "before": 91809, "after": 300, "size": 4, "role": "money at kind 5 cost in copied input"}], "cost5": 300, "cost6": 1200, "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [5], "frames": [{"rva": 231718, "candidates": [15, 5]}, {"rva": 233530, "candidates": [15, 5], "pendingCategory2": 0}, {"rva": 233920, "candidates": [15, 5], "sourceHex": 1810951805128, "category3Neighbors": 2, "category2Neighbors": 0}, {"rva": 234244, "candidates": [15, 5], "neighborHex": 1810951798056, "placementResult": 1}, {"rva": 234264, "candidates": [15, 5]}, {"rva": 234527, "candidates": [5]}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}, {"rva": 2783904, "args": [1810951805128, 1, 68720524568, 0], "return_address": 233747, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951798056, 1810951798088, 1810951798120, 1810951805160, 1810951812168, 1810951805096]}, {"rva": 2593168, "args": [1810951375344, 1810951798056, 1810951344816, 0], "return_address": 234100, "rsp": 68720524464, "result64": 1, "result": 1}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "noCategory3Neighbor", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810953634058, "before": 9, "after": 11, "size": 1, "role": "neighbor category in copied input"}, {"address": 1810953633930, "before": 9, "after": 11, "size": 1, "role": "neighbor category in copied input"}], "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [10, 4, 6, 15, 11], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 0}, {"rva": 233920, "candidates": [10, 4, 6, 15, 11], "sourceHex": 1810951805128, "category3Neighbors": 0, "category2Neighbors": 0}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963610320], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}, {"rva": 2783904, "args": [1810951805128, 1, 68720524568, 0], "return_address": 233747, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951798056, 1810951798088, 1810951798120, 1810951805160, 1810951812168, 1810951805096]}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "withCategory2Neighbor", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810953634058, "before": 9, "after": 5, "size": 1, "role": "neighbor category in copied input"}], "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [10, 4, 6, 15, 11], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 0}, {"rva": 233920, "candidates": [10, 4, 6, 15, 11], "sourceHex": 1810951805128, "category3Neighbors": 1, "category2Neighbors": 1}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963610320], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}, {"rva": 2783904, "args": [1810951805128, 1, 68720524568, 0], "return_address": 233747, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951798056, 1810951798088, 1810951798120, 1810951805160, 1810951812168, 1810951805096]}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "pending8Category2", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810954250394, "before": 57, "after": 23, "size": 2, "role": "commander home city in copied input"}, {"address": 1810951082319, "before": 16, "after": 8, "size": 1, "role": "build/repair command in copied input"}, {"address": 1810951082320, "before": 9, "after": 9, "size": 1, "role": "target type hex in copied input"}, {"address": 1810951082322, "before": 15468, "after": 13001, "size": 2, "role": "target hex in copied input"}, {"address": 1810951082334, "before": 0, "after": 5, "size": 1, "role": "requested facility kind in copied input"}], "inputArmy": 1810951082264, "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [10, 4, 6, 15, 11], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 1}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "pending9Category2", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810954250394, "before": 57, "after": 23, "size": 2, "role": "commander home city in copied input"}, {"address": 1810951082319, "before": 16, "after": 9, "size": 1, "role": "build/repair command in copied input"}, {"address": 1810951082320, "before": 9, "after": 9, "size": 1, "role": "target type hex in copied input"}, {"address": 1810951082322, "before": 15468, "after": 13001, "size": 2, "role": "target hex in copied input"}, {"address": 1810951082334, "before": 0, "after": 5, "size": 1, "role": "requested facility kind in copied input"}], "inputArmy": 1810951082264, "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [10, 4, 6, 15, 11], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 1}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "pending8Category3", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810954250394, "before": 57, "after": 23, "size": 2, "role": "commander home city in copied input"}, {"address": 1810951082319, "before": 16, "after": 8, "size": 1, "role": "build/repair command in copied input"}, {"address": 1810951082320, "before": 9, "after": 9, "size": 1, "role": "target type hex in copied input"}, {"address": 1810951082322, "before": 15468, "after": 13001, "size": 2, "role": "target hex in copied input"}, {"address": 1810951082334, "before": 0, "after": 9, "size": 1, "role": "requested facility kind in copied input"}], "inputArmy": 1810951082264, "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [6], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 0}, {"rva": 233920, "candidates": [10, 4, 6, 15, 11], "sourceHex": 1810951805128, "category3Neighbors": 2, "category2Neighbors": 0}, {"rva": 234244, "candidates": [10, 4, 6, 15, 11], "neighborHex": 1810951798056, "placementResult": 1}, {"rva": 234264, "candidates": [10, 4, 6, 15, 11]}, {"rva": 234527, "candidates": [6]}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}, {"rva": 2783904, "args": [1810951805128, 1, 68720524568, 0], "return_address": 233747, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951798056, 1810951798088, 1810951798120, 1810951805160, 1810951812168, 1810951805096]}, {"rva": 2593168, "args": [1810951375344, 1810951798056, 1810951344920, 0], "return_address": 234222, "rsp": 68720524464, "result64": 1, "result": 1}]},
+    {"city": 23, "force": 45, "area": 1810951015656, "home": 1810951015200, "gate": 1810951014896, "variant": "pending9Category3", "sourceStructure": {"building": 1810953633976, "hex": 1810951805128, "hexId": 13001, "kind": 9, "area": 1810951015656}, "copiedInputChanges": [{"address": 1810954250394, "before": 57, "after": 23, "size": 2, "role": "commander home city in copied input"}, {"address": 1810951082319, "before": 16, "after": 9, "size": 1, "role": "build/repair command in copied input"}, {"address": 1810951082320, "before": 9, "after": 9, "size": 1, "role": "target type hex in copied input"}, {"address": 1810951082322, "before": 15468, "after": 13001, "size": 2, "role": "target hex in copied input"}, {"address": 1810951082334, "before": 0, "after": 9, "size": 1, "role": "requested facility kind in copied input"}], "inputArmy": 1810951082264, "status": 1, "outputMode": 0, "special": 0, "nativeKinds": [6], "frames": [{"rva": 231718, "candidates": [10, 4, 6, 15, 17, 14, 11]}, {"rva": 233530, "candidates": [10, 4, 6, 15, 11], "pendingCategory2": 0}, {"rva": 233920, "candidates": [10, 4, 6, 15, 11], "sourceHex": 1810951805128, "category3Neighbors": 2, "category2Neighbors": 0}, {"rva": 234244, "candidates": [10, 4, 6, 15, 11], "neighborHex": 1810951798056, "placementResult": 1}, {"rva": 234264, "candidates": [10, 4, 6, 15, 11]}, {"rva": 234527, "candidates": [6]}], "events": [{"rva": 259536, "args": [73014444032, 1810951329744, 0, 1810963744384], "return_address": 223662, "rsp": 68720524464, "result64": 0, "result": 0}, {"rva": 2289760, "args": [1810951015656, 68720524536, 0, 0], "return_address": 231606, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951016416, 1810951016112, 1810951014440, 1810951015200, 1810951015048, 1810951014896]}, {"rva": 2783904, "args": [1810951805128, 1, 68720524568, 0], "return_address": 233747, "rsp": 68720524464, "result64": 6, "result": 6, "list": [1810951798056, 1810951798088, 1810951798120, 1810951805160, 1810951812168, 1810951805096]}, {"rva": 2593168, "args": [1810951375344, 1810951798056, 1810951344920, 0], "return_address": 234222, "rsp": 68720524464, "result64": 1, "result": 1}]}
+  ]
+}

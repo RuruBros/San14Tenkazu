@@ -1,0 +1,4 @@
+#define SEASON_OBSERVER_INSTANCED
+#define SEASON_OBSERVER_COLOR_ONLY
+#define SEASON_OBSERVER_TEXTURE_READ
+#include "DrawObserver.cpp"

@@ -1,0 +1,110 @@
+{
+  "scope": "Run original numeric conversion and slot readers on isolated copied records.\n\nNo live process, original-file writes, instruction patches or helper stubs.\nThis executes 0x20AA26..0x20AE38, not the whole new-game creation path:\nnames, biography, initialization, UI/resources and gameplay are outside its scope.",
+  "imageSha256": "aa85c23361c67cd085f3101d2ecb9bf1579f79d46d081effa0184044f1c48e59",
+  "snapshotSha256": "81925c08a702412710cba9d8245800ac2ede1417de854117ffccf7f61c57cfd5",
+  "patches": [],
+  "helperStubs": [],
+  "slotCases": [
+    {
+      "officerId": 3001,
+      "stored": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "read": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "officerId": 4101,
+      "stored": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "read": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "officerId": 5101,
+      "stored": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "read": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "clanCases": [
+    {
+      "input": 0,
+      "output": 3001
+    },
+    {
+      "input": 1,
+      "output": 1
+    },
+    {
+      "input": 3001,
+      "output": 3001
+    },
+    {
+      "input": 6000,
+      "output": 6000
+    },
+    {
+      "input": 6001,
+      "output": 3001
+    },
+    {
+      "input": 65535,
+      "output": 3001
+    }
+  ]
+}

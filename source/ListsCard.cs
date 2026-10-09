@@ -1,0 +1,143 @@
+using W = System.Windows;
+using WC = System.Windows.Controls;
+using WI = System.Windows.Input;
+
+namespace San14Tenkazu;
+
+// The right pane's lists, grouped by task, each with its search box, filters and
+// count over its table. EditorWindow.Lists fills it; number cells edit directly, other cells open their editor.
+internal sealed class ListsCard : PanePage
+{
+    private readonly WC.WrapPanel tabStrip = new();
+    private readonly WC.Grid pages = new();
+    private readonly List<(PaneTab Tab, W.UIElement Page, GameTable Table, PaneSection Section)> tabs = [];
+    private readonly Dictionary<PaneSection, int> lastTabs = [];
+    private readonly PlateButton resume = new(L.Navigation.Resume, icon: Icons.Details) { Visibility = W.Visibility.Collapsed };
+    private readonly WC.TextBlock ancientTitle = new() { Text = L.Navigation.AncientTool, VerticalAlignment = W.VerticalAlignment.Center, Visibility = W.Visibility.Collapsed };
+
+    internal event Action? TabChanged, ResumeSelected;
+
+    internal ListsCard()
+    {
+        var navigation = new WC.DockPanel();
+        WC.DockPanel.SetDock(resume, WC.Dock.Right);
+        navigation.Children.Add(resume);
+        navigation.Children.Add(ancientTitle);
+        navigation.Children.Add(tabStrip);
+        var top = PaneChrome.Toolbar(navigation);
+        pages.Margin = new W.Thickness(12, 8, 12, 12);
+        var layout = new WC.DockPanel();
+        WC.DockPanel.SetDock(top, WC.Dock.Top);
+        layout.Children.Add(top);
+        layout.Children.Add(pages);
+        Inner.Child = layout;
+        resume.Click += () => ResumeSelected?.Invoke();
+    }
+
+    // The tab shown (the order the pages were added in).
+    internal int Tab { get; private set; }
+    internal PaneSection Section { get; private set; } = PaneSection.Game;
+
+    // A page under its tab: the filters and the count over the table, in a frame named as the tab.
+    internal void AddPage(string name, GameTable table, W.UIElement[] filters, WC.TextBlock count, PaneSection section = PaneSection.Game)
+    {
+        int index = tabs.Count;
+        var tab = new PaneTab(name);
+        tab.Click += (_, _) => ShowTab(index);
+        tabStrip.Children.Add(tab);
+
+        var bar = new WC.WrapPanel { Margin = new W.Thickness(0, 0, 0, 2) };
+        foreach (W.UIElement filter in filters)
+        {
+            if (filter is W.FrameworkElement element) element.Margin = new W.Thickness(0, 0, 6, 4);
+            bar.Children.Add(filter);
+        }
+        count.Foreground = CardSkin.InkMuted;
+        count.Margin = new W.Thickness(0, 2, 0, 6);
+        count.VerticalAlignment = W.VerticalAlignment.Center;
+
+        var page = new WC.DockPanel();
+        WC.DockPanel.SetDock(bar, WC.Dock.Top);
+        page.Children.Add(bar);
+        WC.DockPanel.SetDock(count, WC.Dock.Top);
+        page.Children.Add(count);
+        page.Children.Add(table);
+        pages.Children.Add(page);
+        tabs.Add((tab, page, table, section));
+        ShowTab(Tab);
+    }
+
+    internal void ShowTab(int index)
+    {
+        if (tabs.Count == 0) return;
+        int before = Tab;
+        Tab = Math.Clamp(index, 0, tabs.Count - 1);
+        Section = tabs[Tab].Section;
+        lastTabs[Section] = Tab;
+        for (int i = 0; i < tabs.Count; i++)
+        {
+            tabs[i].Tab.Selected = i == Tab;
+            tabs[i].Tab.Visibility = tabs[i].Section == Section && Section != PaneSection.Ancients ? W.Visibility.Visible : W.Visibility.Collapsed;
+            tabs[i].Page.Visibility = i == Tab ? W.Visibility.Visible : W.Visibility.Collapsed;
+        }
+        ancientTitle.Visibility = Section == PaneSection.Ancients ? W.Visibility.Visible : W.Visibility.Collapsed;
+        tabStrip.Visibility = Section == PaneSection.Ancients ? W.Visibility.Collapsed : W.Visibility.Visible;
+        if (Tab != before) TabChanged?.Invoke();
+    }
+
+    internal void ShowSection(PaneSection section)
+    {
+        if (lastTabs.TryGetValue(section, out int previous)) ShowTab(previous);
+        else
+        {
+            int first = tabs.FindIndex(page => page.Section == section);
+            if (first >= 0) ShowTab(first);
+            else Section = section;
+        }
+    }
+
+    internal void SetResume(string tooltip, int pending, bool shown)
+    {
+        resume.ToolTip = tooltip;
+        resume.Badge = pending;
+        resume.Visibility = shown ? W.Visibility.Visible : W.Visibility.Collapsed;
+    }
+
+    // Portraits decoded since the tables were drawn.
+    internal void RefreshFaces()
+    {
+        foreach (var page in tabs) page.Table.RefreshFaces();
+    }
+
+}
+
+// A search box on paper with its hint in grey while it is empty.
+internal sealed class SearchBox : WC.Grid
+{
+    internal SearchBox(string hint, double width = 150)
+    {
+        Width = width;
+        Box = CardSkin.TextBox();
+        var shown = new WC.TextBlock { Text = hint, Foreground = CardSkin.InkMuted, Margin = new W.Thickness(5, 0, 0, 0), VerticalAlignment = W.VerticalAlignment.Center, IsHitTestVisible = false };
+        Box.TextChanged += (_, _) => shown.Visibility = Box.Text.Length == 0 ? W.Visibility.Visible : W.Visibility.Collapsed;
+        Children.Add(Box);
+        Children.Add(shown);
+    }
+
+    internal WC.TextBox Box { get; }
+
+    internal string Text
+    {
+        get => Box.Text;
+        set => Box.Text = value;
+    }
+
+    // The keyboard in the box, what is typed in it picked, so typing replaces it. Once laid out: a page just shown
+    // cannot take the keyboard yet.
+    internal void FocusAll() => Dispatcher.BeginInvoke(() =>
+    {
+        Box.Focus();
+        WI.Keyboard.Focus(Box);
+        Box.SelectAll();
+    }, System.Windows.Threading.DispatcherPriority.Input);
+}

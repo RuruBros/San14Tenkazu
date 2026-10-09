@@ -1,0 +1,157 @@
+{
+  "acquiredUtc": "2026-10-06T08:10:43.325252+00:00",
+  "assets": [
+    {
+      "asset": "sparse_grass",
+      "map": "Diffuse",
+      "file": "sparse_grass_diff_1k.png",
+      "bytes": 5697636,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/sparse_grass/sparse_grass_diff_1k.png",
+      "source": "https://polyhaven.com/a/sparse_grass",
+      "license": "CC0-1.0",
+      "sha256": "ab60bc2f607801de291b826514cd13615397a903e861f0974c61c67849b7eb2d"
+    },
+    {
+      "asset": "sparse_grass",
+      "map": "nor_dx",
+      "file": "sparse_grass_nor_dx_1k.png",
+      "bytes": 6096316,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/sparse_grass/sparse_grass_nor_dx_1k.png",
+      "source": "https://polyhaven.com/a/sparse_grass",
+      "license": "CC0-1.0",
+      "sha256": "878d8fe1b9fac65010a008fda7b832c768d903799568072b8e3be9d7cb77ac37"
+    },
+    {
+      "asset": "sparse_grass",
+      "map": "Rough",
+      "file": "sparse_grass_rough_1k.png",
+      "bytes": 1749004,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/sparse_grass/sparse_grass_rough_1k.png",
+      "source": "https://polyhaven.com/a/sparse_grass",
+      "license": "CC0-1.0",
+      "sha256": "342c5325307da44077ac7486c996f10954947c5946d257b2d92e7091363f6a04"
+    },
+    {
+      "asset": "leafy_grass",
+      "map": "Diffuse",
+      "file": "leafy_grass_diff_1k.png",
+      "bytes": 5913007,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_diff_1k.png",
+      "source": "https://polyhaven.com/a/leafy_grass",
+      "license": "CC0-1.0",
+      "sha256": "2a4356e6aef5db70bb803a31fa265321b733b1f77c7c80ac26ae9aa0552f345d"
+    },
+    {
+      "asset": "leafy_grass",
+      "map": "nor_dx",
+      "file": "leafy_grass_nor_dx_1k.png",
+      "bytes": 6111982,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_nor_dx_1k.png",
+      "source": "https://polyhaven.com/a/leafy_grass",
+      "license": "CC0-1.0",
+      "sha256": "d4055bbc35c9945858d3139e4f1f30fd15872425c52ff8671b7460ad80e5b6bf"
+    },
+    {
+      "asset": "leafy_grass",
+      "map": "Rough",
+      "file": "leafy_grass_rough_1k.png",
+      "bytes": 2444449,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leafy_grass/leafy_grass_rough_1k.png",
+      "source": "https://polyhaven.com/a/leafy_grass",
+      "license": "CC0-1.0",
+      "sha256": "3b2e89d11950b1ea33731514eff86ed211f4e2e7af3b4be4a2deb6bb8a1cba84"
+    },
+    {
+      "asset": "leaves_forest_ground",
+      "map": "Diffuse",
+      "file": "leaves_forest_ground_diff_1k.png",
+      "bytes": 5855461,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leaves_forest_ground/leaves_forest_ground_diff_1k.png",
+      "source": "https://polyhaven.com/a/leaves_forest_ground",
+      "license": "CC0-1.0",
+      "sha256": "1954d02ab8318d5d81221716348ead928b2974abb707ce733dee8a5a88431182"
+    },
+    {
+      "asset": "leaves_forest_ground",
+      "map": "nor_dx",
+      "file": "leaves_forest_ground_nor_dx_1k.png",
+      "bytes": 2538146,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leaves_forest_ground/leaves_forest_ground_nor_dx_1k.png",
+      "source": "https://polyhaven.com/a/leaves_forest_ground",
+      "license": "CC0-1.0",
+      "sha256": "1ff62d5f034ab7114b07b4ffff2dbc6bc192a148e2f9882222a54c17f1023f1b"
+    },
+    {
+      "asset": "leaves_forest_ground",
+      "map": "Rough",
+      "file": "leaves_forest_ground_rough_1k.png",
+      "bytes": 2437359,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/leaves_forest_ground/leaves_forest_ground_rough_1k.png",
+      "source": "https://polyhaven.com/a/leaves_forest_ground",
+      "license": "CC0-1.0",
+      "sha256": "1bbd1819efa40800997fdbd9c8b2b226089d130fb7ee8149403d5dd757e02789"
+    },
+    {
+      "asset": "winter_leaves",
+      "map": "Diffuse",
+      "file": "winter_leaves_diff_1k.png",
+      "bytes": 5894856,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/winter_leaves/winter_leaves_diff_1k.png",
+      "source": "https://polyhaven.com/a/winter_leaves",
+      "license": "CC0-1.0",
+      "sha256": "8d8d3536fa48a2dc6800b767167a6197cd751180478b2133904ab210760fd0a1"
+    },
+    {
+      "asset": "winter_leaves",
+      "map": "nor_dx",
+      "file": "winter_leaves_nor_dx_1k.png",
+      "bytes": 6066717,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/winter_leaves/winter_leaves_nor_dx_1k.png",
+      "source": "https://polyhaven.com/a/winter_leaves",
+      "license": "CC0-1.0",
+      "sha256": "ced1ce60cf86ee2d0b49a3382279122248c50d607ccaa2d9c2b62189af4df068"
+    },
+    {
+      "asset": "winter_leaves",
+      "map": "Rough",
+      "file": "winter_leaves_rough_1k.png",
+      "bytes": 2549732,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/winter_leaves/winter_leaves_rough_1k.png",
+      "source": "https://polyhaven.com/a/winter_leaves",
+      "license": "CC0-1.0",
+      "sha256": "ffa11a987fd2efe3924d5a27bda8fecd4faf8b2a378d1f021499bee1f695e3c9"
+    },
+    {
+      "asset": "snow_02",
+      "map": "Diffuse",
+      "file": "snow_02_diff_1k.png",
+      "bytes": 1304640,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/snow_02/snow_02_diff_1k.png",
+      "source": "https://polyhaven.com/a/snow_02",
+      "license": "CC0-1.0",
+      "sha256": "ee88b16789c81886635734f2fd0d79781ea82ebc06ea3da99f3c99f8ccf81e70"
+    },
+    {
+      "asset": "snow_02",
+      "map": "nor_dx",
+      "file": "snow_02_nor_dx_1k.png",
+      "bytes": 2117991,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/snow_02/snow_02_nor_dx_1k.png",
+      "source": "https://polyhaven.com/a/snow_02",
+      "license": "CC0-1.0",
+      "sha256": "51eb591aaa7d391d5219f9cf5f8e8e52ceac09e1eec6f38c83b12976865b5ce7"
+    },
+    {
+      "asset": "snow_02",
+      "map": "Rough",
+      "file": "snow_02_rough_1k.png",
+      "bytes": 407196,
+      "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/snow_02/snow_02_rough_1k.png",
+      "source": "https://polyhaven.com/a/snow_02",
+      "license": "CC0-1.0",
+      "sha256": "162da34b174b0f3339d612c3c27a6253d2ff5eb3632494710b9df295d54d6ebb"
+    }
+  ],
+  "licenseUrl": "https://polyhaven.com/license",
+  "licenseSha256": "0b7a23e05e933f7f28ffab64ac1302e215f44eeb69abbfac4f2c4fd331101be5"
+}

@@ -1,0 +1,44 @@
+# Build output
+source/bin/
+source/obj/
+source/Core/bin/
+source/Core/obj/
+source/Tests/bin/
+source/Tests/obj/
+source/Tests/TestResults/
+source/RenderChecks/bin/
+source/RenderChecks/obj/
+source/RenderChecks/artifacts/
+# The deployed build next to the README (rebuilt from source)
+/San14Tenkazu.exe
+/*.dll
+/San14Tenkazu.deps.json
+/San14Tenkazu.runtimeconfig.json
+/San14Tenkazu.release.json
+/*.pdb
+/publish/
+/dist/
+/runtimes/
+/.cache/
+# Local development instructions and investigation records
+/.claude/
+/.codex/
+/.agents/
+/AGENTS.md
+/docs/
+/source/Reverse/notes/
+/source/RenderChecks/README.md
+/source/Seasons/README.md
+# Reverse-engineering tools: their venv and the dumped game image stay local
+source/Reverse/.venv/
+source/Reverse/.cache/
+source/Reverse/**/__pycache__/
+source/Seasons/Native/*.obj
+source/Seasons/Native/RuntimeChecks.exe
+source/Seasons/Native/ShaderChecks.exe
+source/Seasons/Native/TreeShaderChecks.exe
+source/Seasons/Native/TextureChecks.exe
+source/Seasons/Native/TreeMaskChecks.exe
+source/Seasons/Native/TerrainShaderChecks.exe
+source/Seasons/Native/WeatherChecks.exe
+source/Seasons/tools/__pycache__/

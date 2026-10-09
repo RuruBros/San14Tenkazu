@@ -1,0 +1,3 @@
+#define SEASON_OBSERVER_MESH_INSTANCED
+#define SEASON_OBSERVER_MESH_RESOURCE_READ
+#include "DrawObserverChecks.cpp"

@@ -1,0 +1,906 @@
+# Names for Ghidra (decompile.py applies them before decompiling): <rva> <name> [C prototype].
+# Functions verified against the oracle are marked in the Core's comments; these names are the reading so far.
+
+# --- objects
+0x22FCE0 Person_GetAbility int Person_GetAbility(void *person, int ability, uint flags)
+0x2341F0 Person_IsValid
+0x22CA00 Person_GetForce
+0x22DC80 Force_Index
+0x233F10 Force_IsValid
+0x233D90 Corps_IsValid
+0x2343C0 Rank_IsValid
+0x234340 Office_IsValid
+0x1EE270 Office_AbilityBonus
+0x22DF80 Office_Index
+0xDB00 Data_Decode
+0x2C6E80 IsSpecialOfficerId
+0x2AF740 Ability_ItemKind
+0x32F500 Obj_IsValid
+0x92610 PersonItemIterator_Begin
+0x926C0 PersonItemIterator_End
+0x333320 PersonItemIterator_Filter
+
+# --- options, random
+0x3E9C90 Options_Get
+0x3E9BA0 Options_Option4C4
+0x3FBB00 Random int Random(int n)
+0x1A47B90 g_RandomState
+0x1A46CA0 g_Options
+
+# --- world
+0x277DF18 g_World
+
+# --- AI behaviour-tree node factory
+0x1AE10 BT_CreateNodeByHash
+
+# --- not battle (found while looking)
+0x2E00C0 Disaster_UnitLoss
+0x40E1D0 Proposal_RecoverWounded
+0x2A8D40 BattlePower_Evaluate float BattlePower_Evaluate(void *unit, void *base, int split, int withEffects)
+
+# --- battle (2026-10-03)
+0x178E30 Battle_ApplyTroopDamage bool Battle_ApplyTroopDamage(int targetKind, int targetIndex, int damage, int attackerKind, int attackerIndex)
+0x17D1D0 Battle_WoundedRatio float Battle_WoundedRatio(void *person, int morale, int flag, void *force, void *attacker, int hasAttacker)
+0x17D4F0 Battle_MoraleLoss int Battle_MoraleLoss(int a, int b, int morale, int seed)
+0x174520 Battle_OnDestroyed
+0x3EA400 Options_Slider
+0x169C50 Battle_ResolveEngagements
+0x174BC0 Battle_Step1
+0x16A030 Battle_AttackDamage
+0x16AB50 Battle_Step3
+0x16A990 Battle_Step4
+0x16A780 Battle_Step5
+0x16FDD0 Battle_Step6
+0x1749A0 Battle_ApplyEngagementDamage
+0x174E30 Battle_StepEnd
+0x366B40 DebugLog
+0x366AB0 DebugLog2
+0x366A30 DebugLog3
+0x27E420 Capture_Chance
+0x2784B0 Recruit_Chance
+0x27D4B0 Injury_Calc
+0x2A6B60 Officer_LinkValue
+0x324300 Exchange_Judge
+0x175350 Tactic_LinkChance
+0x16A1D0 Battle_DamageFromPowers void Battle_DamageFromPowers(void *attacker, float atkA, float defA, void *defender, float atkB, float defB, int *out)
+0x2B21A0 Battle_AttackVsUnit float Battle_AttackVsUnit(float power, void *unit, void *base, void *target, int a5, int a6)
+0x2B2440 Battle_AttackVsBase float Battle_AttackVsBase(float power, void *unit, void *base, void *target, int a5, int a6)
+0x2A9E50 Battle_Defense float Battle_Defense(float power, void *unit, void *base, void *target, int a5, int a6)
+0x32C130 World_GetBase
+
+# --- 개성 effects (2026-10-03, notes/personality.md)
+0x2FD060 Pers_BattleTick
+0x27DF10 Pers_CheckCondition int Pers_CheckCondition(void *unit, void *pers, int which, void *list)
+0x22C3B0 Pers_Range int Pers_Range(void *pers)
+0x280DC0 Pers_Apply void Pers_Apply(void *unit, void *pers, void *list)
+0x27E1D0 Pers_UnitsInRange
+0x258CC0 UnitList_Add void UnitList_Add(void *unit, int which, void *list)
+0x2A7490 Unit_UnitsAround
+0x2A1F00 Unit_PersonalityOff
+0x2A2100 Unit_DropReceived
+0x26A2C0 Unit_EffectSums void Unit_EffectSums(void *unit, int kind, int *sums, int ownAlwaysOnly, int evaluate)
+0x2C89D0 Unit_ReceivedHasKind int Unit_ReceivedHasKind(void *unit, uint kind)
+0x230570 Unit_LitPersonalitySlot
+0x26A750 Officer_EffectSums void Officer_EffectSums(void *person, int kind, int *sums, int alwaysOnly)
+0x2C37F0 Officer_HasLitKind int Officer_HasLitKind(void *person, uint kind)
+0x2C5460 Officer_HasKind int Officer_HasKind(void *person, uint kind)
+0x2AB2E0 Officer_FindKind longlong Officer_FindKind(void *person, uint kind)
+0x2B2DA0 Officer_KindValueSum int Officer_KindValueSum(void *person, int kind)
+0x2305D0 Officer_PersonalitySlot
+0x230670 Officer_PersonalityList
+0x232D00 Officer_HasPersonality int Officer_HasPersonality(void *person, int personality)
+0x2C5300 Officer_PersonalitiesWithCondition
+0x22C630 Pers_KindValue int Pers_KindValue(void *pers, int kind, int none)
+0x16F7F0 Pers_Flag int Pers_Flag(void *pers, int bit)
+0x258EE0 Battle_OnUnitDestroyed
+0x23AB50 Pers_SerializeSave
+0x23EB50 Pers_SerializeFile
+0x241900 Officer_SetPersonalityLit
+
+# --- units: movement, formations, boosts, ailments (2026-10-03, notes/units.md)
+0x2D28D0 Unit_Create
+0x2D95F0 Unit_MoveTick void Unit_MoveTick(void *unit)
+0x269150 Unit_MoveSpeed int Unit_MoveSpeed(void *unit)
+0xBE120 Hex_MoveCost uint Hex_MoveCost(void *hex)
+0x2B0290 Unit_MobilityFactor
+0x2B0210 Formation_Mobility int Formation_Mobility(void *formation)
+0x2B5840 Unit_MovePenalty int Unit_MovePenalty(void *unit, void *hex)
+0x2EC3D0 Unit_SetBoost void Unit_SetBoost(void *unit, uint boost, int level, uint time, int tell, int sourceKind, int source)
+0x2234F0 Unit_AddBoostTime void Unit_AddBoostTime(void *unit, uint boost, int add)
+0x455AA0 Units_TimerPass
+0x302200 Unit_TimerTick void Unit_TimerTick(void *unit)
+0x223BF0 Unit_AddAilmentTime void Unit_AddAilmentTime(void *unit, int ailment, int add)
+0x2EEA60 Unit_AddAilment
+0x231320 Ailment_MaxTime
+0x223CE0 Unit_AddPool void Unit_AddPool(void *unit, int pool, int add)
+0x231340 Unit_PoolMax int Unit_PoolMax(int pool)
+0x241550 Unit_SetLandFormation void Unit_SetLandFormation(void *unit, int formation)
+0x241D20 Unit_SetWaterFormation void Unit_SetWaterFormation(void *unit, int formation)
+0x241620 Unit_SetMorale void Unit_SetMorale(void *unit, int morale)
+0x232350 Person_HasFormation int Person_HasFormation(void *person, int formation)
+0x3011A0 Unit_StepCheck int Unit_StepCheck(void *unit, uint hex, int speed)
+0x2EA1B0 Unit_SendHome void Unit_SendHome(void *unit, int mode, int tell, int keepProvoke)
+0x304700 Unit_HoldPlace void Unit_HoldPlace(void *unit)
+0x30CF80 Text_Message
+
+# --- camera (notes/camera.md)
+0x451360 Camera_MoveToHex void Camera_MoveToHex(int hex, int tellProgress, int ms, double distance, double pitch, int mode)
+0x11170 CameraKeeper_Get
+0x143D0 MainCamera_Move void MainCamera_Move(void *camera, void *move)
+0x13F30 MainCamera_Glide
+0xACA0 MainCamera_Place
+0x13E20 CameraEvent_Start
+0xEA00 CameraKeeper_InCharge
+0x1886B0 Hex_Position void Hex_Position(void *heights, int hex, float *xyzw)
+0x188700 Hex_GridPosition void Hex_GridPosition(int hex, float *x, float *z)
+0x1887D0 Hex_Height float Hex_Height(void *heights, int hex)
+0x3DFE90 CameraMove_ForEventAt
+0x839760 EventView_MoveCameraToHex void EventView_MoveCameraToHex(void *view, int hex, int ms)
+0x3A8690 SActMoveCameraToCity_Exec
+0x3A9430 SActMoveCameraToForce_Exec
+0x3B7210 SActMoveCameraToPersonBelongs_Exec
+0x3A18B0 SActMoveCameraToScenery_Exec
+0x22D740 Base_Hex
+0x1B62450 g_CameraKeeper
+0x1BB3D00 g_HexHeights
+0x1B59290 g_CameraHeightOn
+0x3FB600 RandomSeeded int RandomSeeded(int n, int div, int a, int b, int c, int d)
+0x32C9E0 World_RandomSalt
+0x270550 Unit_AddMorale
+0x2238F0 Base_AddMorale
+0x2571F0 Force_OnBattleEvent
+0x22E240 Unit_CommanderAbility
+0x2B8EC0 Officer_GainExperience
+0x2B9D50 Officer_AddAbilityExp
+0x169530 Officer_AddMerit
+0x2AD780 Advantage_Effect int Advantage_Effect(void *force, int kind, int *found, int none)
+0x2C6450 Advantage_Holds
+0x2AD6C0 Advantage_Value
+0x2AAAA0 Force_CitiesInState
+0x232240 Officer_Away
+0x231C60 Officer_Place
+0x234810 FootholdPersonIterator_Begin
+0x234C70 FootholdPersonIterator_End
+0x232820 City_TribeWithGovernor
+0x17A090 Officer_SetPersonalityDays
+0x232920 Officer_InTribeForce
+0x2AA850 Hex_Distance int Hex_Distance(int a, int b)
+
+# --- base owners (2026-10-03, notes/bases.md)
+0x3A9300 SExecChangeFootholdOwner_Exec int SExecChangeFootholdOwner_Exec(void *self, void *ctx)
+0x3B9630 SExecChangeCityForceInCityList_Exec
+0x3B9070 SExecChangeFootholdOwnerEmperor_Exec
+0x3B0AE0 SExecRedistributeGate_Exec
+0x3C1A90 SExecMakeBlankCityInCityList_Exec
+0x3D9220 Event_Base
+0x3D9700 Event_Person
+0x3D9360 Event_Force
+0x26D590 Base_ChangeOwner int Base_ChangeOwner(void *base, int corps, void *person, int a4, int keepValues, int a6, int a7, int a8, int a9, int a10)
+0x26CE60 Base_SetCorps
+0x3DE6A0 Base_AfterOwnerChange
+0x22C990 Base_Force
+0x22E7E0 Force_MainCorps
+0x22DBC0 Corps_Index
+0x240CB0 Person_SetCorps
+0x2AA570 Base_DamageLevel
+0x1F42B0 Building_SetDurability
+0x2E8E70 Corps_CheckFall
+0x26C970 Unit_Rebase
+0x3F6BC0 Game_Alloc
+
+# --- AI behaviour trees (2026-10-03, notes/ai.md): loader, node ticks, blackboard, predicates (AIPred_), leaf execute (AINode_)
+0xC0150 AI_Init
+0x1E2A0 BT_LoadFile
+0xB27F90 BT_ReadTreeBlock
+0xB28120 BT_ReadKtbt
+0xB261E0 BT_ReadBlackboard
+0xB27530 BT_NewRuntime
+0xB254C0 BT_NodeState
+0xC2610 BT_Predicate
+0xB29E60 BT_CallPredicate
+0xB2F0D0 BT_ConditionHolds
+0xB2F880 BT_ConditionTick
+0xB2F990 BT_ConditionIf
+0xB2FC80 BT_ConditionWhile
+0xB2FB10 BT_ConditionUntil
+0xB2FF40 BT_ConditionSetTerms
+0xB304B0 BT_TermSet
+0xB2BC40 BT_SequentialTick
+0xB2BEE0 BT_SequentialEnter
+0xB2C260 BT_SequentialSelector
+0xB2C090 BT_SequentialSequence
+0xB2C180 BT_SequentialAll
+0xB2C360 BT_SequentialByPriority
+0xB2C460 BT_SequentialShuffle
+0xB2E380 BT_StaticLinkTick
+0xBF7A40 BT_Blackboard
+# ai_attack_boundaries.py: writes its integer result at caller r8=node+80;
+# no p2 consumer assigned from the bounded direct-call analysis.
+# Node+78 explicitly stores node+68; its reloaded receiver reaches58820.
+# Register/stack closure and pointer returns still identify no +80 consumption;
+# import/virtual targets and external aliases retain their documented limits.
+0xB26300 BB_GetInt
+0xB26470 BB_GetObject
+0xB26990 BB_SetInt
+0xB26BA0 BB_SetObject
+0xB263C0 BB_GetIntByName
+0xA9EB0 AIPred_IsHostileToMe
+0xACD10 AIPred_IsMine
+0xAB350 AIPred_TroopsHasArmy
+0xAB450 AIPred_InCautionTroopsList
+0xA8C90 AIPred_HexDistanceAtMost
+0xAC750 AIPred_BordersMyBase
+0xAE450 AIPred_InPlayerMainDistrict
+0xACC90 AIPred_InMyDistrict
+0xADD50 AIPred_BelongsToForce
+0xADC50 AIPred_InDistrict
+0xADB20 AIPred_AreaDevLevelIs
+0xAD9D0 AIPred_AreaHasDomesticOfficer
+0xADAB0 AIPred_CityHasTrainingOfficer
+0xADA40 AIPred_CityHasRecruitOfficer
+0xA96D0 AIPred_?
+0xA99D0 AIPred_HasAgreementWithMe
+0xAE2B0 AIPred_ObjectKindIs
+0xA25F0 AIPred_GreaterVar
+0xA26E0 AIPred_GreaterEqualVar
+0xA2680 AIPred_Greater
+0xA2770 AIPred_GreaterEqual
+0xAE4A0 AIPred_IsValid
+0xA24F0 AIPred_Equal
+0xAB590 AIPred_ListContains
+0xADE00 AIPred_MyForceGoalIs
+0xADD00 AIPred_MyDistrictTypeIs
+0xADFA0 AIPred_MyTroopsKindIs
+0xADF30 AIPred_TroopsKindIs
+0xADBE0 AIPred_ArmyOrderIs
+0xA9D30 AIPred_IsArmyCommanderHomeBase
+0xA2880 AIPred_IsOne
+0xAA900 AIPred_IsDomesticOfficer
+0xAE110 AIPred_IsTrainingOfficer
+0xAD710 AIPred_IsRecruitOfficer
+0xAE500 AIPred_IsPersonAt
+0xACC30 AIPred_IsBlankFoothold
+0xADED0 AIPred_EqualValue
+0xA9FA0 AIPred_IsCityArea
+0xA9F40 AIPred_IsCity
+0xA6540 AIPred_?
+0xAA640 AIPred_BordersMyDistrict
+0xAE5C0 AIPred_RouteCostAtMost
+0xA4160 AIPred_CanEmploy
+0xA9C10 AIPred_IsFormerLordOf
+0xA74E0 AIPred_InList6DD5E0
+0xAAF90 AIPred_Dislikes
+0xAC390 AIPred_Likes
+0xA9DF0 AIPred_IsSwornHeadOf
+0xADFF0 AIPred_IsSpouseOf
+0xACD80 AIPred_IsParentOf
+0xA41C0 AIPred_IsEmployCandidate
+0xA8D20 AIPred_RecruitSucceeds
+0xA9CE0 AIPred_IsTribeOrSpecialForce
+0xAE8D0 AIPred_RouteCostAtMostVar
+0xAE170 AIPred_RouteExists
+0xA4E40 AIPred_CanGoodwill
+0xA4EB0 AIPred_IsGoodwillTarget
+0xA5140 AIPred_IsAvailableOfficer
+0xAF660 AIPred_DiplomacyAccepted
+0xAAEB0 AIPred_IsGateArea
+0xA8BD0 AIPred_FriendshipAtLeast
+0xAD6B0 AIPred_IsPlayerForce
+0xAD650 AIPred_IsPlayerRulerDistrict
+0xAD5F0 AIPred_IsPlayerDistrict
+0xA28C0 AIPred_CanAlliance
+0xA2930 AIPred_IsAllianceTarget
+0xA6260 AIPred_Can70DC70
+0xA62C0 AIPred_InList6D7EA0
+0xA7180 AIPred_CanSearch
+0xA7230 AIPred_IsSearchCandidate
+0xA6DD0 AIPred_CanPrize
+0xA6E90 AIPred_IsPrizeCandidate
+0xA5920 AIPred_CanGiveItem
+0xA5990 AIPred_IsItemRecipient
+0xA5C20 AIPred_CanLearn
+0xA5CA0 AIPred_IsLearner
+0xA5F20 AIPred_CanLearnTactic
+0xA3B50 AIPred_CanDualDestruction
+0xA3EB0 AIPred_IsSchemeExecutor
+0xA3C00 AIPred_IsDualDestructionTarget
+0xAF290 AIPred_DualDestructionLikely
+0xA27D0 AIPred_ForceDateReached
+0xAEE60 AIPred_NoForeignUnitsNear
+0xA2FB0 AIPred_CanAttackRequest
+0xA34C0 AIPred_IsAttackRequestForce
+0xA3020 AIPred_IsAttackRequestTarget
+0xA8140 AIPred_CanUnattendedHome
+0xA81F0 AIPred_InList6E0590
+0xA8410 AIPred_IsSchemeExecutor2
+0xAFD70 AIPred_UnattendedHomeLikely
+0xA43B0 AIPred_CanEstrange
+0xA4460 AIPred_IsSchemeExecutor3
+0xA4670 AIPred_InList6E0210
+0xAF4A0 AIPred_EstrangeLikely
+0xA5340 AIPred_CanHiddenPoison
+0xA5600 AIPred_IsSchemeExecutor4
+0xA53F0 AIPred_InList6DEB30
+0xAF830 AIPred_HiddenPoisonLikely
+0xA6690 AIPred_CanPlacation
+0xA6950 AIPred_IsSchemeExecutor5
+0xA6740 AIPred_InList6DECA0
+0xAF9D0 AIPred_PlacationLikely
+0xA6B60 AIPred_CanPrisonerReturn
+0xA6BD0 AIPred_IsPrisonerReturnTarget
+0xA2BC0 AIPred_CanAnnul
+0xA2C30 AIPred_IsAnnulTarget
+0xAA0D0 AIPred_DistrictFlag
+0xACA20 AIPred_?
+0xAA350 AIPred_DistrictDirectiveIs
+0xAA000 AIPred_DistrictSettingIs
+0xAB180 AIPred_AreaHasHostileHex
+0xA9510 AIPred_HasPersonalityEffect
+0xA9360 AIPred_HasPersonality
+0xAA5D0 AIPred_DifficultyIs
+0xA8A00 AIPred_AIThrottle
+0xAAA10 AIPred_CanBuildFacility
+0xAA820 AIPred_DistrictNumberIs
+0xAAC30 AIPred_FacilityKindIs
+0xAD770 AIPred_RankFlag
+0xA9A70 AIPred_InCoalition
+0xAFB60 AIPred_SearchFindsSomething
+0xAC330 AIPred_HexTerrainIs
+0xAC2A0 AIPred_HexFacilityIs
+0xAA890 AIPred_IdeologyIs
+0xAD810 AIPred_TroopsHasUnitAtBase
+0xA2E30 AIPred_ArmyCanReachSoon
+0xA8DF0 AIPred_HasTerrainPersonality
+0xADE50 AIPred_ArmyFormationIs
+0xAD070 AIPred_RouteMidHasHostileBase
+0xA9B80 AIPred_HasFormation
+0xAD390 AIPred_RouteHasHostileBase
+0xAA960 AIPred_IsMarkedPersonCity
+0xACE50 AIPred_RouteHasHostileArea
+0xAA430 AIPred_IsTribe
+0xA80D0 AIPred_CanTrade
+0xA4AF0 AIPred_CanFakeNews
+0xA9AC0 AIPred_ArmyStatus
+0xA4BB0 AIPred_StateAdvantageWithinReach
+0xAAF10 AIPred_AdvantageIs
+0xA4880 AIPred_CanExchange
+0xA48F0 AIPred_IsExchangeTarget
+0xA3750 AIPred_CanBuildingDestruction
+0xAF100 AIPred_BuildingDestructionLikely
+0xA6630 AIPred_ArmyNotFlagged140
+0xAE0B0 AIPred_TacticsBookTacticIs
+0xA7EE0 AIPred_IsSpyHomeCandidate
+0xA7C10 AIPred_IsSpyHomeTarget
+0xA76D0 AIPred_CanSpyAway
+0xA7740 AIPred_IsSpyAwayTarget
+0xA7A10 AIPred_IsSpyAwayAgent
+0xA3800 AIPred_InList6D7650
+0xAEC10 AIPred_?
+0xA5810 AIPred_CanHire
+0xAB2F0 AIPred_PersonFlag15E
+0xA3A00 AIPred_IsCooperatingDistrict
+0xA88F0 AIPred_UnattendedHomeBlocked
+0xA8620 AIPred_EstrangeBlocked
+0xA8710 AIPred_HiddenPoisonBlocked
+0xA8800 AIPred_PlacationBlocked
+0xA7110 AIPred_CanRumor
+0xA58A0 AIPred_CanInspect
+0xAC580 AIPred_NeedsReward
+0x1F120 AINode_AvoidPoison
+0x1F180 AINode_ClearArmyAIAction
+0x1F1C0 AINode_ClearRelayHex
+0x1F1F0 AINode_CommandExecutionFakeNews
+0x1F2C0 AINode_CommandExecutionFireStrategy
+0x1F3A0 AINode_CutLogistics
+0x1F5E0 AINode_CutSupplyAlwaysReturnsFailure
+0x1F780 AINode_ExclusionUserArmyAttachedFoothold
+0x1F7E0 AINode_GetAttackTargetArmyList
+0x1FAC0 AINode_GetAttackTargetFoothold
+0x1FE20 AINode_GetMyselfArmy
+0x1FE70 AINode_GetNearCapital
+0x1FEA0 AINode_MoveAdvantagePosition
+0x1FF00 AINode_MoveObjectAttackingArmyPosition
+0x1FF60 AINode_OccupyNeighborCapital
+0x1FFE0 AINode_OccupyNeighborScenery
+0x20060 AINode_RecoverLogistics
+0x200C0 AINode_RepairNeigoborObject
+0x20120 AINode_ResolutionFakeNews
+0x201E0 AINode_SetRelayHexEvadeFlameHex
+0x27E00 AINode_CautionArmyAddUnique
+0x280A0 AINode_CautionArmyRemove
+0x28350 AINode_CautionFootholdAddUnique
+0x284D0 AINode_CautionFootholdRemove
+0x285C0 AINode_CautionTroopsAdd
+0x286D0 AINode_CautionTroopsClear
+0x28730 AINode_CautionTroopsListAdd
+0x28BA0 AINode_CautionTroopsListAddUnique
+0x28DA0 AINode_CautionTroopsListRemoveNullUnit
+0x293A0 AINode_CautionTroopsRemove
+0x294A0 AINode_CautionTroopsSort
+0x29550 AINode_CautionTroopsUpdateStatus
+0x295B0 AINode_CommandAreaOccupyDepature
+0x2A5A0 AINode_CommandAreaTryGetDeparture
+0x2C230 AINode_CommandAutoPaintDefenseDeparture
+0x2C7D0 AINode_CommandExecutionCreditGive
+0x2C970 AINode_CommandExecutionCreditRankUp
+0x2CC50 AINode_CommandExecutionEmploy
+0x2CD20 AINode_CommandExecutionGovernment
+0x2CFE0 AINode_CommandExecutionHire
+0x2D170 AINode_CommandExecutionInspect
+0x2D8B0 AINode_CommandExecutionMerchant
+0x2E180 AINode_CommandExecutionMove
+0x2E340 AINode_CommandExecutionPrize
+0x2E520 AINode_CommandExecutionRumor
+0x2F2B0 AINode_CommandFootholdAttackDepature
+0x4ABE0 AI_FootholdAttackWorkerPurpose11
+0x48CE0 AI_FootholdAttackWorkerPurpose8
+0x46B80 AI_FootholdAttackWorkerPurpose9
+0x4BA50 AI_FootholdAttackWorkerPurpose10
+0x44A80 AI_FootholdAttackWorkerPurpose22
+0x30390 AINode_CommandFrontFootholdTransportDepature
+0x32230 AINode_CommandTransportDepature
+0x34BC0 AINode_DefendFootholdAddUnique
+0x34D20 AINode_DefendFootholdRemove
+0x34F10 AINode_Departure
+0x35770 AINode_DepartureTransport
+0x35A40 AINode_DepartureTroopsCreate
+0x36070 AINode_AppendDistrictPreserveDuplicates
+0x361A0 AINode_DistrictSetPurpose
+0x36210 AINode_DomesticOfficerRemove
+0x36320 AINode_DomesticOfficerSet
+0x36570 AINode_GetBuildingDestructionData
+0x366B0 AINode_GetCandidateFacilityList
+0x39490 AINode_GetEmployData
+0x39560 AINode_GetEstrangeData
+0x396A0 AINode_GetFacilityCandidateHexList
+0x3B690 AINode_GetHiddenPoisonData
+0x3B7D0 AINode_GetMyselfDistrictInfo
+0x3CFE0 AINode_GetMyselfDistrict
+0x3D030 AINode_GetPlacationData
+0x3D170 AINode_GetSearchData
+0x3D250 AINode_GetSpecifedStrategyDistrictTroops
+0x3D400 AINode_GetTransactionData
+0x3D8A0 AINode_GetUnattendedOfficerAndCityLists
+0x3DB50 AINode_RecruitOfficerRemove
+0x3DBF0 AINode_RecruitOfficerSet
+0x3DD30 AINode_SceneryInvestSet
+0x3DF40 AINode_SetTacticsBookEvaluation
+0x3DFE0 AINode_SpyHomeOfficerRemove
+0x3E100 AINode_SpyHomeOfficerSet
+0x3E3F0 AINode_TrainingOfficerRemove
+0x3E490 AINode_TrainingOfficerSet
+0x51950 AINode_AllianceSuccessCondition
+0x51CA0 AINode_ClearFriendForceList
+0x51CE0 AINode_ClearTargetForceList
+0x51D20 AINode_CommandExecutionAlliance
+0x51EF0 AINode_CommandExecutionAnnul
+0x52030 AINode_CommandExecutionAttackRequest
+0x52250 AINode_CommandExecutionBuildingDestruction
+0x52350 AINode_CommandExecutionDoctrinePanelAuto
+0x52600 AINode_CommandExecutionDualDestruction
+0x52780 AINode_CCommandExecutionEstrange
+0x528C0 AINode_CommandExecutionExchange
+0x52B20 AINode_CommandExecutionExpansion
+0x52CC0 AINode_CommandExecutionGoodwill
+0x52F10 AINode_CommandExecutionGovernmentAuto
+0x534A0 AINode_CCommandExecutionHiddenPoison
+0x535E0 AINode_CommandExecutionItem
+0x536C0 AINode_CommandExecutionLearn
+0x53960 AINode_CCommandExecutionPlacation
+0x53AA0 AINode_CommandExecutionPostAuto
+0x53C60 AINode_CCommandExecutionPrisonerReturn
+0x53E50 AINode_CommandExecutionSearch
+0x53F40 AINode_CommandExecutionSpyAway
+0x54060 AINode_CommandExecutionTrade
+0x542D0 AINode_CommandExecutionUnattendedHome
+0x54430 AINode_DistributeSpyPoint
+0x54690 AINode_ForceCommandMove
+0x55DC0 AINode_ForceSetPurpose
+0x55E40 AINode_GetForceFriendship
+0x55F50 AINode_GetMyselfForceInfo
+0x57EC0 AINode_GetMyselfForce
+0x57F10 AINode_SetForceEvaluation
+0x57FA0 AINode_SetFriendForceList
+0x580A0 AINode_SetTargetForceList
+0x59170 AINode_LoopListElement
+0x5CBF0 AINode_CallScript
+0x60FA0 AINode_ArmySetArmyAction
+0x61000 AINode_ArmySetRelay
+0x61120 AINode_ArmySetRetreat
+0x611C0 AINode_ArmySetTargetArmy
+0x613A0 AINode_AttackFootholdRelayAreaAttack
+0x64590 AINode_DecideAreaOccupyRoute
+0x64E10 AINode_ExecuteAreaAttack
+0x65E30 AINode_ExecuteAreaOccupy
+# 0x66667..0x666CE: construction stage 2 -> 4 only for an invalid tile or a valid facility at its native durability cap.
+0x723E0 AI_AreaOccupyIssueConstructionOrders
+0x2AC120 Building_DurabilityCapForKindAndForce
+0x66C20 AINode_ExecuteAttackAreaBuilding
+0x673D0 AINode_ExecuteAttackBuilding
+0x67950 AINode_ExecuteAttract
+0x68590 AINode_ExecuteAutoPaintDefense
+0x68650 AINode_ExecuteConstruct
+0x68970 AINode_ExecuteFacilityAttack
+0x68CE0 AINode_ExecuteFootholdOccupy
+0x69BD0 AINode_ExecuteIntercept
+0x6C4D0 AINode_GetMyselfTroopsInfo
+0x6D920 AINode_GetMyselfTroops
+0x6D970 AINode_GetRelayHexList
+0x6DB10 AINode_SetFootholdAttackRelayHex
+0x6DFF0 AINode_SetRelayHexList
+0x6E190 AINode_SpecifiedTroopsSetPurpose
+0x6E710 AINode_TroopsOrderDesutructionFacility
+0x6EF20 AINode_TroopsSetPurpose
+0x6F0E0 AINode_TroopsSetTargetTroops
+0x79CA0 AINode_AttackRequestSuccessCondition
+0x7A000 AINode_DiplomacyPriorityConditionSelect
+0x7A110 AINode_DomesticPriorityDevelopmentSelect
+0x7A210 AINode_GetAdvantageOwnFoothold
+0x7A4B0 AINode_GetAllFootholdNeedFood
+0x7A5F0 AINode_CGetAllFootholdNeedMoney
+0x7A730 AINode_GetAreaDistance
+0x7A810 AINode_GetAroundLandType
+0x7AAB0 AINode_GetArroundEnemyList
+0x7AD10 AINode_GetAvailableTacticsList
+0x7AEE0 AINode_GetBattlePowerSoldierNum
+0x7B1A0 AINode_GetBuilding
+0x7B360 AINode_GetCanServePersonList
+0x7B610 AINode_GetCompatibility
+0x7B6E0 AINode_GetDelegationTarget
+0x7B8B0 AINode_GetDiplomacyConditionArea
+0x7BBE0 AINode_GetEarthenStoneWallBuildHex
+0x7D990 AINode_GetExchangeConditions
+0x7DA40 AINode_GetFakeNewsSuccessProbability
+0x7DB20 AINode_GetFireStrategySuccessFireStrategy
+0x7DC00 AINode_GetFootholdFightingStrength
+0x7DE00 AINode_GetFootholdNeedFood
+0x7DEA0 AINode_GetFootholdNeedMoney
+0x7DF40 AINode_GetFormation
+0x7DFB0 AINode_GetHexAroundFightingStrength
+0x7E550 AINode_GetOfficerCandidate
+0x7E640 AINode_GetPersonFormationParam
+0x7E780 AINode_GetPlayerForce
+0x7E7E0 AINode_GetRemainAlliancePeriod
+0x7E8C0 AINode_GetScopeTime
+0x7E9F0 AINode_GetSearchArea
+0x7EB00 AINode_GetLastForceMatchingSelectedLordId
+0x7EC70 AINode_GetSpecifiedArmyFlagArmyList
+0x7F0F0 AINode_GetSpecifiedRangeTrapList
+0x7F230 AINode_GetTargetForcePrisonerList
+0x7F430 AINode_GetTradeNeedFood
+0x7F550 AINode_GetTransportSoldier
+0x7F5C0 AINode_GetUserArmyList
+0x7F790 AINode_GoodwillSuccessCondition
+0x7FA70 AINode_ItemSelect
+0x801C0 AINode_ListAddArea
+0x80300 AINode_ListAddAreaUnique
+0x80480 AINode_ListAddArmy
+0x805B0 AINode_ListAddArmyUnique
+0x80730 AINode_ListAddCautionTroops
+0x80860 AINode_ListAddDistrict
+0x809A0 AINode_ListAddDistrictUnique
+0x80B20 AINode_ListAddFacility
+0x80C50 AINode_ListAddFoothold
+0x80D90 AINode_ListAddFootholdUnique
+0x80F10 AINode_ListAddForce
+0x81050 AINode_ListAddForceUnique
+0x811D0 AINode_ListAddHex
+0x81310 AINode_ListAddHexUnique
+0x81490 AINode_ListAddNumberValue
+0x81560 AINode_ListAddNumberVariable
+0x81650 AINode_ListAddPerson
+0x81780 AINode_ListAddPersonUnique
+0x81900 AINode_ListAddPossibleFacility
+0x81CD0 AINode_ListAddTacticsBook
+0x81E00 AINode_ListAddTactics
+0x81F40 AINode_ListAddTroops
+0x82080 AINode_ListAddTroopsUnique
+0x82200 AINode_ListAddUniqueCautionTroops
+0x82370 AINode_ListAddUniqueNumberValue
+0x82480 AINode_ListClear
+0x82E40 AINode_ListGetItemByIndex
+0x838F0 AINode_ListPersonExtraction
+0x83C20 AINode_ListRemoveArea
+0x83D10 AINode_ListSortEvaluation
+0x84130 AINode_MiscBreak
+0x84160 AINode_MiscDummy
+0x84170 AINode_MiscLog
+0x845E0 AINode_PrisonerReturnSuccessCondition
+0x847E0 AINode_RemoveNoInterceptPerson
+0x84BB0 AINode_SelectPersonTactics
+0x84E90 AINode_SetBehaviortreeRestartFlag
+0x84F40 AINode_SetCautionTroopsVirtualTargetFoothold
+0x84FE0 AINode_SetParentTroops
+0x85090 AINode_TradePriorityCountrySelect
+0x85450 AINode_VariableClear
+0x85480 AINode_VariableCreate
+0x854B0 AINode_VariableCreateSpecifiedType
+0x85510 AINode_VariableDivideValue
+0x855A0 AINode_VariableDivideVariable
+0x85650 AINode_VariableGetAdvantageInfo
+0x856F0 AINode_VariableGetAreaInfo
+0x861A0 AINode_VariableGetArmyInfo
+0x86FB0 AINode_VariableGetBuildingInfo
+0x87110 AINode_VariableGetCautionArmyInfo
+0x872B0 AINode_VariableGetCautionTroopsInfo
+0x876C0 AINode_VariableGetDistance
+0x87750 AINode_VariableGetDistrictInfo
+0x88F80 AINode_VariableGetFindItemIndex
+0x8A160 AINode_VariableGetFootholdInfo
+0x8B8C0 AINode_VariableGetForceDistrictList
+0x8B9D0 AINode_VariableGetForceFriendship
+0x8BAB0 AINode_VariableGetForceInfo
+0x8DA10 AINode_VariableGetFormationInfo
+0x8DB40 AINode_VariableGetGameData
+0x8DCF0 AINode_VariableGetHexInfo
+0x8DF10 AINode_VariableGetListLength
+0x8E550 AINode_VariableGetMoveCost
+0x8E7C0 AINode_VariableGetPersonInfo
+0x8EF50 AINode_VariableGetSceneryInfo
+0x8F0C0 AINode_VariableGetTroopsInfo
+0x90A70 AINode_VariableMaxValueCalculation
+0x90B00 AINode_VariableMaxValue
+0x90B90 AINode_VariableMaxVariableCalculation
+0x90C50 AINode_VariableMaxVariable
+0x90D10 AINode_VariableMinValueCalculation
+0x90DA0 AINode_VariableMinValue
+0x90E30 AINode_VariableMinVariableCalculation
+0x90EF0 AINode_VariableMinVariable
+0x90FB0 AINode_VariableMinusValue
+0x91030 AINode_VariableMinusVariable
+0x910E0 AINode_VariableMultiValue
+0x91170 AINode_VariableMultiVariable
+0x91220 AINode_VariablePlusValue
+0x912A0 AINode_VariablePlusVariable
+0x91350 AINode_VariablePowerValue
+0x913F0 AINode_VariablePowerVariable
+0x914B0 AINode_VariableRoundDownValue
+0x915D0 AINode_VariableRoundUpValue
+0x916F0 AINode_VariableRoundValue
+0x91820 AINode_VariableSetRandomNumber
+0x91940 AINode_VariableSetVariableSpecifiedType
+0x91A00 AINode_VariableSqrt
+0x231B20 AINode_GetUnusedTroopsIndex
+0x42B570 AINode_CautionTroopsListDedupe
+0xB1AA0 AI_SelectDomesticDevelopment
+0x22E2B0 Area_GetCommerceLevel
+0x22C760 Area_GetAgricultureLevel
+0x231170 Area_GetBarracksLevel
+0x6D6AF0 AI_GetCityOfficerCandidates
+0x5A7C0 AINode_RunLoopChildren
+0x92AE0 AINode_LoadAllianceConditions
+0x92B10 AINode_LoadDomesticDevelopment
+0x92BC0 AINode_LoadFootholdStrength
+0x92D00 AIScript_EvaluateFirstToken
+0x92D20 AIScript_Add
+0x92D90 AIScript_Subtract
+0x92E00 AIScript_Multiply
+0x92E70 AIScript_DivideOrOne
+0x93780 AIScript_ReadArgument
+0x93BA0 AIScript_Evaluate
+0x93BC0 AIScript_EvaluateToken
+0x2A5E20 Person_GetCircularCompatibilityDistance
+0x5CAF0 AINode_ConstructCallScriptWithZeroArguments
+0x5CA50 AINode_LoopBeginReadAgentType
+0x5CAD0 AINode_LoadLoopListElement
+0x26BD40 AI_ForcesCooperateByTraits
+0x2AD610 Force_GetFriendshipGrade
+0x3E9C60 Options_ReadUnidentifiedAIOptionA
+0x3E9C00 Options_ReadUnidentifiedAIOptionB
+0xB6180 AIPred_ResolveAgentForce
+0xB60E0 AIPred_ResolveAgentDistrict
+0xB6260 AIPred_ResolveAgentTroops
+0x2C5020 Army_IsValidAndByte140Zero
+
+# AI full audit: verified wrappers and storage, original field names remain unidentified.
+0xA6260 AIPred_CanMerchantAtFoothold
+0xA62C0 AIPred_IsMerchantOfficerAtFoothold
+0x70DC70 AI_MerchantAllowedAtFoothold
+0x6D7EA0 AI_MerchantOfficerCandidates
+0x230D90 District_ReadSignedByte16
+0x100B260 Foothold_ReadPointerA8
+
+0x22A610 Army_ReadCommanderHomeBaseIdOrZero
+0x31CA80 Date_LessEqualSignedStorage
+0x1D2A00 World_ReadSignedChallengeByteOrMinusOne
+
+# Relational AI predicate helpers, behavior verified; labels describe code only.
+0x1eae20 AI_UnattendedHomeBlocked
+0x1eace0 AI_EstrangeTargetBlocked
+0x1eaaf0 AI_HiddenPoisonBlockedReturnsZero
+0x1eab60 AI_PlacationAreaBlocked
+0x6d7320 AI_SceneryOfficerCandidates
+0x32cb30 WorldData_MarkedPersonCity
+
+# Native path wrappers and blackboard list initialization.
+0xbeb30 AI_ResolveObjectHexIndexOr48400
+0x1843e0 AI_FindNativePath
+0x185620 AI_FindNativePathWithinCost
+0x94a00 AI_ConstructHeapListTracking
+0x1a2f0 AI_CreateTypedBlackboardList
+
+# Native leaf payload/list contracts verified in ai_leaf_audit.py; no game hooks.
+0x1ee9b0 AI_IssuePolicyAssignmentPayload
+0x1f9230 AI_IssueSchemePayload
+0x6daf20 AI_CorpsAvailableOfficerList
+0x6deca0 AI_CorpsPlacationAreaList
+0x6e0590 AI_CorpsUnattendedCityList
+0xce0c0 AI_ResolutionFakeNewsHelper
+
+# Native executor state factories and reset methods used by ai_executor_audit.py.
+0x5eb40 AI_CreateAreaOccupyState
+0x5ebd0 AI_CreateAreaBuildingAttackState
+0x5ec60 AI_CreateAttractState
+0x74540 AI_ResetAreaOccupyState
+0x71970 AI_ResetAreaBuildingAttackState
+0x700b0 AI_ResetAttractState
+0x3f5d0 AI_SelectFacilityCandidateMode
+0xA1D00 AI_DepartureApplyPersonalityPolicies void AI_DepartureApplyPersonalityPolicies(void *officer, void *request)
+0x40630 AI_AreaOccupyCollectDepartureBases
+0x3E5A0 AI_AreaOccupyCollectOfficersAndTargets
+0x27410 AI_AreaOccupyCreateDeparture
+0x6DDFC0 AI_TradeCandidateCountries
+0x978E0 AI_TradeCountryPrecedes
+
+# Static input contract: first instruction reads the hex's area ID at +0x12, without a null guard.
+0x229EA0 Hex_GetAreaFromIdAt12
+# 0x229EA0 reads UInt16 at input+0x12 without a null check; unused relay executor calls it at 0x671BB with state+0x10.
+0x22FB10 Hex_GetBuilding
+# 0x22FB10 accepts building indices 0..3000; larger hex building IDs resolve to dummy 0.
+0x42E70 AI_BuildOfficerDepartureRequestIgnoringFirstArgument
+0x279190 Facility_CanBuildAtHex
+0x22F060 Area_CollectAdjacentAreas
+0x2A7AA0 Hex_CollectNeighborsWithinRadius
+0x3FCB0 FacilityDefinition_ReadMoneyCost
+0x3EA3C0 City_ReadMoneyAt34
+
+# Facility terrain mask: original saved-image execution in ai_facility_terrain.py.
+0x42B40 FacilityDefinition_AllowsTerrain
+0x22DC50 FacilityDefinition_IndexByAddress
+0xDB00 Data_DecodeByteByRotationAndIndex
+0x27BD50 Facility_CheckNeighborSpacing
+0x2B4750 Hex_CollectExactRing
+0x2B48A0 Hex_EnumerateExactRingIndices
+0x230FD0 Hex_GetSceneryFromIndexAt1E
+0x2C9E30 Area_IsAtFacilityCapacity
+0x2C4990 Facility_CheckForcePrerequisite
+0x42410 FacilityDefinition_GetRequiredPolicyEffect
+0x424A0 FacilityDefinition_ReadRequiredPolicyEffectIndex
+0x42500 FacilityDefinition_ReadRequiredPolicyEffectValue
+# Display meanings of these global states remain unknown; addresses and data checks are verified.
+0x56EE40 GlobalState_GetPointerAt27D29A0
+0x56EE30 GlobalState_GetPointerAt27D2A10
+0x41C440 Force_ReadPolicyEffectLevel
+0x26AA20 Force_VisitPolicyMembers
+0x258D90 Officer_AddPolicyLevelsToRequests
+0x313020 ForcePolicyData_ReadLevelCappedAt10
+0x3130D0 ForcePolicyData_SetNonnegativeLevel
+# ai_name_sources.py: BB_GetIntByName (0xB263C0) hashes signed bytes only until the first NUL.
+
+# Multi-waypoint wrapper and actual reverse search, ai_path_composition.py.
+# ai_path_search_audit.py: complete backend observations, reverse goal origin,
+# signed cost relaxation and options & 5 float heuristic; remaining edges in notes/ai.md.
+# ai_path_search_branches.py: 24 real terrains, exact native cost limits,
+# ai_path_global_branch.py additionally freezes the actual 0x31330 object at 1BB3D00.
+# ai_path_world_branches.py uses real longer routes, skill102 armies and native exclusion lists.
+# ai_path_pool_branches.py exhausts copied free lists through original allocators.
+# ai_path_tile_filters.py verifies actual force borders, unit tiles and terrain-7 costs.
+# Combined 70/90 and 52/64 conditions have both edges; other branches remain open.
+0x1843E0 AI_FindNativePath
+0x183A30 AI_SearchNativePathSegment
+0x184EB0 AI_SearchNativePathSegmentWithinCost
+0x18AE60 Path_UnlinkQueueNode
+0x18AFA0 AI_InitializePathGoals
+0x30B130 Options_FormatEnemyStratagems
+0x30B0B0 Options_FormatEnemyAllianceBreaks
+0x35B400 Person_FormatHanInclination
+0x35ABE0 Country_FormatPlayerTradeFriendship
+0x3489D0 Country_GetPlayerTradeFriendshipNumber
+0x5D3B0 AI_SortInterceptUnitsByMobility
+0x97330 AI_CompareInterceptMobility
+0xCF920 AI_CollectHostileAreaCenterRelays
+0x18A080 Path_IsTileAdmitted
+0x1864F0 Path_AdjustCostByCachedMobility
+0x18DD40 Path_ConstructMobilityCostMap
+0x2C4D00 Path_IsWaterCodeAllowed
+0x2C6640 Path_IsTileAllowedForArmy
+0x2C6700 Path_IsTileAllowedForForce
+0x2C5070 Hex_IsInNeighborList
+
+# Role labels only; the original class/function names are not recovered.
+0x1866F0 Global31330_AllocateAndConstruct
+0x186740 Global31330_DestroyAndFree
+
+# Native generic pool roles, validated with complete copied free-list exhaustion.
+0x18B60 Pool_AllocateIndexEntry
+0x18DF0 Pool_AllocateListNode
+
+# Raw signed tile field used by the native 2C6950 range classifier.
+0x231500 Hex_ReadSignedWord1C
+0x2C6950 Hex_HasUnitIndexInRange1To500
+
+# Role label from saved instructions; not a recovered original name.
+0x58820 ObjectList_AppendCopiedPayload
+
+# Pure saved-image leaf used by ai_path_reinsert_plan.py; switch and edge fallbacks retained.
+0x2A7720 Hex_NeighborByDirection
+
+# ai_path_cost_contract.py: options&5==0 has fixed destination cost10000,
+# plus only the unbounded context+2C terrain-7 penalty10000.
+# With clean nodes, distinct valid goals, stable terrain and an intact queue,
+# queued improvements at184207/185454 are unreachable; no new runtime edges claimed.
+
+# Building classification roles observed in whole searches; original symbol names are unknown.
+0xEE90 Building_GetDefinition
+0x232650 Building_IsCity
+0x232BD0 Building_IsGate
+
+# ai_path_small_trials.py: complete original searches, 3 calls / 955 decisions.
+# 184230 and18547D fallthrough observed after18AE60 made the queue empty.
+# Combined73/90 and57/64 conditions have both edges; 24 directions remain unobserved.
+# Fresh source=goal list stayed single-node before/after185B30 in this input only;
+# 183ECB taken and transitive mutation closure remain unproved. See notes/ai.md.
+# ai_path_list_boundary.py: saved-image direct closure from185B30,
+# 434 entries /1144 direct edges /37 pool references /256 unresolved indirect boundaries.
+# Direct paths include18B60,18DF0,18770,18830; this does not prove fresh-index mutation or loop coverage.
+# ai_static_switch.py: bounds-checked two-table dispatches at1B3CAE/1B3F3B/1B3DD6.
+# 207/62/52 selector entries map to2/3/2 exact targets; no native execution or virtual-target guessing.
+# Constructor-bound iterator slot13A6520+8, RTTI CFootholdArmyUnitIterator.
+# Role label below describes its entry test; not a recovered original method name.
+0x333110 FootholdArmyIterator_TestEntry
+# ai_static_facts.py records generic/integer pool argument sources and tile+16 serialization;
+# constructor-bound scope is not global index-alias closure or new native coverage.
+# ai_import_signatures.py: local SDK declares EnterCriticalSection with RCX only.
+# Six R8 node layouts and120 stack-only layouts remain diagnostics outside formal arguments;
+# 32F50C virtual receiver and attack p2 meaning remain unknown; no native execution.
+# Original CTroopsData validity slot; role label, not a recovered method name.
+0x234540 Troops_TestOriginalValidity
+# ai_attack_receiver.py binds the cached world+7F8D8 receiver under original constructor scope;
+# incoming R8 node alias dies at222F39, but p2 meaning and whole-program non-use remain unproved.
+
+# Tile+16 fire timer identity from original BurnEnemy/ExtinguishFireFriend proposal RTTI.
+# Function names below are role labels; update scheduling/time unit is not inferred.
+0x2EDD40 Hex_SetFireTimer
+0x2E39E0 Hex_IgniteWithTerrainAndImmunityChecks
+0x2A1DC0 Hex_UpdateFireTimersAndCollectRemaining
+# ai_tile_fire_facts.py anchors the unsigned184084 path filter; no new native edge claimed.
+
+# ai_static_facts.py poolOwnership: receiver-scoped clears/appends and a read-only membership body.
+# This is not a global fresh-index alias proof or native183ECB taken coverage.
+# ai_frozen_preflight.py reuses original text only after comparing all captured text bytes;
+# mutable holes are never filled and a failed fire preparation is never used as an A* input.
+
+# ai_remaining_batch.py copies actual TLS/allocator/import entry pages once for offline execution.
+# Original initialized manager entry; role label only, not a recovered symbol name.
+0x3FB8C0 Allocator_GetThreadInitializedManager
+# ai_path_fire_snapshot.py: saved fire40, original183A30 twice with context+28=0/1.
+# 184084 taken observed without Ignite, timer poke or game helper replacement.
+# Combined2660 calls:74/90 and57/64 both edges;23 directions remain unobserved.
+
+# ai_path_state_contracts.py: successful world constructor3262E0/FF945C writes48400 contiguous32byte tile pointers.
+# Null183F8A/18520C is excluded only with successful allocation and an intact original table; not new native coverage.
+# Original18A080 completed14 actual category/terrain cases, all generic admission0 and fallback reject18A391.
+# Terrain16/17 eligibility is necessary after that rejection, not complete admission or proof of an actual facility state.
+# ai_scalar_flow.py: original183EBF fixed scalar arguments prune185B30 root378 to188 instructions and25 calls.
+# Narrowed372-entry direct closure keeps223 unresolved boundaries; fresh-index mutation and183ECB taken remain unproved.
+# Tests/AiPathStateContracts.json.gz preserves48400 original pointers and14 complete admission calls.
+# Core validates constructed table shape and terrain16/17 exception eligibility only, not full admission.
+# Scoped triage with matching frozen evidence:8 code contracts,6 outside caller,8 changed-state,1 code-analysis;23 edges unobserved.
+# ai_capture_global_diagnostic.py records original31330-byte context and neighboring page differences; no guard relaxation.
+# Prepared190-12-08 frozen state:32 valid armies, no owner46..50/special/leader>6000 input;52 non-city/gate facilities.
+# 5412 complete original18A080 calls rejected category2/3; fourteen representative fallback paths also completed.
+# No eligible new complete-search trial;2660 full calls and23 unobserved directions remain. See notes/ai.md.
+# ai_path_minor_trials.py: original191-03-01 Wuhuan armies57/58/67/68, force46 and232730=true.
+# Whole183A30/184EB0 source=goal calls observe183B2D fallthrough,183B39 fallthrough and184FAD taken.
+# No world/army/code field edits or helper replacement; this isolates initialization, not nonzero-distance movement.
+# Validated fixture coverage2662 calls:76/90 and58/64 both edges;20 directions remain unobserved.
+# Tests/AiPathMinorVectors.json.gz preserves complete original initialization gates and actual owner46/special1.
+# Core minor/special-owner and commander-home gates model exact original conditions;51 is code evidence, not an observed fixture input.
+# Latest68-unit/54-facility state:12144 original category2/3 admission calls reject;no leader>6000 input.
+# Triage:20 unobserved directions =8 scoped code,6 outside caller,5 changed-state,1 code-analysis.
+# Unit_Create2D2A93..2D2AAA clamps its direct commander assignment to0..6000;later writers/loading are outside this scope.
+# Original279190 requires42B40 terrain admission;actual category2/3 definitions3..10,15,16 all reject16/17 in20 full helper calls.
+# Fallback22A850/22CF90 and facility22FB10 sharetile+1A;intact city/gate IDs are skipped before non-base category filters.
+# Neutral/invalid-army terrain16 is only a necessary fallback candidate,not proven final admission or a natural state.
+# Tests/AiPathCreationContracts.json.gz preserves scopes,original anchors,all31 definitions and399 actual city/gate tiles.
+# No new A* direction observed;do not ask for another ordinary sortie/building save to manufacture these inputs.

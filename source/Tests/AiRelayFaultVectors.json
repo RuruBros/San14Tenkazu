@@ -1,0 +1,166 @@
+{
+  "utc": "2026-10-04T11:03:13.809434+00:00",
+  "pid": 2964,
+  "clockBefore": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "clockAfter": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "clockStable": true,
+  "listPoolSnapshot": {
+    "attempts": 1,
+    "start": 1810963300352,
+    "length": 6295552,
+    "sha256": "e88e2eb7cc991aef4fb047c0a91c209b58603986c543167c94ddad1c78327e8b",
+    "validatedLists": 81920,
+    "validatedActiveNodes": 17748,
+    "validatedFreeNodes": 80556,
+    "validatedIndices": 41411,
+    "validatedFreeIndices": 40509
+  },
+  "method": "registered executor full native calls with one or two actual neighboring relay hexes; initialization and area-lookup observers; faults retained separately; no game writes or helper substitution",
+  "oracle_sha256": "96741ec7f5db1d3257c25c9bdd9d51820577271f606f0acf196554d2020c52f3",
+  "failures": [
+    {
+      "class": "CExecuteAttackAreaBuildingNode",
+      "group": 1810954827320,
+      "ownerForce": 28,
+      "relation": "hostile",
+      "purpose": 3,
+      "inputTargetBase": 11,
+      "inputRelays": [
+        23290
+      ],
+      "relayPointers": [
+        1810952134376
+      ],
+      "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff",
+      "error": "Invalid memory read (UC_ERR_READ_UNMAPPED) at rip 0x7ff76ea19ea0 (rva 0x229ea0); last fault ('0x12', '0x7ff76ea19ea0')",
+      "faultRva": 2268832,
+      "faultRcx": 0,
+      "stateAfter": "e8b5b36ff77f0000e89e28a5a5010000000000000000000001000000ffffffff",
+      "frames": [
+        {
+          "rva": 421531,
+          "statePointer": 1810994451376,
+          "state": "e8b5b36ff77f0000e89e28a5a5010000000000000000000000000000ffffffff",
+          "firstTarget": 1810952134376,
+          "secondTarget": 0,
+          "rcx": 41453
+        },
+        {
+          "rva": 422331,
+          "statePointer": 1810994451376,
+          "state": "e8b5b36ff77f0000e89e28a5a5010000000000000000000001000000ffffffff",
+          "firstTarget": 1810952134376,
+          "secondTarget": 0,
+          "rcx": 0
+        }
+      ]
+    },
+    {
+      "class": "CExecuteAttackAreaBuildingNode",
+      "group": 1810954827320,
+      "ownerForce": 28,
+      "relation": "hostile",
+      "purpose": 9,
+      "inputTargetBase": 11,
+      "inputRelays": [
+        23290
+      ],
+      "relayPointers": [
+        1810952134376
+      ],
+      "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff",
+      "error": "Invalid memory read (UC_ERR_READ_UNMAPPED) at rip 0x7ff76ea19ea0 (rva 0x229ea0); last fault ('0x12', '0x7ff76ea19ea0')",
+      "faultRva": 2268832,
+      "faultRcx": 0,
+      "stateAfter": "e8b5b36ff77f0000e89e28a5a5010000000000000000000001000000ffffffff",
+      "frames": [
+        {
+          "rva": 421531,
+          "statePointer": 1810994451376,
+          "state": "e8b5b36ff77f0000e89e28a5a5010000000000000000000000000000ffffffff",
+          "firstTarget": 1810952134376,
+          "secondTarget": 0,
+          "rcx": 41453
+        },
+        {
+          "rva": 422331,
+          "statePointer": 1810994451376,
+          "state": "e8b5b36ff77f0000e89e28a5a5010000000000000000000001000000ffffffff",
+          "firstTarget": 1810952134376,
+          "secondTarget": 0,
+          "rcx": 0
+        }
+      ]
+    },
+    {
+      "class": "CExecuteAttackAreaBuildingNode",
+      "group": 1810954827320,
+      "ownerForce": 28,
+      "relation": "hostile",
+      "purpose": 13,
+      "inputTargetBase": 11,
+      "inputRelays": [
+        23290
+      ],
+      "relayPointers": [
+        1810952134376
+      ],
+      "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff",
+      "error": "Invalid memory read (UC_ERR_READ_UNMAPPED) at rip 0x7ff76ea19ea0 (rva 0x229ea0); last fault ('0x12', '0x7ff76ea19ea0')",
+      "faultRva": 2268832,
+      "faultRcx": 0,
+      "stateAfter": "e8b5b36ff77f0000e89e28a5a5010000000000000000000001000000ffffffff",
+      "frames": [
+        {
+          "rva": 421531,
+          "statePointer": 1810994451376,
+          "state": "e8b5b36ff77f0000e89e28a5a5010000000000000000000000000000ffffffff",
+          "firstTarget": 1810952134376,
+          "secondTarget": 0,
+          "rcx": 41453
+        },
+        {
+          "rva": 422331,
+          "statePointer": 1810994451376,
+          "state": "e8b5b36ff77f0000e89e28a5a5010000000000000000000001000000ffffffff",
+          "firstTarget": 1810952134376,
+          "secondTarget": 0,
+          "rcx": 0
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "own", "purpose": 3, "inputTargetBase": 11, "inputRelays": [35594], "relayPointers": [1810952528104], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e8a02ea5a5010000000000000000000000000000ffffffff", "firstTarget": 1810952528104, "secondTarget": 0, "rcx": 41453}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "own", "purpose": 9, "inputTargetBase": 11, "inputRelays": [35594], "relayPointers": [1810952528104], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e8a02ea5a5010000000000000000000000000000ffffffff", "firstTarget": 1810952528104, "secondTarget": 0, "rcx": 41453}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "own", "purpose": 13, "inputTargetBase": 11, "inputRelays": [35594], "relayPointers": [1810952528104], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e8a02ea5a5010000000000000000000000000000ffffffff", "firstTarget": 1810952528104, "secondTarget": 0, "rcx": 41453}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "own", "purpose": 3, "inputTargetBase": 11, "inputRelays": [35594, 35593], "relayPointers": [1810952528104, 1810952528072], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e8a02ea5a5010000c8a02ea5a501000000000000ffffffff", "firstTarget": 1810952528104, "secondTarget": 1810952528072, "rcx": 1810952528072}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "own", "purpose": 9, "inputTargetBase": 11, "inputRelays": [35594, 35593], "relayPointers": [1810952528104, 1810952528072], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e8a02ea5a5010000c8a02ea5a501000000000000ffffffff", "firstTarget": 1810952528104, "secondTarget": 1810952528072, "rcx": 1810952528072}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "own", "purpose": 13, "inputTargetBase": 11, "inputRelays": [35594, 35593], "relayPointers": [1810952528104, 1810952528072], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 1, "stateAfter": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e8a02ea5a5010000c8a02ea5a501000000000000ffffffff", "firstTarget": 1810952528104, "secondTarget": 1810952528072, "rcx": 1810952528072}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "hostile", "purpose": 3, "inputTargetBase": 11, "inputRelays": [23290, 23289], "relayPointers": [1810952134376, 1810952134344], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 3, "stateAfter": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000000000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}, {"rva": 422331, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}, {"rva": 422343, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "hostile", "purpose": 9, "inputTargetBase": 11, "inputRelays": [23290, 23289], "relayPointers": [1810952134376, 1810952134344], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 3, "stateAfter": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000000000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}, {"rva": 422331, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}, {"rva": 422343, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}]},
+    {"class": "CExecuteAttackAreaBuildingNode", "group": 1810954827320, "ownerForce": 28, "relation": "hostile", "purpose": 13, "inputTargetBase": 11, "inputRelays": [23290, 23289], "relayPointers": [1810952134376, 1810952134344], "stateBefore": "e8b5b36ff77f00000000000000000000000000000000000000000000ffffffff", "status": 3, "stateAfter": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "frames": [{"rva": 421531, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000000000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}, {"rva": 422331, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}, {"rva": 422343, "statePointer": 1810994451376, "state": "e8b5b36ff77f0000e89e28a5a5010000c89e28a5a501000001000000ffffffff", "firstTarget": 1810952134376, "secondTarget": 1810952134344, "rcx": 1810952134344}]}
+  ]
+}

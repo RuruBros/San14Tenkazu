@@ -1,0 +1,280 @@
+{
+  "utc": "2026-10-04T10:55:00.525385+00:00",
+  "clockStable": true,
+  "clockBefore": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "clockAfter": {
+    "pid": 2964,
+    "exe": 140700687466496,
+    "world": 1808645223712,
+    "state": 1810950979808,
+    "value": [
+      192,
+      7,
+      1,
+      14
+    ]
+  },
+  "method": "completed full native rows from stable recorded runs; earlier instruction-limit failures retained separately and matched to completed reruns",
+  "sourceLogs": [
+    ".cache\\ai_attack_cache\\20261004T104725Z.json",
+    ".cache\\ai_attack_cache\\20261004T105433Z.json"
+  ],
+  "failures": [],
+  "priorFailures": [
+    {
+      "force": 29,
+      "enemyCity": 10,
+      "nearestOwnedCity": 14,
+      "nativeDistance": 20,
+      "ownedCities": [
+        3,
+        5,
+        6,
+        7,
+        14,
+        15,
+        18,
+        20,
+        22
+      ],
+      "purpose": 8,
+      "expectedWorker": 298208,
+      "input": 0,
+      "copiedInputChanges": [
+        {
+          "address": 1810951340684,
+          "before": 0,
+          "after": 1,
+          "size": 1,
+          "role": "corps command budget in copied input"
+        }
+      ],
+      "error": "stopped at 0xff83c4 (instruction limit?)",
+      "cacheAccesses": [
+        {
+          "rva": 193528,
+          "access": "write",
+          "offset": 128,
+          "size": 4,
+          "value": 0
+        },
+        {
+          "rva": 11690928,
+          "access": "write",
+          "offset": 128,
+          "size": 4,
+          "value": 0
+        }
+      ],
+      "events": [
+        {
+          "rva": 298208,
+          "args": [
+            73014444032,
+            1810991190768,
+            1810951340664,
+            0
+          ],
+          "return_address": 196737,
+          "rsp": 68720524720
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810953841464,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810954261080,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810954005144,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810954029448,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        }
+      ]
+    },
+    {
+      "force": 29,
+      "enemyCity": 10,
+      "nearestOwnedCity": 14,
+      "nativeDistance": 20,
+      "ownedCities": [
+        3,
+        5,
+        6,
+        7,
+        14,
+        15,
+        18,
+        20,
+        22
+      ],
+      "purpose": 8,
+      "expectedWorker": 298208,
+      "input": 1,
+      "copiedInputChanges": [
+        {
+          "address": 1810951340684,
+          "before": 0,
+          "after": 1,
+          "size": 1,
+          "role": "corps command budget in copied input"
+        }
+      ],
+      "error": "stopped at 0xff83c4 (instruction limit?)",
+      "cacheAccesses": [
+        {
+          "rva": 193528,
+          "access": "write",
+          "offset": 128,
+          "size": 4,
+          "value": 0
+        },
+        {
+          "rva": 11690928,
+          "access": "write",
+          "offset": 128,
+          "size": 4,
+          "value": 1
+        }
+      ],
+      "events": [
+        {
+          "rva": 298208,
+          "args": [
+            73014444032,
+            1810991190768,
+            1810951340664,
+            0
+          ],
+          "return_address": 196737,
+          "rsp": 68720524720
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810953841464,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810954261080,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810954005144,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        },
+        {
+          "rva": 274032,
+          "args": [
+            73014444032,
+            1810951325064,
+            1810954029448,
+            68720523976
+          ],
+          "return_address": 299665,
+          "rsp": 68720523520,
+          "result64": 207876417174800,
+          "result": 48400
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 11, "expectedWorker": 306144, "input": 0, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 306144, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196716, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953905448, 68720524552], "return_address": 306934, "rsp": 68720524336, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 11, "expectedWorker": 306144, "input": 1, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 306144, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196716, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953905448, 68720524552], "return_address": 306934, "rsp": 68720524336, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 8, "expectedWorker": 298208, "input": 0, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 0, "groups": [1810954829496, 1810954829944], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 298208, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196737, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953940168, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 8, "expectedWorker": 298208, "input": 1, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 1, "groups": [1810954829496, 1810954829944], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 298208, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196737, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953940168, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 9, "expectedWorker": 289664, "input": 0, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 289664, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196758, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 290717, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 9, "expectedWorker": 289664, "input": 1, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 289664, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196758, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 290717, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 10, "expectedWorker": 309840, "input": 0, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 309840, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196779, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 310907, "rsp": 68720523376, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 10, "expectedWorker": 309840, "input": 1, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 309840, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196779, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 310907, "rsp": 68720523376, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 22, "expectedWorker": 281216, "input": 0, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 281216, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196804, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 282284, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 9, "enemyCity": 5, "nearestOwnedCity": 2, "nativeDistance": 24, "ownedCities": [1, 2], "purpose": 22, "expectedWorker": 281216, "input": 1, "copiedInputChanges": [{"address": 1810951340444, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 281216, "args": [73014444032, 1810991190768, 1810951340424, 1], "return_address": 196804, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951323264, 1810953942648, 68720523976], "return_address": 282284, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 11, "expectedWorker": 306144, "input": 0, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 306144, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196716, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720524552], "return_address": 306934, "rsp": 68720524336, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 11, "expectedWorker": 306144, "input": 1, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 306144, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196716, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720524552], "return_address": 306934, "rsp": 68720524336, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 9, "expectedWorker": 289664, "input": 0, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 289664, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196758, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 290717, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 9, "expectedWorker": 289664, "input": 1, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 289664, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196758, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 290717, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 10, "expectedWorker": 309840, "input": 0, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 309840, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196779, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 310907, "rsp": 68720523376, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 10, "expectedWorker": 309840, "input": 1, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 309840, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196779, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 310907, "rsp": 68720523376, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 22, "expectedWorker": 281216, "input": 0, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 0, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 281216, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196804, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 282284, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 22, "expectedWorker": 281216, "input": 1, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 2, "cache": 1, "groups": [1810954829496], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 281216, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196804, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 282284, "rsp": 68720523392, "result64": 207876417174800, "result": 48400}]},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 8, "expectedWorker": 298208, "input": 0, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 0, "groups": [1810954829496, 1810954829944, 1810954830008, 1810954830072, 1810954830136], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 0}], "events": [{"rva": 298208, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196737, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954261080, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954005144, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954029448, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954186680, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}], "releaseCalls": {"count": 451408, "last": [{"rva": 16745396, "return_address": 102112, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524192, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524656, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524656, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 101531, "rsp": 68720524656, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524480, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 102112, "rsp": 68720524528, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 101531, "rsp": 68720524192, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 102112, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524192, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524656, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524656, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524656, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524656, "rcx": 140700729217384}]}},
+    {"force": 29, "enemyCity": 10, "nearestOwnedCity": 14, "nativeDistance": 20, "ownedCities": [3, 5, 6, 7, 14, 15, 18, 20, 22], "purpose": 8, "expectedWorker": 298208, "input": 1, "copiedInputChanges": [{"address": 1810951340684, "before": 0, "after": 1, "size": 1, "role": "corps command budget in copied input"}], "status": 1, "cache": 1, "groups": [1810954829496, 1810954829944, 1810954830008, 1810954830072, 1810954830136], "cacheAccesses": [{"rva": 193528, "access": "write", "offset": 128, "size": 4, "value": 0}, {"rva": 11690928, "access": "write", "offset": 128, "size": 4, "value": 1}], "events": [{"rva": 298208, "args": [73014444032, 1810991190768, 1810951340664, 0], "return_address": 196737, "rsp": 68720524720, "result64": 1, "result": 1}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810953841464, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954261080, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954005144, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954029448, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}, {"rva": 274032, "args": [73014444032, 1810951325064, 1810954186680, 68720523976], "return_address": 299665, "rsp": 68720523520, "result64": 207876417174800, "result": 48400}], "releaseCalls": {"count": 451408, "last": [{"rva": 16745396, "return_address": 102112, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524192, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524656, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524656, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 101531, "rsp": 68720524656, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524480, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 102112, "rsp": 68720524528, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 101531, "rsp": 68720524192, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 102112, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524192, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524192, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524656, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524656, "rcx": 140700729217384}, {"rva": 16745396, "return_address": 100361, "rsp": 68720524656, "rcx": 140700729217464}, {"rva": 16745396, "return_address": 100635, "rsp": 68720524656, "rcx": 140700729217384}]}}
+  ]
+}

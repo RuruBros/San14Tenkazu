@@ -1,0 +1,1247 @@
+[
+  {
+    "file": "sparse_grass_diff_1k.dds",
+    "source": "sparse_grass_diff_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/sparse_grass",
+    "sourceSha256": "ab60bc2f607801de291b826514cd13615397a903e861f0974c61c67849b7eb2d",
+    "sha256": "2e6a3d5f9f2404b97ef2779604a7fecc18f75b5944558b2aaf2cb952011c38e4",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM_SRGB",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "sparse_grass_nor_dx_1k.dds",
+    "source": "sparse_grass_nor_dx_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/sparse_grass",
+    "sourceSha256": "878d8fe1b9fac65010a008fda7b832c768d903799568072b8e3be9d7cb77ac37",
+    "sha256": "3a4c78aa2582119a6b9edb91e5b26582412faa99ec1f84dd31a8c5fe363aab57",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006650333382466123
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006278843038372006
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005412571842407177
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004924437816533844
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004423470589472789
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004114577909133832
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0.003576840323106678
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0028410238841094504
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0017976921100162357
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0013677689485345201
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0013677689485345201
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "sparse_grass_rough_1k.dds",
+    "source": "sparse_grass_rough_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/sparse_grass",
+    "sourceSha256": "342c5325307da44077ac7486c996f10954947c5946d257b2d92e7091363f6a04",
+    "sha256": "96037f09fdbf5ff4e0562fffc276316e378eb60d096a5a6297af8f81db0498a9",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "leafy_grass_diff_1k.dds",
+    "source": "leafy_grass_diff_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/leafy_grass",
+    "sourceSha256": "2a4356e6aef5db70bb803a31fa265321b733b1f77c7c80ac26ae9aa0552f345d",
+    "sha256": "e4312c3df9d9aff8f7a5a59e44283bacf37e82b6b655caf680bc400aa6726142",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM_SRGB",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "leafy_grass_nor_dx_1k.dds",
+    "source": "leafy_grass_nor_dx_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/leafy_grass",
+    "sourceSha256": "d4055bbc35c9945858d3139e4f1f30fd15872425c52ff8671b7460ad80e5b6bf",
+    "sha256": "b625d3d5d1c1fcdb27d91c92a922b9e6cd5001d52d6477e223fb097165fd8b13",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006650333382466123
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006278843038372117
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005781059762439034
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0052916508878742
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004423470589472789
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0040528108694211085
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0028410238841094504
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0009991164156815113
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0002614037425383575
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 1.5378582249425676E-05
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 1.5378582249425676E-05
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "leafy_grass_rough_1k.dds",
+    "source": "leafy_grass_rough_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/leafy_grass",
+    "sourceSha256": "3b2e89d11950b1ea33731514eff86ed211f4e2e7af3b4be4a2deb6bb8a1cba84",
+    "sha256": "e4f01ac632f0cd6b44e9f908e36a3225b50ec56479286b0f3e13483b72a89226",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "leaves_forest_ground_diff_1k.dds",
+    "source": "leaves_forest_ground_diff_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/leaves_forest_ground",
+    "sourceSha256": "1954d02ab8318d5d81221716348ead928b2974abb707ce733dee8a5a88431182",
+    "sha256": "15075044f93895e6a1a47b6203dcca71507a3e766195e28356375b5f966b9007",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM_SRGB",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "leaves_forest_ground_nor_dx_1k.dds",
+    "source": "leaves_forest_ground_nor_dx_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/leaves_forest_ground",
+    "sourceSha256": "1ff62d5f034ab7114b07b4ffff2dbc6bc192a148e2f9882222a54c17f1023f1b",
+    "sha256": "7df5c2c41c487a3ebf10dffdfff2e5795e5eccda2d7a95b068fe47b59c816c2a",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006650333382466123
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006526487833136807
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006147960193154667
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005842219128255666
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005719896677427894
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0.00460885220878382
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004128348802530546
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0038675327301611606
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0005688501232614662
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 7.689054642101567E-05
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 7.689054642101567E-05
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "leaves_forest_ground_rough_1k.dds",
+    "source": "leaves_forest_ground_rough_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/leaves_forest_ground",
+    "sourceSha256": "1bbd1819efa40800997fdbd9c8b2b226089d130fb7ee8149403d5dd757e02789",
+    "sha256": "9c7abaf0c8b458d7971fe798560eacedc741ee1f72ddefd219baecc0682cdc71",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "winter_leaves_diff_1k.dds",
+    "source": "winter_leaves_diff_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/winter_leaves",
+    "sourceSha256": "8d8d3536fa48a2dc6800b767167a6197cd751180478b2133904ab210760fd0a1",
+    "sha256": "a5923285d82f0b8f8ac4e3dee338e53c9ab4c232ea956fc8022eced874ae9195",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM_SRGB",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "winter_leaves_nor_dx_1k.dds",
+    "source": "winter_leaves_nor_dx_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/winter_leaves",
+    "sourceSha256": "ced1ce60cf86ee2d0b49a3382279122248c50d607ccaa2d9c2b62189af4df068",
+    "sha256": "4335948cb7f585da824dc45fddebd010a5faf77ad00b2343b1c8f8320b391a6a",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006650333382466123
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006526487833136807
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005969373805238987
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005907491519452579
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004670653754689891
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004312117661084525
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004128348802530546
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0.003944546305671759
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0017976921100162357
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0009991164156815113
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0009991164156815113
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "winter_leaves_rough_1k.dds",
+    "source": "winter_leaves_rough_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/winter_leaves",
+    "sourceSha256": "ffa11a987fd2efe3924d5a27bda8fecd4faf8b2a378d1f021499bee1f695e3c9",
+    "sha256": "94b089be4a7a2ebbb19dda40b560df79a250ee3a3bd42eaf79979c6bc0dc29a4",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "snow_02_diff_1k.dds",
+    "source": "snow_02_diff_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/snow_02",
+    "sourceSha256": "ee88b16789c81886635734f2fd0d79781ea82ebc06ea3da99f3c99f8ccf81e70",
+    "sha256": "c606f747b7351daa567d2de42f408e0fbc1f1c05b7c00a56d637fc319fe08350",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM_SRGB",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "snow_02_nor_dx_1k.dds",
+    "source": "snow_02_nor_dx_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/snow_02",
+    "sourceSha256": "51eb591aaa7d391d5219f9cf5f8e8e52ceac09e1eec6f38c83b12976865b5ce7",
+    "sha256": "8856ec1f511e4ba810ea819c88258b90bb0c44d8eae9be3647cee5aed3c1a6aa",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0062090972580421955
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0.006093149935492259
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005352840026259464
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0.005414025440695802
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004979719062408017
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004856081420822278
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004361684386790521
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0.004005817543354606
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0014906229700619722
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0001383987273944065
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0.0001383987273944065
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  },
+  {
+    "file": "snow_02_rough_1k.dds",
+    "source": "snow_02_rough_1k.png",
+    "sourceUrl": "https://polyhaven.com/a/snow_02",
+    "sourceSha256": "162da34b174b0f3339d612c3c27a6253d2ff5eb3632494710b9df295d54d6ebb",
+    "sha256": "62408269bd7fcc13d10f888ca2c55a7032af01807a55c848bcdf95f704641679",
+    "license": "CC0-1.0",
+    "width": 1024,
+    "height": 1024,
+    "mips": 11,
+    "format": "B8G8R8A8_UNORM",
+    "alpha": 255,
+    "mipValidation": [
+      {
+        "Width": 1024,
+        "Height": 1024,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 512,
+        "Height": 512,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 256,
+        "Height": 256,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 128,
+        "Height": 128,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 64,
+        "Height": 64,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 32,
+        "Height": 32,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 16,
+        "Height": 16,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 8,
+        "Height": 8,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 4,
+        "Height": 4,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 2,
+        "Height": 2,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      },
+      {
+        "Width": 1,
+        "Height": 1,
+        "SeamMean": 0,
+        "NormalLengthError": 0
+      }
+    ],
+    "processingVersion": 2,
+    "processing": "WPF BGRA8 decode; linear-light sRGB filtering; float box-filter chain; symmetric border conditioning at every mip (16 base pixels, scaled, minimum one texel); vector normals renormalized; opaque alpha verified"
+  }
+]

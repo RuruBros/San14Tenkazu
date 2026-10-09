@@ -1,0 +1,575 @@
+{
+  "version": 1,
+  "policyBasis": "Explicit artwork policy by authenticated source; not runtime species inference",
+  "assets": [
+    {
+      "ktid": "A224A71D",
+      "width": 512,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 174752,
+      "hash": "b696b37084bdcee62cade9988cc3372f2f82cfcb1b33052fa2398064678af520",
+      "counts": [
+        918,
+        1038
+      ],
+      "models": [
+        "obj-n00-tree-01"
+      ],
+      "policy": 1,
+      "green": 0,
+      "autumn": 1,
+      "branchRule": 1,
+      "pixels": 174752
+    },
+    {
+      "ktid": "D9268C48",
+      "width": 512,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 174752,
+      "hash": "5376cdde46d4d0affebccec27dbf04705d7665eedebf8aaf14bf5614b1699653",
+      "counts": [
+        918,
+        1038
+      ],
+      "models": [
+        "obj-n00-tree-01-aw"
+      ],
+      "policy": 1,
+      "green": 0,
+      "autumn": 1,
+      "branchRule": 1,
+      "pixels": 174752
+    },
+    {
+      "ktid": "28CCC3D0",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "30b9f37b85b04d70bdcb8de803f1aa596d35aea8922589182ca0621979bd8e39",
+      "counts": [
+        1104,
+        1593
+      ],
+      "models": [
+        "obj-n00-tree-03"
+      ],
+      "policy": 2,
+      "green": 2,
+      "autumn": 3,
+      "branchRule": 0,
+      "pixels": 349520
+    },
+    {
+      "ktid": "AEB40D45",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "7891e64185de9e9763373f5dc97ed2e5e49db7ef6d2c327a3b44118f75abb8a3",
+      "counts": [
+        1104,
+        1593
+      ],
+      "models": [
+        "obj-n00-tree-03-aw"
+      ],
+      "policy": 2,
+      "green": 2,
+      "autumn": 3,
+      "branchRule": 0,
+      "pixels": 349520
+    },
+    {
+      "ktid": "303CA285",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "938a5475ddd420dcadb4cb17a1563c9c7c7badce43518ad8a4c2c6488210d089",
+      "counts": [
+        1179,
+        1668
+      ],
+      "models": [
+        "obj-n00-tree-03a"
+      ],
+      "policy": 2,
+      "green": 4,
+      "autumn": 5,
+      "branchRule": 0,
+      "pixels": 349520
+    },
+    {
+      "ktid": "673E87B0",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "688a6cb9140cdbc0b6ed5bbc69014cebc423d33f3b7575e4c8b1f408bc219001",
+      "counts": [
+        1179,
+        1668
+      ],
+      "models": [
+        "obj-n00-tree-03a-aw"
+      ],
+      "policy": 2,
+      "green": 4,
+      "autumn": 5,
+      "branchRule": 0,
+      "pixels": 349520
+    },
+    {
+      "ktid": "4A1BD166",
+      "width": 256,
+      "height": 256,
+      "mips": 7,
+      "format": 71,
+      "bytes": 43688,
+      "hash": "1349402f049dfdfac812b1e97e455ccf4c0bea0274bd9496e564e5e00766d48c",
+      "counts": [
+        372,
+        1530
+      ],
+      "models": [
+        "obj-n00-tree-01",
+        "obj-n00-tree-01-aw",
+        "obj-n00-tree-01a",
+        "obj-n00-tree-01a-aw",
+        "obj-n00-tree-01b"
+      ],
+      "policy": 2,
+      "green": 6,
+      "autumn": 6,
+      "branchRule": 2,
+      "pixels": 87376
+    },
+    {
+      "ktid": "20B25F1C",
+      "width": 512,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 174752,
+      "hash": "9c2ee7c37a525e52538272eb18f797bb3be0f30a6d9767a4fd73769b2513bb2e",
+      "counts": [
+        918,
+        1038
+      ],
+      "models": [
+        "obj-n00-tree-01a"
+      ],
+      "policy": 1,
+      "green": 7,
+      "autumn": 8,
+      "branchRule": 1,
+      "pixels": 174752
+    },
+    {
+      "ktid": "D8282C3A",
+      "width": 512,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 174752,
+      "hash": "e4c3b5930a8daa0e5d91a8e22cbedf5c65e222629f117d9c491b64cf5078bb44",
+      "counts": [
+        918,
+        1038
+      ],
+      "models": [
+        "obj-n00-tree-01a-aw"
+      ],
+      "policy": 1,
+      "green": 7,
+      "autumn": 8,
+      "branchRule": 1,
+      "pixels": 174752
+    },
+    {
+      "ktid": "345A329D",
+      "width": 512,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 174752,
+      "hash": "7a74e4bbbaf06a25c5a746a660cc1b82fb05b1607e2138dc2ce0e5f51af158ff",
+      "counts": [
+        918,
+        1038
+      ],
+      "models": [
+        "obj-n00-tree-01b"
+      ],
+      "policy": 1,
+      "green": 9,
+      "autumn": 9,
+      "branchRule": 1,
+      "pixels": 174752
+    },
+    {
+      "ktid": "BC145D42",
+      "width": 256,
+      "height": 256,
+      "mips": 7,
+      "format": 71,
+      "bytes": 43688,
+      "hash": "bd192d78fab3f2e4793bc209db3e6861a2228dd3ada1aad88bf59027998996d6",
+      "counts": [
+        171,
+        270,
+        1020
+      ],
+      "models": [
+        "obj-n00-tree-02",
+        "obj-n00-tree-02-aw"
+      ],
+      "policy": 2,
+      "green": 10,
+      "autumn": 10,
+      "branchRule": 2,
+      "pixels": 87376
+    },
+    {
+      "ktid": "B48D8B71",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "05f6452c0cab7d22b9264691f7a705a92044c2138fd42aa8b257bea4f3ea7607",
+      "counts": [
+        1062,
+        1785
+      ],
+      "models": [
+        "obj-n00-tree-02"
+      ],
+      "policy": 1,
+      "green": 11,
+      "autumn": 11,
+      "branchRule": 1,
+      "pixels": 349520
+    },
+    {
+      "ktid": "3A74D4E6",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "8e5c71aac8c1ec05e336b16243ed046e1e45276e07b3f1e5784bb88070b8f0e2",
+      "counts": [
+        1062,
+        2535
+      ],
+      "models": [
+        "obj-n00-tree-02-aw"
+      ],
+      "policy": 1,
+      "green": 12,
+      "autumn": 12,
+      "branchRule": 1,
+      "pixels": 349520
+    },
+    {
+      "ktid": "305395A1",
+      "width": 256,
+      "height": 256,
+      "mips": 7,
+      "format": 71,
+      "bytes": 43688,
+      "hash": "b9f61fd3fc487afc0064e51b8e72e791b4b8a017ce0024d3d4a7f39eb37b922d",
+      "counts": [
+        321,
+        525
+      ],
+      "models": [
+        "obj-n00-tree-03",
+        "obj-n00-tree-03-aw",
+        "obj-n00-tree-03a",
+        "obj-n00-tree-03a-aw"
+      ],
+      "policy": 2,
+      "green": 13,
+      "autumn": 13,
+      "branchRule": 2,
+      "pixels": 87376
+    },
+    {
+      "ktid": "A492CE00",
+      "width": 256,
+      "height": 256,
+      "mips": 7,
+      "format": 71,
+      "bytes": 43688,
+      "hash": "0d7c245994476082f4a45cc4390456229ab3731962f3a1a86313bac31aee802e",
+      "counts": [
+        420,
+        924
+      ],
+      "models": [
+        "obj-n00-tree-04",
+        "obj-n00-tree-04-aw"
+      ],
+      "policy": 2,
+      "green": 14,
+      "autumn": 14,
+      "branchRule": 2,
+      "pixels": 87376
+    },
+    {
+      "ktid": "9D0BFC2F",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 71,
+      "bytes": 174760,
+      "hash": "66f4b9346519939cf7e6fba365529510846d1a730ba929b5484427af1a68a292",
+      "counts": [
+        570,
+        1062
+      ],
+      "models": [
+        "obj-n00-tree-04"
+      ],
+      "policy": 2,
+      "green": 15,
+      "autumn": 16,
+      "branchRule": 0,
+      "pixels": 349520
+    },
+    {
+      "ktid": "22F345A4",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "ba268c101e2359bd116acbb7d50c7622a14fc55aa0cb76e26c0d238e6f3f8c07",
+      "counts": [
+        570,
+        1062
+      ],
+      "models": [
+        "obj-n00-tree-04-aw"
+      ],
+      "policy": 2,
+      "green": 15,
+      "autumn": 16,
+      "branchRule": 0,
+      "pixels": 349520
+    },
+    {
+      "ktid": "82874C7F",
+      "width": 256,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 87376,
+      "hash": "fa79e7137a5e82d01dd33833e479402266c7f281eca2a8fe3ca1e6f7022e9f4c",
+      "counts": [
+        342,
+        462,
+        504,
+        516,
+        558,
+        792
+      ],
+      "models": [
+        "obj-n00-tree-05",
+        "obj-n00-tree-05a",
+        "obj-n00-tree-05b"
+      ],
+      "policy": 2,
+      "green": 17,
+      "autumn": 17,
+      "branchRule": 2,
+      "pixels": 87376
+    },
+    {
+      "ktid": "114B348E",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 71,
+      "bytes": 174760,
+      "hash": "d31bb2894827762bdf9ea40335841b5d9546e66ec61462d31404f8676ada50c2",
+      "counts": [
+        498,
+        528,
+        696,
+        732,
+        837,
+        1272
+      ],
+      "models": [
+        "obj-n00-tree-05",
+        "obj-n00-tree-05a",
+        "obj-n00-tree-05b"
+      ],
+      "policy": 2,
+      "green": 18,
+      "autumn": 18,
+      "branchRule": 0,
+      "pixels": 349520
+    },
+    {
+      "ktid": "8D113EBE",
+      "width": 256,
+      "height": 256,
+      "mips": 7,
+      "format": 71,
+      "bytes": 43688,
+      "hash": "2985cfea9c6d49dd99c8bb923c7689b7108ff923ea5a396ec5e82c570ec51030",
+      "counts": [
+        483,
+        684,
+        831,
+        846
+      ],
+      "models": [
+        "obj-n00-tree-06",
+        "obj-n00-tree-06a"
+      ],
+      "policy": 2,
+      "green": 19,
+      "autumn": 19,
+      "branchRule": 2,
+      "pixels": 87376
+    },
+    {
+      "ktid": "858A6CED",
+      "width": 512,
+      "height": 512,
+      "mips": 8,
+      "format": 98,
+      "bytes": 349520,
+      "hash": "6b044bb45a40f5a1305fe9b8486ae1f4fd063a67ae3ac663e658400a4699ec09",
+      "counts": [
+        144,
+        324
+      ],
+      "models": [
+        "obj-n00-tree-06"
+      ],
+      "policy": 2,
+      "green": 20,
+      "autumn": 20,
+      "branchRule": 2,
+      "pixels": 349520
+    },
+    {
+      "ktid": "50D4F023",
+      "width": 256,
+      "height": 128,
+      "mips": 6,
+      "format": 71,
+      "bytes": 21840,
+      "hash": "31b78154e68b2839221adeb5b78aab6e97dd368a001072d9c935e124cb1f48e0",
+      "counts": [
+        18
+      ],
+      "models": [
+        "obj-n01-plane-tree-01"
+      ],
+      "policy": 1,
+      "green": 21,
+      "autumn": 22,
+      "branchRule": 1,
+      "pixels": 43680
+    },
+    {
+      "ktid": "EB7A12D8",
+      "width": 256,
+      "height": 128,
+      "mips": 6,
+      "format": 71,
+      "bytes": 21840,
+      "hash": "6c4413d5f3e4d258a87d1b9993fd8377c13b28e51d22e153c811b4b29aa6e91b",
+      "counts": [
+        18
+      ],
+      "models": [
+        "obj-n01-plane-tree-01-aw"
+      ],
+      "policy": 1,
+      "green": 21,
+      "autumn": 22,
+      "branchRule": 1,
+      "pixels": 43680
+    },
+    {
+      "ktid": "2BBDE024",
+      "width": 256,
+      "height": 256,
+      "mips": 7,
+      "format": 71,
+      "bytes": 43688,
+      "hash": "ccc2ee1182bbff945c8b94a74bcfe2b7165a20e487923db0bf98df1ec3bb1db1",
+      "counts": [
+        264
+      ],
+      "models": [
+        "obj-n02-tree-01",
+        "obj-n02-tree-01-aw"
+      ],
+      "policy": 2,
+      "green": 23,
+      "autumn": 23,
+      "branchRule": 2,
+      "pixels": 87376
+    },
+    {
+      "ktid": "83C6B5DB",
+      "width": 512,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 174752,
+      "hash": "7f5b9c4ce14fb7028348b4d24132f7d6e74e2871359276e57849db2a9528c206",
+      "counts": [
+        108,
+        582
+      ],
+      "models": [
+        "obj-n02-tree-01",
+        "obj-n02-tree-01-aw"
+      ],
+      "policy": 1,
+      "green": 24,
+      "autumn": 24,
+      "branchRule": 1,
+      "pixels": 174752
+    },
+    {
+      "ktid": "BAC89B06",
+      "width": 512,
+      "height": 256,
+      "mips": 7,
+      "format": 98,
+      "bytes": 174752,
+      "hash": "abb57f597667a9774136af69d762d259fc46b8e1e958cc1feb404f4f98b84c03",
+      "counts": [
+        474
+      ],
+      "models": [
+        "obj-n02-tree-01-aw"
+      ],
+      "policy": 1,
+      "green": 25,
+      "autumn": 25,
+      "branchRule": 1,
+      "pixels": 174752
+    }
+  ]
+}

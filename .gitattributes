@@ -1,0 +1,38 @@
+# Preserve downloaded and generated resource bytes for SHA256 verification.
+source/Seasons/Assets/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Keep original HTML captures byte-exact instead of applying source whitespace rules.
+source/Seasons/Assets/Sources/*.html -diff
+# The native bundle hashes these exact source bytes; Git newline conversion must not
+# invalidate the bundled source snapshot on a fresh checkout.
+source/Seasons/Native/SeasonBridge.cpp -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonBridgeProtocol.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonBridgeChecks.cpp -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonTreeColorGpu.h -text whitespace=cr-at-eol
+source/Seasons/Native/RuntimeGuard.h -text whitespace=cr-at-eol
+source/Seasons/Native/FrameSignatures.h -text whitespace=cr-at-eol
+source/Seasons/Native/PrepareSignature.h -text whitespace=cr-at-eol
+source/Seasons/Native/BuildSeasonBridge.ps1 -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonTreeColorSource.hlsl -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonSceneChecks.cpp -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonSceneGpu.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonWeatherCapture.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonWorldGpu.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonShaderTranslation.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonShaderProfiles.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonShaderAdmission.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonGroundSourceGpu.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonTreeCatalog.h -text whitespace=cr-at-eol
+source/Reverse/season_tree_catalog.py -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonWorldMatrix.hlsl -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonWorldPosition.hlsli -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonGameTree.hlsl -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonGameTerrain.hlsli -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonGameWeather.hlsl -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonGameParameters.hlsli -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonCommon.hlsli -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonTreeCoverage.hlsli -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonWeather.hlsli -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonRiceGpu.h -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonRiceChecks.cpp -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonGameRice.hlsl -text whitespace=cr-at-eol
+source/Seasons/Shaders/SeasonVegetation.hlsli -text whitespace=cr-at-eol

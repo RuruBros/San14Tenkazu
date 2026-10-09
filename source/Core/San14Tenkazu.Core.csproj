@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The core engine: finding the game, reading and writing its memory, and the rules of what changes together.
+       No WinForms or WPF here: the editor's screens use it, and the tests check it without the screens. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>San14Tenkazu.Core</AssemblyName>
+    <RootNamespace>San14Tenkazu</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Its types stay internal: only the editor and its tests use them. -->
+    <InternalsVisibleTo Include="San14Tenkazu" />
+    <InternalsVisibleTo Include="San14Tenkazu.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The editor's words, the Korean set (L reads it by this name). -->
+    <EmbeddedResource Include="Strings\ko.txt" LogicalName="Strings.ko.txt" />
+    <EmbeddedResource Include="RegisteredNames.txt" LogicalName="RegisteredNames.txt" />
+    <EmbeddedResource Include="..\Seasons\Assets\climate.json" LogicalName="Seasons.climate.json" />
+    <EmbeddedResource Include="..\Seasons\Assets\tree-catalog.json" LogicalName="Seasons.tree-catalog.json" />
+    <EmbeddedResource Include="..\Seasons\Bundle\SeasonBridge.zip" LogicalName="Seasons.SeasonBridge.zip" />
+  </ItemGroup>
+</Project>

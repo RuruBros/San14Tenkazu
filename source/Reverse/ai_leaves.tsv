@@ -1,0 +1,791 @@
+# Leaf node classes: what each does (row "node") and the role of each param, read from their execute functions (vtable +0x80).
+# Roles: in-int / in-obj variable read, out-int / out-obj written, inout-* both, number (number:tunable = a designer's threshold or weight), enum:<values>, unused.
+# Labelled 2026-10-03 from the decompiled code; confidence: high = read to the end, medium = callee named from use, low = guess.
+# class	param	role	meaning	Korean label	confidence
+CAllianceSuccessConditionNode	node	-	what to offer for an alliance: to the player 1,000 gold (when gold - 1,000 > reserve), otherwise 0x9C9D0(own force, target, envoy, kind, months) -> gold/food/item; 2 when unaffordable after the reserves	동맹 조건 계산	high
+CAllianceSuccessConditionNode	0	in-obj	target force	동맹 상대 세력	high
+CAllianceSuccessConditionNode	1	in-obj	envoy officer	사절 장수	high
+CAllianceSuccessConditionNode	2	in-int	condition kind (0 gold, 1 food, 2 item)	조건 종류	high
+CAllianceSuccessConditionNode	3	out-int	contents: gold/food amount, or the item object for kind 2	조건 내용	high
+CAllianceSuccessConditionNode	4	number:tunable	alliance length in months (12)	동맹 기간	medium
+CAllianceSuccessConditionNode	5	in-int	NeedMoney: >= 1 keeps all gold, <= 0 lets -NeedMoney be spent	필요 금(보유 기준)	high
+CAllianceSuccessConditionNode	6	in-int	NeedFood, same rule for food	필요 병량(보유 기준)	high
+CArmySetArmyActionNode	node	-	COMMAND: sets a unit's order (+0x37, clamped 0..17) via 0x2EAAE0; skipped when unit +0x140 is set	부대 명령 지정	high
+CArmySetArmyActionNode	0	in-obj	unit	대상 부대	high
+CArmySetArmyActionNode	1	enum:1=move to hex,2=go into own city,3=go into own gate/port,4=attack city,5=attack gate/port,6=attack facility,7=attack unit,8=build facility,11=return to city,12=return to gate/port,13=hold (stand by),14=move to hex,16=set fire (fire strategy)	order (tree uses 1 move to hex, 2 into own city, 3 into own gate/port, 13 hold for the group leader)	부대 명령	medium
+CArmySetRelayNode	node	-	COMMAND: up to 5 relay hexes for unit p0 from hex list p1 (0x2EE1E0) (0 uses)	부대 경유 칸 설정	high
+CArmySetRetreatNode	node	-	COMMAND: retreat: engaged unit (0x2C9310) gets order 13 + target hex +0x48; otherwise 0x2EA1B0(unit, 1, 0) sends it home	부대 퇴각	medium
+CArmySetRetreatNode	0	in-obj	unit	퇴각할 부대	high
+CArmySetTargetArmyNode	node	-	COMMAND: sets the unit's target (+0x38 kind, +0x3A id) via 0x2EAB40 by its current order: 1/14 hex (9), 2/4/11 city (5), 3/5/12 gate/port (6), 6 facility (0xB), 7 unit (0x1B); 8/9/10/13 nothing	부대 목표 지정	high
+CArmySetTargetArmyNode	0	in-obj	unit	대상 부대	high
+CArmySetTargetArmyNode	1	in-obj	target object	부대 목표	high
+CAttackFootholdRelayAreaAttackNode	node	-	GAME ORDERS (troops AI, purposes 8/9/10/22): re-aims all units at the target base (order 4/5 as in ExecuteFootholdOccupy), drops to purpose 7 if the base is no longer hostile (returns 2), then walks the relay-hex list (+0x18) deciding which relay counties to attack/occupy on the way; node+0x4C/+0x50 are internal floats (1.5, 1.3).	경유 군 공략	medium
+CAttackFootholdRelayAreaAttackNode	0	unused	not read by execute (0 in all uses)	(미사용)	medium
+CAttackFootholdRelayAreaAttackNode	1	number:tunable	own-share threshold: a relay county is attacked when my force holds <= p1 % of its hexes (0x2B1620) and its owner is hostile; 0 in all uses	경유 군 점유율 기준	medium
+CAttackFootholdRelayAreaAttackNode	2	in-int	nonzero int becomes state +0x1C bool; purpose 10 relay combat reads it; native cache prefix verified	경유지 교전 여부	high
+CAttackFootholdRelayAreaAttackNode	3	in-int	nonzero int becomes state +0x1D bool; purposes 9/10/22 routing reads it; native cache prefix verified	경유 경로 사용	high
+CAttackFootholdRelayAreaAttackNode	4	in-int	nonzero int becomes state +0x1E bool, later cleared when fewer than two units; occupation helper 0x71980 reads it; native cache prefix verified	경유 군 점령	high
+CAttackRequestSuccessConditionNode	node	-	Like Goodwill for an attack request: gift needed (0x9CBB0) to have force p0 attack base p4, checked against the capital's stock minus p5/p6; writes it to p3; 2 if unaffordable or a force check fails.	공격 요청 성사 조건	medium
+CAttackRequestSuccessConditionNode	0	in-obj	force asked (the player)	요청 대상 세력	high
+CAttackRequestSuccessConditionNode	1	in-obj	envoy officer	사절 장수	high
+CAttackRequestSuccessConditionNode	2	in-int	gift kind 0 gold, 1 food, 2 item	조건 종류	high
+CAttackRequestSuccessConditionNode	3	out-int	gift amount (out-obj item for kind 2)	조건 내용	high
+CAttackRequestSuccessConditionNode	4	in-obj	base to be attacked	공격 요청 거점	high
+CAttackRequestSuccessConditionNode	5	in-int	capital gold shortfall	필요 금	medium
+CAttackRequestSuccessConditionNode	6	in-int	capital food shortfall	필요 병량	medium
+CAvoidPoisonNode	node	-	no params; when the unit AI (0x9C910) says so, own unit +0x1F0 |= 1 (avoid poison)	독 회피	medium
+CCCommandExecutionEstrangeNode	node	-	COMMAND: 이간 (estrange an officer), command kind 0xC (12) via 0x1F9230; needs the envoy's corps commands >= 0x1A486D8 = 1	이간 실행	medium
+CCCommandExecutionEstrangeNode	0	in-obj	own force	자기 세력	high
+CCCommandExecutionEstrangeNode	1	in-obj	executing officer	실행 장수	high
+CCCommandExecutionEstrangeNode	2	in-obj	target officer	대상 장수	high
+CCCommandExecutionHiddenPoisonNode	node	-	GAME COMMAND: strategy kind 14 (0xE, hidden poison) on county p2 by officer p1 (0x1DEF80 + 0x1F9230); needs the corps' points >= rule 0x1A486CC.	매복의 독 실행	medium
+CCCommandExecutionHiddenPoisonNode	0	in-obj	my force (validity check only)	자기 세력	high
+CCCommandExecutionHiddenPoisonNode	1	in-obj	officer	실행 장수	high
+CCCommandExecutionHiddenPoisonNode	2	in-obj	target county	대상 군	high
+CCCommandExecutionPlacationNode	node	-	GAME COMMAND: strategy kind 13 (0xD, placation) on county p2 by officer p1 (0x1F9230); needs the corps' points >= rule 0x1A486E4.	선무 실행	medium
+CCCommandExecutionPlacationNode	0	in-obj	my force (validity check only)	자기 세력	high
+CCCommandExecutionPlacationNode	1	in-obj	officer	실행 장수	high
+CCCommandExecutionPlacationNode	2	in-obj	target county	대상 군	high
+CCCommandExecutionPrisonerReturnNode	node	-	COMMAND: 포로 반환 negotiation, command kind 8 via 0x1ED0C0, for the listed officers that are prisoners (+0xE6 == 6); needs main corps commands	포로 반환 실행	high
+CCCommandExecutionPrisonerReturnNode	0	in-obj	force holding them	교섭 상대 세력	high
+CCCommandExecutionPrisonerReturnNode	1	in-obj	envoy officer	사절 장수	high
+CCCommandExecutionPrisonerReturnNode	2	in-int	gold offered	몸값	high
+CCCommandExecutionPrisonerReturnNode	3	in-obj	officer list	돌려받을 장수 목록	high
+CCGetAllFootholdNeedMoneyNode	node	-	For every base of corps p0's force writes base +0x98 (foothold info 39) = -(gold + p1 x income(+0xA0)/3 + gold carried by own units bound there) (0x9E710): negative = surplus.	전 거점 필요 금	high
+CCGetAllFootholdNeedMoneyNode	0	in-obj	corps	군단	high
+CCGetAllFootholdNeedMoneyNode	1	number:tunable	income periods counted (6/4/8 by branch)	수입 기간	medium
+CCallScriptNode	node	-	Runtime table array at exe+0x1B99990+0x10, 0x20 per entry; reads int vars p2.. (0 -> 0), writes p1. Verified: 4=sum(a0..a6); 8=a0*a1; 10=a0+a1; 11=a0/a1 (zero divisor -> 1); 12=100*a0/a1-a2-a3+a4+a5; 13=a0*(100-a1)/100. Signed 32-bit wrapping arithmetic, division toward zero. Constructor 0x5CAF0 zeroes all 7 input hashes; the 7th at node+0x58 is not loaded from file and remains 0 in all stock callers. See ai_friend.py, ai_scripts.py, notes/ai.md.	AI 스크립트 계산 호출	high
+CCallScriptNode	0	enum:script id (4,8,10,11,12,13 used)	which script formula; 8 multiply, 11 divide, 12 friend-force score verified	스크립트 번호	high
+CCallScriptNode	1	out-int	result	계산 결과	high
+CCallScriptNode	2	in-int	argument 1	인수 1	high
+CCallScriptNode	3	in-int	argument 2	인수 2	high
+CCallScriptNode	4	in-int	argument 3	인수 3	high
+CCallScriptNode	5	in-int	argument 4	인수 4	high
+CCallScriptNode	6	in-int	argument 5	인수 5	high
+CCallScriptNode	7	in-int	argument 6; a 7th is read from node+0x58, outside the file params but zero-initialized by the constructor	인수 6	high
+CCautionArmyAddUniqueNode	node	-	Adds enemy unit p0 threatening base p1 to caution-unit list p2: allocates a record from the world pool (+0x81B50; unit index at +0x10, base id at +0x12) unless already listed; unit must be outside its base and the base owned; fails if 0x26BD40 rejects the base's force.	경계 부대 추가	medium
+CCautionArmyAddUniqueNode	0	in-obj	enemy unit	적 부대	high
+CCautionArmyAddUniqueNode	1	in-obj	threatened base	위협받는 거점	high
+CCautionArmyAddUniqueNode	2	out-obj	caution-unit list (type 15)	경계 부대 목록	high
+CCautionArmyRemoveNode	node	-	rebuilds list p1 without the entries whose id is p0's unit id (0 uses)	경계 부대 빼기	medium
+CCautionFootholdAddUniqueNode	node	-	appends a foothold to a foothold list (type 5); the decompiled duplicate test looks inverted (0 uses)	경계 거점 목록에 추가	medium
+CCautionFootholdRemoveNode	node	-	p0 base pointer, p1 native pointer list: removes every pointer equal to p0 (including null); Obj_IsValid result ignored; returns 1	경계 거점 제거	high
+CCautionTroopsAddNode	node	-	adds unit p1 to caution troops p0's unit list unless present (0 uses)	경계 그룹에 부대 추가	high
+CCautionTroopsClearNode	node	-	deletes a caution troops record (0x32AEC0 on the world)	경계 그룹 삭제	medium
+CCautionTroopsClearNode	0	in-obj	caution troops	삭제할 경계 그룹	high
+CCautionTroopsListAddNode	node	-	Creates a caution group (watched enemy group) from unit list p1 aimed at base p2 and appends it to list p0, unless a unit is already in a listed group; writes it to p3; frees it if the base's force fails 0x26BD40.	경계 군세 등록	medium
+CCautionTroopsListAddNode	0	in-obj	caution-group list (type 11, in/out)	경계 군세 목록	high
+CCautionTroopsListAddNode	1	in-obj	enemy unit list	적 부대 목록	high
+CCautionTroopsListAddNode	2	in-obj	threatened base (stored at +0x1A)	위협받는 거점	high
+CCautionTroopsListAddNode	3	out-obj	new caution group	새 경계 군세	high
+CCautionTroopsListAddUniqueNode	node	-	adds unit p2 to the unit list (+0x30) of the p1-th caution troops of list p0, unless already there	경계 그룹에 부대 추가	high
+CCautionTroopsListAddUniqueNode	0	in-obj	caution troops list	경계 그룹 목록	high
+CCautionTroopsListAddUniqueNode	1	in-int	index into the list (0-based)	경계 그룹 번호	high
+CCautionTroopsListAddUniqueNode	2	in-obj	unit	추가할 부대	high
+CCautionTroopsListDedupeNode	node	-	empty stub: returns 1, does nothing	경계 그룹 목록 정리(빈 함수)	high
+CCautionTroopsListDedupeNode	0	unused	not read	미사용	high
+CCautionTroopsListRemoveNullUnit	node	-	Rebuilds caution-group list p0: drops units that are gone or have unit order 11/12, frees groups left empty (0x32AEC0).	경계 군세 정리	medium
+CCautionTroopsListRemoveNullUnit	0	in-obj	caution-group list (rewritten)	경계 군세 목록	high
+CCautionTroopsRemoveNode	node	-	Removes unit p1 from caution group p0's unit list (+0x28).	경계 군세에서 부대 빼기	high
+CCautionTroopsRemoveNode	0	in-obj	caution group	경계 군세	high
+CCautionTroopsRemoveNode	1	in-obj	unit	부대	high
+CCautionTroopsSortNode	node	-	sorts a caution troops' unit list (+0x28) by seven keys (0x22A40 ... 0x22D60)	경계 그룹 부대 정렬	medium
+CCautionTroopsSortNode	0	in-obj	caution troops	경계 그룹	high
+CCautionTroopsUpdateStatusNode	node	-	Sets caution group p0 +0x3C = (p1 == 1): marks an enemy group as already being dealt with.	경계 군세 대응 표시	high
+CCautionTroopsUpdateStatusNode	0	in-obj	caution group	경계 군세	high
+CCautionTroopsUpdateStatusNode	1	enum:1 handled,other not	status written	대응 상태	high
+CClearArmyAIActionNode	node	-	no params; own unit +0x1F0 (AI action flags) = 0	부대 AI 행동 초기화	high
+CClearFriendForceListNode	node	-	Zeroes my force +0x17F..+0x183 (friendly-target forces).	우호 대상 세력 지우기	high
+CClearRelayHexNode	node	-	no params; clears the own unit's relay hex (0xA2410)	부대 경유 칸 비우기	high
+CClearTargetForceListNode	node	-	clears the own force's five target-force bytes (force +0x17A..+0x17E)	공략 목표 세력 비우기	high
+CCommandAreaOccupyDepatureNode	node	-	DECISION/COMMAND: area-occupation sortie: drops target areas whose city belongs to a force in agreement with us (force +0xEA+i & 0x7F) or special areas, picks the occupation style 13-16 from the corps (0xBA040; 13 when p4 != 0) and dispatches sorties (0x43F80 / 0x43600 / 0x43AC0 / 0x43130 -> unit creation); cancels groups (0x9E900) whose own power within 5 hexes is below the enemy power within 10; fails without corps commands	군 점령 출진	medium
+CCommandAreaOccupyDepatureNode	0	inout-obj	target area list (filtered in place)	목표 군 목록	high
+CCommandAreaOccupyDepatureNode	1	in-int	soldiers to keep in each departure base	거점에 남길 병사	medium
+CCommandAreaOccupyDepatureNode	2	unused	the 13/15 literal is overwritten by the corps style from 0xBA040 before use	미사용(작전 유형)	high
+CCommandAreaOccupyDepatureNode	3	in-int	node +0x58; 0x40630 compares base food (vtable +0xA0) against this minimum; a deficient-troops base may pass a strict food exception depending on options	출진 거점 최소 병량	high
+CCommandAreaOccupyDepatureNode	4	in-int	nonzero forces style 13 and changes the dispatch path ($CsAge)	강제 작전 13	medium
+CCommandAreaOccupyDepatureNode	5	in-obj	node +0x68; 0x40630 excludes departure bases present in this list	출진에서 제외할 거점 목록	high
+CCommandAreaTryGetDepartureNode	node	-	DECISION/COMMAND: sorties from a base toward free hexes around a hostile target base (0x1EC890, order 1 move to hex, target hex kind 9)	주변 칸 확보 출진	medium
+CCommandAreaTryGetDepartureNode	0	in-obj	departure base	출진 거점	high
+CCommandAreaTryGetDepartureNode	1	in-obj	hostile target base	목표 거점	high
+CCommandAutoPaintDefenseDepartureNode	node	-	GAME COMMAND (hard-coded): attacking certain cities (25 -> county 0xC2 hex 0x6033, 32 -> county 0xEA hex 0x772B, 1 -> county 2, …) with a group of purpose 8-11/22 routed through a fixed relay and no purpose-23 group holding that county yet, dispatches one (0x27A40) to hold the chokepoint county.	요충 군 방어 출진	medium
+CCommandAutoPaintDefenseDepartureNode	0	in-obj	target base being attacked	공략 대상 거점	high
+CCommandExecutionAllianceNode	node	-	COMMAND: 동맹 proposal, command kind 5 via 0x1ED0C0	동맹 실행	high
+CCommandExecutionAllianceNode	0	in-obj	target force	동맹 상대 세력	high
+CCommandExecutionAllianceNode	1	in-obj	envoy officer	사절 장수	high
+CCommandExecutionAllianceNode	2	in-int	condition kind (0 gold, 1 food, 2 item, 4 area)	조건 종류	high
+CCommandExecutionAllianceNode	3	in-int	contents: amount for 0/1, object for 2/4	조건 내용	high
+CCommandExecutionAllianceNode	4	number:tunable	alliance length in months (12), command +0x60	동맹 기간	medium
+CCommandExecutionAnnulNode	node	-	GAME COMMAND: diplomacy command kind 6 (annul a treaty; always succeeds) to force p2 by envoy p1 (0x1ED0C0).	협정 파기	medium
+CCommandExecutionAnnulNode	0	in-obj	my force (validity check only)	자기 세력	high
+CCommandExecutionAnnulNode	1	in-obj	envoy officer	사절 장수	high
+CCommandExecutionAnnulNode	2	in-obj	target force	대상 세력	high
+CCommandExecutionAttackRequestNode	node	-	COMMAND: 공격 요청 (ask a force to attack a base), command kind 9 via 0x1ED0C0, with a condition; needs main corps commands >= 0x1A4861C = 1	공격 요청 실행	high
+CCommandExecutionAttackRequestNode	0	in-obj	force asked	요청 상대 세력	high
+CCommandExecutionAttackRequestNode	1	in-obj	envoy officer	사절 장수	high
+CCommandExecutionAttackRequestNode	2	in-int	condition kind (0 gold, 1 food, 2 item, 4 area)	조건 종류	high
+CCommandExecutionAttackRequestNode	3	in-int	contents: amount for 0/1, object for 2/4	조건 내용	high
+CCommandExecutionAttackRequestNode	4	in-obj	base to attack	공격할 거점	high
+CCommandExecutionBuildingDestructionNode	node	-	GAME COMMAND: strategy kind 20 (0x14, building sabotage) on county p2 by officer p1 (0x1F9230).	파괴 공작 실행	medium
+CCommandExecutionBuildingDestructionNode	0	in-obj	my force (validity check only)	자기 세력	high
+CCommandExecutionBuildingDestructionNode	1	in-obj	officer	실행 장수	high
+CCommandExecutionBuildingDestructionNode	2	in-obj	target county	대상 군	high
+CCommandExecutionCreditGiveNode	node	-	COMMAND: 공훈 grant for every officer in the list via 0x1EC280; needs corps base gold >= 2,500 (0x1A4886C) x count and corps commands >= 1	공훈 수여 실행	medium
+CCommandExecutionCreditGiveNode	0	in-obj	officer list	대상 장수 목록	high
+CCommandExecutionCreditRankUpNode	node	-	COMMAND: 공훈 step up via 0x1EC550 for each eligible officer (0x42AD0): +0x1C3 when 지력+정치 > 통솔+무력, else +0x1C2, below the cap 0x3FE10; needs gold >= 100 x count (0x1A48848) and commands >= 1 x count	공훈 승급 실행	medium
+CCommandExecutionCreditRankUpNode	0	in-obj	officer list	대상 장수 목록	high
+CCommandExecutionDoctrinePanelAutoNode	node	-	COMMAND: automatic 정책 panel for the own force (0x223FF0, 0x6D6060 / 0x6D6250 picks, 0x2ED340 adoption while the main corps commands >= 0x1A48668 = 1 last)	정책 자동 설정	medium
+CCommandExecutionDoctrinePanelAutoNode	0	enum:1=first clear the current panel (0x335120),0=keep it	reset first	기존 정책 초기화	medium
+CCommandExecutionDualDestructionNode	node	-	COMMAND: 이호경식 (set two forces on each other), command kind 10 via 0x1F9230; needs the envoy's corps commands >= 0x1A486F8 = 1	이호경식 실행	medium
+CCommandExecutionDualDestructionNode	0	in-obj	own force	자기 세력	high
+CCommandExecutionDualDestructionNode	1	in-obj	envoy officer	실행 장수	high
+CCommandExecutionDualDestructionNode	2	in-obj	first target force	대상 세력 1	high
+CCommandExecutionDualDestructionNode	3	in-obj	second target force	대상 세력 2	high
+CCommandExecutionEmployNode	node	-	GAME COMMAND: 등용 — officer p0 is sent to recruit officer p1 (0x1ED920: a new 0x80-byte command in the world command list, kind 0) if p0 is not away.	등용 실행	high
+CCommandExecutionEmployNode	0	in-obj	officer who goes	실행 장수	high
+CCommandExecutionEmployNode	1	in-obj	officer to recruit	등용 대상 장수	high
+CCommandExecutionExchangeNode	node	-	COMMAND: diplomacy 교환 (exchange), command kind 0x13 via 0x1ED0C0 (judged by Exchange_Judge 0x324300); gold/food given must not exceed the own main base's gold (vtable +0x90) / food (+0xA0)	교환 실행	high
+CCommandExecutionExchangeNode	0	in-obj	target force	교환 상대 세력	high
+CCommandExecutionExchangeNode	1	in-obj	envoy officer	사절 장수	high
+CCommandExecutionExchangeNode	2	enum:0=gold,1=food,2=item (object),4=territory/area (object)	what we give	주는 조건 종류	high
+CCommandExecutionExchangeNode	3	in-int	amount given (gold/food), or the object when p2 = 4	주는 조건 내용	high
+CCommandExecutionExchangeNode	4	enum:0=gold,1=food,2=item (object),4=territory/area (object)	what we ask for	받는 조건 종류	high
+CCommandExecutionExchangeNode	5	in-int	amount asked (gold/food), or the object when p4 = 4	받는 조건 내용	high
+CCommandExecutionExpansionNode	node	-	raises the force's 정책 field levels (force +0x70 + 0x1E k, max 7) toward targets (0x22BDD0 +0x70+k) as many times as 0x22D240 allows, biggest gap first; direct write, no command	정책 분야 확장	medium
+CCommandExecutionExpansionNode	0	in-obj	force	대상 세력	high
+CCommandExecutionFakeNewsNode	node	-	COMMAND: 위보 by a unit on an enemy unit (0x2ED550)	위보 실행	high
+CCommandExecutionFakeNewsNode	0	in-obj	own unit	실행 부대	high
+CCommandExecutionFakeNewsNode	1	in-obj	target enemy unit	대상 적 부대	high
+CCommandExecutionFakeNewsNode	2	in-obj	target hex	대상 칸	high
+CCommandExecutionFireStrategyNode	node	-	COMMAND: unit order 16 (화계, set fire) on a hex: 2 when the hex +0x16 is already set; else order 16, target hex (kind 9) and replan 0x26C940	화계 실행	high
+CCommandExecutionFireStrategyNode	0	in-obj	unit	실행 부대	high
+CCommandExecutionFireStrategyNode	1	in-obj	target hex	화계 칸	high
+CCommandExecutionGoodwillNode	node	-	COMMAND: 친선 (goodwill gift), command kind 4 via 0x1ED0C0; gold/food must leave more than the reserves p4/p5 (0 when not given)	친선 실행	high
+CCommandExecutionGoodwillNode	0	in-obj	target force	친선 상대 세력	high
+CCommandExecutionGoodwillNode	1	in-obj	envoy officer	사절 장수	high
+CCommandExecutionGoodwillNode	2	in-int	condition kind (0 gold, 1 food, 2 item, 4 area)	조건 종류	high
+CCommandExecutionGoodwillNode	3	in-int	contents: amount for 0/1, object for 2/4	조건 내용	high
+CCommandExecutionGovernmentAutoNode	node	-	COMMAND: automatic personnel of the force: 군사 (+0x52) and the 5 x 7 정책 officer slots refilled (0x2414B0, 0x261B70), spending corps commands	인사 자동 배치	medium
+CCommandExecutionGovernmentAutoNode	0	in-obj	force	대상 세력	high
+CCommandExecutionGovernmentNode	node	-	p0 corps, literal p1 slot 0..5, p2 officer: emits 0x1EE9B0 policy assignment; slot 0 advisor, otherwise group slot-1; removes zero/target/advisor and duplicates from existing five groups	정책 담당관 임명	high
+CCommandExecutionHireNode	node	-	GAME COMMAND: in city p0 hires each person of list p1 as a new officer (0x32F090 makes the officer record) for 500 gold each (rule 0x1A48BB4) from city gold, plus 1 corps point (rule 0x1A48BC0); fails if gold or points are short.	인재 고용	medium
+CCommandExecutionHireNode	0	in-obj	city	도시	high
+CCommandExecutionHireNode	1	in-obj	list of persons to hire (top pick of force info 38)	고용 대상 목록	medium
+CCommandExecutionInspectNode	node	-	valid own corps; +0x24 signed int <500 returns 1 without candidates; otherwise native target scores and officer ability/path scores, command 25 through 0x1F8DE0; returns 1/2	순찰 실행	high
+CCommandExecutionItemNode	node	-	GAME COMMAND: gives item p1 to officer p0 (0x1F0300: item owner +0x4A = officer, re-rates both holders' +0xE8, deducts corps command points) if the corps has >= rule 0x1A4856C (1) point.	명품 수여	high
+CCommandExecutionItemNode	0	in-obj	officer receiving	받을 장수	high
+CCommandExecutionItemNode	1	in-obj	item	명품	high
+CCommandExecutionLearnNode	node	-	COMMAND: an officer learns from a tactics book via 0x1F0520; needs his corps commands >= 0x1A48584 = 1	병법서 학습 실행	medium
+CCommandExecutionLearnNode	0	in-obj	officer	학습 장수	high
+CCommandExecutionLearnNode	1	in-obj	tactics book	병법서	high
+CCommandExecutionMerchantNode	node	-	COMMAND: 상인 매매 in city p0 via 0x1F0FB0 (city with a merchant 0x70DC70, corps commands > 0); amounts capped by stock and the city rate (+200); the officer comes from p4 (those in the city)	상인 매매 실행	high
+CCommandExecutionMerchantNode	0	in-obj	city (id < 0x34)	매매 도시	high
+CCommandExecutionMerchantNode	1	enum:1=buy food with gold (when NeedFood < 0),0=sell food for gold (when NeedMoney < 0)	trade direction	매매 방향	high
+CCommandExecutionMerchantNode	2	in-int	NeedFood (negative = shortage)	필요 병량	high
+CCommandExecutionMerchantNode	3	in-int	NeedMoney (negative = shortage)	필요 금	high
+CCommandExecutionMerchantNode	4	in-obj	candidate officer list	실행 장수 후보	high
+CCommandExecutionMoveNode	node	-	COMMAND: moves officer p1 (now in base p0, +0xE4, not busy) to p2 via 0x1F1270 (0 uses)	장수 이동 실행	high
+CCommandExecutionPostAutoNode	node	-	GAME COMMAND: automatic 관직 appointment for force p0 (0x1EDB40 -> 0x1ED200 -> 0x1DE460 -> 0x1F1750).	관직 자동 임명	medium
+CCommandExecutionPostAutoNode	0	in-obj	force	세력	high
+CCommandExecutionPrizeNode	node	-	COMMAND: 포상 via 0x1F28C0: 100 gold to each officer of the list while the budget (min(p1, corps base gold)) lasts	포상 실행	high
+CCommandExecutionPrizeNode	0	in-obj	officer list	포상 장수 목록	high
+CCommandExecutionPrizeNode	1	in-int	gold budget	포상 예산	high
+CCommandExecutionRumorNode	node	-	COMMAND: no params; 유언 (rumor) against a base of the force's first target force (+0x17A): picks the target officer by 통솔/무력/공훈 score and our officer by 지력 and distance; command kind 0x18 via 0x1F9230 (0x1F0190 check, seeded random)	유언 실행	medium
+CCommandExecutionSearchNode	node	-	COMMAND: 탐색 (search) by officer p1 in area p0: 0x1F0080 check, corps commands >= 0x1A4856C = 1, then 0x1F2B80	탐색 실행	high
+CCommandExecutionSearchNode	0	in-obj	area	탐색할 군	high
+CCommandExecutionSearchNode	1	in-obj	officer	탐색 장수	high
+CCommandExecutionSpyAwayNode	node	-	COMMAND: kind 0x15 via 0x1F00F0 (check) + 0x1F8D30: sends officer p1 to force p0 for p2 days; needs his corps commands >= 0x1A485C4 = 1	첩자 파견 실행	medium
+CCommandExecutionSpyAwayNode	0	in-obj	target force	파견 대상 세력	high
+CCommandExecutionSpyAwayNode	1	in-obj	officer sent	파견 장수	high
+CCommandExecutionSpyAwayNode	2	in-int	days	파견 일수	high
+CCommandExecutionTradeNode	node	-	COMMAND: 교역 with a foreign country via 0x1EA8C0; needs own main base gold > p2, food > p3, troops > p4	교역 실행	medium
+CCommandExecutionTradeNode	0	in-obj	foreign country	교역 상대 국가	high
+CCommandExecutionTradeNode	1	in-obj	officer list	실행 장수 목록	high
+CCommandExecutionTradeNode	2	in-int	gold	교역 금	medium
+CCommandExecutionTradeNode	3	in-int	food	교역 병량	medium
+CCommandExecutionTradeNode	4	in-int	requested troops value in command payload +0x28; strictly less than main base +0x3C troops; native equality boundary verified	교역 병사 기준값	high
+CCommandExecutionUnattendedHomeNode	node	-	valid force/person/base; base +0x4E<52 and person corps +0x14>=DAT_1A486EC; emits command 11 to converted city via 0x1F9230; force is only validated	계략(빈 거점) 실행	high
+CCommandExecutionUnattendedHomeNode	0	in-obj	own force (only checked)	자기 세력	medium
+CCommandExecutionUnattendedHomeNode	1	in-obj	executing officer	실행 장수	high
+CCommandExecutionUnattendedHomeNode	2	in-obj	target city (id < 0x34)	대상 도시	high
+CCommandFootholdAttackDepatureNode	node	-	GAME COMMAND (corps AI): launches a sortie against base p0 from bases p1. Fails if p0 is mine or not hostile. Filters departure bases (soldiers > p3, food > p4), sorts by cached path cost, then by p5 calls 0x48CE0 (8), 0x46B80 (9), 0x4BA50 (10), 0x4ABE0 (11), 0x44A80 (22): builds units from base officers (0x1EC890; >= rule 0x1A48060 = 1,000 soldiers, prefers formation 추행/사이), subtracting each unit's power from p6, until covered or corps points run out; checks food (0xB5D20) and forms the group with purpose p5. If total power < p6 the sortie is cancelled (0x9E900) unless difficulty >= 4 vs the player.	거점 공략 출진 명령	medium
+CCommandFootholdAttackDepatureNode	0	in-obj	target base	공략 대상 거점	high
+CCommandFootholdAttackDepatureNode	1	in-obj	departure base list (type 5), copied and filtered	출진 거점 목록	high
+CCommandFootholdAttackDepatureNode	2	in-int	signed int read into node +0x80; native cache prefix verified, no consumer identified in execute or its five dispatch bodies; semantic role unverified	공략 저장값 (+0x80)	medium
+CCommandFootholdAttackDepatureNode	3	in-int	soldiers a departure base must keep (node+0x88; literal fallback if not a variable): base needs more, units are capped to leave it	출진 거점 잔류 병사	medium
+CCommandFootholdAttackDepatureNode	4	in-int	minimum food a departure base must hold (node+0x8C, base vtable +0xA0 = food)	출진 거점 최소 병량	medium
+CCommandFootholdAttackDepatureNode	5	enum:sortie purpose 8/9/10 attack base (ratio >400%/200-400%/<=200%),11 occupy directly,22 join attack on a base already under attack	purpose of the new group, picks the builder routine	출진 목적	high
+CCommandFootholdAttackDepatureNode	6	in-int	enemy battle power to overcome (decremented per unit created)	적 전투력	high
+CCommandFootholdAttackDepatureNode	7	number:tunable	food factor: needed food = soldiers / 10,000 x p7 x travel days (option-adjusted), compared with the base food (0xB5D20)	병량 계수	medium
+CCommandFrontFootholdTransportDepatureNode	node	-	DECISION/COMMAND: no params; sends transports from rear bases to front bases (0x200820, troops purpose 12) using the corps' commands; bases under 5,001 soldiers are skipped	전선 거점 수송 출진	medium
+CCommandTransportDepatureNode	node	-	DECISION/COMMAND: sends 수송 units from the source bases to the destination bases with what exceeds the reserves (0x200820 creates the transport; its troops get purpose 12 and the destination id); needs corps commands	수송 출진	high
+CCommandTransportDepatureNode	0	in-obj	source foothold list	보내는 거점 목록	high
+CCommandTransportDepatureNode	1	in-obj	destination foothold list	받는 거점 목록	high
+CCommandTransportDepatureNode	2	in-int	food to keep in the source (raised to 15,000, or 7,500 x (1 + option slider 0x29 %) under an option)	남길 병량	high
+CCommandTransportDepatureNode	3	in-int	gold to keep (raised to 8,000)	남길 금	high
+CCommandTransportDepatureNode	4	in-int	soldiers to keep	남길 병사	high
+CCutLogisticsNode	node	-	Unit AI: if the commander's 통솔 or 지력 > 64 and the group purpose is not 8, looks for an enemy supply line to cut (0xD06D0); sets unit +0x1F0 bit 8 and the target unit index at +0x1F4.	보급선 차단	medium
+CCutSupplyNode	node	-	p0 unit, p1/p2 int variables; calls 0xBF470 and discards the list and helper result; always returns 2	보급 차단 검색	high
+CDecideAreaOccupyRouteNode	node	-	output pool list; purposes 0/7/17/18 ->2; native 1843E0 route from first unit home base to group target base; failure ->2, success collects route hexes and building-related relay entries ->1	군 점령 경로 결정	high
+CDefendFootholdAddUniqueNode	node	-	appends a foothold to a defend list (type 5) unless present (0 uses)	방어 거점 목록에 추가	medium
+CDefendFootholdRemoveNode	node	-	p0 base, p1 RAW std::list of (base pointer,extra 64-bit value): remove all matching records, preserve both fields of others, return 1; missing input ->2	방어 거점 제거	high
+CDepartureNode	node	-	DECISION/COMMAND: AI sortie. Builds a sortie request and calls 0x1EC890 (Unit_Create 0x2D28D0, marks the officer, corps commands -1, pays both formations' +0x9A gold); needs the commander's corps +0x14 > 0, commander in the tree's force and among the base's sortie-able officers (0x2D7180), formation gold <= base gold; p7 = 1 also needs base morale >= 40	출진(부대 생성)	high
+CDepartureNode	0	in-obj	commanding officer	출진 장수	high
+CDepartureNode	1	in-int	soldiers	출진 병사 수	high
+CDepartureNode	2	in-obj	formation (진형); its +0x9A gold cost must fit the base gold	진형	high
+CDepartureNode	3	in-obj	tactics list: the first 3 whose +0x6C formation mask holds the formation become the unit's tactics	전법 목록	high
+CDepartureNode	4	enum:1=move to hex,2=go into own city,3=go into own gate/port,4=attack city,5=attack gate/port,6=attack facility,7=attack unit,8=build facility,11=return to city,12=return to gate/port,13=hold (stand by),14=move to hex,16=set fire (fire strategy)	order written to unit +0x37 (1 resolves the target object: hex, building's hex or base)	출진 명령	high
+CDepartureNode	5	in-obj	target object (unit for 7, base for 2-5, facility for 6/10, hex for 1/8/14)	출진 목표	high
+CDepartureNode	6	number	request +0x44 then unit +0x40 (0..2); kind 1 writes 2 and clears p7, later kind 2 writes 1; native 0xA1D00 overwrite order verified	출진 설정 1	high
+CDepartureNode	7	number	flag -> unit +0x26 bit 2; when 1 the base needs morale (+0x44) >= 40 (0x1A48EE0); personality kind 2 forces 1	출진 설정 2(사기 조건)	medium
+CDepartureNode	8	number	request +0x4C then unit +0x26 bit 3; kind 2 clears this slot, later kind 3 writes 1; native 0xA1D00 verified	출진 설정 3	high
+CDepartureNode	9	number	request +0x50 then unit +0x41 (0..2); kind 3 writes 2; native 0xA1D00 verified	출진 설정 4	high
+CDepartureNode	10	unused	not loaded (the loader skips index 10)	미사용	high
+CDepartureNode	11	out-obj	the new unit	생성된 부대	high
+CDepartureNode	12	in-obj	facility (building kind) to build, order 8	건설할 시설	high
+CDepartureNode	13	in-obj	end hex for order 8 when the facility kind +0x2C == 3 (else p5 is used)	건설 끝 칸	medium
+CDepartureTransportNode	node	-	COMMAND: creates a transport (0x200820): officer p0, soldiers p1, gold/food p2/p3, p4 2 = to own city / 3 = to own gate or port, target p5, p6 a literal flag (0 uses)	수송 출진(부대 생성)	medium
+CDepartureTroopsCreateNode	node	-	GAME COMMAND (corps AI): forms a sortie group from units already on the map. Fails if any unit is flagged (+0x13C); detaches each unit from its old group (single-unit groups are deleted, 0x282540; else 0x2E7B10, re-picking the old leader), creates a new group from the list (0x2D9260; leader = first unit's commander), sets group purpose (+0x14) = p1 and target (+0x16) from p2, writes the group to p3.	출진 작전 그룹 편성	high
+CDepartureTroopsCreateNode	0	in-obj	unit list (type 3) that forms the group	편성할 부대 목록	high
+CDepartureTroopsCreateNode	1	enum:sortie purpose (group +0x14) 0 return,1 intercept caution group,2 attack base,3/13/14/15/16/21 attack county,4 attack building,5 build at hex,6 cut supply at hex,7 standby at hex,8/9/10 attack base (ratio >400%/200-400%/<=200%),11 occupy base directly,12 base target (unit actions 2/3),17/18 defend base,19 caution-group target,20 destroy building,22 join attack on a base,23 auto paint defense	purpose given to the group; used here: 0 (back to base), 1 intercept, 4 attack building, 5 build, 6 cut supply, 20 destroy building	출진 목적	high
+CDepartureTroopsCreateNode	2	in-obj	target: base (+0x4E id) for 0,2,8-12,22; caution group index for 1,19; county index for 3,13-16,21,23; building index for 4,20; hex index for 5-7	출진 대상	high
+CDepartureTroopsCreateNode	3	out-obj	new sortie group (written only if valid and p3 non-zero)	편성된 작전 그룹	high
+CDiplomacyPriorityConditionSelectNode	node	-	Picks the gift kind a diplomacy proposal should offer to force p2 (0xB13F0) into p1.	외교 조건 우선 종류	medium
+CDiplomacyPriorityConditionSelectNode	0	in-obj	my force	자기 세력	high
+CDiplomacyPriorityConditionSelectNode	1	out-int	best condition kind: 0 gold, 1 food, 2 item (as read by Goodwill/AttackRequest)	최선 조건 종류	medium
+CDiplomacyPriorityConditionSelectNode	2	in-obj	partner force (optional)	상대 세력	medium
+CDistributeSpyPointNode	node	-	Force AI: rebalances corps points at corps +0x24: the main corps keeps 30% of the force total plus its share (0x22A930 weight), excess goes to the corps furthest below its share (capped 0x2311B0).	첩보 포인트 배분	medium
+CDistrictListAddTacticsNode	node	-	appends valid corps p0 itself to native list p1 (factory type 13), preserving duplicates; null adds nothing; returns 1; does not read corps tactics	군단 전법 목록	high
+CDistrictSetPurposeNode	node	-	Writes literal p0 clamped -128..127 into own corps +0x15; always returns 1. Selection conditions belong to the upstream script.	군단 방침 설정	high
+CDistrictSetPurposeNode	0	enum:0=expand,1=consolidate,2=recover	literal corps mode clamped -128..127; native signed boundaries verified	군단 방침	high
+CDomesticOfficerRemoveNode	node	-	(unused) GAME COMMAND: clears county p0's 내정 officer (0x1F1A40 with officer 0 + 0x1ED290) if corps points >= rule 0x1A483DC.	군 내정 담당 해임	medium
+CDomesticOfficerSetNode	node	-	GAME COMMAND: assigns officer p1 as county p0's 내정 officer with development focus p2 (command 0x1F1A40 + 0x1ED290) when county +0x36 officer or +0x72 focus differ; needs the officer's corps +0x14 >= rule 0x1A483DC (1). 1 when already set, 2 if p2 = 0.	군 내정 담당 임명	medium
+CDomesticOfficerSetNode	0	in-obj	county	군	high
+CDomesticOfficerSetNode	1	in-obj	officer	담당 장수	high
+CDomesticOfficerSetNode	2	in-int	development focus (from DomesticPriorityDevelopmentSelect)	개발 우선 항목	medium
+CDomesticPriorityDevelopmentSelectNode	node	-	picks the development an area should push (0xB1AA0): the corps policy (+0x1A: 3 commerce, 2 agriculture, 4 barracks) while that value < 1000, else the lowest of three weighted scores (getter x (corps leader +0x170/+0x172/+0x174 + 100) x weight / 100); 0 when an officer is already on it	우선 개발 선택	high
+CDomesticPriorityDevelopmentSelectNode	0	in-obj	area (county)	대상 군	high
+CDomesticPriorityDevelopmentSelectNode	1	out-int	enum result 0=none,1=commerce (+0x3C),2=agriculture (+0x3E),3=barracks (+0x40)	우선 개발 종류	high
+CDomesticPriorityDevelopmentSelectNode	2	number:tunable	weight of the commerce score (25)	상업 가중치	high
+CDomesticPriorityDevelopmentSelectNode	3	number:tunable	weight of the agriculture score (50)	농업 가중치	high
+CDomesticPriorityDevelopmentSelectNode	4	number:tunable	weight of the barracks score (75)	병영 가중치	high
+CExclusionUserArmyAttachedFootholdNode	node	-	valid own unit; native B51A0(army AI,unit) true -> unit +1F0 |=0x20, 26C940 replan, return 1; otherwise 2	플레이어 부대 붙은 거점 대응	high
+CExecuteAreaAttackNode	node	-	runs the group's area (군) attack: walks its relay areas, gives units orders (1 move) and moves on once the own/neutral share of the area's hexes reaches the rate (formation 11 -> 0, 12 -> max 10, 13 -> max 30); purposes 13/3 with rate 0 take 0x70B60	군 제압 실행	medium
+CExecuteAreaAttackNode	0	in-int	target share in % of the area's hexes before moving on ($Rate: 0, 50, 65)	제압 목표 비율	medium
+CExecuteAreaAttackNode	1	unused	not read	미사용	medium
+CExecuteAreaAttackNode	2	unused	not read	미사용	medium
+CExecuteAreaAttackNode	3	unused	not read	미사용	medium
+CExecuteAreaOccupyNode	node	-	native persistent state with current/next area and flags; fresh state + empty relay ->1 before purpose gate; 0/7/17/18 otherwise reject; county share threshold p1 and p2 int control native execution; state reset on completion	군 공략 실행	medium
+CExecuteAttackAreaBuildingNode	node	-	native persistent current/next relay-hex state; fresh state + empty relay ->1 before purpose gate; 0/7/17/18 otherwise reject; facility/area helper branches remain native	군 내 건물 공격	medium
+CExecuteAttackBuildingNode	node	-	purposes 0/7/17/18 are rejected with 2; for other purposes relay hexes yield non-own building kinds 3/4..8/15; none ->1, otherwise a random candidate and all group units receive order 6, target kind 11, return 3	건물 공격 실행	high
+CExecuteAttractNode	node	-	group target +16 is CAUTION_TROOPS index; requires valid nonempty hostile target group; tracks enemy commander and lure stage, native unit order 1/target kind 9; invalid target ->2, completed stage 5 ->1, otherwise 3	유인 실행	high
+CExecuteAutoPaintDefenseNode	node	-	GAME ORDERS (troops AI, purpose 23): maps the held county (0xC2/0xEA/2/0xF6) to a city/county pair (25/11, 32/28, 1/2, 34/33) and runs 0x700C0; on failure sets purpose 0 (return).	요충 군 방어 실행	medium
+CExecuteConstructNode	node	-	GAME ORDERS (troops AI, purpose 5): units without order 8/9 are set to build at the target hex (0x2EA1B0); when the hex is built up/taken sets purpose 7 standby.	시설 건설 실행	medium
+CExecuteFacilityAttackNode	node	-	GAME ORDERS (troops AI, purpose 4): while the target building is hostile, all units attack it (unit order 6, target kind 11); when gone sets purpose 7 standby at the leader hex.	시설 공격 실행	medium
+CExecuteFootholdOccupyNode	node	-	GAME ORDERS (troops AI, group purposes 8-11/22): sets every unit of my sortie group on the target base: city -> unit order 4 + target kind 5 (city id), gate -> order 5 + kind 6; units under 3,000 soldiers within 10 hexes of an owned target get order 13 (kind 0xFF). If the base's owner is no longer hostile (0x2CA280) sets purpose 7 (standby at leader hex) and returns 2; otherwise units not blocked attack the nearest reachable enemy unit (order 7). Purpose 11 first paths to drop passed relay hexes.	거점 공략 명령 실행	medium
+CExecuteInterceptNode	node	-	runs the group's interception of its caution troops (orders, returns 0x2EA1B0 when done)	요격 실행	medium
+CExecuteInterceptNode	0	in-int	signed int kept unchanged at node +0x48, not normalized to bool; native cache prefix verified, gameplay option name unverified	요격 옵션 1	high
+CExecuteInterceptNode	1	in-int	signed int kept unchanged at node +0x44, not normalized to bool; native cache prefix verified, gameplay option name unverified	요격 옵션 2	high
+CExecuteInterceptNode	2	unused	not read	미사용	medium
+CForceCommandMoveNode	node	-	DECISION/COMMAND: 장수 이동 balancing over the force's bases: target officer counts (p3 for listed bases, p4 for other cities, p5 for gates), then officer move commands 0x1F1270 (each -0x1A48484 = 1 corps command); 2 when the force has < 2 bases	장수 배치 이동	medium
+CForceCommandMoveNode	0	in-obj	priority foothold list	우선 거점 목록	medium
+CForceCommandMoveNode	1	unused	read as an object, never used	미사용	medium
+CForceCommandMoveNode	2	unused	read as an object, never used	미사용	medium
+CForceCommandMoveNode	3	in-int	officers wanted in a listed base	우선 거점 장수 수	medium
+CForceCommandMoveNode	4	in-int	officers wanted in another city ($FootholdPersonNum)	거점 장수 수	high
+CForceCommandMoveNode	5	in-int	officers wanted in a gate ($GatePersonNum)	관문 장수 수	high
+CForceCommandMoveNode	6	in-obj	force (own force when missing)	대상 세력	high
+CForceSetPurposeNode	node	-	Sets my force's ambition (force +0x4A, clamped -128..127). The corps tree reads it as a target base count: 0 -> 62, 1 -> 15, 2 -> 5, 3 -> keep current.	세력 목표 설정	high
+CForceSetPurposeNode	0	enum:0 unify (62 bases),1 15 bases,2 5 bases,3 hold current	ambition level; tree picks 0 on difficulty 4 or lord info 32 (+0x17C) >= 20 or few forces left, 1 if >= 0, 2 if >= -10, else 3	세력 목표 단계	high
+CGetAdvantageOwnFootholdNode	node	-	number of bases of the agent's force in the same 주 (state, city +0xCE) as the foothold's city (0x2ACA40), for a regional advantage check	같은 주의 아군 거점 수	high
+CGetAdvantageOwnFootholdNode	0	in-obj	foothold	대상 거점	high
+CGetAdvantageOwnFootholdNode	1	out-int	own bases in that state	아군 거점 수	high
+CGetAllFootholdNeedFoodNode	node	-	For every base of corps p0's force writes needed food to base +0x94 (foothold info 38): (soldiers in/heading to it x p1/100) x p2 - (income +0xA4 / 3) x p3 - food - food carried by own units bound there (0x9E4B0).	전 거점 필요 병량	high
+CGetAllFootholdNeedFoodNode	0	in-obj	corps	군단	high
+CGetAllFootholdNeedFoodNode	1	number:tunable	consumption % per period (24)	소비율	medium
+CGetAllFootholdNeedFoodNode	2	number:tunable	periods to cover (6)	대비 기간	medium
+CGetAllFootholdNeedFoodNode	3	number:tunable	income periods counted (6/4/8 by branch)	수입 기간	medium
+CGetAreaDistanceNode	node	-	distance in areas between two objects: 0xBEB30(kind, var) gives each one's hex, 0xB6330 the step count between those hexes' areas	군 거리	high
+CGetAreaDistanceNode	0	enum:0=force,1=district,2=troops,3=army,4=person,5=foothold,6=area,7=hex,11=caution troops,12=formation,13=tactics,16=facility,17=tactics book (14=number list is refused)	kind of p1 (6 = area)	첫 대상 종류	medium
+CGetAreaDistanceNode	1	in-obj	first object	첫 대상	high
+CGetAreaDistanceNode	2	enum:0=force,1=district,2=troops,3=army,4=person,5=foothold,6=area,7=hex,11=caution troops,12=formation,13=tactics,16=facility,17=tactics book (14=number list is refused)	kind of p3 (5 = foothold)	둘째 대상 종류	medium
+CGetAreaDistanceNode	3	in-obj	second object	둘째 대상	high
+CGetAreaDistanceNode	4	out-int	distance in areas	군 거리	high
+CGetAroundLandTypeNode	node	-	Most frequent terrain within radius p1 of hex p0 (hexes with a terrain, kinds 16/17 skipped) -> terrain record into p2 (null if none).	주변 주요 지형	medium
+CGetAroundLandTypeNode	0	in-obj	centre hex	중심 칸	high
+CGetAroundLandTypeNode	1	number:tunable	radius in hexes (4)	반경	high
+CGetAroundLandTypeNode	2	out-obj	terrain record	지형	high
+CGetArroundEnemyListNode	node	-	units hostile (0x2CA280) to p0's force within p1 hexes of p0 -> list p2	주변 적 부대 목록	high
+CGetArroundEnemyListNode	0	in-obj	centre unit (or group leader)	기준 부대	high
+CGetArroundEnemyListNode	1	number:tunable	radius in hexes (2, 4, 10)	탐지 범위	high
+CGetArroundEnemyListNode	2	out-obj	enemy unit list (cleared, then filled; type 3)	적 부대 목록	high
+CGetAttackTargetArmyListNode	node	-	hostile units adjacent to unit p0 (radius 1, 2 when 0x2C6CD0 accepts its formation) -> list p1 (0 uses)	공격 대상 부대 목록	medium
+CGetAttackTargetFootholdNode	node	-	for a fighting unit (+0x26 bit 0): a hostile base within 3 hexes (city 2) whose hex holds an object near the unit -> p1, else p1 = 0	공격할 적 거점 찾기	high
+CGetAttackTargetFootholdNode	0	in-obj	unit	대상 부대	high
+CGetAttackTargetFootholdNode	1	out-obj	base found, or 0	공격 목표 거점	high
+CGetAvailableTacticsListNode	node	-	(unused) Tactics (table +0x774D0) usable by officer p0 with formation p1 into list p2 (type 13).	사용 가능 전법 목록	medium
+CGetBattlePowerSoldierNumNode	node	-	Smallest soldier count (1,000 then +500 up to officer p0's maximum) at which a simulated unit of his (formation 어린, base morale <= 100) has battle power > p1; the last count tried if never (0 if max < 1,000).	필요 병사 수	high
+CGetBattlePowerSoldierNumNode	0	in-obj	officer (commander)	지휘 장수	high
+CGetBattlePowerSoldierNumNode	1	in-int	enemy battle power to beat	적 전투력	high
+CGetBattlePowerSoldierNumNode	2	out-int	soldiers needed	필요 병사	high
+CGetBuildingDestructionDataNode	node	-	Strategy prep: p0 = my corps' officers able to act (0x6DAF20), p1 = target counties for sabotage (0x6DE6B0).	파괴 공작 후보	medium
+CGetBuildingDestructionDataNode	0	out-obj	officer list	실행 장수 목록	medium
+CGetBuildingDestructionDataNode	1	out-obj	county list	대상 군 목록	medium
+CGetBuildingNode	node	-	(unused) Facility-kind record for number p0 (table +0x73970..) into p1.	시설 종류 가져오기	high
+CGetCanServePersonListNode	node	-	Fills officer list p1 with officers corps p0 could 등용 (0x6DD5E0), minus those already targeted by a pending 등용 command of the same force (world command list +0x871E0, kind 2).	등용 가능 인재 목록	medium
+CGetCanServePersonListNode	0	in-obj	corps	군단	high
+CGetCanServePersonListNode	1	out-obj	officer list (type 4)	등용 후보 목록	medium
+CGetCandidateFacilityListNode	node	-	native facility candidates for base p2, area p3; mode helper 3F5D0 returns 0..4: 0/1/2 -> output p1=0, 3/4 ->p1=1; filters/reorders original candidates and writes p4 special flag 0/1	건설 후보 시설	medium
+CGetCandidateFacilityListNode	0	out-obj	facility-kind list (type 16)	후보 시설 목록	high
+CGetCandidateFacilityListNode	1	in-int+out-int	input int to native 3F5D0; helper 0/1/2 writes 0, 3/4 writes 1	건설 방식	high
+CGetCandidateFacilityListNode	2	in-obj	base that builds	건설 거점	high
+CGetCandidateFacilityListNode	3	in-obj	target county	대상 군	high
+CGetCandidateFacilityListNode	4	out-int	native special-candidate flag; initialized 0, set 1 in the confirmed single-candidate replacement branch	특수 시설 여부	high
+CGetCompatibilityNode	node	-	0x2A5E20: min(abs(p0 officer +0xBE - p1 officer +0xBE), 150-abs(diff), 75) into p2; 0 for invalid officers. Verified on copied memory by ai_friend.py.	상성 차이	high
+CGetCompatibilityNode	0	in-obj	first officer (lord)	군주	high
+CGetCompatibilityNode	1	in-obj	second officer (other lord / candidate)	상대 장수	high
+CGetCompatibilityNode	2	out-int	circular compatibility distance (0..75 for +0xBE values 0..149)	상성	high
+CGetDelegationTargetNode	node	-	Reads corps p0's 위임 target (corps +0x19 kind, +0x18 id): kind 2 base -> type 5, kind 7 force -> type 0, kind 8 corps -> type 1. 2 for other kinds.	군단 위임 목표	high
+CGetDelegationTargetNode	0	in-obj	corps	군단	high
+CGetDelegationTargetNode	1	out-int	target type in BT codes: 5 base, 0 force, 1 corps	위임 목표 종류	high
+CGetDelegationTargetNode	2	out-obj	target object	위임 목표	high
+CGetDiplomacyConditionAreaNode	node	-	picks an area (county) force p0 could cede to p1 (0x3329D0 over the world area list, sorted by 0x747D0) and writes condition kind 4 + that area	외교 조건 군 고르기	high
+CGetDiplomacyConditionAreaNode	0	in-obj	force that would give the area	주는 세력	high
+CGetDiplomacyConditionAreaNode	1	in-obj	force that would receive it	받는 세력	high
+CGetDiplomacyConditionAreaNode	2	out-int	condition kind, always 4 (territory)	조건 종류	high
+CGetDiplomacyConditionAreaNode	3	out-obj	the chosen area	조건 군	high
+CGetEarthenStoneWallBuildHexNode	node	-	Chooses where builder p1 should place facility kind p2 in county p0: for walls (kinds 9/10) the start and end hexes of a wall line facing enemy p3; kind 16 another rule; writes nulls if none.	토루·석벽 건설 칸	medium
+CGetEarthenStoneWallBuildHexNode	0	in-obj	county	대상 군	high
+CGetEarthenStoneWallBuildHexNode	1	in-obj	builder officer	건설 장수	high
+CGetEarthenStoneWallBuildHexNode	2	in-obj	facility kind (9/10 = walls, 16)	시설 종류	medium
+CGetEarthenStoneWallBuildHexNode	3	in-obj	enemy force (optional)	적 세력	medium
+CGetEarthenStoneWallBuildHexNode	4	out-obj	start hex	시작 칸	high
+CGetEarthenStoneWallBuildHexNode	5	out-obj	end hex	끝 칸	high
+CGetEmployDataNode	node	-	Fills officer list p0 with my corps' officers free to act (+0x161 < 2, not busy, not away) (0x6DA8A0), used as 등용 doers.	등용 실행 가능 장수	medium
+CGetEmployDataNode	0	out-obj	officer list (type 4)	실행 장수 목록	medium
+CGetEstrangeDataNode	node	-	Strategy prep for 이간: p0 = my corps' officers able to act (0x6DAF20), p1 = target officers (0x6E0210).	이간 후보	medium
+CGetEstrangeDataNode	0	out-obj	officer list (doers)	실행 장수 목록	medium
+CGetEstrangeDataNode	1	out-obj	officer list (targets)	이간 대상 장수	medium
+CGetExchangeConditionsNode	node	-	equal-value conversion for an exchange offer	교환 조건 환산	high
+CGetExchangeConditionsNode	0	enum:0=p1 is gold asked -> food of equal value (0x322260: gold x 50 / 10),1=p1 is food asked -> gold of equal value (0x3222B0: food x 10 / 50)	what p1 is	환산 종류	high
+CGetExchangeConditionsNode	1	in-int	amount asked	요구량	high
+CGetExchangeConditionsNode	2	out-int	amount to offer in the other good	제시량	high
+CGetFacilityCandidateHexListNode	node	-	candidate hexes in an area where the officer could build a facility of kind p2 (or p5) facing the enemy force	시설 건설 후보 칸	medium
+CGetFacilityCandidateHexListNode	0	in-obj	target area	대상 군	high
+CGetFacilityCandidateHexListNode	1	in-obj	officer	건설 장수	high
+CGetFacilityCandidateHexListNode	2	enum:facility category for 0xBA470 (0..10 -> building kind; 4 -> world+0x73990)	facility category	시설 분류	medium
+CGetFacilityCandidateHexListNode	3	out-obj	hex list (type 7, cleared, then filled)	후보 칸 목록	high
+CGetFacilityCandidateHexListNode	4	in-obj	enemy force	적 세력	medium
+CGetFacilityCandidateHexListNode	5	in-obj	facility kind that overrides p2 when set ($CandidateFacility)	건설 시설	medium
+CGetFacilityCandidateHexListNode	6	in-int	0 enables border mode outside officer home area when target is gate area or its neighbor; nonzero disables that mode, not the rest of candidate generation; native mode and full body verified	군 경계 필터 해제	high
+CGetFakeNewsSuccessProbabilityNode	node	-	success chance of 위보 (fake report) by a unit on a target (0x281670)	위보 성공률	high
+CGetFakeNewsSuccessProbabilityNode	0	in-obj	own unit	실행 부대	high
+CGetFakeNewsSuccessProbabilityNode	1	in-obj	target enemy unit	대상 적 부대	high
+CGetFakeNewsSuccessProbabilityNode	2	out-int	probability	성공률	high
+CGetFireStrategySuccessFireStrategyNode	node	-	Success % of 화계 by unit p0's commander on hex p1 (0x268210) into p2.	화계 성공률	high
+CGetFireStrategySuccessFireStrategyNode	0	in-obj	unit	부대	high
+CGetFireStrategySuccessFireStrategyNode	1	in-obj	target hex	대상 칸	high
+CGetFireStrategySuccessFireStrategyNode	2	out-int	success percent	화계 성공률	high
+CGetFootholdFightingStrengthNode	node	-	battle power of a base: 0xBAE30(base, 0, keep, flag) on base troops minus p3, plus 0xB5EC0 power of the base force's units within p2 hexes	거점 전투력	high
+CGetFootholdFightingStrengthNode	0	in-obj	foothold	대상 거점	high
+CGetFootholdFightingStrengthNode	1	out-int	battle power	거점 전투력	high
+CGetFootholdFightingStrengthNode	2	number:tunable	radius in hexes for nearby own units (0 = base only; 3, 5, 10 used)	주변 부대 범위	high
+CGetFootholdFightingStrengthNode	3	in-int	soldiers held back (subtracted from the base troops +0x3C before rating)	남길 병사	high
+CGetFootholdFightingStrengthNode	4	in-int	flag: also require the unit's 0x2B5240 hex (destination?) within the radius	목적지 기준 여부	medium
+CGetFootholdFightingStrengthNode	5	in-int	flag: skip transport units (+0x10 == 2) and pass the flag to the base rating	수송대 제외 여부	medium
+CGetFootholdNeedFoodNode	node	-	(unused) Single-base version of GetAllFootholdNeedFood: 0x9E4B0(p0 base, p1, p2, p3) into int p4.	거점 필요 병량	high
+CGetFootholdNeedMoneyNode	node	-	(unused) Single-base version of GetAllFootholdNeedMoney: 0x9E710(p0 base, p1) into int p2.	거점 필요 금	high
+CGetForceFriendshipNode	node	-	out = 150 (0x1A47F98) * byte[agent +0x13 + index(p0)] * officer(agent +0x10)+0x16C / 10000: reads the agent object as a force record (friendship toward p0 scaled by the ruler's +0x16C); all uses are in the corps tree whose agent is the corps record, so the value there looks meaningless	세력 친선 가중값	medium
+CGetForceFriendshipNode	0	in-obj	force whose friendship is read	상대 세력	high
+CGetForceFriendshipNode	1	out-int	weighted friendship value	친선 값	medium
+CGetFormationNode	node	-	Formation record number p0 (0xBCFB0) into p1.	진형 가져오기	high
+CGetFormationNode	0	number	formation number (3 = 안행)	진형 번호	high
+CGetFormationNode	1	out-obj	formation	진형	high
+CGetHexAroundFightingStrengthNode	node	-	units of force p4 among the objects within p3 hexes of p0 (0x2A7AA0): appended to list p5, their power (0xB5EC0) summed into p1 and soldiers (+0x16) into p2	주변 전투력	high
+CGetHexAroundFightingStrengthNode	0	in-obj	centre object (hex / unit)	중심 칸	high
+CGetHexAroundFightingStrengthNode	1	out-int	summed battle power	주변 전투력 합	high
+CGetHexAroundFightingStrengthNode	2	out-int	summed soldiers	주변 병사 합	high
+CGetHexAroundFightingStrengthNode	3	number:tunable	radius in hexes (3, 4, 10)	범위	high
+CGetHexAroundFightingStrengthNode	4	in-obj	force whose units count	대상 세력	high
+CGetHexAroundFightingStrengthNode	5	inout-obj	unit list the counted units are appended to (created if missing)	주변 부대 목록	high
+CGetHiddenPoisonDataNode	node	-	Strategy prep: p0 = my corps' officers able to act (0x6DAF20), p1 = target counties for the hidden-poison strategy (0x6DEB30).	매복의 독 후보	medium
+CGetHiddenPoisonDataNode	0	out-obj	officer list (type 4)	실행 장수 목록	medium
+CGetHiddenPoisonDataNode	1	out-obj	county list (type 6)	대상 군 목록	medium
+CGetMyselfArmyNode	node	-	writes the tree's own unit (0xB6070)	자기 부대 얻기	high
+CGetMyselfArmyNode	0	out-obj	own unit	자기 부대	high
+CGetMyselfDistrictNode	node	-	writes the tree's own corps (agent -> district via 0xB60E0: the corps itself, a troops' or unit's corps; none in the force tree)	자기 군단 얻기	high
+CGetMyselfDistrictNode	0	out-obj	variable that receives the own corps	자기 군단	high
+CGetMyselfForceNode	node	-	writes the tree's own force (agent -> force via 0xB6180)	자기 세력 얻기	high
+CGetMyselfForceNode	0	out-obj	variable that receives the own force	자기 세력	high
+CGetMyselfTroopsNode	node	-	writes the tree's own sortie group (agent -> troops via 0xB6260)	자기 출진 그룹 얻기	high
+CGetMyselfTroopsNode	0	out-obj	own troops	자기 출진 그룹	high
+CGetNearCapitalNode	node	-	valid own unit -> 0x9BD30(unit,2); helper result ignored; returns 1; original capital role not established	가까운 거점 정하기	high
+CGetOfficerCandidateNode	node	-	candidate officers for the city's posts (0x6D6AF0 on the city 0x22A7B0(p0))	도시 담당관 후보	medium
+CGetOfficerCandidateNode	0	in-obj	city	대상 도시	high
+CGetOfficerCandidateNode	1	out-obj	person list (cleared, then filled)	후보 장수 목록	high
+CGetPersonFormationParamNode	node	-	For every formation officer p0 knows (0..19), simulates a 3000-soldier unit of his and measures p1 (0xBF050); writes the best formation and its value.	장수 최적 진형	high
+CGetPersonFormationParamNode	0	in-obj	officer	장수	high
+CGetPersonFormationParamNode	1	enum:0 mobility,1 attack vs unit,2 attack vs base,3 destruction (0x2AA2E0, vs buildings),4 defense	measure compared; 3 used ($Destroy)	비교 항목	high
+CGetPersonFormationParamNode	2	out-obj	best formation	최적 진형	high
+CGetPersonFormationParamNode	3	out-int	best value	최적 진형 수치	high
+CGetPlacationDataNode	node	-	copies native corps helper 0x6DAF20 officer list into p0 and 0x6DECA0 area list into p1; returns 1 if both output lists exist	위무 후보 얻기	high
+CGetPlacationDataNode	0	out-obj	person list (type 4)	위무 장수 목록	medium
+CGetPlacationDataNode	1	out-obj	area list (type 6)	위무 군 목록	medium
+CGetPlayerForceNode	node	-	writes the player's force (from g_World +0x871E8)	플레이어 세력 얻기	high
+CGetPlayerForceNode	0	out-obj	player's force	플레이어 세력	high
+CGetRelayHexListNode	node	-	(unused) Copies the group's relay hexes into hex list p0 (type 7).	경유 칸 목록	medium
+CGetRemainAlliancePeriodNode	node	-	months left of the agreement between two forces: byte p0 +0xEA + index(p1) & 0x7F	동맹 남은 기간	high
+CGetRemainAlliancePeriodNode	0	in-obj	force	기준 세력	high
+CGetRemainAlliancePeriodNode	1	in-obj	other force	상대 세력	high
+CGetRemainAlliancePeriodNode	2	out-int	months left	남은 기간(월)	high
+CGetScopeTimeNode	node	-	(unused) Profiling: p0 = 0 starts a QueryPerformanceCounter timer into p1, 1 stops timer p1.	실행 시간 측정	high
+CGetSearchAreaNode	node	-	Fills county list p1 with counties force p0 / my corps should 탐색 (search) (0xC3F00).	탐색할 군 목록	medium
+CGetSearchAreaNode	0	in-obj	force	세력	high
+CGetSearchAreaNode	1	out-obj	county list (type 6), cleared first	탐색 대상 군 목록	medium
+CGetSpecifedStrategyDistrictTroopsNode	node	-	own corps' sortie groups whose purpose (+0x14) equals p0 -> p1	목적별 군단 출진 그룹	high
+CGetSpecifedStrategyDistrictTroopsNode	0	enum:0=return to base,1=intercept caution troops,2/8/9/10/22=attack foothold (relay/area-attack variants),11=occupy foothold,3/13/14/15/16/21=area (county) attack variants,4=attack facility,5=build facility,6=move to hex,7=stand by at hex,12=transport,17=defend/enter own city,18=defend/enter own gate or port,20=chase target (stand by when it is gone),23=auto paint defense	purpose to match (17 = defend own city)	찾을 출진 목적	high
+CGetSpecifedStrategyDistrictTroopsNode	1	out-obj	troops list (type 2, cleared, then filled)	출진 그룹 목록	high
+CGetSpecificForceDataNode	node	-	literal p1 selects one of 13 lord IDs (out of range ->0); writes last world force whose lord ID matches, or null; returns 1	특정 세력 정보	high
+CGetSpecifiedArmyFlagArmyListNode	node	-	Collects the units of sortie group p0 matching filter p1 on unit flags +0x26 into p2 (cleared first).	조건 부대 목록	medium
+CGetSpecifiedArmyFlagArmyListNode	0	in-obj	sortie group	작전 그룹	high
+CGetSpecifiedArmyFlagArmyListNode	1	enum:0 bit0,1 outside base and bit1,2 bit2,3 bit3,4 bit4,5 bit5,6 outside base (0x2C9310 false) and no bit1	flag filter (6 used)	부대 조건	medium
+CGetSpecifiedArmyFlagArmyListNode	2	out-obj	unit list (type 3)	부대 목록	high
+CGetSpecifiedRangeTrapListNode	node	-	traps/objects of the unit's area for its force (0x2AC170) -> list (type 10)	주변 함정 목록	medium
+CGetSpecifiedRangeTrapListNode	0	in-obj	unit	기준 부대	high
+CGetSpecifiedRangeTrapListNode	1	out-obj	trap list (cleared, then filled)	함정 목록	high
+CGetTargetForcePrisonerListNode	node	-	lists officers of force p0 (status 0x231E90 in 5,6,0x1B) held in bases of force p1 (base force == p1) into p2	붙잡힌 아군 장수 목록	high
+CGetTargetForcePrisonerListNode	0	in-obj	force whose officers are captive	포로 소속 세력	high
+CGetTargetForcePrisonerListNode	1	in-obj	force holding them	포로를 가진 세력	high
+CGetTargetForcePrisonerListNode	2	out-obj	person list (cleared, then filled)	포로 장수 목록	high
+CGetTradeNeedFoodNode	node	-	food a 교역 with foreign country p0 for amount p1 needs (0x32CE00; the officers of p3 and personality kind 0x72 lower it)	교역 필요 병량	medium
+CGetTradeNeedFoodNode	0	in-obj	foreign country	교역 상대 국가	high
+CGetTradeNeedFoodNode	1	in-int	trade amount	교역량	medium
+CGetTradeNeedFoodNode	2	out-int	food needed	필요 병량	medium
+CGetTradeNeedFoodNode	3	in-obj	officer list	실행 장수 목록	high
+CGetTransactionDataNode	node	-	p0 unique converted corps cities passing 0x70DC70; p1 unique officers from 0x6D7EA0 for those cities, encounter order; both outputs allocated as type 4	거래 후보 도시	high
+CGetTransactionDataNode	0	out-obj	city list (made as type 4, holds cities)	거래 도시 목록	medium
+CGetTransactionDataNode	1	out-obj	unique officer pointers in first-encounter order	거래 장수 목록	high
+CGetTransportSoldierNode	node	-	for each base of the list: food shortfall = ((soldiers + inbound soldiers) x p1 / 100) x p2 - (base +0xA4 / 3) x p3 - food - inbound food (0x9E4B0), stored in the base's AI scratch +0x90 (capped by vtable +200 when in surplus)	거점 병량 부족량 계산	medium
+CGetTransportSoldierNode	0	in-obj	foothold list (each base's +0x90 is written)	대상 거점 목록	high
+CGetTransportSoldierNode	1	number:tunable	food per 100 soldiers per period (24)	병사당 소비율	medium
+CGetTransportSoldierNode	2	number:tunable	periods of consumption looked ahead (6)	소비 기간	medium
+CGetTransportSoldierNode	3	number:tunable	periods of income counted (6)	수입 기간	medium
+CGetUnattendedhomeDataNode	node	-	p0 corps officer list 0x6DAF20; p1 CITY pointers from 0x6E0590 copied unchanged despite factory type 6; returns 1 if both output lists exist	빈집 노리기 후보	high
+CGetUnattendedhomeDataNode	0	out-obj	officer list	실행 장수 목록	medium
+CGetUnattendedhomeDataNode	1	out-obj	city pointer list (not an area list)	대상 도시 목록	high
+CGetUnusedTroopsIndexNode	node	-	(unused) Empty function (stub).	(빈 함수)	high
+CGetUserArmyListNode	node	-	the player's units whose order (+0x37) equals p0 -> p1	플레이어 부대 목록	high
+CGetUserArmyListNode	0	enum:1=move to hex,2=go into own city,3=go into own gate/port,4=attack city,5=attack gate/port,6=attack facility,7=attack unit,8=build facility,11=return to city,12=return to gate/port,13=hold (stand by),14=move to hex,16=set fire (fire strategy)	order to match (4 = attacking a city)	찾을 명령	high
+CGetUserArmyListNode	1	out-obj	unit list (cleared, then filled)	플레이어 부대 목록	high
+CGoodwillSuccessConditionNode	node	-	Computes the gift needed for a 친선 proposal to force p0 (0x9E220) and checks the capital can pay it while keeping p4/p5 (shortfall <= 0: reserve = capital stock + shortfall; > 0: nothing spare). Writes the amount (gold/food) or item to p3; 2 if not affordable.	친선 성사 조건	medium
+CGoodwillSuccessConditionNode	0	in-obj	target force	친선 대상 세력	high
+CGoodwillSuccessConditionNode	1	in-obj	envoy officer	사절 장수	high
+CGoodwillSuccessConditionNode	2	in-int	gift kind 0 gold, 1 food, 2 item	조건 종류	high
+CGoodwillSuccessConditionNode	3	out-int	gift amount (out-obj item for kind 2)	조건 내용	high
+CGoodwillSuccessConditionNode	4	in-int	capital gold shortfall (foothold info 39)	필요 금	medium
+CGoodwillSuccessConditionNode	5	in-int	capital food shortfall (foothold info 38)	필요 병량	medium
+CItemSelectNode	node	-	picks a 명품 the ruler can give an officer: horses (+0x44 == 11) for a 무력/통솔 >= 80 officer without one, else items whose +0x45 matches his strong ability (1 for 무력 / 통솔, 4 for 정치 ...), the most valuable (0x3222B0)	하사할 명품 고르기	medium
+CItemSelectNode	0	in-obj	ruler (status 1)	군주	high
+CItemSelectNode	1	in-obj	officer to receive it	받을 장수	high
+CItemSelectNode	2	out-obj	chosen item	하사 명품	high
+CListAddAreaNode	node	-	appends an area to an area list (no duplicate check); creates the list (type 6) when missing	군 목록에 추가	high
+CListAddAreaNode	0	in-obj	area (county)	추가할 군	high
+CListAddAreaNode	1	inout-obj	area list	군 목록	high
+CListAddAreaUniqueNode	node	-	Appends county p0 to county list p1 (type 6, created if missing) unless already there.	군 목록에 중복 없이 추가	high
+CListAddAreaUniqueNode	0	in-obj	county added	추가할 군	high
+CListAddAreaUniqueNode	1	out-obj	county list (in/out)	군 목록	high
+CListAddArmyNode	node	-	appends a unit to a unit list (no duplicate check); creates the list (type 3) when missing	부대 목록에 추가	high
+CListAddArmyNode	0	in-obj	unit	추가할 부대	high
+CListAddArmyNode	1	inout-obj	unit list	부대 목록	high
+CListAddArmyUniqueNode	node	-	appends a unit to a unit list unless already there; creates the list (type 3) when missing	부대 목록에 추가(중복 없음)	high
+CListAddArmyUniqueNode	0	in-obj	unit to append	추가할 부대	high
+CListAddArmyUniqueNode	1	inout-obj	unit list	부대 목록	high
+CListAddCautionTroopsNode	node	-	Appends caution group p0 to list p1 (type 11); duplicates allowed.	경계 군세 목록에 추가	high
+CListAddCautionTroopsNode	0	in-obj	caution group	경계 군세	high
+CListAddCautionTroopsNode	1	out-obj	caution-group list (in/out)	경계 군세 목록	high
+CListAddDistrictNode	node	-	appends a district to a list (type 1) (0 uses)	군단 목록에 추가	high
+CListAddDistrictUniqueNode	node	-	(unused) Appends corps p0 to corps list p1 (type 1) unless present.	군단 목록에 추가	high
+CListAddFacilityNode	node	-	appends a facility to a list (type 16) (0 uses)	시설 목록에 추가	high
+CListAddFootholdNode	node	-	Appends base p0 to base list p1 (type 5, created if missing); duplicates allowed.	거점 목록에 추가	high
+CListAddFootholdNode	0	in-obj	base added	추가할 거점	high
+CListAddFootholdNode	1	out-obj	base list (in/out)	거점 목록	high
+CListAddFootholdUniqueNode	node	-	appends a foothold to a foothold list unless already there; creates the list (type 5) when missing	거점 목록에 추가(중복 없음)	high
+CListAddFootholdUniqueNode	0	in-obj	foothold to append	추가할 거점	high
+CListAddFootholdUniqueNode	1	inout-obj	foothold list	거점 목록	high
+CListAddForceNode	node	-	Appends force p0 to list p1 (force list, type 0, created if missing); duplicates allowed.	세력 목록에 추가	high
+CListAddForceNode	0	in-obj	force added	추가할 세력	high
+CListAddForceNode	1	out-obj	force list (in/out)	세력 목록	high
+CListAddForceUniqueNode	node	-	appends a force to a force list unless already there (list type 0)	세력 목록에 추가(중복 없음)	high
+CListAddForceUniqueNode	0	in-obj	force	추가할 세력	high
+CListAddForceUniqueNode	1	inout-obj	force list	세력 목록	high
+CListAddHexNode	node	-	Appends hex p0 to hex list p1 (type 7, created if missing); duplicates allowed.	칸 목록에 추가	high
+CListAddHexNode	0	in-obj	hex added	추가할 칸	high
+CListAddHexNode	1	out-obj	hex list (in/out)	칸 목록	high
+CListAddHexUniqueNode	node	-	Appends hex p0 to hex list p1 (type 7) unless already there.	칸 목록에 중복 없이 추가	high
+CListAddHexUniqueNode	0	in-obj	hex added	추가할 칸	high
+CListAddHexUniqueNode	1	out-obj	hex list (in/out)	칸 목록	high
+CListAddNumberValueNode	node	-	(unused) Appends literal p0 to number list p1 (type 14).	숫자 목록에 추가	high
+CListAddNumberVariableNode	node	-	appends int variable p0 to number list p1 (type 14) (0 uses)	숫자 목록에 추가(변수)	high
+CListAddPersonNode	node	-	appends a person to a person list (no duplicate check); creates the list (type 4) when missing	장수 목록에 추가	high
+CListAddPersonNode	0	in-obj	person to append	추가할 장수	high
+CListAddPersonNode	1	inout-obj	person list (created if missing)	장수 목록	high
+CListAddPersonUniqueNode	node	-	Appends officer p0 to officer list p1 (type 4) unless already there.	장수 목록에 중복 없이 추가	high
+CListAddPersonUniqueNode	0	in-obj	officer added	추가할 장수	high
+CListAddPersonUniqueNode	1	out-obj	officer list (in/out)	장수 목록	high
+CListAddPossibleFacilityNode	node	-	Fills p2 with the facility kinds (table +0x73958) officer p0 can build on hex p1 (0x278FA0); for the player's force drops kinds not unlocked (corps +0x1C bits).	건설 가능 시설 목록	medium
+CListAddPossibleFacilityNode	0	in-obj	builder officer	건설 장수	high
+CListAddPossibleFacilityNode	1	in-obj	hex	칸	high
+CListAddPossibleFacilityNode	2	out-obj	facility-kind list (type 16)	시설 종류 목록	high
+CListAddTacticsBookNode	node	-	appends a tactics book to a list (type 17)	병법서 목록에 추가	high
+CListAddTacticsBookNode	0	in-obj	tactics book	추가할 병법서	high
+CListAddTacticsBookNode	1	inout-obj	tactics book list	병법서 목록	high
+CListAddTacticsNode	node	-	appends a tactics (전법) to a list (type 13) (0 uses)	전법 목록에 추가	high
+CListAddTroopsNode	node	-	(unused) Appends group p0 to group list p1 (type 2).	그룹 목록에 추가	high
+CListAddTroopsUniqueNode	node	-	Appends sortie/caution group p0 to list p1 (type 2) unless already there.	작전 그룹 목록에 중복 없이 추가	high
+CListAddTroopsUniqueNode	0	in-obj	group added	추가할 그룹	high
+CListAddTroopsUniqueNode	1	out-obj	group list (in/out)	그룹 목록	high
+CListAddUniqueCautionTroopsNode	node	-	appends caution troops to a caution-troops list unless already there (list type 11)	경계 그룹 목록에 추가(중복 없음)	high
+CListAddUniqueCautionTroopsNode	0	in-obj	caution troops	추가할 경계 그룹	high
+CListAddUniqueCautionTroopsNode	1	inout-obj	caution troops list	경계 그룹 목록	high
+CListAddUniqueNumberValueNode	node	-	appends literal p0 to a number list p1 unless present (type 14) (0 uses)	숫자 목록에 추가(상수)	high
+CListClearNode	node	-	Empties list variable p1 (creates an empty list of element type p0 if missing); type 15 (caution units) also frees records whose unit is gone (0x32AE20). Returns 1, 2 if the list cannot be made.	목록 비우기	high
+CListClearNode	0	enum:BT type 0 force,1 corps,2 sortie group,3 unit,4 officer,5 base,6 county,7 hex,8 city,9 gate?,10 building?,11 caution group,12 formation,13 tactic,14 number,15 caution unit,16 facility kind,17 tactic book,18 scenery?	element type of the list (picks the list pool)	목록 종류	high
+CListClearNode	1	out-obj	list variable emptied/created	비울 목록	high
+CListGetItemByIndex	node	-	Writes element number p2 (0-based) of list p1 into p3; for number lists (type 14) writes an int. If the index is past the end writes null to p3 and returns 2.	목록의 n번째 항목	high
+CListGetItemByIndex	0	enum:BT type (see CListClearNode; 14 = number list, 11/15 copied by value)	element type of the list	목록 종류	high
+CListGetItemByIndex	1	in-obj	list read	목록	high
+CListGetItemByIndex	2	in-int	0-based index	순번	high
+CListGetItemByIndex	3	out-obj	element (out-int for type 14)	꺼낸 항목	high
+CListPersonExtractionNode	node	-	takes the first p1 persons of list p0 (mode p2 = 0; another rule otherwise) into list p3 (0 uses)	장수 목록 추리기	medium
+CListRemoveAreaNode	node	-	(unused) Removes county p0 from county list p1 (0x83C20).	군 목록에서 빼기	high
+CListRemoveArmyNode	node	-	removes a unit from a list (0x83C20) (0 uses)	부대 목록에서 빼기	high
+CListRemoveCautionTroopsNode	node	-	removes caution troops p0 from list p1 if present (0x83C20)	경계 그룹 목록에서 빼기	high
+CListRemoveCautionTroopsNode	0	in-obj	caution troops	뺄 경계 그룹	high
+CListRemoveCautionTroopsNode	1	inout-obj	caution troops list	경계 그룹 목록	high
+CListRemoveDistrictNode	node	-	removes a district from a list (0x83C20) (0 uses)	군단 목록에서 빼기	high
+CListRemoveFootholdNode	node	-	Removes base p0 from base list p1 if present (0x83C20).	거점 목록에서 빼기	high
+CListRemoveFootholdNode	0	in-obj	base removed	뺄 거점	high
+CListRemoveFootholdNode	1	in-obj	base list (modified)	거점 목록	high
+CListRemoveForceNode	node	-	Removes p0 from list p1 if present (shared 0x83C20; also CListRemoveFoothold/Area); 1 even if absent, 2 if a variable is missing.	세력 목록에서 빼기	high
+CListRemoveForceNode	0	in-obj	force removed	뺄 세력	high
+CListRemoveForceNode	1	in-obj	force list (modified)	세력 목록	high
+CListRemoveHexNode	node	-	removes a hex from a list (0x83C20) (0 uses)	칸 목록에서 빼기	high
+CListRemovePersonNode	node	-	removes element p0 from list p1 if present (0x335060); 1 also when absent, 2 when a variable is missing (same code as the other ListRemove* nodes, 0x83C20)	목록에서 장수 빼기	high
+CListRemovePersonNode	0	in-obj	element (person) to remove	뺄 장수	high
+CListRemovePersonNode	1	inout-obj	list	장수 목록	high
+CListRemoveTroopsNode	node	-	removes troops from a list (0x83C20) (0 uses)	출진 그룹 목록에서 빼기	high
+CListSortEvaluationNode	node	-	sorts a list in place by each element's evaluation (element +8, set by the Set*Evaluation nodes); insertion sort 0x23A50 with comparator 0x974F0	목록 평가값 정렬	high
+CListSortEvaluationNode	0	enum:0=force,1=district,2=troops,3=army,4=person,5=foothold,6=area,7=hex,11=caution troops,12=formation,13=tactics,16=facility,17=tactics book (14=number list is refused)	element type of the list (only a tag: every allowed value runs the same code)	목록 종류	high
+CListSortEvaluationNode	1	inout-obj	list variable sorted in place	정렬할 목록	high
+CListSortEvaluationNode	2	enum:0=ascending (lowest evaluation first),other=descending (highest first)	sort direction	정렬 방향	high
+CLoopListElementNode	node	-	Loop (has children): runs its child subtree once per element, writing each element into p3; mode p0 picks the source; stops when variable IsLoopBreak > 0 (set by MiscBreak, then reset); always returns 1	목록 원소 반복	high
+CLoopListElementNode	0	enum:0=the agent's own members (agent type from AgentType: 3 corps, 4 force),1=every such object in the world,2=the list variable p2	where the elements come from	반복 범위	high
+CLoopListElementNode	1	enum:1=person,2=army(unit),3=troops(sortie group),4=district(corps),5=force,6=hex,7=area(county),8=city,9=gate,10=foothold(any base),11=caution army,12=caution troops,13=formation,14=tactics,15=tactics book,16=facility/object(traps),17=scenery	element type; picks the world list / owner iterator (person = world+0x100, force = +0xC0, foothold = +0x80, city = +0x90, gate = +0xA0, district = +0xD0, troops table +0x7F8D8 ...)	원소 종류	high
+CLoopListElementNode	2	in-obj	list variable walked in mode 2 (0 in modes 0/1)	반복할 목록	high
+CLoopListElementNode	3	out-obj	variable that receives the current element each pass	현재 원소	high
+CMiscBreakNode	node	-	Sets the run flag "IsLoopBreak" = 1 so the enclosing LoopListElement stops after this pass; 2 if the flag cannot be set.	반복 중단	high
+CMiscDummyNode	node	-	does nothing; returns 1 when p0 == 1, else 2 (a fixed success/failure for the sequence)	더미(고정 결과)	high
+CMiscDummyNode	0	enum:1=succeed (returns 1),other=fail (returns 2)	result to return	고정 결과	high
+CMiscLogNode	node	-	Debug log of a variable (the node text is the label); no game effect. Returns 2 only when list mode finds no list.	디버그 기록	high
+CMiscLogNode	0	enum:BT type (see CListClearNode)	type of the logged value	값 종류	high
+CMiscLogNode	1	enum:0 single value,1 list	whether p2 is one value or a list	단일/목록	high
+CMiscLogNode	2	in-obj	variable logged (in-int for type 14)	기록할 변수	high
+CMiscSetAreaEvaluationNode	node	-	Stores int p1 in the county's +8 work slot (sort key).	군 평가값 설정	high
+CMiscSetAreaEvaluationNode	0	in-obj	county	군	high
+CMiscSetAreaEvaluationNode	1	in-int	evaluation value	평가값	high
+CMiscSetFootholdEvaluationNode	node	-	Stores int p1 in the base's +8 work slot (sort key for ListSortEvaluation).	거점 평가값 설정	high
+CMiscSetFootholdEvaluationNode	0	in-obj	base	거점	high
+CMiscSetFootholdEvaluationNode	1	in-int	evaluation value	평가값	high
+CMiscSetHexEvaluationNode	node	-	sets an object's evaluation (object +8) for ListSortEvaluation (hexes)	평가값 설정(칸)	high
+CMiscSetHexEvaluationNode	0	in-obj	hex	평가할 칸	high
+CMiscSetHexEvaluationNode	1	in-int	evaluation score	평가값	high
+CMiscSetPersonEvaluationNode	node	-	sets an object's evaluation score (object +8 = int) for a later ListSortEvaluation (used on persons, also on cities)	평가값 설정(장수)	high
+CMiscSetPersonEvaluationNode	0	in-obj	object (usually a person) whose evaluation is set	평가할 대상	high
+CMiscSetPersonEvaluationNode	1	in-int	evaluation score	평가값	high
+CMoveAdvantagePositionNode	node	-	Unit AI: asks 0xC4A30 for a better (advantage) position; if found sets +0x1F0 bit 0x10 and re-paths.	유리한 위치로 이동	medium
+CMoveObjectAttackingArmyPositionNode	node	-	Unit AI (no params): asks 0xC85F0 for a position against units attacking one of our objects; if found sets unit flag +0x1F0 bit 0x40 and re-paths (0x26C940).	시설 공격 적 대응 이동	medium
+COccupyNeighborCapitalNode	node	-	Unit AI: 0xCC560 picks a nearby county centre to take; if found sets +0x1F0 bit 2 and re-paths.	인접 군 중심 점령	medium
+COccupyNeighborSceneryNode	node	-	no params; when the unit AI (0xCC900) finds a scenery (명소) to take nearby: +0x1F0 |= 0x80 and replan	주변 명소 점령	medium
+CPrisonerReturnSuccessConditionNode	node	-	ransom check for 포로 반환: 0x9E880(own force, holder, list, &cost); while the main corps gold - cost <= reserve and >1 person, drops persons (cost -= 0x26ABF0 value); writes the cost when affordable	포로 반환 조건 계산	high
+CPrisonerReturnSuccessConditionNode	0	in-obj	force holding the prisoners	포로를 가진 세력	high
+CPrisonerReturnSuccessConditionNode	1	inout-obj	our captive officers (trimmed in place)	돌려받을 장수 목록	high
+CPrisonerReturnSuccessConditionNode	2	out-int	gold to pay	몸값	high
+CPrisonerReturnSuccessConditionNode	3	in-int	NeedMoney reserve rule (>= 1 keeps all gold, <= 0 lets -NeedMoney be spent)	필요 금(보유 기준)	high
+CRecoverLogisticsNode	node	-	no params; when the unit AI (0xCDC80) says the unit should resupply: +0x1F0 |= 4 and replan (0x26C940)	보급 회복	medium
+CRecruitOfficerRemoveNode	node	-	GAME COMMAND: if city p0 has a 징병 officer (+0xCA) and its corps has >= rule 0x1A483E8 (1) command point, relieves him (0x1F2120: clears +0xCA/+0xCC, costs 1 point). 1 when none is set.	징병 담당 해임	medium
+CRecruitOfficerRemoveNode	0	in-obj	city	도시	high
+CRecruitOfficerRemoveNode	1	unused	$RecruitOfficer is never read	(미사용)	high
+CRecruitOfficerSetNode	node	-	COMMAND: appoints p1 to the city's post at +0xCA (recruit/징병 officer) via 0x1F2120 (corps commands -0x1A483E8 = 1); 1 at once when he already holds it	도시 징병 담당 임명	medium
+CRecruitOfficerSetNode	0	in-obj	city	대상 도시	high
+CRecruitOfficerSetNode	1	in-obj	officer	임명할 장수	high
+CRemoveNoInterceptPersonNode	node	-	drops officers unfit to intercept: 통솔 (ability 0) < 21, or none of their formations 1..19 usable (+0x7E == 1, flag bit 1 clear, kind != 7)	요격 불가 장수 제외	high
+CRemoveNoInterceptPersonNode	0	inout-obj	officer list filtered in place	요격 후보 장수 목록	high
+CRepairNeigoborObjectNode	node	-	no params; when the unit AI (0xCDD90) finds a neighbouring object to repair, replans the unit (0x26C940)	주변 시설 수리	medium
+CResolutionFakeNewsNode	node	-	valid p0/p1 units -> 0xCE0C0(p1,p0,literal p2); result true ->1, false ->2; native helper not substituted	위보 피해 부대 대응	high
+CResolutionFakeNewsNode	0	in-obj	nearby unit with ailment 3 (P138)	대상 부대	medium
+CResolutionFakeNewsNode	1	in-obj	my unit	자기 부대	high
+CResolutionFakeNewsNode	2	number:tunable	literal third argument to 0xCE0C0(p1,p0,p2)	탐색 한도	high
+CSceneryInvestSetNode	node	-	GAME COMMAND: starts investment in scenery p0 if idle (+0x64 = 1, kind +0x6C 1..5, nothing underway), it lies in a county of a base of my corps and that base's gold >= cost (0x22ABB0): state +0x64 = 2, duration +0x66, end date +0x68, base gold -= cost, corps command point -1.	명소 투자	high
+CSceneryInvestSetNode	0	in-obj	scenery	명소	high
+CSelectPersonTacticsNode	node	-	Builds a list of up to 3 tactics for officer p0 that the formation p1 allows (tactic +0x6C formation bit): first tactics he has (0x92730), then from his tactic slots (0x22A320).	장수 전법 고르기	medium
+CSelectPersonTacticsNode	0	in-obj	officer	장수	high
+CSelectPersonTacticsNode	1	in-obj	formation	진형	high
+CSelectPersonTacticsNode	2	out-obj	tactic list (type 13), cleared first	전법 목록	high
+CSetBehaviortreeRestartFlagNode	node	-	sets the agent's restart flag by AgentType: 4 force +0x20D, 3 corps +0x2A, 2 troops +0x38 = 1	행동 트리 재시작 표시	high
+CSetCautionTroopsEvaluationNode	node	-	Stores int p1 in the caution group's +8 work slot (sort key).	경계 군세 평가값 설정	high
+CSetCautionTroopsEvaluationNode	0	in-obj	caution group (watched enemy group)	경계 군세	high
+CSetCautionTroopsEvaluationNode	1	in-int	evaluation value (enemy soldiers etc.)	평가값	high
+CSetCautionTroopsVirtualTargetFootholdNode	node	-	Sets caution group p0 +0x1A = base p1's id (the base the enemy group is presumed to head for).	경계 군세 예상 목표 설정	high
+CSetCautionTroopsVirtualTargetFootholdNode	0	in-obj	caution group	경계 군세	high
+CSetCautionTroopsVirtualTargetFootholdNode	1	in-obj	presumed target base	예상 목표 거점	high
+CSetDistrictEvaluationNode	node	-	sets an object's evaluation (object +8) for ListSortEvaluation (districts) (0 uses)	평가값 설정(군단)	high
+CSetFootholdAttackRelayHexNode	node	-	If no unit of group p0 is flagged (+0x13C), paths from its leader to base p1 (0x1843E0) and stores up to 10 relay hexes (centres of counties on the way not mine) in the group (+0x18, 0x71D00).	거점 공략 경유 칸 설정	medium
+CSetFootholdAttackRelayHexNode	0	in-obj	sortie group	작전 그룹	high
+CSetFootholdAttackRelayHexNode	1	in-obj	target base	공략 거점	high
+CSetForceEvaluationNode	node	-	Stores int p1 in the force object's +8 work slot, the key ListSortEvaluation sorts by.	세력 평가값 설정	high
+CSetForceEvaluationNode	0	in-obj	force	세력	high
+CSetForceEvaluationNode	1	in-int	evaluation value	평가값	high
+CSetFormationEvaluationNode	node	-	sets a formation's evaluation (object +8) for ListSortEvaluation (same code as MiscSetPersonEvaluation)	평가값 설정(진형)	high
+CSetFormationEvaluationNode	0	in-obj	formation	평가할 진형	high
+CSetFormationEvaluationNode	1	in-int	evaluation score	평가값	high
+CSetFriendForceListNode	node	-	Copies up to 5 force numbers from list p0 into my force +0x17F..+0x183 (friendly-target forces).	우호 대상 세력 설정	high
+CSetFriendForceListNode	0	in-obj	force list	우호 대상 세력 목록	high
+CSetOrderListNode	node	-	(unused) Empty function (stub).	(빈 함수)	high
+CSetParentTroopsNode	node	-	(unused) Puts unit p0 into sortie group p1 (0x241890).	부대 소속 그룹 설정	medium
+CSetRelayHexEvadeFlameHexNode	node	-	Unit AI: returns 2 if the commander has a fire-related 개성 (condition 0x19/0x1A/0x66); otherwise re-paths (0x26C940) when the route crosses fire (0x9A050/0x981E0).	화염 회피 경로	medium
+CSetRelayHexEvadeFlameHexNode	0	in-obj	unit	부대	high
+CSetRelayHexListNode	node	-	writes up to 10 relay hexes into the troops (+0x18..+0x2A, 0xBD10 = none)	출진 그룹 경유 칸 설정	high
+CSetRelayHexListNode	0	in-obj	troops	출진 그룹	high
+CSetRelayHexListNode	1	in-obj	hex list	경유 칸 목록	high
+CSetTacticsBookEvaluationNode	node	-	Stores int p1 in the tactic book's +8 work slot (sort key).	병서 평가값 설정	high
+CSetTacticsBookEvaluationNode	0	in-obj	tactic book (item)	병서	high
+CSetTacticsBookEvaluationNode	1	in-int	evaluation value	평가값	high
+CSetTargetForceListNode	node	-	Copies up to 5 force numbers from list p0 into my force +0x17A..+0x17E (attack target forces).	공략 대상 세력 설정	high
+CSetTargetForceListNode	0	in-obj	force list	공략 대상 세력 목록	high
+CSetTroopsEvaluationNode	node	-	(unused) Stores int p1 in sortie group p0's +8 work slot.	그룹 평가값 설정	high
+CSpecifiedTroopsSetPurposeNode	node	-	DECISION: sets a sortie group's purpose (troops +0x14) and target id (+0x16); fails (2) when any of its units has +0x13C set; purposes 0/17/18 with a valid target also reset every unit's order (0x26C940, 0x2EE010, 0xA1D90)	출진 그룹 목적 지정	high
+CSpecifiedTroopsSetPurposeNode	0	in-obj	troops (sortie group)	출진 그룹	high
+CSpecifiedTroopsSetPurposeNode	1	enum:0=return to base,1=intercept caution troops,2/8/9/10/22=attack foothold (relay/area-attack variants),11=occupy foothold,3/13/14/15/16/21=area (county) attack variants,4=attack facility,5=build facility,6=move to hex,7=stand by at hex,12=transport,17=defend/enter own city,18=defend/enter own gate or port,20=chase target (stand by when it is gone),23=auto paint defense	purpose written to troops +0x14 (meanings from the troops tree t2 branches)	출진 목적	medium
+CSpecifiedTroopsSetPurposeNode	2	in-obj	target; id taken by purpose: foothold +0x4E (0,2,8-12,17,18,22), caution troops 0x22DA90 (1), area 0x22D9E0 (3,13-16,21,23), facility 0x22DEA0 (4,20), hex 0x22DDA0 (5-7)	목적 대상	high
+CSpyHomeOfficerRemoveNode	node	-	frees one of the force's three spy slots (force +0x196+2k officer id and +0x19C+k flag set to 0) and spends 1 corps command (corps +0x14 -= 0x1A481D0 = 1; needs >= 0x1A483F4 = 1); 2 when nothing to free	첩자 슬롯 비우기	medium
+CSpyHomeOfficerRemoveNode	0	in-int	slot number 1..3	첩자 슬롯 번호	high
+CSpyHomeOfficerSetNode	node	-	GAME COMMAND: places officer p1 in spy slot p2 (1..3) of my force against force p0 (force +0x196+2*slot = officer, +0x19C+slot = target force). Frees him from other slots and from city 징병/훈련 duty (+0xCA/+0xCC), re-places him (0x29BF00), costs 1 corps command point (needs corps +0x14 >= rule 0x1A483F4 = 1, minus rule 0x1A481D0 = 1). 1 if already so.	간자 파견 설정	medium
+CSpyHomeOfficerSetNode	0	in-obj	target force (index 1..51)	대상 세력	high
+CSpyHomeOfficerSetNode	1	in-obj	officer sent	파견 장수	high
+CSpyHomeOfficerSetNode	2	in-int	slot number 1..3	파견 칸 번호	high
+CTradePriorityCountrySelectNode	node	-	native 0x6DDFC0 candidate countries; reject if any other valid country has candidate[0x28+clamp(kind,0,4)]!=1; sort force+0x184 values below 1000 first, then value descending, then kind ascending; write first or return 2; native nonempty selection and sort verified	교역 상대국 고르기	high
+CTradePriorityCountrySelectNode	0	in-obj	force	세력	high
+CTradePriorityCountrySelectNode	1	out-obj	chosen country (국가)	교역 상대국	medium
+CTrainingOfficerRemoveNode	node	-	GAME COMMAND: if city p0 has a 훈련 officer (+0xCC) and its corps has >= rule 0x1A483F4 (1) point, relieves him (0x200680). 1 when none is set.	훈련 담당 해임	medium
+CTrainingOfficerRemoveNode	0	in-obj	city	도시	high
+CTrainingOfficerRemoveNode	1	unused	$TrainingOfficer is never read	(미사용)	high
+CTrainingOfficerSetNode	node	-	COMMAND: appoints p1 to the city's post at +0xCC (training/훈련 officer) via 0x200680 (needs the officer's corps commands >= 0x1A483F4 = 1); 1 at once when he already holds it	도시 훈련 담당 임명	medium
+CTrainingOfficerSetNode	0	in-obj	city	대상 도시	high
+CTrainingOfficerSetNode	1	in-obj	officer	임명할 장수	high
+CTroopsOrderDesutructionFacilityNode	node	-	GAME ORDERS (troops AI, standby group): finds a hostile building on/near the group's way; sets group purpose 4 with it as target and every unit to attack it (unit order 6, target kind 11 = building index).	시설 파괴 지시	medium
+CTroopsSetPurposeNode	node	-	DECISION: sets the own troops' purpose (+0x14) = literal p0, no target; 2 when a unit has +0x13C set (0 uses)	자기 출진 그룹 목적 지정	high
+CTroopsSetTargetTroopsNode	node	-	valid group p0; any group unit +13C nonzero ->2; purpose selects BASE / CAUTION_TROOPS / AREA / BUILDING / HEX resolver for p1; signed IDs clamp to 0..65535; other purposes keep target; 0/17/18 also replan units and change flags	그룹 목표 설정	high
+CVariableClearNode	node	-	writes int 0 into the variable (clears an object or int variable to none/0); always 1	변수 비우기	high
+CVariableClearNode	0	out-int	variable set to 0	비울 변수	high
+CVariableCreateNode	node	-	Writes literal p1 into int variable p0 (creating it); returns 2 only if the write fails.	정수 변수 만들기	high
+CVariableCreateNode	0	out-int	int variable written	대상 정수 변수	high
+CVariableCreateNode	1	number	value stored (0/1 for counters and flags; elsewhere designer constants such as $Rate 65/50, $TargetNumber 62/15/5)	초기값	high
+CVariableCreateSpecifiedTypeNode	node	-	Creates variable p1 empty: int 0 when p0 = 14, else a null object.	빈 변수 만들기	high
+CVariableCreateSpecifiedTypeNode	0	enum:BT type (14 = int, other = object)	kind of variable	값 종류	high
+CVariableCreateSpecifiedTypeNode	1	out-obj	variable created (out-int when p0 = 14)	만들 변수	high
+CVariableDivideValueNode	node	-	int variable p0 = p0 / p1 (integer division, in place); 2 when p0 is missing or p1 is 0	변수 나누기(상수)	high
+CVariableDivideValueNode	0	inout-int	int variable divided in place	나눌 변수	high
+CVariableDivideValueNode	1	number:tunable	divisor (often 100 after a percent multiply, or a scale such as 10, 1000)	나누는 값	high
+CVariableDivideVariableNode	node	-	p0 = p0 / p1 (truncating int division); returns 2 when p1 = 0 or missing.	정수 변수끼리 나누기	high
+CVariableDivideVariableNode	0	in-int+out-int	dividend, written back	나뉠 변수	high
+CVariableDivideVariableNode	1	in-int	divisor	나눌 변수	high
+CVariableGetDistanceNode	node	-	Hex_Distance between the hexes of object p1 and object p3 into p4. Hex of: force = capital base, corps = its base, sortie group = leader unit, unit +0x2A, officer = where he is, base/city/gate = Base_Hex, county = centre +0x3A, hex itself, building +0x10, scenery +0x5C (0xBEB30). 2 if p1 has no hex.	두 대상 사이 칸 거리	high
+CVariableGetDistanceNode	0	enum:BT type (see CListClearNode)	type of object A	대상 A 종류	high
+CVariableGetDistanceNode	1	in-obj	object A	대상 A	high
+CVariableGetDistanceNode	2	enum:BT type (see CListClearNode)	type of object B	대상 B 종류	high
+CVariableGetDistanceNode	3	in-obj	object B	대상 B	high
+CVariableGetDistanceNode	4	out-int	distance in hexes	칸 거리	high
+CVariableGetFindItemIndexNode	node	-	Index of item p1 in list p2 into p3; 2 if absent.	목록 안 순번 찾기	high
+CVariableGetFindItemIndexNode	0	enum:BT type (see CListClearNode)	element type	목록 종류	high
+CVariableGetFindItemIndexNode	1	in-obj	item sought	찾을 항목	high
+CVariableGetFindItemIndexNode	2	in-obj	list	목록	high
+CVariableGetFindItemIndexNode	3	out-int	0-based index	순번	high
+CVariableGetForceDistrictListNode	node	-	force p0's districts -> list p1 (0 uses)	세력 군단 목록	high
+CVariableGetForceFriendshipNode	node	-	friendship (친선) of force p0 toward force p1: byte p0 +0x13 + index(p1)	세력 간 친선	high
+CVariableGetForceFriendshipNode	0	in-obj	force whose value is read	기준 세력	high
+CVariableGetForceFriendshipNode	1	in-obj	other force	상대 세력	high
+CVariableGetForceFriendshipNode	2	out-int	friendship	친선	high
+CVariableGetListLengthNode	node	-	Writes the number of elements of list p1 into p2 (type 14 uses the number-list pool).	목록 길이	high
+CVariableGetListLengthNode	0	enum:BT type (see CListClearNode)	element type of the list	목록 종류	high
+CVariableGetListLengthNode	1	in-obj	list read	목록	high
+CVariableGetListLengthNode	2	out-int	element count	항목 수	high
+CVariableGetMoveCostNode	node	-	Path move cost for my force from object p1's hex to object p3's hex (0x9CAB0), cached in the AI manager (+0xC0, 500x500 by county) when both hexes are county centres.	이동 비용	high
+CVariableGetMoveCostNode	0	enum:BT type (see CListClearNode)	type of origin	출발 대상 종류	high
+CVariableGetMoveCostNode	1	in-obj	origin object	출발 대상	high
+CVariableGetMoveCostNode	2	enum:BT type (see CListClearNode)	type of destination	도착 대상 종류	high
+CVariableGetMoveCostNode	3	in-obj	destination object	도착 대상	high
+CVariableGetMoveCostNode	4	out-int	move cost	이동 비용	high
+CVariableMaxValueCalculationNode	node	-	(unused) p2 = max(p0, literal p1).	하한 계산	high
+CVariableMaxValueNode	node	-	p0 = max(p0, literal p1): a floor.	정수 변수 하한	high
+CVariableMaxValueNode	0	in-int+out-int	value raised to the floor	대상 정수 변수	high
+CVariableMaxValueNode	1	number:tunable	floor (e.g. NeedMoney ≥ 3,000, EnemyBattlePower ≥ 1,000, 1,500, 5,000)	하한값	high
+CVariableMaxVariableCalculationNode	node	-	int p2 = max(variable p0, variable p1) (0 uses)	최댓값 계산(변수)	high
+CVariableMaxVariableNode	node	-	p0 = max(p0, p1).	두 변수 중 큰 값	high
+CVariableMaxVariableNode	0	in-int+out-int	value raised to p1 if smaller	대상 정수 변수	high
+CVariableMaxVariableNode	1	in-int	floor	하한 변수	high
+CVariableMinValueCalculationNode	node	-	int p2 = min(variable p0, literal p1) (0 uses)	최솟값 계산(상수)	high
+CVariableMinValueNode	node	-	int variable p0 = min(p0, p1) (caps it at p1)	변수 상한 자르기	high
+CVariableMinValueNode	0	inout-int	int variable	자를 변수	high
+CVariableMinValueNode	1	number:tunable	cap (5,000, 8,000, 10,000, 25,000, 30,000 ...)	상한	high
+CVariableMinVariableCalculationNode	node	-	p2 = min(p0, p1).	두 변수 최솟값	high
+CVariableMinVariableCalculationNode	0	in-int	first value	값 1	high
+CVariableMinVariableCalculationNode	1	in-int	second value	값 2	high
+CVariableMinVariableCalculationNode	2	out-int	minimum	최솟값	high
+CVariableMinVariableNode	node	-	p0 = min(p0, p1).	두 변수 중 작은 값	high
+CVariableMinVariableNode	0	in-int+out-int	value lowered to p1 if larger	대상 정수 변수	high
+CVariableMinVariableNode	1	in-int	cap	상한 변수	high
+CVariableMinusValueNode	node	-	int variable p0 = p0 - p1	변수 빼기(상수)	high
+CVariableMinusValueNode	0	inout-int	int variable	뺄 변수	high
+CVariableMinusValueNode	1	number:tunable	amount subtracted (e.g. NeedMoney - 3,500/4,000/4,500)	빼는 값	high
+CVariableMinusVariableNode	node	-	p0 -= p1 (int variables).	정수 변수끼리 빼기	high
+CVariableMinusVariableNode	0	in-int+out-int	value reduced in place	대상 정수 변수	high
+CVariableMinusVariableNode	1	in-int	amount subtracted	뺄 변수	high
+CVariableMultiValueNode	node	-	int variable p0 = p0 * p1 (in place); 2 when p0 is missing	변수 곱하기(상수)	high
+CVariableMultiValueNode	0	inout-int	int variable multiplied in place	곱할 변수	high
+CVariableMultiValueNode	1	number:tunable	multiplier (a weight; 100 turns a ratio into percent before a divide)	곱하는 값	high
+CVariableMultiVariableNode	node	-	int variable p0 = p0 * p1	변수 곱하기(변수)	high
+CVariableMultiVariableNode	0	inout-int	int variable multiplied in place	곱할 변수	high
+CVariableMultiVariableNode	1	in-int	int variable multiplier	곱하는 변수	high
+CVariablePlusValueNode	node	-	p0 += literal p1 (int); 2 if p0 is missing.	정수 변수에 값 더하기	high
+CVariablePlusValueNode	0	in-int+out-int	int variable increased in place	대상 정수 변수	high
+CVariablePlusValueNode	1	number:tunable	amount added (1 for counters; evaluation weights such as +10, +100, +1, +2)	더할 값	high
+CVariablePlusVariableNode	node	-	p0 += p1 (both int variables); 2 if either is missing.	정수 변수끼리 더하기	high
+CVariablePlusVariableNode	0	in-int+out-int	accumulator (written back)	합계 변수	high
+CVariablePlusVariableNode	1	in-int	amount added	더할 변수	high
+CVariablePowerValueNode	node	-	int variable p0 = pow(p0, literal p1) (0 uses)	변수 거듭제곱(상수)	high
+CVariablePowerVariableNode	node	-	int variable p0 = pow(p0, variable p1) (0 uses)	변수 거듭제곱(변수)	high
+CVariableRoundDownValueNode	node	-	floors int variable p0 to p1 digits (0 uses)	변수 내림	medium
+CVariableRoundUpValueNode	node	-	(unused) Rounds int p0 up by literal p1 digits (p1 < 0: to a multiple of 10^-p1).	올림	medium
+CVariableRoundValueNode	node	-	rounds int variable p0 to p1 digits (p1 < 0: to a multiple of 10^-p1) (0 uses)	변수 반올림	medium
+CVariableSetRandomNumberNode	node	-	p0 = RandomSeeded(p1, 1, p2, p3, p4, p5): deterministic pseudo-random number below p1 seeded by four int variables (missing = 0), so the same seeds (e.g. officer ID + date) give the same roll.	시드 난수	high
+CVariableSetRandomNumberNode	0	out-int	random result	난수 결과	high
+CVariableSetRandomNumberNode	1	number	range n (100 for percent rolls; 2..9, 3, 200 for picks)	난수 범위	high
+CVariableSetRandomNumberNode	2	in-int	seed 1 (officer/force/base/corps ID)	시드 1	high
+CVariableSetRandomNumberNode	3	in-int	seed 2 (often $2591fda7 = a game-data date value, or a second ID)	시드 2	high
+CVariableSetRandomNumberNode	4	in-int	seed 3 (0 = none in all uses)	시드 3	high
+CVariableSetRandomNumberNode	5	in-int	seed 4 (0 = none in all uses)	시드 4	high
+CVariableSetVariableSpecifiedTypeNode	node	-	Copies variable p2 into p1: as an int when p0 = 14, otherwise as an object/list reference.	변수 복사	high
+CVariableSetVariableSpecifiedTypeNode	0	enum:BT type (14 = int copy, any other = object copy)	kind of value copied	값 종류	high
+CVariableSetVariableSpecifiedTypeNode	1	out-obj	destination (out-int when p0 = 14)	복사 받을 변수	high
+CVariableSetVariableSpecifiedTypeNode	2	in-obj	source (in-int when p0 = 14)	원본 변수	high
+CVariableSqrtNode	node	-	(unused) p0 = (int) sqrt(p0).	제곱근	high
+GetSearchDataNode	node	-	Fills officer list p0 with my corps' officers who can do 탐색 (0x6DAA10).	탐색 가능 장수 목록	medium
+GetSearchDataNode	0	out-obj	officer list (type 4)	탐색 장수 목록	medium
+
+CDefendFootholdRemoveNode	0	in-obj	base pointer to remove	제거할 거점	high
+CDefendFootholdRemoveNode	1	inout-obj	raw std::list of two-word records	방어 거점 기록 목록	high
+CTroopsSetTargetTroopsNode	0	in-obj	sortie group	출진 작전	high
+CTroopsSetTargetTroopsNode	1	in-obj	object type chosen by group purpose	목적별 대상 객체	high
+CGetSpecificForceDataNode	0	out-obj	selected force pointer, including null	선정 세력	high
+CGetSpecificForceDataNode	1	enum:0..12	literal lord table choice, out of range uses lord ID 0	군주 번호 선택	high
+CDecideAreaOccupyRouteNode	0	out-obj	native route hex pointer list	경유 칸 목록	high

@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Tests of the core engine: dotnet test source/Tests. The ones that need the game's exe or the running game
+       skip themselves when it is not there. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>San14Tenkazu.Tests</AssemblyName>
+    <RootNamespace>San14Tenkazu.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Core\San14Tenkazu.Core.csproj" />
+    <!-- The archive reader uses only managed IO; exercise its real source without a WPF runtime. -->
+    <Compile Include="..\KtglArchive.cs" Link="KtglArchive.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The formulas' vectors: the game's own code answered them in an emulator (source/Reverse/vectors). -->
+    <None Include="Vectors\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFriendVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiScript*Vectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiAllScriptVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiCommandPredicateVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiRawInfoVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiRemainingPredicateVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiStructuralPredicateVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiInfoAuditVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathCompositionVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathPredicateVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiClassAuditVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiLeafAuditVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiExecutorAuditVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiParameterAuditVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiStateAuditVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiTradeSelectionVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFacilityAuditVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFacilitySpecialVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiAttackCacheVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFacilityReplacementVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiRelayFaultVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiOccupyStageVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFacilityTerrainVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFacilitySpacingVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFacilityPlacementVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFacilityPrerequisiteVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPolicyLevelVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiFieldNameVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiRelayPersistentVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiInterceptOptionsVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathHelperVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathAdmissionBranchVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiBoatCodeVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathSearchVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathQueueVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathSearchBranchVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathGlobalBranchVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathWorldBranchVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathPoolBranchVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathTileFilterVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathFacilityBranchVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathReinsertVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathSmallTrialVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathFireVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathMinorVectors.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathStateContracts.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiPathCreationContracts.json.gz" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiNameHashVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiTraitVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiNodeRuntimeVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiCooperationVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiOptionVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiSavedTraitVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiHanSavedTraitVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiDistrictPredicateVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="AiObjectPredicateVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="RegisteredCatalogVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="RegisteredRuntimeVectors.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="GateOwnershipVectors.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
