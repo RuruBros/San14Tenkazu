@@ -36,11 +36,13 @@ internal static class ForceEdits
                 fields.Add(new FieldChange(ForceFields.Friendship(force), value));
             }
         }
+        own = own.Where(c => record[c.Field] != c.Value).ToList();
         var edits = new List<RecordEdit> { new(RecordKind.Force, record.Address, record.Data, data.ForceName(force), own) };
         foreach ((int other, List<FieldChange> fields) in others)
         {
             ForceRecord theirs = data.ForceRecords[other];
-            edits.Add(new RecordEdit(RecordKind.Force, theirs.Address, theirs.Data, data.ForceName(other), fields));
+            edits.Add(new RecordEdit(RecordKind.Force, theirs.Address, theirs.Data, data.ForceName(other),
+                fields.Where(c => theirs[c.Field] != c.Value).ToList()));
         }
         if (militaryPoints is { Count: > 0 })
         {

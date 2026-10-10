@@ -305,9 +305,7 @@ internal sealed partial class EditorWindow
                 tacticEditor.Follow(new(tacticRuleSnapshot.Record(tacticEditor.Tactic), profile));
                 break;
             case ForceEditorCard when data.ForceRecords.ContainsKey(forceEditor.Force):
-                forceEditor.Follow(ForceSummary(data, forceEditor.Force), ForceCities(data, forceEditor.Force), ForceGates(data, forceEditor.Force),
-                    ForceMembers(data, forceEditor.Force), ForceUnits(data, forceEditor.Force), ForceMilitary(data, forceEditor.Force), data.MilitaryCaps,
-                    (int)data.ForceRecords[forceEditor.Force][ForceFields.Rank]);
+                forceEditor.Follow(ForceView(data, forceEditor.Force));
                 break;
             case CityEditorCard:
                 cityEditor.Follow(CityView(data, cityEditor.City));

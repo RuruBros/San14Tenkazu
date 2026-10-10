@@ -333,15 +333,24 @@ internal sealed class ForceEditorCard : EditorCard
         Render();
     }
 
-    // The game's values changed: the summary and the tables follow (the card's values are the user's to change).
-    internal void Follow(string summary, IReadOnlyList<GameTable.Row> cityRows, IReadOnlyList<GameTable.Row> gateRows,
-        IReadOnlyList<(string Status, GameTable.Row Row)> officerRows, IReadOnlyList<GameTable.Row> unitRows,
-        IReadOnlyList<MilitaryRow>? militaryPoints = null, MilitaryPointCaps? caps = null, int? currentRank = null)
+    // Untouched policy slots follow the game; explicit additions, removals and countdown edits remain pending.
+    internal void Follow(View view)
     {
-        Subtitle.Text = summary;
-        ShowMembers(cityRows, gateRows, officerRows, unitRows);
-        if (currentRank is { } value) { filling = true; rank.Follow(value); filling = false; }
-        FillMilitary(militaryPoints, caps);
+        if (view.Force != Force) return;
+        Subtitle.Text = view.Summary;
+        ShowMembers(view.Cities, view.Gates, view.Members, view.Units);
+        filling = true;
+        rank.Follow(view.Rank);
+        filling = false;
+        FillMilitary(view.MilitaryPoints, view.MilitaryCaps);
+        var nextHolders = view.Holders.ToDictionary(h => h.Officer);
+        bool redraw = policyNote.Text != view.FixedPolicies || holders.Count != nextHolders.Count
+            || holders.Any(h => !nextHolders.TryGetValue(h.Key, out var next) || next != h.Value);
+        holders = nextHolders;
+        policyNote.Text = view.FixedPolicies;
+        for (int field = 0; field < policyRows.Length; field++) redraw |= policyRows[field].Follow(view.Slots[field]);
+        if (redraw) Render();
+        else Mark();
     }
 
     // Each row's chips and the officers it offers (those of its field not yet in any row).
@@ -500,7 +509,7 @@ internal sealed class ForceEditorCard : EditorCard
         Count();
     }
 
-    // One field of 정책: the officers in its seven slots, kept from the first without gaps.
+    // One field of 정책: retain all seven native slot positions, including empty slots.
     private sealed class PolicyRow
     {
         internal readonly WC.StackPanel Panel = new() { Margin = new W.Thickness(0, 2, 0, 4) };
@@ -531,7 +540,8 @@ internal sealed class ForceEditorCard : EditorCard
             {
                 if (filling || add.SelectedIndex < 0) return;
                 PolicyHolder holder = offered[add.SelectedIndex];
-                if (Picked.Count < ForceFields.PolicySlots && !Picked.Any(p => p.Officer == holder.Officer)) Picked.Add((holder.Officer, 1));
+                int empty = Picked.FindIndex(p => p.Officer == 0);
+                if (empty >= 0 && !Picked.Any(p => p.Officer == holder.Officer)) Picked[empty] = (holder.Officer, 1);
                 add.Dispatcher.BeginInvoke(() => Taken?.Invoke());
             };
         }
@@ -539,11 +549,20 @@ internal sealed class ForceEditorCard : EditorCard
         internal void Open(IReadOnlyList<(int Officer, int Days)> slots)
         {
             current = [.. slots];
-            Picked = slots.Where(s => s.Officer != 0).ToList();
+            Picked = [.. slots];
+        }
+
+        internal bool Follow(IReadOnlyList<(int Officer, int Days)> slots)
+        {
+            bool changed = !current.SequenceEqual(slots);
+            for (int slot = 0; slot < ForceFields.PolicySlots; slot++)
+                if (Picked[slot] == current[slot]) Picked[slot] = slots[slot];
+            current = [.. slots];
+            return changed;
         }
 
         // Days left over one go to one, so that the game puts them to work the next day itself.
-        internal void Hurry() => Picked = Picked.Select(p => p.Days > 1 ? (p.Officer, 1) : p).ToList();
+        internal void Hurry() => Picked = Picked.Select(p => p.Officer != 0 && p.Days > 1 ? (p.Officer, 1) : p).ToList();
 
         internal void Render(Dictionary<int, PolicyHolder> holders, List<PolicyHolder> candidates)
         {
@@ -553,20 +572,21 @@ internal sealed class ForceEditorCard : EditorCard
             {
                 int index = i;
                 (int officer, int days) = Picked[i];
+                if (officer == 0) continue;
                 PolicyHolder? holder = holders.TryGetValue(officer, out PolicyHolder known) ? known : null;
                 string text = (holder?.Label ?? L.Terms.OfficerNumber(officer)) + (days > 0 ? (" · " + L.Force.PolicyDays(days)) : "");
                 bool changed = i >= current.Length || current[i] != Picked[i];
                 chips.Children.Add(Chip(text, (holder?.Tip ?? "") + (days > 0 ? ("\n" + L.Force.PolicyDaysTip(days)) : ("\n" + L.Force.PolicyInEffectTip)), changed, () =>
                 {
-                    Picked.RemoveAt(index);
+                    Picked[index] = (0, 0);
                     Taken?.Invoke();
                 }));
             }
-            if (Picked.Count == 0) chips.Children.Add(new WC.TextBlock { Text = L.Terms.None, Foreground = CardSkin.InkMuted, Margin = new W.Thickness(2, 1, 0, 1) });
+            if (chips.Children.Count == 0) chips.Children.Add(new WC.TextBlock { Text = L.Terms.None, Foreground = CardSkin.InkMuted, Margin = new W.Thickness(2, 1, 0, 1) });
             offered = candidates;
             add.ItemsSource = offered.Select(h => h.Label).ToList();
             add.SelectedIndex = -1;
-            add.IsEnabled = offered.Count > 0 && Picked.Count < ForceFields.PolicySlots;
+            add.IsEnabled = offered.Count > 0 && Picked.Any(p => p.Officer == 0);
             filling = false;
             Changed?.Invoke();
         }
