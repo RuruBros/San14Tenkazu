@@ -19,6 +19,7 @@ source/RenderChecks/artifacts/
 /publish/
 /dist/
 /runtimes/
+/win-x64/
 /.cache/
 # Local development instructions and investigation records
 /.claude/
