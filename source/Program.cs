@@ -1,7 +1,12 @@
-﻿namespace San14Tenkazu;
+﻿using System.Reflection;
+
+namespace San14Tenkazu;
 
 internal static class Program
 {
+    internal static string AppVersion => Version.Parse(
+        typeof(Program).Assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()!.Version).ToString(3);
+
     // What the editor keeps from one run to the next (caches, the last player force).
     internal static readonly string DataFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "San14Tenkazu");

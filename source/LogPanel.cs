@@ -27,7 +27,7 @@ internal sealed class LogPanel : WC.DockPanel
         StrokeStartLineCap = WM.PenLineCap.Round, StrokeEndLineCap = WM.PenLineCap.Round, StrokeLineJoin = WM.PenLineJoin.Round,
         RenderTransformOrigin = new W.Point(0.5, 0.5), VerticalAlignment = W.VerticalAlignment.Center, Margin = new W.Thickness(0, 1, 8, 0)
     };
-    private readonly WC.TextBlock title = new() { Text = L.Window.Log, VerticalAlignment = W.VerticalAlignment.Center };
+    private readonly WC.TextBlock title = new() { Text = $"{L.Window.Log} (v{Program.AppVersion})", VerticalAlignment = W.VerticalAlignment.Center };
 
     internal LogPanel()
     {
