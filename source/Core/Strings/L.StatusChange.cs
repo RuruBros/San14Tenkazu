@@ -18,7 +18,6 @@ internal static partial class L
         internal static string Unchanged => T();
         internal static string CaptureOnly => T();
         internal static string Generated => T();
-        internal static string CaptureOwnForce => T();
         internal static string CaptureNote => T();
         internal static string UndoNote => T();
         internal static string Completed => T();

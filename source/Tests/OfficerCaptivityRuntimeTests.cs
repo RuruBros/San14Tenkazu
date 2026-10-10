@@ -41,7 +41,7 @@ public sealed class OfficerCaptivityRuntimeTests
             Date = (date.GetProperty("year").GetInt32(), date.GetProperty("month").GetInt32(), date.GetProperty("day").GetInt32())
         };
         var memory = new CapturedMemory(input.GetProperty("reads"));
-        Assert.Equal(6, input.GetProperty("rows").GetArrayLength());
+        Assert.Equal(9, input.GetProperty("rows").GetArrayLength());
         foreach (var row in input.GetProperty("rows").EnumerateArray())
         {
             var prepared = GameMemory.PrepareCaptivity(memory, identity, layout, data, new(row.GetProperty("id").GetInt32(), row.GetProperty("captor").GetInt32()));
@@ -67,7 +67,11 @@ public sealed class OfficerCaptivityRuntimeTests
         var rows = native.GetProperty("cases").EnumerateArray().ToArray();
         int player = fixture.RootElement.GetProperty("input").GetProperty("PlayerForce").GetInt32();
         var accepted = rows.Where(r => !r.TryGetProperty("stale", out _)).ToArray();
-        Assert.Equal(6, accepted.Length);
+        Assert.Equal(9, accepted.Length);
+        Assert.Contains(accepted, r => r.GetProperty("originalForce").GetInt32() == player && r.GetProperty("captor").GetInt32() == player);
+        Assert.Contains(accepted, r => r.GetProperty("originalForce").GetInt32() != player &&
+            r.GetProperty("originalForce").GetInt32() == r.GetProperty("captor").GetInt32());
+        Assert.Contains(accepted, r => r.GetProperty("originalForce").GetInt32() != r.GetProperty("captor").GetInt32());
         Assert.Contains(accepted, r => r.GetProperty("originalForce").GetInt32() == player);
         Assert.Contains(accepted, r => r.GetProperty("originalForce").GetInt32() != player);
         Assert.All(accepted, r =>
@@ -77,7 +81,7 @@ public sealed class OfficerCaptivityRuntimeTests
             Assert.True(r.GetProperty("exactNativeWrites").GetBoolean()); Assert.True(r.GetProperty("changedPages").GetInt32() > 0);
         });
         var rejected = rows.Where(r => r.TryGetProperty("stale", out _)).ToArray();
-        Assert.Equal(24, rejected.Length);
+        Assert.Equal(36, rejected.Length);
         Assert.All(rejected, r =>
         {
             Assert.Equal(0, r.GetProperty("result").GetInt32()); Assert.Equal(0, r.GetProperty("nativeCalls").GetInt32());

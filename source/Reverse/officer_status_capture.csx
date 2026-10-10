@@ -17,7 +17,8 @@ var officers = data.Officers.Where(o => o.Id > 0 && o.Status is >= 2 and <= 6)
     .Select(g => g.FirstOrDefault(o => targets.Any(t => !OfficerCaptivity.Plan(data, new(o.Id, t.Force)).Refused)))
     .OfType<OfficerRecord>().ToArray();
 foreach (var officer in officers)
-foreach (var target in targets.Where(t => !OfficerCaptivity.Plan(data, new(officer.Id, t.Force)).Refused).Take(2))
+foreach (var target in targets.Where(t => !OfficerCaptivity.Plan(data, new(officer.Id, t.Force)).Refused)
+    .OrderBy(t => t.Force == data.ForceOfCorps(officer.Corps) ? 0 : 1).Take(3))
 {
     var request = new OfficerCaptivity.Request(officer.Id, target.Force);
     var prepared = GameMemory.PrepareCaptivity(memory, game, layout, data, request);

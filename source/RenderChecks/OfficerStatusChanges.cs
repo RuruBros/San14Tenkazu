@@ -48,7 +48,10 @@ internal static partial class RenderChecks
             Check("old-dismiss-button-removed", typeof(OfficerEditorCard).GetField("leaveButton", Hidden) is null);
             Check("unchanged-general-cannot-apply", !button.IsEnabled && force.SelectedValue is 1 && home.SelectedValue is 1);
             mode.SelectedIndex = 2;
-            Check("captor-excludes-original-force", force.Items.Count == 1 && force.SelectedValue is 2);
+            Check("captor-includes-original-force", force.Items.Count == 2 && force.SelectedValue is 1);
+            Check("same-force-capture-ready", button.IsEnabled && Field<WC.TextBlock>("statusDetention").Text == CityNames.BaseName(1));
+            Click(); Check("same-force-capture-click", asked == new OfficerStatusChanges.Request(12, OfficerStatusMode.Prisoner, 1, 1));
+            force.SelectedValue = 2;
             Check("capture-shows-native-detention-and-undo-limit", Field<WC.DockPanel>("statusBaseLine").Visibility == W.Visibility.Collapsed &&
                 Field<WC.TextBlock>("statusDetention").Text == CityNames.BaseName(3) &&
                 Field<WC.TextBlock>("statusChangeNote").Text.Contains(L.StatusChange.UndoNote) && button.IsEnabled);

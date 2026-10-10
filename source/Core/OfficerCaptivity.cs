@@ -35,7 +35,6 @@ internal static class OfficerCaptivity
         if (data.Date is null) return EditPlan.Refuse(L.Transfers.NoDate);
         Target? target = Targets(data).FirstOrDefault(t => t.Force == request.Force);
         if (target is null) return EditPlan.Refuse(L.Transfers.DestinationInvalid);
-        if (data.ForceOfCorps(officer.Corps) == target.Force) return EditPlan.Refuse(L.StatusChange.CaptureOwnForce);
         if (officer.Status == 6 && BaseForce(data, officer.BaseId) == target.Force && officer.BaseId == target.Base
             && officer[OfficerFields.PlaceField] <= GameMemory.TribeLast)
             return EditPlan.Refuse(L.StatusChange.Unchanged);

@@ -74,7 +74,7 @@ internal sealed partial class OfficerEditorCard
         bool prisoner = statusChoice.SelectedIndex == (int)OfficerStatusMode.Prisoner;
         bool free = statusChoice.SelectedIndex == (int)OfficerStatusMode.Free;
         statusPosts = Transfers.Targets(data);
-        statusCaptors = OfficerCaptivity.Targets(data).Where(t => t.Force != data.ForceOfCorps(officer.Corps)).ToArray();
+        statusCaptors = OfficerCaptivity.Targets(data);
         var forces = prisoner ? statusCaptors.Select(t => (t.Force, t.Name)).ToArray()
             : statusPosts.Select(t => (t.Force, t.Name)).ToArray();
         int current = prisoner ? OfficerCaptivity.BaseForce(data, officer.BaseId) : data.ForceOfCorps(officer.Corps);

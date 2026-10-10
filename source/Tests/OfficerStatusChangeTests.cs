@@ -41,13 +41,14 @@ public sealed class OfficerStatusChangeTests
     }
 
     [Theory]
-    [InlineData(2)] [InlineData(3)] [InlineData(4)] [InlineData(5)] [InlineData(6)]
-    public void PrisonerRequestsLeaveAllWritesToNativeCapture(int status)
+    [InlineData(2, 2)] [InlineData(3, 2)] [InlineData(4, 2)] [InlineData(5, 2)] [InlineData(6, 2)]
+    [InlineData(2, 1)] [InlineData(3, 1)] [InlineData(4, 1)]
+    public void PrisonerRequestsLeaveAllWritesToNativeCapture(int status, int force)
     {
         var data = Game(status).Build();
-        var change = OfficerStatusChanges.Plan(data, new(12, OfficerStatusMode.Prisoner, 2));
+        var change = OfficerStatusChanges.Plan(data, new(12, OfficerStatusMode.Prisoner, force));
         Assert.False(change.Plan.Refused); Assert.Null(change.Transfer);
-        Assert.Equal(new OfficerCaptivity.Request(12, 2), change.Capture);
+        Assert.Equal(new OfficerCaptivity.Request(12, force), change.Capture);
         Assert.Empty(change.Plan.Edits);
         Assert.Contains("포로", change.Plan.Summary); Assert.Contains(L.StatusChange.UndoNote, change.Plan.Summary);
     }
@@ -61,9 +62,8 @@ public sealed class OfficerStatusChangeTests
     }
 
     [Fact]
-    public void CaptureRejectsOwnForceActiveCommandersAndOfficersAwayFromTheirBase()
+    public void CaptureRejectsActiveCommandersAndOfficersAwayFromTheirBase()
     {
-        Assert.True(OfficerCaptivity.Plan(Game().Build(), new(12, 1)).Refused);
         Assert.Contains(L.Transfers.OnCampaign, OfficerCaptivity.Plan(Game().Leading(12).Build(), new(12, 2)).Refusal);
         Assert.Contains(L.Transfers.OutsideBase, OfficerCaptivity.Plan(Game().With(12, OfficerFields.PlaceField, 2).Build(), new(12, 2)).Refusal);
         var generated = Game().Build(); generated.OfficerById[12].Data[0x15F] |= 0x40;
