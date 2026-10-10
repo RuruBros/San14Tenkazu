@@ -8,6 +8,8 @@ internal sealed partial class EditorWindow
     {
         if (!CanWrite(out GameSnapshot data) || !data.OfficerById.TryGetValue(officerEditor.OfficerId, out OfficerRecord? officer)) return;
         if (officerEditor.Pending > 0 && !await LeaveAsync(officerEditor)) return;
+        // Applying pending fields replaces the snapshot; plan the transfer against those current values.
+        if (!CanWrite(out data) || !data.OfficerById.TryGetValue(officerEditor.OfficerId, out officer)) return;
         EditPlan plan = Transfers.Plan(data, officer, kind, target);
         if (plan.Refused)
         {

@@ -47,6 +47,7 @@ internal sealed partial class EditorWindow
         itemEditor.ApplyClicked += async () => await ApplyItemAsync();
         officerEditor.TransferClicked += async (kind, target) => await TransferAsync(kind, target);
         officerEditor.RevivalClicked += async request => await ReviveOfficerAsync(request);
+        officerEditor.StatusChangeClicked += async request => await ChangeOfficerStatusAsync(request);
     }
 
     // Opens the card of a force, city, gate, officer or unit with the game's values; false when it did not (the user kept
@@ -326,6 +327,7 @@ internal sealed partial class EditorWindow
             case OfficerEditorCard when data.OfficerById.TryGetValue(officerEditor.OfficerId, out OfficerRecord? officer):
                 officerEditor.Follow(officer, Standing(data, officer));
                 officerEditor.FollowRevival(data, officer);
+                officerEditor.FollowStatusChange(data, officer);
                 break;
             case PersonalityEditorCard when data.Personalities.Any(p => p.Index == personalityEditor.Personality):
                 personalityEditor.Follow(PersonalityView(data, personalityEditor.Personality));
@@ -578,8 +580,7 @@ internal sealed partial class EditorWindow
         return new OfficerEditorCard.Standing(force, data.ForceName(force), MapView.ForceColor(force), OfficerFields.StatusName(officer.Status),
             officer.BaseId, CityNames.BaseName(officer.BaseId), office == "없음" ? "" : office, corps, place, formerLord,
             officer.Status is 2 or 3 or 4 ? Transfers.Blocker(data, officer, Transfer.Move) : "",
-            officer.Status is 2 or 3 or 4 ? Transfers.Blocker(data, officer, Transfer.Defect) : "",
-            officer.Status is 2 or 3 or 4 ? Transfers.Blocker(data, officer, Transfer.Dismiss) : "");
+            officer.Status is 2 or 3 or 4 ? Transfers.Blocker(data, officer, Transfer.Defect) : "");
     }
 
     private void ShowOfficer(GameSnapshot data, OfficerRecord officer)
@@ -602,6 +603,7 @@ internal sealed partial class EditorWindow
             .GroupBy(o => (int)o[OfficerFields.Office]).ToDictionary(g => g.Key, g => g.First().Name);
         officerEditor.Open(officer, Standing(data, officer), others, sworn, items, holders, Transfers.Targets(data));
         officerEditor.FollowRevival(data, officer, opening: true);
+        officerEditor.FollowStatusChange(data, officer, opening: true);
         LoadPortrait();
     }
 

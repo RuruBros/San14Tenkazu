@@ -3048,3 +3048,23 @@ Completed = 장수 등장·부활과 활성 목록 등록을 확인했습니다.
 DeathYearAfter = 등장·부활 후 몰년을 현재 연도({year})보다 크게 지정하세요.
 Summary = {officer}: {before} → {status}, {place}, 몰년 {year}
 Evidence = 등장·부활 확인: {officer}, 신분 {status}, 군단 {corps}, 거점 {home}, 몰년 {year}, 활성 목록 등록 {count}개
+
+[StatusChange]
+Title = 신분 변경
+Mode = 변경할 신분
+Force = 소속 세력
+Captor = 구금 세력
+Detention = 구금 거점
+Apply = 신분 변경
+InvalidMode = 변경할 신분을 선택하세요.
+Unavailable = 장수 정보를 다시 확인하세요.
+Unchanged = 이미 선택한 신분과 소속입니다.
+CaptureOnly = 군단장·태수·일반·재야·포로 장수만 포로 신분으로 변경할 수 있습니다.
+Generated = 게임이 임시 생성한 장수의 신분은 변경할 수 없습니다.
+CaptureOwnForce = 현재 소속 세력의 포로로는 변경할 수 없습니다.
+CaptureNote = 선택한 세력의 군주 거점에 구금합니다. 기존 임명·정책·군단 처리는 게임의 포획 기능이 수행합니다.
+UndoNote = 포로 신분 변경은 되돌릴 수 없으며 기존 되돌리기 기록도 지웁니다.
+Completed = 포로 신분과 구금 거점을 확인했습니다.
+Unconfirmed = 포로 신분 또는 구금 거점을 확인하지 못했습니다. 로그와 게임 상태를 확인하세요.
+CaptureSummary = {officer}: {before} → 포로, 보유 세력 {force}, 구금 거점 {place}
+CaptureEvidence = 포로 신분 확인: {officer}, 보유 세력 {force}, 거점 {home}, 소재지 {place}, 군단 {corps}, 포로 원 세력 {origin}

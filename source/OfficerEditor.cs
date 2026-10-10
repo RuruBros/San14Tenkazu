@@ -24,7 +24,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
     // for the [소속] page also his corps, where he is now, the ruler he left (each "" when none), why he cannot be
     // moved or let go now and why he cannot be sent to another force ("" when he can; a commander out with his unit can).
     internal sealed record Standing(int Force, string ForceName, System.Drawing.Color Colour, string Status, int Base, string BaseName, string Office,
-        string Corps = "", string Place = "", string FormerLord = "", string Blocked = "", string SendBlocked = "", string LeaveBlocked = "");
+        string Corps = "", string Place = "", string FormerLord = "", string Blocked = "", string SendBlocked = "");
 
     // The game's officers have up to five 개성; the slots after them are shown only when an officer uses them.
     private const int UsualPersonalities = 5;
@@ -67,7 +67,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
     private readonly WC.TextBlock transferHow = Hint(L.Officer.TransferNote);
     private readonly WC.TextBlock joinLabel = Label(L.Officer.OtherForce);
     private readonly WC.ComboBox moveBase = Choice(170), joinForce = Choice(170), joinBase = Choice(170);
-    private readonly PlateButton moveButton = new(L.Officer.Move, icon: Icons.Details), joinButton = new(L.Officer.Send, icon: Icons.Details), leaveButton = new(L.Officer.Dismiss, icon: Icons.Revert);
+    private readonly PlateButton moveButton = new(L.Officer.Move, icon: Icons.Details), joinButton = new(L.Officer.Send, icon: Icons.Details);
     private readonly WC.StackPanel moveLine = new(), joinLine = new();
     private List<Transfers.ForceBases> posts = [];
     private List<(int Base, string Name)> moveChoices = [];
@@ -272,12 +272,10 @@ internal sealed partial class OfficerEditorCard : EditorCard
         moveButton.Margin = joinButton.Margin = new W.Thickness(6, 0, 0, 0);
         page.Children.Add(moveLine);
         page.Children.Add(joinLine);
-        leaveButton.HorizontalAlignment = W.HorizontalAlignment.Left;
-        leaveButton.Margin = new W.Thickness(0, 10, 0, 0);
-        page.Children.Add(leaveButton);
         page.Children.Add(transferNote);
         transferHow.Margin = new W.Thickness(0, 8, 0, 0);
         page.Children.Add(transferHow);
+        page.Children.Add(StatusChangePanel());
         page.Children.Add(RevivalPanel());
         joinForce.SelectionChanged += (_, _) => FillJoinBases();
         moveButton.Click += () => { if (moveBase.SelectedIndex >= 0) TransferClicked?.Invoke(Transfer.Move, moveChoices[moveBase.SelectedIndex].Base); };
@@ -286,7 +284,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
             if (joinForce.SelectedIndex < 0 || joinBase.SelectedIndex < 0) return;
             TransferClicked?.Invoke(status is 5 or 6 ? Transfer.Recruit : Transfer.Defect, posts[joinForce.SelectedIndex].Bases[joinBase.SelectedIndex].Base);
         };
-        leaveButton.Click += () => TransferClicked?.Invoke(status == 6 ? Transfer.Release : Transfer.Dismiss, 0);
         return page;
     }
 
@@ -318,8 +315,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
         joinLine.Visibility = (serving || free) && posts.Count > 0 ? W.Visibility.Visible : W.Visibility.Collapsed;
         joinLabel.Text = free ? L.Officer.RecruitingForce : L.Officer.OtherForce;
         joinButton.Text = free ? L.Officer.Recruit : L.Officer.Send;
-        leaveButton.Text = status == 6 ? L.Officer.Release : L.Officer.Dismiss;
-        leaveButton.Visibility = status is 3 or 4 or 6 ? W.Visibility.Visible : W.Visibility.Collapsed;
         ShowNow(standing);
     }
 
@@ -337,8 +332,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
         bool blocked = standing.Blocked.Length > 0;
         transferHow.Visibility = status is 7 or 9 ? W.Visibility.Collapsed : W.Visibility.Visible;
         moveButton.IsEnabled = !blocked;
-        leaveButton.IsEnabled = standing.LeaveBlocked.Length == 0;
-        leaveButton.ToolTip = standing.LeaveBlocked.Length > 0 ? standing.LeaveBlocked : null;
         joinButton.IsEnabled = standing.SendBlocked.Length == 0;
         transferNote.Foreground = blocked ? CardSkin.Poor : CardSkin.InkMuted;
         transferNote.Text = blocked ? standing.Blocked : status switch

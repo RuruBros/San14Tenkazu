@@ -274,6 +274,7 @@ internal sealed partial class EditorWindow : W.Window
         doctrineEditor.ApplyEnabled=doctrineAvailable; doctrineEditor.SetAvailable(doctrineAvailable);
         cityEditor.FillsEnabled = gateEditor.FillsEnabled = forceEditor.FillsEnabled = !busy && connected;
         officerEditor.RevivalEnabled = !busy && connected;
+        officerEditor.StatusChangeEnabled = !busy && connected;
         unlockButton.IsEnabled = !busy && snapshot?.Play is not null;
     }
 

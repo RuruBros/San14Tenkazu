@@ -82,6 +82,7 @@ try {
     Invoke-Check @('--unit-conditions', (Join-Path $taskArtifacts 'publish-unit-conditions')) 'publish-unit-conditions.log'
     Invoke-Check @('--officer-merit', (Join-Path $taskArtifacts 'publish-officer-merit')) 'publish-officer-merit.log'
     Invoke-Check @('--officer-revival', (Join-Path $taskArtifacts 'publish-officer-revival')) 'publish-officer-revival.log'
+    Invoke-Check @('--officer-status', (Join-Path $taskArtifacts 'publish-officer-status')) 'publish-officer-status.log'
     Invoke-Check @('--registered', (Join-Path $taskArtifacts 'publish-registered')) 'publish-registered.log'
     Invoke-Check @('--tooltips', (Join-Path $taskArtifacts ('publish-tooltips-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-tooltips.log'
     Invoke-Check @('--choices', (Join-Path $taskArtifacts ('publish-choices-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-choices.log'

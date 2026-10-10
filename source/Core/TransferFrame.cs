@@ -44,7 +44,12 @@ internal static class TransferFrame
             }
             var call = (TransferCall)step;
             ulong[] more = call.Invocation.More ?? [];
-            if (more.Length > 2) throw new ArgumentOutOfRangeException(nameof(changes));
+            if (more.Length > 4) throw new ArgumentOutOfRangeException(nameof(changes));
+            for (int k = 2; k < more.Length; k++)
+            {
+                Imm("48B8", more[k]);
+                Hex("48894424" + (0x20 + 8 * (k - 2)).ToString("X2"));
+            }
             Imm("48B9", call.Invocation.Rcx); Imm("48BA", call.Invocation.Rdx);
             if (call.CorpsAt != 0) { Imm("48B8", call.CorpsAt); Hex("0FB710"); }
             Imm("49B8", more.Length > 0 ? more[0] : 0); Imm("49B9", more.Length > 1 ? more[1] : 0);

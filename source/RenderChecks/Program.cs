@@ -20,6 +20,7 @@ internal static partial class RenderChecks
             if (args.Contains("--unit-conditions")) { CheckUnitConditions(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--officer-merit")) { CheckOfficerMerit(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--officer-revival")) { CheckOfficerRevival(args.First(a => !a.StartsWith("--"))); return 0; }
+            if (args.Contains("--officer-status")) { CheckOfficerStatusChanges(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--force-policies")) { CheckForcePolicies(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--pending-inputs")) { CheckPendingInputs(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--pending-cards-game-read")) { ReadPendingCardsGame(args.First(a => !a.StartsWith("--"))); return 0; }
