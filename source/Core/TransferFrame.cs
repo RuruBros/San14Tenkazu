@@ -3,7 +3,8 @@ namespace San14Tenkazu;
 internal sealed record TransferGuard(ulong Address, byte[] Expected, bool Nonzero = false);
 internal abstract record TransferStep;
 internal sealed record TransferStore(ulong Address, byte[] Value) : TransferStep;
-internal sealed record TransferCall(GameMemory.FrameInvocation Invocation, bool MustReturnZero = false, ulong CorpsAt = 0) : TransferStep;
+internal sealed record TransferCall(GameMemory.FrameInvocation Invocation, bool MustReturnZero = false, ulong CorpsAt = 0,
+    bool RdxFromReturn = false) : TransferStep;
 
 // A one-shot callee of FrameStub. All stale/pending guards run before the first gameplay write.
 // The original frame resumes only after membership, corps succession and unit orders agree.
@@ -43,6 +44,7 @@ internal static class TransferFrame
                 return;
             }
             var call = (TransferCall)step;
+            if (call.RdxFromReturn) Hex("488BD8"); // Keep the preceding native result while loading arguments.
             ulong[] more = call.Invocation.More ?? [];
             if (more.Length > 4) throw new ArgumentOutOfRangeException(nameof(changes));
             for (int k = 2; k < more.Length; k++)
@@ -51,6 +53,7 @@ internal static class TransferFrame
                 Hex("48894424" + (0x20 + 8 * (k - 2)).ToString("X2"));
             }
             Imm("48B9", call.Invocation.Rcx); Imm("48BA", call.Invocation.Rdx);
+            if (call.RdxFromReturn) Hex("488BD3");
             if (call.CorpsAt != 0) { Imm("48B8", call.CorpsAt); Hex("0FB710"); }
             Imm("49B8", more.Length > 0 ? more[0] : 0); Imm("49B9", more.Length > 1 ? more[1] : 0);
             Imm("48B8", call.Invocation.Function); Hex("FFD0");

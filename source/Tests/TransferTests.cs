@@ -128,7 +128,8 @@ public class TransferTests
     }
 
     [Theory]
-    [InlineData(35, (int)Transfer.Move, 양평, "군주")]
+    [InlineData(35, (int)Transfer.Defect, 안정, "군주")]
+    [InlineData(35, (int)Transfer.Dismiss, 0, "군주")]
     [InlineData(470, (int)Transfer.Move, 안정, "같은 세력")]
     [InlineData(470, (int)Transfer.Defect, 양평, "다른 세력")]
     [InlineData(470, (int)Transfer.Recruit, 안정, "재야나 포로")]
@@ -142,6 +143,49 @@ public class TransferTests
         Assert.True(plan.Refused);
         Assert.Empty(plan.Edits);
         Assert.Contains(reason, plan.Refusal);
+    }
+
+    [Fact]
+    public void ARulerMovesWithinHisForceWithoutLosingHisTitleOrMainCorps()
+    {
+        (GameSnapshot data, EditPlan plan, Written after) = Plan(Game(), 35, Transfer.Move, 양평);
+        OfficerRecord ruler = data.OfficerById[35];
+        Assert.False(plan.Refused);
+        Assert.Equal(1, after[ruler, OfficerFields.StatusField]);
+        Assert.Equal(원소군단, after[ruler, OfficerFields.CorpsField]);
+        Assert.Equal(양평, after[ruler, OfficerFields.BaseField]);
+        Assert.Equal(양평, after[ruler, OfficerFields.PlaceField]);
+        Assert.Equal(ruler[OfficerFields.Office], after[ruler, OfficerFields.Office]);
+        Assert.Single(plan.Edits);
+        Assert.True(Transfers.RequiresNative(data, ruler, Transfer.Move));
+        Assert.Contains(L.Transfers.RulerMoves, plan.Summary);
+    }
+
+    [Fact]
+    public void ARulerKeepsHisMainCorpsWhenMovingToADelegatedCity()
+    {
+        var game = Game().Force(원소군, 35, 원소군단, 12).City(양평, 12);
+        (GameSnapshot data, EditPlan plan, Written after) = Plan(game, 35, Transfer.Move, 양평);
+        Assert.False(plan.Refused);
+        Assert.Equal(원소군단, after[data.OfficerById[35], OfficerFields.CorpsField]);
+        Assert.Equal(1, after[data.OfficerById[35], OfficerFields.StatusField]);
+    }
+
+    [Fact]
+    public void ARulerCannotMoveOutsideHisForceOrChangeStatusThroughTheRegularMode()
+    {
+        (GameSnapshot data, EditPlan plan, _) = Plan(Game(), 35, Transfer.Move, 안정);
+        Assert.True(plan.Refused);
+        Assert.Contains(L.Transfers.SameForceOnly, plan.Refusal);
+        Assert.True(OfficerStatusChanges.Plan(data, new(35, OfficerStatusMode.Regular, 원소군, 양평)).Plan.Refused);
+    }
+
+    [Fact]
+    public void ARulerCannotUseAGateAsHisDestination()
+    {
+        (_, EditPlan plan, _) = Plan(Game().Gate(52, 원소군단), 35, Transfer.Move, 52);
+        Assert.True(plan.Refused);
+        Assert.Equal(L.Transfers.RulerCityOnly, plan.Refusal);
     }
 
     [Theory]

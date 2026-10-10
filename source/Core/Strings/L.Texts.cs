@@ -569,6 +569,8 @@ internal static partial class L
         private static string T([CallerMemberName] string key = "") => Get(nameof(Transfers) + "." + key);
 
         internal static string RulerStays => T();
+        internal static string RulerCityOnly => T();
+        internal static string RulerMoves => T();
         internal static string CorpsLeaderMoves => T();
         internal static string CorpsLeaderReleased => T();
         internal static string UnitReturns => T();

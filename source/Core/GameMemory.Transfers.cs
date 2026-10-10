@@ -21,6 +21,10 @@ internal static partial class GameMemory
         [0x2EA1B0] = Convert.FromHexString("48895C241855565741544155415641574881EC90090000488B05C2197A014833"),
         [0x2E8E70] = Convert.FromHexString("488BC4554154415541564157488BEC4881EC8000000048C745A0FEFFFFFF4889"),
         [0x29EDE0] = Convert.FromHexString("44894424185556574154415541564157488D6C24D94881ECC000000048C745FF"),
+        [0x228710] = Convert.FromHexString("40564883EC208BF2488BD18D46FF3D6F1700000F878C000000488B412048"),
+        [0x240C90] = Convert.FromHexString("85D27905C6413000C3B8330000003BD00F4FD0885130C3CCCCCCCCCCCCCC"),
+        [0x2827C0] = Convert.FromHexString("4C8BDC565741564881EC8000000049C74388FEFFFFFF49895B0849896B18"),
+        [0x26CC10] = Convert.FromHexString("48895C24084889742410574883EC20488BFA488BF1E836DFFBFF488BC848"),
     };
 
     internal static PreparedTransfer PrepareTransfer(GameIdentity identity, GameLayout layout, GameSnapshot data,
@@ -78,7 +82,10 @@ internal static partial class GameMemory
             throw new InvalidOperationException(L.Transfers.DestinationInvalid);
         int plannedCorps = (int)plan.Edits.First(e => e.Kind == RecordKind.Officer).Changes
             .Where(c => c.Field == OfficerFields.CorpsField).Select(c => c.Value).DefaultIfEmpty(officer.Corps).First();
-        if (corps != plannedCorps || data.ForceOfCorps(corps) != force)
+        bool ruler = officer.Status == 1;
+        if ((!ruler && corps != plannedCorps) || data.ForceOfCorps(corps) != force ||
+            ruler && (kind != Transfer.Move || force != data.ForceOfCorps(officer.Corps) ||
+                home is not (>= 1 and <= CityCount)))
             throw new InvalidOperationException(L.Transfers.DestinationChanged);
         RecordGuard(destination.NativeAddress, destination.Bytes, 0, 8);
         RecordGuard(destination.NativeAddress, destination.Bytes, 0x2E, 4);
@@ -87,6 +94,20 @@ internal static partial class GameMemory
         Rec targetCorps = world.Table(Tables.Corps)[corps];
         Guard(raw + (ulong)Tables.Corps + (ulong)corps * 8, BitConverter.GetBytes(targetCorps.NativeAddress));
         RecordGuard(targetCorps.NativeAddress, targetCorps.Bytes, 0, 0x18);
+        if (ruler)
+        {
+            Rec own = world.Table(Tables.Corps)[officer.Corps];
+            Rec lord = world.Table(Tables.Forces)[force];
+            if (own.U16(0x12) != officer.Id || lord.U16(0x10) != officer.Id || own.U8(0x10) != force)
+                throw new InvalidOperationException(L.Transfers.StateChanged);
+            Guard(raw + 0x158 + (ulong)officer.Id * 8, BitConverter.GetBytes(officer.Address));
+            Guard(raw + (ulong)Tables.Officers + (ulong)officer.Slot * 8, BitConverter.GetBytes(officer.Address));
+            Guard(raw + (ulong)Tables.Cities + (ulong)home * 8, BitConverter.GetBytes(destination.NativeAddress));
+            Guard(raw + (ulong)Tables.Corps + (ulong)officer.Corps * 8, BitConverter.GetBytes(own.NativeAddress));
+            Guard(raw + (ulong)Tables.Forces + (ulong)force * 8, BitConverter.GetBytes(lord.NativeAddress));
+            RecordGuard(own.NativeAddress, own.Bytes, 0, 0x18);
+            RecordGuard(lord.NativeAddress, lord.Bytes, 0, 0x12);
+        }
 
         UnitRecord[] units = data.Units.Where(u => u.Commander == officer.Id).ToArray();
         if (units.Length > 1) throw new InvalidOperationException(L.Transfers.MultipleUnits);
@@ -131,10 +152,39 @@ internal static partial class GameMemory
             evidence.Add(L.Transfers.SuccessionEvidence(officer.Corps));
         }
         // A same-force corps merge may change the destination's corps during succession.
-        changes.Add(new TransferCall(new(exe + 0x240CB0, officer.Address, (ulong)corps, [0]), CorpsAt: destination.NativeAddress + 0x30));
+        if (ruler)
+        {
+            // Compose 2DAE80's membership updates without constructing its personal travel command.
+            // Travel detaches an active commander, sets unit+150 bit 1 and prevents Unit_SendHome.
+            Rec origin = Map.Base(world, officer.BaseId) ?? throw new InvalidOperationException(L.Transfers.StateChanged);
+            RecordGuard(origin.NativeAddress, origin.Bytes, 0, 0x32);
+            Call(0x228710, origin.NativeAddress, (ulong)officer.Id);
+            if (corps != officer.Corps) Call(0x240C90, destination.NativeAddress, (ulong)officer.Corps);
+            Call(0x240CB0, officer.Address, (ulong)officer.Corps, 0);
+        }
+        else changes.Add(new TransferCall(new(exe + 0x240CB0, officer.Address, (ulong)corps, [0]), CorpsAt: destination.NativeAddress + 0x30));
         foreach (RecordEdit edit in plan.Edits.Where(e => e.Kind == RecordKind.Officer))
             foreach (FieldChange change in edit.Changes.Where(c => c.Field != OfficerFields.CorpsField))
                 Store(edit.Address + (ulong)change.Field.Offset, change.Field.Encode(change.Value));
+
+        if (ruler)
+        {
+            // 2DB0C5..2DB1C5: choose governors and then reconcile every corps of the force.
+            // SelectGovernor's returned pointer must reach AssignGovernor on this same game frame.
+            foreach (Rec post in world.Table(Tables.Cities).Skip(1).Concat(world.Table(Tables.Gates).Skip(1))
+                .Where(b => Objects.Valid(world, b) && Map.BaseForce(world, b) == force))
+            {
+                RecordGuard(post.NativeAddress, post.Bytes, 0, 8);
+                RecordGuard(post.NativeAddress, post.Bytes, 0x2E, 4);
+                Call(0x2827C0, post.NativeAddress, 0);
+                changes.Add(new TransferCall(new(exe + 0x26CC10, post.NativeAddress, 0), RdxFromReturn: true));
+            }
+            foreach (Rec district in world.Table(Tables.Corps).Skip(1).Where(c => c.U8(0x10) == force && Objects.CorpsValid(c)))
+            {
+                RecordGuard(district.NativeAddress, district.Bytes, 0, 0x18);
+                Call(0x2E8E70, district.NativeAddress, 0, 0);
+            }
+        }
 
         foreach (UnitRecord unit in units)
         {
@@ -202,6 +252,13 @@ internal static partial class GameMemory
             if (why is not null) throw new InvalidOperationException(L.Transfers.ExecutionUnconfirmed(why));
             if (result != 1) throw new InvalidOperationException(L.Transfers.WriteStateChanged);
             byte[] fresh = ReadBytes(handle, officer.Address, officer.Data.Length);
+            if (officer.Status == 1 && (fresh[OfficerFields.StatusOffset] != 1 || fresh[OfficerFields.CorpsOffset] != officer.Corps ||
+                OfficerFields.BaseField.Read(fresh) != home ||
+                prepared.Units.Count == 0 && OfficerFields.PlaceField.Read(fresh) != home ||
+                BitConverter.ToUInt16(ReadBytes(handle, layout.Forces[prepared.Force] + ForceFields.RulerOffset, 2)) != officer.Id ||
+                BitConverter.ToUInt16(ReadBytes(handle, layout.Corps[officer.Corps] + 0x12, 2)) != officer.Id ||
+                BitConverter.ToUInt16(ReadBytes(handle, data.Cities[home].Address + (ulong)CityFields.CorpsOffset, 2)) != officer.Corps))
+                throw new InvalidOperationException(L.Transfers.ExecutionUnconfirmed(L.Transfers.StateChanged));
             var report = prepared.Evidence.ToList();
             report.Add(L.Transfers.AppliedOfficerEvidence(officer.Name, fresh[OfficerFields.CorpsOffset], OfficerFields.BaseField.Read(fresh), fresh[OfficerFields.StatusOffset]));
             foreach (UnitRecord unit in prepared.Units)

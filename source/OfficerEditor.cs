@@ -303,10 +303,11 @@ internal sealed partial class OfficerEditorCard : EditorCard
         status = officer.Status;
         forcePosts = forces;
         bool serving = status is 2 or 3 or 4, free = status is 5 or 6;
-        moveChoices = forces.FirstOrDefault(f => f.Force == standing.Force)?.Bases.Where(b => b.Base != standing.Base).ToList() ?? [];
+        moveChoices = forces.FirstOrDefault(f => f.Force == standing.Force)?.Bases
+            .Where(b => b.Base != standing.Base && (status != 1 || b.Base is >= 1 and <= GameMemory.CityCount)).ToList() ?? [];
         moveBase.ItemsSource = moveChoices.Select(b => b.Name).ToList();
         moveBase.SelectedIndex = moveChoices.Count > 0 ? 0 : -1;
-        moveLine.Visibility = serving && moveChoices.Count > 0 ? W.Visibility.Visible : W.Visibility.Collapsed;
+        moveLine.Visibility = (serving || status == 1) && moveChoices.Count > 0 ? W.Visibility.Visible : W.Visibility.Collapsed;
         // Another force to serve: a 재야 officer or a prisoner joins any force; one serving now leaves his own.
         posts = free ? [.. forces] : forces.Where(p => p.Force != standing.Force).ToList();
         joinForce.ItemsSource = posts.Select(p => p.Name).ToList();
@@ -336,7 +337,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
         transferNote.Foreground = blocked ? CardSkin.Poor : CardSkin.InkMuted;
         transferNote.Text = blocked ? standing.Blocked : status switch
         {
-            1 => L.Transfers.RulerStays,
+            1 => L.Transfers.RulerMoves,
             2 => L.Transfers.CorpsLeaderMoves,
             5 => L.Officer.FreeNote(Transfers.LoyaltyOnJoining),
             6 => L.Officer.PrisonerNote(OfficerFields.Released),

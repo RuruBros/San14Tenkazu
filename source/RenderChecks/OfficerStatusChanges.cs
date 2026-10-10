@@ -91,6 +91,10 @@ internal static partial class RenderChecks
             }
             Open(12); Check("reopening-resets-status-selection", mode.SelectedIndex == 0 && force.SelectedValue is 1);
             Open(1); Check("ruler-hides-status-actions", line.Visibility == W.Visibility.Collapsed);
+            Check("ruler-shows-same-force-city-move", Field<WC.StackPanel>("moveLine").Visibility == W.Visibility.Visible &&
+                Field<WC.ComboBox>("moveBase").Items.Count == 1 && Field<PlateButton>("moveButton").IsEnabled);
+            Check("ruler-hides-other-force-transfer", Field<WC.StackPanel>("joinLine").Visibility == W.Visibility.Collapsed &&
+                Field<WC.TextBlock>("transferNote").Text == L.Transfers.RulerMoves);
             Open(15); Check("hidden-officer-hides-status-actions", line.Visibility == W.Visibility.Collapsed);
         }
         finally { host.Close(); }

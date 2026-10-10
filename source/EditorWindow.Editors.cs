@@ -579,8 +579,8 @@ internal sealed partial class EditorWindow
         string formerLord = lord is > 0 and < 10000 && data.OfficerName(lord) is { Length: > 0 } name ? name + (months > 0 ? (" " + L.Officer.NotServingMonths(months)) : "") : "";
         return new OfficerEditorCard.Standing(force, data.ForceName(force), MapView.ForceColor(force), OfficerFields.StatusName(officer.Status),
             officer.BaseId, CityNames.BaseName(officer.BaseId), office == "없음" ? "" : office, corps, place, formerLord,
-            officer.Status is 2 or 3 or 4 ? Transfers.Blocker(data, officer, Transfer.Move) : "",
-            officer.Status is 2 or 3 or 4 ? Transfers.Blocker(data, officer, Transfer.Defect) : "");
+            officer.Status is >= 1 and <= 4 ? Transfers.Blocker(data, officer, Transfer.Move) : "",
+            officer.Status is >= 1 and <= 4 ? Transfers.Blocker(data, officer, Transfer.Defect) : "");
     }
 
     private void ShowOfficer(GameSnapshot data, OfficerRecord officer)

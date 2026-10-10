@@ -42,11 +42,11 @@ internal static class Transfers
     internal static string Blocker(GameSnapshot data, OfficerRecord officer, Transfer kind)
     {
         int status = officer.Status;
-        bool serving = status is 2 or 3 or 4;
+        bool serving = status is >= 1 and <= 4;
         bool leading = Leading(data, officer);
         return kind switch
         {
-            Transfer.Move or Transfer.Defect or Transfer.Dismiss when status == 1 => L.Transfers.RulerStays,
+            Transfer.Defect or Transfer.Dismiss when status == 1 => L.Transfers.RulerStays,
             Transfer.Dismiss when status == 2 => L.Transfers.CorpsLeaderStays,
             Transfer.Move or Transfer.Defect or Transfer.Dismiss when !serving => L.Transfers.OnlyVassals,
             Transfer.Dismiss when leading => L.Transfers.OnCampaign,
@@ -69,6 +69,8 @@ internal static class Transfers
         int force = data.ForceOfCorps(officer.Corps);
         if (kind == Transfer.Move && to!.Value.Force != force) return EditPlan.Refuse(L.Transfers.SameForceOnly);
         if (kind == Transfer.Defect && to!.Value.Force == force) return EditPlan.Refuse(L.Transfers.OtherForceOnly);
+        if (officer.Status == 1 && target is not (>= 1 and <= GameMemory.CityCount))
+            return EditPlan.Refuse(L.Transfers.RulerCityOnly);
 
         var edits = new List<RecordEdit>();
         var own = new List<FieldChange>();
@@ -117,8 +119,9 @@ internal static class Transfers
         switch (kind)
         {
             case Transfer.Move:
-                Set(OfficerFields.CorpsField, to!.Value.Corps);
-                Set(OfficerFields.BaseField, to.Value.Base);
+                // The native ruler relocation retains his main corps and brings the city into it.
+                if (officer.Status != 1) Set(OfficerFields.CorpsField, to!.Value.Corps);
+                Set(OfficerFields.BaseField, to!.Value.Base);
                 if (!leading) Set(OfficerFields.PlaceField, to.Value.Base);
                 if (officer.Status is 2 or 3) Set(OfficerFields.StatusField, 4);
                 summary = L.Transfers.MoveSummary(officer.Name, CityNames.BaseName(officer.BaseId), to.Value.Name);
@@ -143,13 +146,14 @@ internal static class Transfers
         }
         if (officer.Status == 2 && kind is Transfer.Move or Transfer.Defect)
             notes.Add(L.Transfers.CorpsLeaderReleased);
+        if (officer.Status == 1) notes.Add(L.Transfers.RulerMoves);
         if (leading && kind is Transfer.Move or Transfer.Defect)
             notes.Add(L.Transfers.UnitReturns);
         if (RequiresNative(data, officer, kind)) notes.Add(L.Transfers.NativeUndoNote);
         if (own.Count > 0 || RequiresNative(data, officer, kind)) edits.Add(new RecordEdit(RecordKind.Officer, officer.Address, officer.Data, officer.Name, own));
 
         // The base he leaves (or, as a prisoner, is held in) no longer has him as 태수.
-        if (kind != Transfer.Recruit || officer.Status == 6)
+        if (officer.Status != 1 && (kind != Transfer.Recruit || officer.Status == 6))
             if (GovernorEdit(data, officer.BaseId, officer.Id, 0) is { } governor)
             {
                 edits.Add(governor);
@@ -162,7 +166,7 @@ internal static class Transfers
     }
 
     internal static bool RequiresNative(GameSnapshot data, OfficerRecord officer, Transfer kind) =>
-        kind is Transfer.Move or Transfer.Defect && (officer.Status == 2 || Leading(data, officer));
+        kind is Transfer.Move or Transfer.Defect && (officer.Status is 1 or 2 || Leading(data, officer));
 
     // The force of a base: a city's, a gate's or a tribe's.
     private static int BaseForce(GameSnapshot data, int baseId) => baseId switch

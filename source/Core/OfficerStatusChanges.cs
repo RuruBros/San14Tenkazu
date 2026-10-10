@@ -11,6 +11,7 @@ internal static class OfficerStatusChanges
     {
         if (!Enum.IsDefined(request.Mode)) return new(EditPlan.Refuse(L.StatusChange.InvalidMode));
         if (!data.OfficerById.TryGetValue(request.Officer, out var officer)) return new(EditPlan.Refuse(L.StatusChange.Unavailable));
+        if (officer.Status == 1) return new(EditPlan.Refuse(L.Transfers.RulerStays));
         if (request.Mode == OfficerStatusMode.Prisoner)
         {
             var capture = new OfficerCaptivity.Request(request.Officer, request.Force);

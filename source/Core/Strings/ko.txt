@@ -535,7 +535,9 @@ GroupCount = {group} {count}명
 
 # 장수 옮기기·등용·내보내기
 [Transfers]
-RulerStays = 군주는 옮기거나 내보낼 수 없습니다.
+RulerStays = 군주는 다른 세력으로 보내거나 신분을 변경할 수 없습니다.
+RulerCityOnly = 군주는 같은 세력의 도시로 이동할 수 있습니다. 관문은 선택할 수 없습니다.
+RulerMoves = 군주 신분·주 군단 유지 · 도착 도시는 주 군단으로 편입 · 태수·정책은 게임 내부 처리로 갱신
 CorpsLeaderMoves = 소속을 변경하면 군단장직을 해제하고 장수만 이동합니다. 지휘 부대는 함께 이동합니다.
 CorpsLeaderReleased = 군단장직 해제 · 기존 군단은 게임의 후임 선정·합병 처리
 UnitReturns = 지휘 부대도 이동 · 이전 편성 해제 · 새 소속 거점으로 귀환
