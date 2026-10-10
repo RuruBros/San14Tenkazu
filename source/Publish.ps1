@@ -77,6 +77,7 @@ try {
     Invoke-Check @('--rank-rules', (Join-Path $taskArtifacts 'publish-rank-rules')) 'publish-rank-rules.log'
     Invoke-Check @('--facilities', (Join-Path $taskArtifacts 'publish-facilities.jsonl')) 'publish-facilities.log'
     Invoke-Check @('--military-points', (Join-Path $taskArtifacts 'publish-military-points')) 'publish-military-points.log'
+    Invoke-Check @('--pending-inputs', (Join-Path $taskArtifacts 'publish-pending-inputs')) 'publish-pending-inputs.log'
     Invoke-Check @('--unit-conditions', (Join-Path $taskArtifacts 'publish-unit-conditions')) 'publish-unit-conditions.log'
     Invoke-Check @('--registered', (Join-Path $taskArtifacts 'publish-registered')) 'publish-registered.log'
     Invoke-Check @('--tooltips', (Join-Path $taskArtifacts ('publish-tooltips-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-tooltips.log'

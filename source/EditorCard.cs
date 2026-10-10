@@ -315,10 +315,11 @@ internal sealed class NumberField
         Box.TextChanged += (_, _) =>
         {
             if (filling) return;
-            typed = IsChanged;
+            typed = !MatchesCurrent;
             Mark();
             Edited?.Invoke();
         };
+        Box.LostKeyboardFocus += (_, _) => { if (!typed) Write(Current); };
     }
 
     internal FieldDef Field { get; }
@@ -346,12 +347,23 @@ internal sealed class NumberField
     }
 
     // A shortcut types a value, as a person would.
-    internal void Set(long value) => Box.Text = Format(Math.Clamp(value, Field.Min, Field.Max));
+    internal void Set(long value)
+    {
+        string text = Format(Math.Clamp(value, Field.Min, Field.Max));
+        if (Box.Text != text) { Box.Text = text; return; }
+        // An untouched focused box can already display this value while Current has advanced.
+        typed = !MatchesCurrent;
+        Mark();
+        Edited?.Invoke();
+    }
 
-    // What is typed, or the game's value when the box holds no number.
-    internal long Value => TypedNumber.TryParse(Box.Text, out long value) ? value : Current;
+    // A parsed draft, or the latest game value for an untouched or invalid box.
+    internal long Value => typed && TypedNumber.TryParse(Box.Text, out long value) ? value : Current;
 
-    internal bool IsChanged => !(TypedNumber.TryParse(Box.Text, out long value) && value == Current);
+    private bool MatchesCurrent => TypedNumber.TryParse(Box.Text, out long value) && value == Current;
+
+    // Focus can retain an older display during refresh; only an actual input creates a draft.
+    internal bool IsChanged => typed && !MatchesCurrent;
 
     internal bool IsValid => TypedNumber.TryParse(Box.Text, out long value) && value >= Field.Min && value <= Field.Max;
 
@@ -359,7 +371,8 @@ internal sealed class NumberField
     internal bool TryRead(out long value, out string error)
     {
         error = "";
-        if (TypedNumber.TryParse(Box.Text, out value) && value >= Field.Min && value <= Field.Max) return true;
+        value = Current;
+        if ((!typed || TypedNumber.TryParse(Box.Text, out value)) && value >= Field.Min && value <= Field.Max) return true;
         error = Field.RangeMessage;
         Box.Focus();
         return false;
