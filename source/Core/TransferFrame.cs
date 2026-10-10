@@ -1,6 +1,6 @@
 namespace San14Tenkazu;
 
-internal sealed record TransferGuard(ulong Address, byte[] Expected);
+internal sealed record TransferGuard(ulong Address, byte[] Expected, bool Nonzero = false);
 internal abstract record TransferStep;
 internal sealed record TransferStore(ulong Address, byte[] Value) : TransferStep;
 internal sealed record TransferCall(GameMemory.FrameInvocation Invocation, bool MustReturnZero = false, ulong CorpsAt = 0) : TransferStep;
@@ -19,6 +19,12 @@ internal static class TransferFrame
         // 16-byte aligned at every call; preserve nonvolatile RBX and 32-byte shadow space.
         Hex("534883EC30");
         foreach (TransferGuard guard in guards)
+        {
+            if (guard.Nonzero)
+            {
+                Imm("48B8", guard.Address); Hex("48833800"); Failed("0F84");
+                continue;
+            }
             for (int i = 0; i < guard.Expected.Length;)
             {
                 int size = guard.Expected.Length - i >= 8 ? 8 : guard.Expected.Length - i >= 4 ? 4 : guard.Expected.Length - i >= 2 ? 2 : 1;
@@ -28,6 +34,7 @@ internal static class TransferFrame
                 Hex(size switch { 8 => "483910", 4 => "3910", 2 => "663910", _ => "3810" });
                 Failed("0F85"); i += size;
             }
+        }
         void Step(TransferStep step)
         {
             if (step is TransferStore store)

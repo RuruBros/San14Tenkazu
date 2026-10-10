@@ -46,6 +46,7 @@ internal sealed partial class EditorWindow
         personalityEditor.ApplyClicked += async () => await ApplyPersonalityAsync();
         itemEditor.ApplyClicked += async () => await ApplyItemAsync();
         officerEditor.TransferClicked += async (kind, target) => await TransferAsync(kind, target);
+        officerEditor.RevivalClicked += async request => await ReviveOfficerAsync(request);
     }
 
     // Opens the card of a force, city, gate, officer or unit with the game's values; false when it did not (the user kept
@@ -324,6 +325,7 @@ internal sealed partial class EditorWindow
                 break;
             case OfficerEditorCard when data.OfficerById.TryGetValue(officerEditor.OfficerId, out OfficerRecord? officer):
                 officerEditor.Follow(officer, Standing(data, officer));
+                officerEditor.FollowRevival(data, officer);
                 break;
             case PersonalityEditorCard when data.Personalities.Any(p => p.Index == personalityEditor.Personality):
                 personalityEditor.Follow(PersonalityView(data, personalityEditor.Personality));
@@ -599,6 +601,7 @@ internal sealed partial class EditorWindow
         var holders = data.OfficersOf(force).Where(o => o.Id != officer.Id && o[OfficerFields.Office] != OfficerFields.NoOffice)
             .GroupBy(o => (int)o[OfficerFields.Office]).ToDictionary(g => g.Key, g => g.First().Name);
         officerEditor.Open(officer, Standing(data, officer), others, sworn, items, holders, Transfers.Targets(data));
+        officerEditor.FollowRevival(data, officer, opening: true);
         LoadPortrait();
     }
 

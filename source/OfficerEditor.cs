@@ -12,7 +12,7 @@ namespace San14Tenkazu;
 // The officer's editor card, in four pages: 기본·능력 (portrait, the ability pentagon, 충성, abilities, years,
 // 공적, 성별, 주의, 정책 and its 등급, 관직, 상성), 개성·전법·진형, 관계·명품 (배우자, 의형제, 친애, 혐오, 명품) and 소속.
 // The names of his force, his base and the officers he is tied to open their own cards.
-internal sealed class OfficerEditorCard : EditorCard
+internal sealed partial class OfficerEditorCard : EditorCard
 {
     // Another officer as the card names him, for 배우자, 의형제, 친애 and 혐오.
     internal readonly record struct Other(int Id, string Label, int Gender);
@@ -64,6 +64,7 @@ internal sealed class OfficerEditorCard : EditorCard
     private readonly WC.TextBlock standingForce = Value(), standingCorps = Value(), standingBase = Value(), standingPlace = Value(),
         standingStatus = Value(), standingLord = Value();
     private readonly WC.TextBlock transferNote = new() { Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap, MaxWidth = 380, Margin = new W.Thickness(0, 4, 0, 0) };
+    private readonly WC.TextBlock transferHow = Hint(L.Officer.TransferNote);
     private readonly WC.TextBlock joinLabel = Label(L.Officer.OtherForce);
     private readonly WC.ComboBox moveBase = Choice(170), joinForce = Choice(170), joinBase = Choice(170);
     private readonly PlateButton moveButton = new(L.Officer.Move, icon: Icons.Details), joinButton = new(L.Officer.Send, icon: Icons.Details), leaveButton = new(L.Officer.Dismiss, icon: Icons.Revert);
@@ -275,9 +276,9 @@ internal sealed class OfficerEditorCard : EditorCard
         leaveButton.Margin = new W.Thickness(0, 10, 0, 0);
         page.Children.Add(leaveButton);
         page.Children.Add(transferNote);
-        WC.TextBlock how = Hint(L.Officer.TransferNote);
-        how.Margin = new W.Thickness(0, 8, 0, 0);
-        page.Children.Add(how);
+        transferHow.Margin = new W.Thickness(0, 8, 0, 0);
+        page.Children.Add(transferHow);
+        page.Children.Add(RevivalPanel());
         joinForce.SelectionChanged += (_, _) => FillJoinBases();
         moveButton.Click += () => { if (moveBase.SelectedIndex >= 0) TransferClicked?.Invoke(Transfer.Move, moveChoices[moveBase.SelectedIndex].Base); };
         joinButton.Click += () =>
@@ -334,6 +335,7 @@ internal sealed class OfficerEditorCard : EditorCard
         standingLord.Text = standing.FormerLord.Length > 0 ? standing.FormerLord : "-";
 
         bool blocked = standing.Blocked.Length > 0;
+        transferHow.Visibility = status is 7 or 9 ? W.Visibility.Collapsed : W.Visibility.Visible;
         moveButton.IsEnabled = !blocked;
         leaveButton.IsEnabled = standing.LeaveBlocked.Length == 0;
         leaveButton.ToolTip = standing.LeaveBlocked.Length > 0 ? standing.LeaveBlocked : null;
