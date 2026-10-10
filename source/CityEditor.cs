@@ -61,7 +61,6 @@ internal sealed class CityEditorCard : EditorCard
         give = Shortcut(L.Give.Button, L.Give.ButtonTip, () => GiveClicked?.Invoke(), Icons.Force);
         give.Margin = new W.Thickness(8, 2, 0, 2);
         independence = Shortcut(L.Independence.Button, L.Independence.ButtonTip, () => IndependenceClicked?.Invoke(), Icons.Force);
-        independence.Margin = new W.Thickness(8, 2, 0, 2);
         WC.ToolTipService.SetShowOnDisabled(independence, true);
         OffersGoTo();
         AddPage(L.City.CityPage, CityPage());
@@ -75,12 +74,13 @@ internal sealed class CityEditorCard : EditorCard
     private W.UIElement CityPage()
     {
         var page = new WC.StackPanel();
-        page.Children.Add(Line(L.City.Governor, governor.Box, governorNote, give, independence));
+        page.Children.Add(Line(L.City.Governor, governor.Box, governorNote, give));
         governor.Box.ToolTip = L.City.GovernorTip;
         foreach (FieldDef field in CityFields.All)
             page.Children.Add(Line(field.Label, fields[field].Box, new WC.TextBlock { Text = field.Hint, Foreground = CardSkin.InkMuted, VerticalAlignment = W.VerticalAlignment.Center, TextWrapping = W.TextWrapping.Wrap, MaxWidth = 250 }));
         var shortcuts = new WC.WrapPanel { Margin = new W.Thickness(0, 6, 0, 0) };
         shortcuts.Children.Add(Shortcut(L.City.FillCaps, L.City.FillCapsTip, FillCaps));
+        shortcuts.Children.Add(independence);
         shortcuts.Children.Add(Shortcut(L.Card.RevertInput, L.Card.RevertInputTip, Revert, Icons.Revert));
         page.Children.Add(shortcuts);
         page.Children.Add(new WC.TextBlock
