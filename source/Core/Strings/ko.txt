@@ -775,6 +775,7 @@ Agriculture = 농업
 Barracks = 병영
 Loyalty = 충성
 LoyaltyHint = 0~100 (군주 250)
+Merit = 공적
 Leadership = 통솔
 AbilityHint = 보통 1~100
 Strength = 무력

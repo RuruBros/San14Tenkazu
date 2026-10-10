@@ -10,7 +10,7 @@ using WP = System.Windows.Controls.Primitives;
 namespace San14Tenkazu;
 
 // The officer's editor card, in four pages: 기본·능력 (portrait, the ability pentagon, 충성, abilities, years,
-// 성별, 주의, 정책 and its 등급, 관직, 상성), 개성·전법·진형, 관계·명품 (배우자, 의형제, 친애, 혐오, 명품) and 소속.
+// 공적, 성별, 주의, 정책 and its 등급, 관직, 상성), 개성·전법·진형, 관계·명품 (배우자, 의형제, 친애, 혐오, 명품) and 소속.
 // The names of his force, his base and the officers he is tied to open their own cards.
 internal sealed class OfficerEditorCard : EditorCard
 {
@@ -34,6 +34,7 @@ internal sealed class OfficerEditorCard : EditorCard
     private readonly AbilityChart chart = new() { MinWidth = 220, Height = 200, Margin = new W.Thickness(16, 0, 0, 0) };
     private readonly NumberField loyalty = new(OfficerFields.Loyalty, 60), birth = new(OfficerFields.Birth, 60), debut = new(OfficerFields.Debut, 60),
         death = new(OfficerFields.Death, 60), compatibility = new(OfficerFields.Compatibility, 60);
+    private readonly NumberField merit = new(OfficerFields.Merit);
     private readonly NumberField[] abilities = OfficerFields.Abilities.Select(f => new NumberField(f, 52)).ToArray();
     // The AI's leanings (AiTraits): what the trees weigh for the force he rules or the corps he leads.
     private readonly NumberField[] aiTraits = AiTraits.Fields.Select(f => new NumberField(f, 52)).ToArray();
@@ -128,6 +129,7 @@ internal sealed class OfficerEditorCard : EditorCard
         top.Children.Add(chart);
         page.Children.Add(top);
         page.Children.Add(Line(L.Officer.Loyalty, loyalty.Box, new WC.TextBlock { Text = OfficerFields.Loyalty.Hint, Foreground = CardSkin.InkMuted, VerticalAlignment = W.VerticalAlignment.Center }));
+        page.Children.Add(Line(OfficerFields.Merit.Label, merit.Box));
         var grid = new WP.UniformGrid { Columns = 5, Margin = new W.Thickness(0, 2, 0, 2) };
         for (int i = 0; i < abilities.Length; i++)
         {
@@ -403,6 +405,7 @@ internal sealed class OfficerEditorCard : EditorCard
         labels = others.ToDictionary(o => o.Id, o => o.Label);
 
         loyalty.Show(officer[OfficerFields.Loyalty]);
+        merit.Show(officer[OfficerFields.Merit]);
         for (int i = 0; i < abilities.Length; i++) abilities[i].Show(officer[OfficerFields.Abilities[i]]);
         for (int i = 0; i < aiTraits.Length; i++) aiTraits[i].Show(officer[AiTraits.Fields[i]]);
         birth.Show(officer[OfficerFields.Birth]);
@@ -492,6 +495,7 @@ internal sealed class OfficerEditorCard : EditorCard
     {
         if (officer.Id != OfficerId) return;
         loyalty.Follow(officer[OfficerFields.Loyalty]);
+        merit.Follow(officer[OfficerFields.Merit]);
         for (int i = 0; i < abilities.Length; i++) abilities[i].Follow(officer[OfficerFields.Abilities[i]]);
         for (int i = 0; i < aiTraits.Length; i++) aiTraits[i].Follow(officer[AiTraits.Fields[i]]);
         birth.Follow(officer[OfficerFields.Birth]);
@@ -610,7 +614,7 @@ internal sealed class OfficerEditorCard : EditorCard
         return new OfficerEdits.Request(own, spouseValue != currentSpouse ? spouseValue : null, swornValue != currentSworn ? swornValue : null, [.. given]);
     }
 
-    private IEnumerable<NumberField> Numbers() => abilities.Concat([loyalty, birth, debut, death, compatibility]).Concat(aiTraits);
+    private IEnumerable<NumberField> Numbers() => abilities.Concat([loyalty, merit, birth, debut, death, compatibility]).Concat(aiTraits);
 
     private IEnumerable<NameChoice> Choices(int traits) =>
         personalities.Take(traits).Concat([gender, ideology, policy, policyLevel, office, uniqueTactic]);

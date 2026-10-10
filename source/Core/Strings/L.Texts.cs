@@ -836,6 +836,7 @@ internal static partial class L
         internal static string Barracks => T();
         internal static string Loyalty => T();
         internal static string LoyaltyHint => T();
+        internal static string Merit => T();
         internal static string Leadership => T();
         internal static string AbilityHint => T();
         internal static string Strength => T();

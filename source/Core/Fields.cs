@@ -140,6 +140,8 @@ internal static class CountyFields
 internal static class OfficerFields
 {
     internal static readonly FieldDef Loyalty = new(L.Fields.Loyalty, RecordKind.Officer, 0xE8, FieldKind.Byte, 0, 255, L.Fields.LoyaltyHint);
+    // Officer_AddMerit (0x169530) reads/writes this unsigned word and caps it at 0xFFFF.
+    internal static readonly FieldDef Merit = new(L.Fields.Merit, RecordKind.Officer, 0x1C0, FieldKind.UInt16, 0, ushort.MaxValue);
     internal static readonly FieldDef Leadership = new(L.Fields.Leadership, RecordKind.Officer, 0xEC, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
     internal static readonly FieldDef Strength = new(L.Fields.Strength, RecordKind.Officer, 0xED, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
     internal static readonly FieldDef Intelligence = new(L.Fields.Intelligence, RecordKind.Officer, 0xEE, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
@@ -154,7 +156,7 @@ internal static class OfficerFields
 
     internal static readonly FieldDef[] Abilities = [Leadership, Strength, Intelligence, Politics, Charm];
     internal static readonly FieldDef[] Years = [Birth, Debut, Death];
-    internal static readonly FieldDef[] All = [Loyalty, Leadership, Strength, Intelligence, Politics, Charm, Birth, Debut, Death];
+    internal static readonly FieldDef[] All = [Loyalty, Merit, Leadership, Strength, Intelligence, Politics, Charm, Birth, Debut, Death];
 
     // The experience behind each ability (+0x104, four bytes each, in the abilities' order). An ability is
     // the point its experience has reached: at value v the experience is v³ + 5000·v + 5000·max(v − 70, 0)
