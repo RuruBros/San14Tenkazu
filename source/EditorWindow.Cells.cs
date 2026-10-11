@@ -8,12 +8,14 @@ internal sealed partial class EditorWindow
     {
         tables.CanEditCell = (id, field) => CanEditCell(new OfficerTarget(id), field);
         tables.CellWriter = (id, field, value) => WriteCellAsync(new OfficerTarget(id), field, value);
+        tables.ColumnWriter = (ids, field, value) => WriteColumnAsync(ids.Select(id => (EditorTarget)new OfficerTarget(id)).ToList(), field, value);
     }
 
     private void ConfigureCellEditing(GameTable table, Func<object, EditorTarget> target)
     {
         table.CanEditCell = (tag, field) => CanEditCell(target(tag), field);
         table.CellWriter = (tag, field, value) => WriteCellAsync(target(tag), field, value);
+        table.ColumnWriter = (tags, field, value) => WriteColumnAsync(tags.Select(target).ToList(), field, value);
     }
 
     private bool CanEditCell(EditorTarget target, FieldDef field)
@@ -40,8 +42,20 @@ internal sealed partial class EditorWindow
             status.Text = field.RangeMessage;
             return false;
         }
+        EditPlan plan = PlanCellEdits(data, target, field, value);
+        if (plan.Refused) { status.Text = plan.Refusal; return false; }
+        if (plan.Edits.Count == 0) { status.Text = L.Window.NothingChanged; return true; }
+        if (target is PersonalityTarget && !ConfirmWrite(plan.Summary)) return false;
+        if (!await WriteAsync([.. plan.Edits])) return false;
+        MergeSnapshot();
+        return true;
+    }
+
+    internal static EditPlan PlanCellEdits(GameSnapshot data, EditorTarget target, FieldDef field, long value)
+    {
+        if (value < field.Min || value > field.Max) return EditPlan.Refuse(field.RangeMessage);
         List<FieldChange> changes = [new(field, value)];
-        EditPlan plan = target switch
+        return target switch
         {
             CityTarget(int id) => CityEdits.Plan(data, id, new(changes, [], null)),
             GateTarget(int id) => GateEdits.Plan(data, id, new(changes, null)),
@@ -50,9 +64,33 @@ internal sealed partial class EditorWindow
             PersonalityTarget(int id) => PersonalityEdits.Plan(data, id, changes),
             _ => throw new InvalidOperationException()
         };
+    }
+
+    // Plan every row before writing any of them. The batch is one entry in the undo history.
+    internal static EditPlan PlanColumnEdits(GameSnapshot data, IReadOnlyList<EditorTarget> targets, FieldDef field, long value)
+    {
+        var edits = new List<RecordEdit>();
+        foreach (EditorTarget target in targets.Distinct())
+        {
+            EditPlan plan = PlanCellEdits(data, target, field, value);
+            if (plan.Refused) return plan;
+            edits.AddRange(plan.Edits);
+        }
+        return new EditPlan(edits, L.Lists.BulkValue(field.Label, value));
+    }
+
+    private async Task<bool> WriteColumnAsync(IReadOnlyList<EditorTarget> targets, FieldDef field, long value)
+    {
+        if (!CanWrite(out GameSnapshot data)) return false;
+        if (targets.Any(target => !CanEditCell(target, field)))
+        {
+            status.Text = L.Lists.BulkUnavailable;
+            return false;
+        }
+        EditPlan plan = PlanColumnEdits(data, targets, field, value);
         if (plan.Refused) { status.Text = plan.Refusal; return false; }
         if (plan.Edits.Count == 0) { status.Text = L.Window.NothingChanged; return true; }
-        if (target is PersonalityTarget && !ConfirmWrite(plan.Summary)) return false;
+        if (!ConfirmFill(plan.Summary, [.. plan.Edits])) return false;
         if (!await WriteAsync([.. plan.Edits])) return false;
         MergeSnapshot();
         return true;

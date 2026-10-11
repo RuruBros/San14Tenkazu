@@ -23,6 +23,7 @@ internal sealed class OfficerTables : WC.StackPanel
     private List<(int Officer, string Status)> listed = [];
     private bool fillsEnabled;
     internal Func<int, FieldDef, long, Task<bool>>? CellWriter { get; set; }
+    internal Func<IReadOnlyList<int>, FieldDef, long, Task<bool>>? ColumnWriter { get; set; }
     internal Func<int, FieldDef, bool>? CanEditCell { get; set; }
 
     // empty: what the page says when there are no officers.
@@ -83,7 +84,8 @@ internal sealed class OfficerTables : WC.StackPanel
             {
                 Faces = face => Faces?.Invoke(face), Margin = new W.Thickness(0, 0, 0, 6), EditingEnabled = fillsEnabled,
                 CanEditCell = (tag, field) => CanEditCell?.Invoke((int)tag, field) ?? false,
-                CellWriter = (tag, field, value) => CellWriter?.Invoke((int)tag, field, value) ?? Task.FromResult(false)
+                CellWriter = (tag, field, value) => CellWriter?.Invoke((int)tag, field, value) ?? Task.FromResult(false),
+                ColumnWriter = ColumnWriter is null ? null : (tags, field, value) => ColumnWriter(tags.Cast<int>().ToList(), field, value)
             };
             table.RowPicked += officer => OfficerPicked?.Invoke((int)officer);
             table.SetRows(group.Select(o => o.Row).ToList());

@@ -87,6 +87,13 @@ internal sealed class GameTable : WC.Border
     // Enter writes exactly this cell through the window's regular validation, logging and undo path.
     internal Func<object, FieldDef, long, Task<bool>>? CellWriter { get; set; }
     internal Func<object, FieldDef, bool>? CanEditCell { get; set; }
+    // One batch for the eligible rows in this table, including rows outside the scroll viewport.
+    internal Func<IReadOnlyList<object>, FieldDef, long, Task<bool>>? ColumnWriter
+    {
+        get => columnWriter;
+        set { columnWriter = value; header.UpdateActions(); }
+    }
+    private Func<IReadOnlyList<object>, FieldDef, long, Task<bool>>? columnWriter;
     internal bool EditingEnabled
     {
         get => editingEnabled;
@@ -94,6 +101,7 @@ internal sealed class GameTable : WC.Border
         {
             editingEnabled = value;
             if (!value) CancelInput();
+            header.UpdateActions();
         }
     }
 
@@ -124,6 +132,7 @@ internal sealed class GameTable : WC.Border
                 fresh.CopyTo(rows[i].Cells, 0);
                 if (list.ItemContainerGenerator.ContainerFromIndex(i) is RowItem item) item.InvalidateVisual();
             }
+            header.UpdateActions();
             return;
         }
         object? picked = (list.SelectedItem as Row)?.Tag;
@@ -133,6 +142,21 @@ internal sealed class GameTable : WC.Border
         list.ItemsSource = rows;
         list.SelectedItem = picked is null ? null : rows.FirstOrDefault(r => Equals(r.Tag, picked));
         scroll?.ScrollToVerticalOffset(offset);
+        header.UpdateActions();
+    }
+
+    private IReadOnlyList<object> ColumnTargets(int column) => rows.Where(row => CanEdit(row, column)).Select(row => row.Tag).ToList();
+
+    private async Task EditColumnAsync(int column)
+    {
+        if (columnWriter is not { } write || input is { Committing: true }) return;
+        IReadOnlyList<object> targets = ColumnTargets(column);
+        if (targets.Count == 0) return;
+        CancelInput();
+        FieldDef field = columns[column].Field!;
+        var dialog = new ColumnEditDialog(field, targets.Count, rows.Count - targets.Count) { Owner = W.Window.GetWindow(this) };
+        if (dialog.ShowDialog() == true && editingEnabled && columnWriter == write)
+            await write(targets, field, dialog.Value);
     }
 
     // Picks the row with this tag (false when it is not listed), without raising RowPicked.
@@ -170,6 +194,7 @@ internal sealed class GameTable : WC.Border
         if (picked is not null) list.ScrollIntoView(picked);
         else scroll?.ScrollToTop();
         header.InvalidateVisual();
+        header.InvalidateMeasure();
     }
 
     private List<Row> Sorted(List<Row> unsorted)
@@ -527,15 +552,65 @@ internal sealed class GameTable : WC.Border
     }
 
     // The column names on wood; a click sorts, the pointer over a field's name tells its range.
-    private sealed class HeaderLine : W.FrameworkElement
+    private sealed class HeaderLine : WC.Canvas
     {
         private readonly GameTable table;
         private int tipColumn = -1;
+        private const double ButtonSize = 22, ButtonGap = 2;
+        private readonly Dictionary<int, PlateButton> actions = [];
+        private bool stacked;
 
         internal HeaderLine(GameTable table)
         {
             this.table = table;
-            Height = HeaderHeight;
+            ClipToBounds = true;
+        }
+
+        internal void UpdateActions()
+        {
+            for (int column = 0; column < table.columns.Length; column++)
+            {
+                if (table.columns[column] is not { Kind: Kind.Number, Field: { } field }) continue;
+                if (!actions.TryGetValue(column, out PlateButton? button))
+                {
+                    int index = column;
+                    button = new PlateButton(L.Lists.BulkColumn(field.Label), icon: Icons.Fill, iconOnly: true)
+                    { Width = ButtonSize, Height = ButtonSize };
+                    System.Windows.Automation.AutomationProperties.SetName(button, button.Text);
+                    WC.ToolTipService.SetShowOnDisabled(button, true);
+                    button.Click += () => _ = table.EditColumnAsync(index);
+                    actions.Add(column, button);
+                    Children.Add(button);
+                }
+                button.Visibility = table.columnWriter is null ? W.Visibility.Collapsed : W.Visibility.Visible;
+                button.IsEnabled = table.columnWriter is not null && table.rows.Any(row => table.CanEdit(row, column));
+                button.ToolTip = L.Lists.BulkColumnTip(field.Label);
+            }
+            InvalidateMeasure();
+            InvalidateArrange();
+            InvalidateVisual();
+        }
+
+        protected override W.Size MeasureOverride(W.Size available)
+        {
+            base.MeasureOverride(available);
+            double[] edges = table.Edges(Math.Max(0, available.Width - scrollBar), 1 / WM.VisualTreeHelper.GetDpi(this).DpiScaleX);
+            bool next = actions.Any(pair => pair.Value.Visibility == W.Visibility.Visible &&
+                edges[pair.Key + 1] - edges[pair.Key] < Text(table.columns[pair.Key].Header, CardSkin.FontSize, CardSkin.InkOnDark,
+                    1000, WM.VisualTreeHelper.GetDpi(this).PixelsPerDip).WidthIncludingTrailingWhitespace + Pad * 2 + ButtonSize + ButtonGap + 2 + (pair.Key == table.sortColumn ? 12 : 0));
+            if (stacked != next) { stacked = next; InvalidateVisual(); }
+            return new W.Size(0, stacked ? HeaderHeight * 2 : HeaderHeight);
+        }
+
+        protected override W.Size ArrangeOverride(W.Size size)
+        {
+            double[] edges = table.Edges(Math.Max(0, size.Width - scrollBar), 1 / WM.VisualTreeHelper.GetDpi(this).DpiScaleX);
+            foreach ((int column, PlateButton button) in actions)
+            {
+                WC.Canvas.SetLeft(button, stacked ? (edges[column] + edges[column + 1] - ButtonSize) / 2 : Math.Max(edges[column], edges[column + 1] - ButtonSize - ButtonGap));
+                WC.Canvas.SetTop(button, (stacked ? HeaderHeight : 0) + (HeaderHeight - ButtonSize) / 2);
+            }
+            return base.ArrangeOverride(size);
         }
 
         // The width the rows' scroll bar takes on the right, where no column name goes.
@@ -545,6 +620,8 @@ internal sealed class GameTable : WC.Border
             {
                 if (scrollBar == value) return;
                 scrollBar = value;
+                InvalidateMeasure();
+                InvalidateArrange();
                 InvalidateVisual();
             }
         }
@@ -570,12 +647,14 @@ internal sealed class GameTable : WC.Border
             {
                 double left = edges[i], width = edges[i + 1] - left;
                 bool sorted = i == table.sortColumn;
-                WM.FormattedText name = Text(table.columns[i].Header, CardSkin.FontSize, CardSkin.InkOnDark, width - Pad * 2 - (sorted ? 12 : 0), dpi.PixelsPerDip);
-                dc.DrawText(name, new W.Point(Math.Round(left + Pad + 2), Math.Round((ActualHeight - name.Height) / 2)));
+                double actionWidth = !stacked && actions.TryGetValue(i, out PlateButton? button) && button.Visibility == W.Visibility.Visible ? ButtonSize + ButtonGap : 0;
+                dc.PushClip(new WM.RectangleGeometry(new W.Rect(left, 0, Math.Max(0, width - actionWidth), ActualHeight)));
+                WM.FormattedText name = Text(table.columns[i].Header, CardSkin.FontSize, CardSkin.InkOnDark, width - Pad * 2 - actionWidth - (sorted ? 12 : 0), dpi.PixelsPerDip);
+                dc.DrawText(name, new W.Point(Math.Round(left + Pad + 2), Math.Round((HeaderHeight - name.Height) / 2)));
                 if (sorted)
                 {
                     // The sort's triangle at the right of the name's cell: up for rising, down for falling.
-                    double x = edges[i + 1] - 11, y = ActualHeight / 2;
+                    double x = edges[i + 1] - actionWidth - 11, y = HeaderHeight / 2;
                     var triangle = new WM.StreamGeometry();
                     using (WM.StreamGeometryContext g = triangle.Open())
                     {
@@ -586,6 +665,7 @@ internal sealed class GameTable : WC.Border
                     triangle.Freeze();
                     dc.DrawGeometry(CardSkin.InkOnDark, null, triangle);
                 }
+                dc.Pop();
                 if (i < table.columns.Length - 1) dc.DrawRectangle(HeaderRule, null, new W.Rect(edges[i + 1] - pixel, 4, pixel, ActualHeight - 8));
             }
         }
@@ -593,6 +673,7 @@ internal sealed class GameTable : WC.Border
         protected override void OnMouseMove(WI.MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            if (e.OriginalSource is PlateButton) return;
             int column = ColumnAt(e.GetPosition(this).X);
             Cursor = column >= 0 && table.columns[column].Kind != Kind.Face ? WI.Cursors.Hand : WI.Cursors.Arrow;
             if (column == tipColumn) return;
@@ -605,6 +686,7 @@ internal sealed class GameTable : WC.Border
         protected override void OnMouseLeftButtonUp(WI.MouseButtonEventArgs e)
         {
             base.OnMouseLeftButtonUp(e);
+            if (e.Handled || e.OriginalSource is PlateButton) return;
             int column = ColumnAt(e.GetPosition(this).X);
             if (column < 0 || table.columns[column].Kind == Kind.Face) return;
             e.Handled = true;

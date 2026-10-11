@@ -3,8 +3,8 @@ using WC = System.Windows.Controls;
 namespace San14Tenkazu;
 
 // The right pane's lists (ListsCard): 세력, 도시, 장수, 부대, 개성, 명품 and 고대무장, each with a search box and filters.
-// A number cell edits directly; other cells (or ↑↓) open the row's editor and show it on the map (the fills that write to
-// many at once are on the cards: EditorWindow.Fills).
+// A number cell edits directly; its header's fill button writes one value to all eligible filtered rows.
+// Other cells (or ↑↓) open the row's editor and show it on the map.
 internal sealed partial class EditorWindow
 {
     private const int ForceTab = (int)ListKind.Forces, CityTab = (int)ListKind.Cities, OfficerTab = (int)ListKind.Officers,

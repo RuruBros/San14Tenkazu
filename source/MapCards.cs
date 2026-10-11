@@ -186,7 +186,7 @@ internal sealed class PlateButton : W.FrameworkElement
     protected override W.Size MeasureOverride(W.Size availableSize)
     {
         WM.FormattedText formatted = Format();
-        if (IconOnly && IconImage is not null) return new W.Size(40, 32);
+        if (IconOnly && IconImage is not null) return new W.Size(Math.Min(40, availableSize.Width), Math.Min(32, availableSize.Height));
         double icon = IconImage is null ? 0 : IconSide + IconGap;
         return new W.Size(Math.Ceiling(formatted.WidthIncludingTrailingWhitespace) + icon + 28, Math.Max(Math.Ceiling(formatted.Height) + 12, 32));
     }

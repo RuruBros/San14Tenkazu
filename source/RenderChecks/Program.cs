@@ -15,6 +15,7 @@ internal static partial class RenderChecks
     {
         try
         {
+            if (args.Contains("--column-editing")) { CheckColumnEditing(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--steam-discovery")) { CheckSteamDiscovery(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--package-smoke")) { CheckPortablePackage(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--unit-conditions")) { CheckUnitConditions(args.First(a => !a.StartsWith("--"))); return 0; }
