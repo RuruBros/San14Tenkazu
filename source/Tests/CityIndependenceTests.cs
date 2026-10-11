@@ -31,7 +31,7 @@ public sealed class CityIndependenceTests
             var officer = new OfficerRecord(person.Index, person.NativeAddress, person.Bytes.ToArray());
             var result = c.GetProperty("result");
             int expected = result.ValueKind == System.Text.Json.JsonValueKind.Null ? 0 : result.GetInt32();
-            Assert.Equal(expected, CityIndependence.SelectSlot(data, officer));
+            Assert.Equal(expected, CityIndependence.SelectAutomaticSlot(data, officer));
             count++;
         }
         Assert.True(count > 0);
@@ -48,6 +48,7 @@ public sealed class CityIndependenceTests
         Assert.Equal((City, Governor, Force, 44), (request.City, request.Governor, request.FromForce, request.NewForce));
         Assert.Equal(data.Cities[City].Address, request.CityAddress);
         Assert.Equal(data.OfficerById[Governor].Address, request.GovernorAddress);
+        Assert.Equal(0, request.RequestedSlot);
     }
 
     [Fact]
@@ -66,15 +67,52 @@ public sealed class CityIndependenceTests
     }
 
     [Fact]
-    public void UnrelatedOrdinarySlotsAndTribalSlotsAreNotFallbackSlots()
+    public void EmptyOrdinarySlotIsExplicitWhenAutomaticSlotsAreExhausted()
     {
         GameSnapshot data = Fixture().Force(44, 999).Force(45, 999).Force(9, 0).Force(46, 0).Force(51, 0).Build();
         foreach (ForceRecord f in data.ForceRecords.Values)
             BinaryPrimitives.WriteUInt16LittleEndian(f.Data.AsSpan(0x11E), 234);
-        Assert.Equal(0, CityIndependence.SelectSlot(data, data.OfficerById[Governor]));
+        Assert.Equal(0, CityIndependence.SelectAutomaticSlot(data, data.OfficerById[Governor]));
+        Assert.Equal(9, CityIndependence.SelectSlot(data, data.OfficerById[Governor]));
+        Assert.Null(CityIndependence.Refusal(data, City));
+        CityIndependence.Request request = CityIndependence.Prepare(data, City);
+        Assert.Equal(9, request.NewForce);
+        Assert.Equal(9, request.RequestedSlot);
+        data.ForceRecords[9].Data[0x10] = 1;
         Assert.Equal(L.Independence.NoSlot, CityIndependence.Refusal(data, City));
         // 0xFFFF is nonzero and therefore native-valid, not an available slot.
         BinaryPrimitives.WriteUInt16LittleEndian(data.ForceRecords[44].Data.AsSpan(0x10), 0xFFFF);
+        Assert.Equal(0, CityIndependence.SelectSlot(data, data.OfficerById[Governor]));
+    }
+
+    public static IEnumerable<object[]> OrdinarySlots() => Enumerable.Range(1, 45).Select(i => new object[] { i });
+
+    [Fact]
+    public void ExplicitSlotUsesHighestEmptyOrdinarySlotAfterAutomaticSelectionFails()
+    {
+        GameSnapshot data = Fixture().Force(44, 999).Force(45, 999).Force(1, 0).Force(9, 0).Force(37, 0).Build();
+        foreach (ForceRecord f in data.ForceRecords.Values)
+            BinaryPrimitives.WriteUInt16LittleEndian(f.Data.AsSpan(0x11E), 234);
+        Assert.Equal(37, CityIndependence.Prepare(data, City).RequestedSlot);
+        data.ForceRecords[37].Data[0x10] = 1;
+        Assert.Equal(9, CityIndependence.Prepare(data, City).RequestedSlot);
+        data.ForceRecords[9].Data[0x10] = 1;
+        Assert.Equal(1, CityIndependence.Prepare(data, City).RequestedSlot);
+        data.ForceRecords[1].Data[0x10] = 1;
+        Assert.Equal(L.Independence.NoSlot, CityIndependence.Refusal(data, City));
+    }
+
+    [Theory]
+    [MemberData(nameof(OrdinarySlots))]
+    public void EveryEmptyOrdinarySlotCanBeSelected(int slot)
+    {
+        GameSnapshot data = Fixture().Force(slot, 0).Build();
+        ForceRecord empty = data.ForceRecords[slot];
+        BinaryPrimitives.WriteUInt16LittleEndian(empty.Data.AsSpan(0x11E), 234);
+        data.ForceRecords.Clear();
+        data.ForceRecords.Add(slot, empty);
+        Assert.Equal(slot, CityIndependence.SelectSlot(data, data.OfficerById[Governor]));
+        BinaryPrimitives.WriteUInt16LittleEndian(empty.Data.AsSpan(0x10), 0xFFFF);
         Assert.Equal(0, CityIndependence.SelectSlot(data, data.OfficerById[Governor]));
     }
 

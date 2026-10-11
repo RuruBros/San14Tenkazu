@@ -10,7 +10,7 @@ internal static partial class L
         internal static string Button => T();
         internal static string ButtonTip => T();
         internal static string Confirm(object? place, object? governor) => Format(T(), (nameof(place), place), (nameof(governor), governor));
-        internal static string Request(object? place, object? governor, object? force) => Format(T(), (nameof(place), place), (nameof(governor), governor), (nameof(force), force));
+        internal static string Request(object? place, object? governor, object? force, object? slot) => Format(T(), (nameof(place), place), (nameof(governor), governor), (nameof(force), force), (nameof(slot), slot));
         internal static string Done(object? place, object? governor, object? force) => Format(T(), (nameof(place), place), (nameof(governor), governor), (nameof(force), force));
         internal static string Verified(object? force, object? corps, object? governor, object? officers) => Format(T(), (nameof(force), force), (nameof(corps), corps), (nameof(governor), governor), (nameof(officers), officers));
         internal static string NoCity => T();

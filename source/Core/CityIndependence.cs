@@ -2,19 +2,31 @@ using System.Buffers.Binary;
 
 namespace San14Tenkazu;
 
-// Manual independence uses SExecNewForceForEdit, rather than the loyalty-based
-// rebellion scene. The scenario body creates one force from one city and transfers
-// its officers through the native corps/base lifecycle (Reverse/notes/independence.md).
+// Manual independence uses the edit event and, when automatic slots are exhausted,
+// its native creation body with an explicit empty ordinary slot. Both use the same
+// corps/base lifecycle (Reverse/notes/independence.md), not the rebellion scene.
 internal static class CityIndependence
 {
-    internal sealed record Request(int City, int Governor, int FromForce, int NewForce, ulong CityAddress, ulong GovernorAddress);
+    internal sealed record Request(int City, int Governor, int FromForce, int NewForce, ulong CityAddress, ulong GovernorAddress,
+        int RequestedSlot = 0);
+
+    private static ForceRecord[] EmptySlots(GameSnapshot data) => data.ForceRecords.Values
+        .Where(f => f.Id is >= 1 and <= GameMemory.MaxPlayerForce && f.Data.Length >= 0x120 && f.Ruler == 0)
+        .OrderBy(f => f.Id).ToArray();
+
+    // Keep native automatic preference; explicit creation may also use any other
+    // empty ordinary slot. Tribal/special slots and nonzero rulers stay excluded.
+    internal static int SelectSlot(GameSnapshot data, OfficerRecord governor)
+    {
+        int automatic = SelectAutomaticSlot(data, governor);
+        return automatic > 0 ? automatic : EmptySlots(data).LastOrDefault()?.Id ?? 0;
+    }
 
     // 0x2A9520 with requested slot 0: previous ruler, bloodline, then the highest
     // empty slot in 38..45. A nonzero ruler (including 0xFFFF) is native-valid.
-    internal static int SelectSlot(GameSnapshot data, OfficerRecord governor)
+    internal static int SelectAutomaticSlot(GameSnapshot data, OfficerRecord governor)
     {
-        ForceRecord[] empty = data.ForceRecords.Values.Where(f => f.Id is >= 1 and <= GameMemory.MaxPlayerForce
-            && f.Data.Length >= 0x120 && f.Ruler == 0).OrderBy(f => f.Id).ToArray();
+        ForceRecord[] empty = EmptySlots(data);
         int Previous(ForceRecord f) => BinaryPrimitives.ReadUInt16LittleEndian(f.Data.AsSpan(0x11E));
         if (empty.FirstOrDefault(f => Previous(f) == governor.Id) is { } previous) return previous.Id;
         int bloodline = BinaryPrimitives.ReadUInt16LittleEndian(governor.Data.AsSpan(0xB2));
@@ -50,7 +62,9 @@ internal static class CityIndependence
         if (Refusal(data, id) is { } refused) throw new InvalidOperationException(refused);
         CityRecord city = data.Cities[id];
         OfficerRecord governor = data.OfficerById[city.Governor];
-        return new(id, governor.Id, data.ForceOfCity(id), SelectSlot(data, governor), city.Address, governor.Address);
+        int slot = SelectSlot(data, governor);
+        return new(id, governor.Id, data.ForceOfCity(id), slot, city.Address, governor.Address,
+            SelectAutomaticSlot(data, governor) == 0 ? slot : 0);
     }
 
     // Re-reading success is required: the event returns 1 even when creation fails.

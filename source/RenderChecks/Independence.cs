@@ -48,6 +48,14 @@ internal static partial class RenderChecks
         Record("unowned-city-hides-independence", button.Visibility == W.Visibility.Collapsed);
         card.Open(View(fixture.City(28, 3, 557).Build()));
         Record("ruler-is-blocked-in-product-view", !button.IsEnabled && Equals(button.ToolTip, L.Independence.AlreadyRuler));
+        fixture.City(28, 3, 997).Force(44, 999).Force(45, 999).Force(9, 0);
+        GameSnapshot explicitSlot = fixture.Build();
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(explicitSlot.ForceRecords[9].Data.AsSpan(0x11E), 234);
+        card.Open(View(explicitSlot));
+        Record("empty-ordinary-slot-enables-independence", button.IsEnabled && CityIndependence.Prepare(explicitSlot, 28).RequestedSlot == 9);
+        fixture.Force(9, 999);
+        card.Follow(View(fixture.Build()));
+        Record("no-empty-ordinary-slot-disables-independence", !button.IsEnabled && Equals(button.ToolTip, L.Independence.NoSlot));
         card.Open(eligible);
         foreach (int width in new[] { 306, 360, 480 })
         {

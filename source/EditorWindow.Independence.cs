@@ -25,7 +25,7 @@ internal sealed partial class EditorWindow
             string place = CityNames.ById[city], governor = before.OfficerName(request.Governor);
             if (!ConfirmDiscard() || !Confirm(L.Independence.Confirm(place, governor), W.MessageBoxImage.Warning,
                 defaultNo: true, title: L.Independence.Button)) return;
-            AddLog(L.Independence.Request(place, governor, before.ForceName(request.FromForce)));
+            AddLog(L.Independence.Request(place, governor, before.ForceName(request.FromForce), request.NewForce));
             called = true;
             GameSnapshot after = await Task.Run(() => GameMemory.MakeCityIndependent(identity, found, request));
             snapshot = after;
