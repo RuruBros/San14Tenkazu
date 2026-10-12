@@ -5,18 +5,149 @@
 #include <chrono>
 namespace {
 void require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
+ID3D11DeviceContext* noticeContext=nullptr;ID3D11ShaderResourceView* noticeOriginal=nullptr;uint32_t noticeKind=0;bool noticeNested=false;
+BOOL WINAPI readNoticeFixture(environment::WeatherSnapshot* output){*output={};output->generation=1;output->sequence=1;output->date=195|(4u<<16)|(21u<<24);output->reserved=noticeKind;return TRUE;}
+uint8_t __fastcall prepareNoticeFixture(void*,uint32_t){noticeContext->PSSetShaderResources(0,1,&noticeOriginal);return 1;}
+void drawNoticeFixture(void* d){if(onPrepare(d,0))noticeContext->Draw(3,0);}
+void __fastcall batchNoticeFixture(void* d){if(noticeNested){auto count=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);onIndexed(d,0,0,0,0,18);std::memcpy(static_cast<BYTE*>(d)+0x2ad0,&count,4);}else drawNoticeFixture(d);}
+void __fastcall directNoticeFixture(void* d,uint32_t,uint32_t,uint32_t){drawNoticeFixture(d);auto count=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0)+1;std::memcpy(static_cast<BYTE*>(d)+0x2ad0,&count,4);}
+void __fastcall indexedNoticeFixture(void* d,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t){directNoticeFixture(d,0,0,3);}
 void hr(HRESULT value){if(FAILED(value)){std::cerr<<"HRESULT="<<std::hex<<value<<std::dec<<"\n";throw std::runtime_error("Scene fixture GPU API failed");}}
 ComPtr<ID3DBlob> compile(const char* source,const char* entry,const char* profile){
     ComPtr<ID3DBlob> code,errors;auto result=D3DCompile(source,strlen(source),nullptr,nullptr,nullptr,entry,profile,D3DCOMPILE_ENABLE_STRICTNESS,0,&code,&errors);
     if(errors)std::cerr<<static_cast<const char*>(errors->GetBufferPointer());hr(result);return code;
 }
+void noticeArtChecks(ID3D11Device* device,ID3D11DeviceContext* context,const SeasonSceneData& scene,const char* originalPath){
+    require(scene.header()[1]==5||scene.header()[1]==6,"Scene has no disaster art");
+    const BYTE* payload=scene.bytes.data()+scene.header()[14];require(validNoticeArt(payload,scene.header()[15]),"Generated art failed authentication");
+    std::ifstream file(originalPath,std::ios::binary);std::vector<BYTE> original{std::istreambuf_iterator<char>(file),std::istreambuf_iterator<char>()};
+    require(original.size()==1048576,"Original flood texture is missing");SeasonNoticeArt art(payload);
+    const char code[]=R"(Texture2D<float4> S:register(t0);
+        float4 vs(uint i:SV_VertexID):SV_Position{float2 p[3]={float2(-1,-1),float2(-1,3),float2(3,-1)};return float4(p[i],0,1);}
+        float4 ps(float4 p:SV_Position):SV_Target{return S.Load(int3(432,324,0));})";
+    auto v=compile(code,"vs","vs_5_0"),p=compile(code,"ps","ps_5_0");ComPtr<ID3D11VertexShader> vs;ComPtr<ID3D11PixelShader> ps;
+    hr(device->CreateVertexShader(v->GetBufferPointer(),v->GetBufferSize(),nullptr,&vs));hr(device->CreatePixelShader(p->GetBufferPointer(),p->GetBufferSize(),nullptr,&ps));
+    const char fullCode[]=R"(Texture2D<float4> S:register(t0);float4 ps(float4 p:SV_Position):SV_Target{return S.Load(int3(int2(p.xy),0));})";
+    auto fullBytecode=compile(fullCode,"ps","ps_5_0");ComPtr<ID3D11PixelShader> fullShader;hr(device->CreatePixelShader(fullBytecode->GetBufferPointer(),fullBytecode->GetBufferSize(),nullptr,&fullShader));
+    D3D11_TEXTURE2D_DESC fullDesc{1024,1024,1,1,DXGI_FORMAT_R8G8B8A8_UNORM,{1,0},D3D11_USAGE_DEFAULT,D3D11_BIND_RENDER_TARGET,0,0};
+    ComPtr<ID3D11Texture2D> fullColor,fullStaging;ComPtr<ID3D11RenderTargetView> fullTarget;hr(device->CreateTexture2D(&fullDesc,nullptr,&fullColor));hr(device->CreateRenderTargetView(fullColor.Get(),nullptr,&fullTarget));
+    fullDesc.Usage=D3D11_USAGE_STAGING;fullDesc.BindFlags=0;fullDesc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;hr(device->CreateTexture2D(&fullDesc,nullptr,&fullStaging));
+    std::vector<BYTE> gpuOriginalAlpha;auto cpuOriginalAlpha=noticeBC3Alpha(original);
+    auto readFull=[&](ID3D11RenderTargetView* restore){
+        auto* target=fullTarget.Get();context->OMSetRenderTargets(1,&target,nullptr);D3D11_VIEWPORT viewport{0,0,1024,1024,0,1};context->RSSetViewports(1,&viewport);
+        context->PSSetShader(fullShader.Get(),nullptr,0);context->Draw(3,0);context->CopyResource(fullStaging.Get(),fullColor.Get());
+        D3D11_MAPPED_SUBRESOURCE mapped{};hr(context->Map(fullStaging.Get(),0,D3D11_MAP_READ,0,&mapped));std::vector<BYTE> rgba(1024*1024*4);
+        for(UINT y=0;y<1024;y++)std::memcpy(rgba.data()+size_t(y)*4096,static_cast<BYTE*>(mapped.pData)+size_t(y)*mapped.RowPitch,4096);context->Unmap(fullStaging.Get(),0);
+        context->OMSetRenderTargets(1,&restore,nullptr);viewport={0,0,1,1,0,1};context->RSSetViewports(1,&viewport);context->PSSetShader(ps.Get(),nullptr,0);return rgba;
+    };
+    BYTE gameState[0x80]{},driver[0x4000]{};uint32_t date=195|(4u<<16)|(21u<<24);std::memcpy(gameState+0x34,&date,4);
+    auto contextPointer=reinterpret_cast<uint64_t>(context);std::memcpy(driver+0x10,&contextPointer,8);
+    Bootstrap input{};input.state=reinterpret_cast<uint64_t>(gameState);input.context=contextPointer;
+    auto owned=std::make_shared<Session>(input,true);owned->context=context;owned->device=device;owned->thread=GetCurrentThreadId();owned->noticeArt=std::make_unique<SeasonNoticeArt>(payload);
+    owned->pending.store(std::make_shared<TreeColorParameters>(TreeColorParameters{1,195,4,21,{1,0,0,0},true,false}));
+    current.store(owned);noticeContext=context;fixtureReadNotice=readNoticeFixture;
+    originalPrepare=prepareNoticeFixture;originalBatch=batchNoticeFixture;originalDraw=directNoticeFixture;originalIndexed=indexedNoticeFixture;
+    for(UINT levels:{1u,9u})for(UINT gamma=0;gamma<2;gamma++){
+        D3D11_TEXTURE2D_DESC d{1024,1024,levels,1,DXGI_FORMAT_BC3_TYPELESS,{1,0},D3D11_USAGE_IMMUTABLE,D3D11_BIND_SHADER_RESOURCE,0,0};
+        std::array<std::vector<BYTE>,11> mipStorage;std::array<D3D11_SUBRESOURCE_DATA,11> data{};data[0]={original.data(),4096,1048576};
+        for(UINT mip=1;mip<levels;mip++){UINT blocks=std::max(1u,(1024u>>mip)/4);mipStorage[mip].resize(size_t(blocks)*blocks*16);data[mip]={mipStorage[mip].data(),blocks*16,blocks*blocks*16};}
+        ComPtr<ID3D11Texture2D> texture;hr(device->CreateTexture2D(&d,data.data(),&texture));
+        D3D11_SHADER_RESOURCE_VIEW_DESC desc{};desc.Format=gamma?DXGI_FORMAT_BC3_UNORM_SRGB:DXGI_FORMAT_BC3_UNORM;desc.ViewDimension=D3D11_SRV_DIMENSION_TEXTURE2D;desc.Texture2D.MipLevels=levels;
+        ComPtr<ID3D11ShaderResourceView> view;hr(device->CreateShaderResourceView(texture.Get(),&desc,&view));auto* raw=view.Get();context->PSSetShaderResources(0,1,&raw);
+        D3D11_TEXTURE2D_DESC output{1,1,1,1,gamma?DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:DXGI_FORMAT_R8G8B8A8_UNORM,{1,0},D3D11_USAGE_DEFAULT,D3D11_BIND_RENDER_TARGET,0,0};
+        ComPtr<ID3D11Texture2D> color,staging;ComPtr<ID3D11RenderTargetView> target;hr(device->CreateTexture2D(&output,nullptr,&color));hr(device->CreateRenderTargetView(color.Get(),nullptr,&target));
+        output.Usage=D3D11_USAGE_STAGING;output.BindFlags=0;output.CPUAccessFlags=D3D11_CPU_ACCESS_READ;hr(device->CreateTexture2D(&output,nullptr,&staging));auto* rt=target.Get();context->OMSetRenderTargets(1,&rt,nullptr);
+        D3D11_VIEWPORT vp{0,0,1,1,0,1};context->RSSetViewports(1,&vp);context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);context->VSSetShader(vs.Get(),nullptr,0);context->PSSetShader(ps.Get(),nullptr,0);
+        // Independent CPU decoding of the pinned BC3 block at (432,324):
+        // 0005ffffffffffff11b56a83b2b8b6f5 -> RGBA (163,143,120,255).
+        // Check the ORIGINAL pixels before substitution; uploading these bytes as
+        // BC7 used to let every replacement-only test pass with the wrong format.
+        context->Draw(3,0);context->CopyResource(staging.Get(),color.Get());
+        D3D11_MAPPED_SUBRESOURCE baseline{};hr(context->Map(staging.Get(),0,D3D11_MAP_READ,0,&baseline));
+        const auto* originalPixel=static_cast<const BYTE*>(baseline.pData);
+        bool originalMatches=std::abs(int(originalPixel[0])-163)<=2&&std::abs(int(originalPixel[1])-143)<=2&&std::abs(int(originalPixel[2])-120)<=2&&originalPixel[3]==255;
+        context->Unmap(staging.Get(),0);require(originalMatches,"Original flood BC3 pixels differ from independent archive decoding");
+        if(levels==1&&gamma==0){
+            auto rgba=readFull(rt);gpuOriginalAlpha.resize(1024*1024);size_t transparent=0,partial=0;
+            for(size_t pixel=0;pixel<gpuOriginalAlpha.size();pixel++){
+                gpuOriginalAlpha[pixel]=rgba[pixel*4+3];require(std::abs(int(gpuOriginalAlpha[pixel])-cpuOriginalAlpha[pixel])<=1,"CPU BC3 alpha differs from independent original GPU decoding");
+                if(pixel/1024<648&&pixel%1024<864){transparent+=gpuOriginalAlpha[pixel]==0;partial+=gpuOriginalAlpha[pixel]>0&&gpuOriginalAlpha[pixel]<255;}
+            }
+            require(transparent>=6000&&partial>=50000,"Original sprite lost its irregular transparent/feathered edge");
+        }
+        for(UINT kind=2;kind<=5;kind++){
+            NoticeArtTicket ticket;require(art.enter(context,kind,ticket)==S_OK&&ticket.changed,"Owned disaster art was not substituted");
+            ComPtr<ID3D11ShaderResourceView> substituted;context->PSGetShaderResources(0,1,&substituted);D3D11_SHADER_RESOURCE_VIEW_DESC replacementView{};substituted->GetDesc(&replacementView);
+            require(replacementView.Texture2D.MipLevels==levels&&replacementView.Texture2D.MostDetailedMip==0,"Generated art view does not preserve the original mip range");
+            if(levels==1&&gamma==0){
+                auto rgba=readFull(rt);auto* painting=payload+32+size_t(kind-2)*1024*1024*4;
+                for(size_t pixel=0;pixel<gpuOriginalAlpha.size();pixel++){
+                    UINT expectedAlpha=(UINT(gpuOriginalAlpha[pixel])*painting[pixel*4+3]+127)/255;
+                    require(std::abs(int(rgba[pixel*4+3])-int(expectedAlpha))<=1,"Replacement alpha did not retain original GPU-decoded silhouette");
+                    require(rgba[pixel*4]==painting[pixel*4+2]&&rgba[pixel*4+1]==painting[pixel*4+1]&&rgba[pixel*4+2]==painting[pixel*4],"Silhouette preservation changed painting RGB");
+                }
+            }
+            if(levels==9){
+                ComPtr<ID3D11Resource> resource;substituted->GetResource(&resource);ComPtr<ID3D11Texture2D> image;hr(resource.As(&image));D3D11_TEXTURE2D_DESC desc{};image->GetDesc(&desc);
+                require(desc.MipLevels==9,"Live nine-mip image was reduced to a single mip");desc.Usage=D3D11_USAGE_STAGING;desc.BindFlags=0;desc.CPUAccessFlags=D3D11_CPU_ACCESS_READ;
+                ComPtr<ID3D11Texture2D> readback;hr(device->CreateTexture2D(&desc,nullptr,&readback));context->CopyResource(readback.Get(),image.Get());
+                D3D11_MAPPED_SUBRESOURCE level{};hr(context->Map(readback.Get(),1,D3D11_MAP_READ,0,&level));auto* sample=static_cast<const BYTE*>(level.pData)+162*level.RowPitch+216*4;
+                auto* source=payload+32+size_t(kind-2)*1024*1024*4+(324*1024+432)*4;
+                bool averaged=true;for(UINT channel=0;channel<4;channel++)averaged&=sample[channel]==(uint32_t(source[channel])+source[4+channel]+source[4096+channel]+source[4100+channel]+2)/4;
+                for(UINT y=0;y<512;y++)for(UINT x=0;x<512;x++){
+                    UINT sum=0;for(UINT dy=0;dy<2;dy++)for(UINT dx=0;dx<2;dx++){
+                        size_t pixel=size_t(y*2+dy)*1024+x*2+dx;
+                        sum+=(UINT(gpuOriginalAlpha[pixel])*payload[32+size_t(kind-2)*1024*1024*4+pixel*4+3]+127)/255;
+                    }
+                    auto actual=static_cast<const BYTE*>(level.pData)[size_t(y)*level.RowPitch+x*4+3];averaged&=std::abs(int(actual)-int((sum+2)/4))<=1;
+                }
+                context->Unmap(readback.Get(),1);require(averaged,"Generated art lower mip has incorrect GPU pixels or feathered alpha");
+            }
+            context->Draw(3,0);context->CopyResource(staging.Get(),color.Get());
+            D3D11_MAPPED_SUBRESOURCE mapped{};hr(context->Map(staging.Get(),0,D3D11_MAP_READ,0,&mapped));auto* pixel=static_cast<const BYTE*>(mapped.pData);
+            const BYTE* expected=payload+32+size_t(kind-2)*1024*1024*4+(324*1024+432)*4;
+            bool matches=std::abs(int(pixel[0])-expected[2])<=2&&std::abs(int(pixel[1])-expected[1])<=2&&std::abs(int(pixel[2])-expected[0])<=2&&pixel[3]==expected[3];context->Unmap(staging.Get(),0);
+            require(matches,"Rendered event art pixels or sRGB conversion differ");require(art.leave(context,ticket),"Original event texture binding was not restored");
+            noticeOriginal=view.Get();noticeKind=kind;
+            for(uint32_t path=0;path<4;path++){
+                uint32_t start=24,end=start+18;std::memcpy(driver+0x2a34,&start,4);std::memcpy(driver+0x2a3c,&end,4);
+                auto swaps=owned->swaps.load();
+                noticeNested=path==3;if(path==0||path==3)onBatch(driver);else if(path==1)onDraw(driver,0,0,4);else onIndexed(driver,0,0,0,0,18);
+                require(owned->swaps==swaps+1&&owned->swaps==owned->restores,"Owned GUI hook did not substitute and restore once");
+                ComPtr<ID3D11ShaderResourceView> restored;context->PSGetShaderResources(0,1,&restored);require(restored.Get()==view.Get(),"GUI hook leaked its replacement binding");
+                context->CopyResource(staging.Get(),color.Get());hr(context->Map(staging.Get(),0,D3D11_MAP_READ,0,&mapped));pixel=static_cast<const BYTE*>(mapped.pData);
+                matches=std::abs(int(pixel[0])-expected[2])<=2&&std::abs(int(pixel[1])-expected[1])<=2&&std::abs(int(pixel[2])-expected[0])<=2&&pixel[3]==expected[3];context->Unmap(staging.Get(),0);
+                require(matches,"GUI hook drew the original image instead of the generated painting");
+            }
+        }
+        NoticeArtTicket idle;require(art.enter(context,1,idle)==S_FALSE&&!idle.changed,"Original flood art was unexpectedly replaced");
+        original[0]^=1;data[0].pSysMem=original.data();ComPtr<ID3D11Texture2D> foreign;hr(device->CreateTexture2D(&d,data.data(),&foreign));ComPtr<ID3D11ShaderResourceView> foreignView;hr(device->CreateShaderResourceView(foreign.Get(),&desc,&foreignView));raw=foreignView.Get();context->PSSetShaderResources(0,1,&raw);
+        require(art.enter(context,2,idle)==S_FALSE&&!idle.changed,"Unrecognized GUI texture was replaced");original[0]^=1;
+        auto wrongFormat=d;wrongFormat.Format=DXGI_FORMAT_BC7_TYPELESS;
+        auto wrongViewDesc=desc;wrongViewDesc.Format=gamma?DXGI_FORMAT_BC7_UNORM_SRGB:DXGI_FORMAT_BC7_UNORM;
+        ComPtr<ID3D11Texture2D> wrongTexture;hr(device->CreateTexture2D(&wrongFormat,data.data(),&wrongTexture));
+        ComPtr<ID3D11ShaderResourceView> wrongView;hr(device->CreateShaderResourceView(wrongTexture.Get(),&wrongViewDesc,&wrongView));
+        raw=wrongView.Get();context->PSSetShaderResources(0,1,&raw);
+        require(art.enter(context,2,idle)==S_FALSE&&!idle.changed,"BC3 bytes uploaded as BC7 bypassed the source format contract");
+        if(levels==9){desc.Texture2D.MostDetailedMip=1;desc.Texture2D.MipLevels=8;ComPtr<ID3D11ShaderResourceView> partial;hr(device->CreateShaderResourceView(texture.Get(),&desc,&partial));raw=partial.Get();context->PSSetShaderResources(0,1,&raw);
+            require(art.enter(context,2,idle)==S_FALSE&&!idle.changed,"Nonzero base mip bypassed original-image authentication");}
+    }
+    current.store(nullptr);fixtureReadNotice=nullptr;noticeContext=nullptr;noticeOriginal=nullptr;
+    uint64_t mipBytes=0;for(UINT mip=0;mip<9;mip++)mipBytes+=uint64_t(1024>>mip)*(1024>>mip)*4;
+    context->ClearState();require(art.gpuBytes()==8ull*(1024*1024*4+mipBytes),"Event art cache accounting differs");
+    std::cerr<<"PASS 64 Batch/Draw/Indexed/nested GUI substitutions with one and nine mips, generated pixels and exact original binding restoration\n";
+    std::cerr<<"PASS original BC3 flood pixels match independent CPU decoding; identical payload with BC7 descriptor rejected\n";
+    std::cerr<<"PASS whole original GPU alpha versus BC3 decoding, all four paintings retain original irregular/feathered silhouette and RGB; lower mip alpha retains mask\n";
+    std::cerr<<"PASS four authenticated paintings, both gamma variants, lower-mip GPU pixels, unknown sprite/nonzero base mip rejection and original binding restoration\n";
+}
 }
 int main(int argc,char** argv){try{
-    require(argc==2||argc==3,"Usage: SeasonSceneChecks scene-data.bin [managed-calendar-vectors.txt]");SeasonSceneData data;
+    require(argc>=2&&argc<=4,"Usage: SeasonSceneChecks scene-data.bin [managed-calendar-vectors.txt] [flood-texture.bin]");SeasonSceneData data;
     std::ifstream input(argv[1],std::ios::binary);data.bytes.assign(std::istreambuf_iterator<char>(input),std::istreambuf_iterator<char>());
     auto started=std::chrono::steady_clock::now();auto prepared=data.prepare();if(!data.compileDiagnostic.empty())std::cerr<<data.compileDiagnostic;hr(prepared);
     ComPtr<ID3D11Device> device;ComPtr<ID3D11DeviceContext> context;
     hr(D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_WARP,nullptr,0,nullptr,0,D3D11_SDK_VERSION,&device,nullptr,&context));
+    if(argc==4)noticeArtChecks(device.Get(),context.Get(),data,argv[3]);
     constexpr UINT width=128,height=64;SeasonSceneGpu scene(data);
     BYTE gameState[0x80]{};Bootstrap calendarInput{};calendarInput.state=reinterpret_cast<uint64_t>(gameState);
     Session calendarSession(calendarInput,true);
@@ -24,7 +155,7 @@ int main(int argc,char** argv){try{
     calendarSession.pending.store(request);
     auto setDate=[&](uint32_t y,uint32_t m,uint32_t d){uint32_t v=y|(m<<16)|(d<<24);std::memcpy(gameState+0x34,&v,4);};
     size_t calendarCases=0;
-    if(argc==3){
+    if(argc>=3){
         std::ifstream vectors(argv[2]);require(bool(vectors),"Managed calendar vectors missing");uint32_t y,m,d;double expected[4];
         while(vectors>>y>>m>>d>>expected[0]>>expected[1]>>expected[2]>>expected[3]){
             setDate(y,m,d);TreeColorParameters rendered{};require(renderParameters(calendarSession,request,rendered),"Full effect dropped between controller updates");
@@ -46,7 +177,7 @@ int main(int argc,char** argv){try{
         const float* c=climate+(256*256+i)*2;float snow=(c[0]<0?1.f:0.f)*std::min(c[1]/40,1.f);
         if(snow>best){best=snow;chosen=i;}
     }
-    require(best>0,"The authentic atlas has no cold winter fixture");float x=(chosen%256+.5f)*800,z=(chosen/256+.5f)*800;
+    require(best>0,"The authentic atlas has no cold winter fixture");float x=132364,z=24683.697f;
     // A wide top-down view covers the production 1600-world-unit snow cells.
     // Positive height is closer under LESS depth; all 800..7800 heights fit.
     float matrix[16]={1.f/16000,0,0,0,0,0,-.00003f,0,0,-1.f/8000,0,0,-x/16000-1,z/8000+1,.5f,1};
@@ -88,6 +219,8 @@ int main(int argc,char** argv){try{
         require(seasons.back()!=original,"Terrain season has no effect in the independent fixture");
         ComPtr<ID3D11Buffer> saved;context->PSGetConstantBuffers(12,1,&saved);require(saved==sentinel,"Private binding sentinel changed");
         for(UINT kind:{1u,2u}){SeasonSceneTicket tree;require(scene.enter(context.Get(),p,kind,0,tree)==S_OK,"Tree pipeline entry rejected");require(scene.leave(context.Get(),tree),"Tree pipeline restoration failed");}
+        environment::WeatherSnapshot weather;weather.generation=17;weather.sequence=1;weather.date=p.year|(p.month<<16)|(p.day<<24);weather.flags=192;
+        std::fill(std::begin(weather.regions),std::end(weather.regions),uint8_t(1));weather.weather[0]=season==3?8:0;scene.fixtureWeather(weather);
         context->OMSetRenderTargets(1,rtvs,nullptr);auto before=pixels();require(scene.weather(context.Get(),p,targets[0].Get())==S_OK,"Weather pipeline rejected");auto after=pixels();
         if(before!=after)weatherChanged++;if(season==3)require(before!=after,"Winter particles did not draw");
         ComPtr<ID3D11PixelShader> restored;context->PSGetShader(&restored,nullptr,nullptr);require(restored==baseline,"Weather shader restoration failed");
@@ -201,6 +334,49 @@ o.a=float4(1000,0,0,1);o.t=float3(1,0,0);o.n=float3(0,1,0);o.uv=v;return o;})";
     }
     require(maxTransitionError<=2,"Detailed/distant snow differs at the same world position");
     setup();context->Draw(3,0);require(pixels()==farOriginal,"Distant terrain OFF did not restore original pixels");
+    // Standalone precipitation shares a region map, leaves original terrain intact,
+    // changes with time and cannot affect an adjacent clear province.
+    context->UpdateSubresource(camera.Get(),0,nullptr,matrix,0,0);raw=constants.Get();context->PSSetConstantBuffers(0,1,&raw);
+    context->VSSetShader(vs.Get(),nullptr,0);context->PSSetShader(baseline.Get(),nullptr,0);
+    TreeColorParameters weatherOnly{27,195,7,1,{0,1,0,0},true,false};environment::WeatherSnapshot regional;
+    regional.generation=17;regional.sequence=2;regional.date=195|(7u<<16)|(1u<<24);regional.flags=192;
+    for(UINT tile=0;tile<environment::TileCount;tile++)regional.regions[tile]=tile%220<155?1:2;
+    auto precipitation=[&](uint8_t code,float seconds,uint32_t flags=192u){
+        regional.weather[0]=code;regional.flags=flags;scene.fixtureWeather(regional);scene.fixtureTime(seconds);
+        setup();context->Draw(3,0);auto before=pixels();SeasonSceneTicket ticket;
+        require(scene.enter(context.Get(),weatherOnly,3,0,ticket)==S_OK&&ticket.observed&&!ticket.changed,"Weather-only entry modified a seasonal material");
+        context->Draw(3,0);require(scene.leave(context.Get(),ticket)&&pixels()==before,"Weather-only changed original terrain pixels");
+        context->OMSetRenderTargets(1,rtvs,nullptr);hr(scene.weather(context.Get(),weatherOnly,targets[0].Get()));auto after=pixels();
+        for(UINT yy=0;yy<height;yy++)for(UINT xx=100;xx<width;xx++)require(!memcmp(after.data()+(yy*width+xx)*4,before.data()+(yy*width+xx)*4,4),"Precipitation leaked into the clear region");
+        ComPtr<ID3D11PixelShader> restored;context->PSGetShader(&restored,nullptr,nullptr);require(restored==baseline,"Standalone weather did not restore the original shader");
+        return std::pair{before,after};
+    };
+    auto dry=precipitation(0,0),rain0=precipitation(2,0),rain1=precipitation(2,.37f),snow0=precipitation(8,0),snow1=precipitation(8,.37f),rainOff=precipitation(2,0,128),snowOff=precipitation(8,0,64);
+    require(dry.first==dry.second&&rainOff.first==rainOff.second&&snowOff.first==snowOff.second,"Disabled or dry weather changed scene pixels");
+    require(rain0.first!=rain0.second&&snow0.first!=snow0.second&&rain0.second!=rain1.second&&snow0.second!=snow1.second,"Regional rain/snow failed actual animated GPU output");
+    require(rain0.second!=snow0.second,"Rain and snowfall have identical appearance");
+    std::cerr<<"PASS regional rain/snow animated GPU pixels, clear region, independent seasonal OFF, individual visual flags, original state restoration\n";
+    // Indicators use actual receipt dates and render without precipitation or seasonal materials.
+    for(UINT tile=0;tile<environment::TileCount;tile++){
+        float col=float(tile%220),row=float(tile/220),wx=37126+(1.5f*col+1)*468,wz=12930+1.7320508075688772f*(row+(int(col)&1?.5f:1.f))*468;
+        regional.regions[tile]=wx>=133000&&wx<137000&&wz>=26000&&wz<30000?1:2;
+    }
+    auto indicator=[&](uint32_t flags,uint8_t code,uint32_t date){
+        regional.flags=flags;regional.weather[0]=code;for(UINT kind=0;kind<5;kind++)regional.recentDates[kind]=date;
+        scene.fixtureWeather(regional);scene.fixtureTime(0);setup();context->Draw(3,0);auto before=pixels();
+        SeasonSceneTicket ticket;hr(scene.enter(context.Get(),weatherOnly,3,0,ticket));context->Draw(3,0);require(scene.leave(context.Get(),ticket),"Indicator material restoration failed");
+        context->OMSetRenderTargets(1,rtvs,nullptr);hr(scene.weather(context.Get(),weatherOnly,targets[0].Get()));return std::pair{before,pixels()};
+    };
+    auto rainMark=indicator(1,2,0),snowMark=indicator(2,8,0),floodMark=indicator(8,0,regional.date),fireMark=indicator(16,0,regional.date),droughtMark=indicator(32,0,regional.date),blizzardMark=indicator(256,0,regional.date),heatwaveMark=indicator(512,0,regional.date);
+    for(auto* mark:{&rainMark,&snowMark,&floodMark,&fireMark,&droughtMark,&blizzardMark,&heatwaveMark})require(mark->first!=mark->second,"An environment indicator has no GPU output");
+    UINT badgePixels=0;for(UINT yy=0;yy<height;yy++)for(UINT xx=28;xx<54;xx++){
+        size_t at=(yy*width+xx)*4;bool changed=memcmp(rainMark.first.data()+at,rainMark.second.data()+at,4)!=0;
+        if(changed&&rainMark.second[at]<40&&rainMark.second[at+1]<40&&rainMark.second[at+2]<40)badgePixels++;
+    }
+    require(badgePixels>100,"Fixed-size icon background did not render outside the region wash");
+    auto expired=indicator(8,0,195|(6u<<16)|(21u<<24)),future=indicator(8,0,195|(7u<<16)|(2u<<24)),disabled=indicator(0,2,regional.date);
+    require(expired.first==expired.second&&future.first==future.second&&disabled.first==disabled.second,"Expired, future or OFF indicators remain visible");
+    std::cerr<<"PASS current rain/snow and five recent-disaster icon/range GPU outputs, dated receipt expiry, independent particle OFF, all OFF restoration\n";
     scene.saveCaptureAfterDrain();
     if(data.header()[1]==4){
         std::ifstream captured(reinterpret_cast<const wchar_t*>(data.bytes.data()+data.header()[14]),std::ios::binary);

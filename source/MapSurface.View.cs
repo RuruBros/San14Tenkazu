@@ -54,6 +54,7 @@ internal sealed partial class MapSurface
         ShowTerritoryLayers();
         cities.Follow(IsMoving);
         units.Follow(IsMoving);
+        environmentLayer.Follow(IsMoving);
         // While the map moves, the hit test's places (drawn for the labels' view) lag; the pointer is looked at
         // again once it stops (Settle).
         if (IsMouseOver && !IsMoving) UpdateHover(WI.Mouse.GetPosition(this));
@@ -96,6 +97,7 @@ internal sealed partial class MapSurface
         ApplyPending();
         cities.Redraw();
         units.Redraw();
+        environmentLayer.Redraw();
         Dispatcher.BeginInvoke(() =>
         {
             if (IsMouseOver && !IsMoving) UpdateHover(WI.Mouse.GetPosition(this));
@@ -473,6 +475,7 @@ internal sealed partial class MapSurface
     // tribe, landmark or facility.
     private MapHit HitTest(W.Point location)
     {
+        foreach(var hit in environmentHits)if(hit.Area.Contains(location))return new MapHit(hit.City,null,hit.Text);
         int city = 0;
         double cityDistance = double.MaxValue;
         for (int id = 1; id <= GameMemory.CityCount; id++)

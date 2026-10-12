@@ -17,13 +17,14 @@ internal readonly record struct SeasonSnapshot(SeasonRenderIdentity Identity, Se
 
 internal readonly record struct SeasonParameters(SeasonDate Date, MonthBlend Month, SeasonWeights Weights)
 {
+    internal bool Seasonal {get;init;}=true;
     internal static SeasonParameters At(SeasonDate date)
     {
         var month=SeasonTimeline.At(date);return new(date,month,month.Weights);
     }
 }
 
-internal enum SeasonScope { Full, TreeColor }
+internal enum SeasonScope { Full, TreeColor, Weather }
 internal enum SeasonPhase { Off, Connecting, Applying, On, PartialOn, Restoring, Reconnecting, Faulted }
 internal sealed record SeasonStatus(SeasonPhase Phase, SeasonDate? Date, ulong Generation,
     bool OriginalRestored, string? Error = null, SeasonScope Scope = SeasonScope.Full,

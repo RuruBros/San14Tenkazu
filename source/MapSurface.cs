@@ -122,6 +122,7 @@ internal sealed partial class MapSurface : WC.Grid
         world.Children.Add(models);
         world.Children.Add(veil);
         world.Children.Add(veilAround);
+        world.Children.Add(environmentFill);
         // The veil's colour (MapView.RenderVeil) around the map: four bands reaching far past its edges.
         double far = WorldWidth * 3;
         foreach (W.Rect band in new W.Rect[] { new(-far, -far, far, WorldHeight + far * 2), new(WorldWidth, -far, far, WorldHeight + far * 2),
@@ -137,6 +138,7 @@ internal sealed partial class MapSurface : WC.Grid
         Children.Add(cities);
         units = new UnitLayer(this);
         Children.Add(units);
+        environmentLayer=new EnvironmentLayer(this){IsHitTestVisible=false};Children.Add(environmentLayer);
         // The game's label sprites are scaled down; smooth them, and redraw once they have loaded.
         WM.RenderOptions.SetBitmapScalingMode(cities, WM.BitmapScalingMode.HighQuality);
         WM.RenderOptions.SetBitmapScalingMode(units, WM.BitmapScalingMode.HighQuality);
@@ -196,6 +198,7 @@ internal sealed partial class MapSurface : WC.Grid
         gpu = Environment.GetEnvironmentVariable("SAN14_NO_GPU") == "1" ? null : GpuMap.TryCreate();
         bool on = gpu is not null;
         world.Visibility = cities.Visibility = units.Visibility = on ? W.Visibility.Collapsed : W.Visibility.Visible;
+        environmentLayer.Visibility=on?W.Visibility.Collapsed:W.Visibility.Visible;
         UseTiles();
         if (gpu is null) return;
         GpuMap renderer = gpu;
@@ -326,6 +329,7 @@ internal sealed partial class MapSurface : WC.Grid
         canvas.SetLayerImage(fillImageSlot, fill.Source as WMI.BitmapSource);
         canvas.SetLayerImage(strategicImageSlot, strategic.Source as WMI.BitmapSource);
         canvas.SetLayerImage(veilImageSlot, veil.Source as WMI.BitmapSource);
+        canvas.SetLayerImage(environmentImageSlot,environmentFill.Source as WMI.BitmapSource);
         canvas.PushMatrix(worldTransform.Matrix);
         foreach (W.UIElement layer in world.Children)
         {
@@ -343,6 +347,7 @@ internal sealed partial class MapSurface : WC.Grid
         double citiesMs = citiesAt == 0 ? 0 : Stopwatch.GetElapsedTime(citiesAt).TotalMilliseconds;
         long unitsAt = start == 0 ? 0 : Stopwatch.GetTimestamp();
         DrawUnits(canvas);
+        DrawEnvironment(canvas);
         framePhases = (worldMs, citiesMs, unitsAt == 0 ? 0 : Stopwatch.GetElapsedTime(unitsAt).TotalMilliseconds);
     }
 
@@ -466,6 +471,7 @@ internal sealed partial class MapSurface : WC.Grid
             dateText.Text = L.Map.Date(date.Year, date.Month, date.Day) + data.Pace switch { GamePace.Paused => (" · " + L.Map.Paused), GamePace.Running => (" · " + L.Map.Running), _ => "" };
         dateChip.Visibility = data?.Date is null ? W.Visibility.Collapsed : W.Visibility.Visible;
         snapshot = data;
+        SetEnvironment(environment);
         cityOrder = [];
         UpdateGlides(Now);
         if (hoverUnit is { } unit && !glides.ContainsKey(unit)) SetHover(default);

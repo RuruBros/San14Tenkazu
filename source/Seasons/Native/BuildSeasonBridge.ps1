@@ -6,6 +6,8 @@ $taskFiles+=@('SeasonSceneChecks.cpp','SeasonSceneGpu.h','SeasonWeatherCapture.h
     '..\Shaders\SeasonWorldMatrix.hlsl','..\Shaders\SeasonWorldPosition.hlsli','..\Shaders\SeasonGameTree.hlsl','..\Shaders\SeasonGameTerrain.hlsli',
     '..\Shaders\SeasonGameWeather.hlsl','..\Shaders\SeasonGameParameters.hlsli','..\Shaders\SeasonCommon.hlsli','..\Shaders\SeasonTreeCoverage.hlsli','..\Shaders\SeasonWeather.hlsli')
 $taskFiles+=@('SeasonRiceGpu.h','SeasonRiceChecks.cpp','..\Shaders\SeasonGameRice.hlsl','..\Shaders\SeasonVegetation.hlsli')
+$taskFiles+=@('..\..\Environment\Native\EnvironmentWeather.h')
+$taskFiles+=@('SeasonNoticeArt.h')
 $taskHashes=@{}
 foreach($taskFile in $taskFiles){$taskHashes[$taskFile]=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $taskFile)).Hash.ToLower()}
 $taskSourceRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -36,6 +38,11 @@ $taskGameShaders=@(
     @('SeasonGameTree.hlsl','TreeDepth','ps_5_0','SeasonTreeDepthBytecode','SEASON_DEPTH=1'),
     @('SeasonGameWeather.hlsl','WeatherSnowVertex','vs_5_0','SeasonWeatherSnowVertexBytecode',''),
     @('SeasonGameWeather.hlsl','WeatherSnow','ps_5_0','SeasonWeatherSnowBytecode',''),
+    @('SeasonGameWeather.hlsl','WeatherBounds','cs_5_0','SeasonWeatherBoundsBytecode',''),
+    @('SeasonGameWeather.hlsl','WeatherAreaVertex','vs_5_0','SeasonWeatherAreaVertexBytecode',''),
+    @('SeasonGameWeather.hlsl','WeatherArea','ps_5_0','SeasonWeatherAreaBytecode',''),
+    @('SeasonGameWeather.hlsl','WeatherMarkVertex','vs_5_0','SeasonWeatherMarkVertexBytecode',''),
+    @('SeasonGameWeather.hlsl','WeatherMark','ps_5_0','SeasonWeatherMarkBytecode',''),
     @('SeasonGameRice.hlsl','RiceRoots','gs_5_0','SeasonRiceRootsBytecode',''),
     @('SeasonGameRice.hlsl','RiceVertex','vs_5_0','SeasonRiceVertexBytecode',''),
     @('SeasonGameRice.hlsl','RicePlant','gs_5_0','SeasonRicePlantBytecode',''),
@@ -70,4 +77,4 @@ foreach($taskFile in $taskFiles){if((Get-FileHash -LiteralPath (Join-Path $PSScr
 $taskSnapshot=Join-Path $taskOut 'sources';New-Item -ItemType Directory -Path $taskSnapshot -ErrorAction Stop | Out-Null
 $taskManifestHashes=@{}
 foreach($taskFile in $taskFiles){$taskName=[IO.Path]::GetFileName($taskFile);Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskName) -ErrorAction Stop;$taskManifestHashes[$taskName]=$taskHashes[$taskFile]}
-[ordered]@{dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=5;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
+[ordered]@{nativeBuild=56;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8

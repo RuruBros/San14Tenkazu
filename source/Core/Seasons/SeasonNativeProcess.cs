@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using San14Tenkazu.EnvironmentRules;
 
 namespace San14Tenkazu.Seasons;
 
@@ -25,11 +26,15 @@ internal sealed class SeasonNativeProcess:IDisposable
     private bool disposed;
     private readonly List<(ulong Address,byte[] Data,uint Protection)> loaderSnapshots=[];
     private readonly string dllHash;
+    private readonly bool environment;
+    private readonly (ulong Rva,int Size,string Hash)[] targets;
     private static readonly (ulong Rva,int Size,string Hash)[] Targets=[
         (0x960f90,70,"782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"),
         (0x960ee0,82,"dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"),
         (0x960e90,67,"ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"),
-        (0x963c60,533,"8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044")];
+        (0x963c60,533,"8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"),
+        (0x960e50,52,"4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"),
+        (0x9625f0,443,"75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b")];
     [StructLayout(LayoutKind.Explicit,Size=48)] private struct Region
     {
         [FieldOffset(0)] internal IntPtr Base;
@@ -49,12 +54,13 @@ internal sealed class SeasonNativeProcess:IDisposable
     private static string Hash(byte[] bytes)=>Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     private static IntPtr Pointer(ulong value)=>unchecked((IntPtr)(long)value);
     private static Win32Exception Error()=>new(Marshal.GetLastWin32Error());
-    internal SeasonNativeProcess(GameIdentity identity,string buildDirectory,Action<string> journal)
+    internal SeasonNativeProcess(GameIdentity identity,string buildDirectory,Action<string> journal,bool environment=false)
     {
         if(!identity.Verified||!GameMemory.IsSameGame(identity))throw new InvalidDataException("Verified native season process required");
-        game=identity;log=journal;dll=Path.GetFullPath(Path.Combine(buildDirectory,"SeasonBridge.dll"));
+        this.environment=environment;targets=environment?EnvironmentNativeBundle.Targets:Targets;
+        game=identity;log=journal;dll=Path.GetFullPath(Path.Combine(buildDirectory,environment?"EnvironmentBridge.dll":"SeasonBridge.dll"));
         using var manifest=JsonDocument.Parse(File.ReadAllText(Path.Combine(buildDirectory,"build.json")));
-        if(!manifest.RootElement.TryGetProperty("protocolVersion",out var version)||version.GetUInt32()!=SeasonBridgeProtocol.Version)
+        if(!manifest.RootElement.TryGetProperty("protocolVersion",out var version)||version.GetUInt32()!=(environment?EnvironmentProtocol.Version:SeasonBridgeProtocol.Version))
             throw new InvalidDataException("Native bridge protocol version differs before process access");
         dllHash=manifest.RootElement.GetProperty("dllSha256").GetString()!;
         if(Hash(File.ReadAllBytes(dll))!=dllHash)throw new InvalidDataException("Native DLL differs from build receipt");
@@ -64,7 +70,7 @@ internal sealed class SeasonNativeProcess:IDisposable
         handle=OpenProcess(0x43a,false,identity.ProcessId);if(handle==IntPtr.Zero)throw Error();
         try
         {
-            foreach(var target in Targets)
+            foreach(var target in targets)
             {
                 byte[] bytes=Read(identity.ModuleBase+target.Rva,target.Size);uint protect=Query(identity.ModuleBase+target.Rva).Protection;
                 if(Hash(bytes)!=target.Hash||protect!=0x20)throw new InvalidDataException("Season engine code/protection differs");
@@ -160,6 +166,63 @@ internal sealed class SeasonNativeProcess:IDisposable
         log($"Native authenticated original material upload: bytes={input.SourceBytes}, assets={SeasonTreeSources.Assets.Length}");
         bootstrap=Allocate(SeasonBridgeProtocol.Bytes(input));
         worker=Launch(loaded.Base+ExportRva(dll,"SeasonBridgeSession"),bootstrap);
+    }
+    // The independently bundled gameplay worker reuses only the authenticated CPU loader and allocation lifetime.
+    // It receives no render source, scene resource or GPU pointer, and has its own protocol/recovery receipt.
+    internal void StartEnvironment(EnvironmentProtocol.Bootstrap input,CancellationToken token)
+    {
+        if(!environment)throw new InvalidOperationException("Environment worker contract required");
+        token.ThrowIfCancellationRequested();var modules=Modules();
+        var residents=modules.Where(m=>Path.GetFileName(m.Path).Equals("EnvironmentBridge.dll",StringComparison.OrdinalIgnoreCase)).ToArray();
+        if(residents.Any(m=>!m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase)))throw new InvalidDataException(L.Seasons.RestartRequired);
+        if(residents.Length==0)
+        {
+            ulong entry=LoaderEntry();IntPtr path=Allocate(Encoding.Unicode.GetBytes(dll+'\0'));
+            foreach(var snapshot in loaderSnapshots)
+                if(!Read(snapshot.Address,32).AsSpan().SequenceEqual(snapshot.Data)||Query(snapshot.Address).Protection!=snapshot.Protection)
+                    throw new InvalidDataException("Public loader relay changed immediately before invocation");
+            loader=Launch(entry,path);Wait(loader,5000);
+        }
+        token.ThrowIfCancellationRequested();
+        var loaded=Modules().Single(m=>m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase));
+        if(Hash(File.ReadAllBytes(dll))!=dllHash||!GameMemory.IsSameGame(game)||input.Module!=game.ModuleBase)
+            throw new InvalidDataException("Environment DLL/process identity changed before session start");
+        bootstrap=Allocate(EnvironmentProtocol.Bytes(input));worker=Launch(loaded.Base+ExportRva(dll,"EnvironmentSession"),bootstrap);
+    }
+    internal EnvironmentProtocol.Recovery RecoverEnvironment(ulong generation)
+    {
+        if(!environment)throw new InvalidOperationException("Environment worker contract required");
+        EnvironmentProtocol.Recovery complete=new(){Magic=EnvironmentProtocol.Magic,Version=EnvironmentProtocol.Version,Generation=generation,Complete=1};
+        if(released)return complete;
+        bool exited;try{using var target=Process.GetProcessById(game.ProcessId);exited=target.HasExited;}catch(ArgumentException){exited=true;}
+        if(exited){released=true;log("Environment target exited; process allocations reclaimed");return complete;}
+        if(!GameMemory.IsSameGame(game))throw new IOException("Environment target identity changed before recovery");
+        if(loader!=IntPtr.Zero)Wait(loader,30000);
+        EnvironmentProtocol.Recovery receipt=complete;
+        if(worker!=IntPtr.Zero)
+        {
+            Wait(worker,30000);
+            receipt=EnvironmentProtocol.Read<EnvironmentProtocol.Bootstrap>(Read((ulong)bootstrap.ToInt64(),376)).Recovery;
+            if(!receipt.Confirmed(generation))
+            {
+                // Retry the same closed session's recovery; never load another build/name or free live callback data.
+                var resident=Modules().Single(m=>m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase));
+                CloseHandle(worker);worker=Launch(resident.Base+ExportRva(dll,"EnvironmentRecover"),bootstrap);Wait(worker,30000);
+                receipt=EnvironmentProtocol.Read<EnvironmentProtocol.Bootstrap>(Read((ulong)bootstrap.ToInt64(),376)).Recovery;
+            }
+            if(!receipt.Confirmed(generation))throw new IOException($"Environment recovery unconfirmed: error={receipt.Error}");
+        }
+        if(!originals.All(p=>Read(p.Address,p.Bytes.Length).AsSpan().SequenceEqual(p.Bytes)&&Query(p.Address).Protection==p.Protection)||
+            BinaryPrimitives.ReadUInt64LittleEndian(Read(game.ModuleBase+0x1387728,8))!=game.ModuleBase+0x14b600)
+            throw new IOException("Environment original code/dispatch restoration differs");
+        foreach(var allocation in allocations)
+        {
+            if(allocation.Freed){if(!allocation.Confirmed)throw new IOException("Environment CPU release unconfirmed");continue;}
+            if(!VirtualFreeEx(handle,allocation.Address,UIntPtr.Zero,0x8000))throw Error();allocation.Freed=true;
+            if(Query((ulong)allocation.Address.ToInt64()).State!=0x10000)throw new IOException("Environment MEM_FREE readback differs");
+            allocation.Confirmed=true;log($"Environment private allocation MEM_FREE: address=0x{allocation.Address.ToInt64():x}, bytes={allocation.Size}");
+        }
+        allocations.Clear();released=true;log($"Environment recovered: frames={receipt.Frames}, thread={receipt.Thread}, error={receipt.Error}, runtimeError={receipt.Reserved}");return receipt;
     }
     internal SeasonRestoreReceipt Recover(ulong generation)
     {

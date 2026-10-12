@@ -248,9 +248,10 @@ internal static partial class RenderChecks
         var seasonOn = Field<WC.RadioButton>(window, "seasonOn");
         var seasonOff = Field<WC.RadioButton>(window, "seasonOff");
         var seasonStatus = Field<WC.TextBlock>(window, "seasonStatus");
-        Require(seasonOn.ActualWidth > 0 && seasonOff.ActualWidth > 0 && seasonStatus.ActualWidth > 0
+        var environmentMenu = Field<PlateButton>(window, "environmentButton");
+        Require(environmentMenu.ActualWidth > 0 && seasonStatus.ActualWidth > 0 && !IsDescendant((W.DependencyObject)window.Content,seasonOn) && !IsDescendant((W.DependencyObject)window.Content,seasonOff)
             && seasonStatus.TranslatePoint(new W.Point(), windowContent).Y < initialMap.TranslatePoint(new W.Point(), windowContent).Y,
-            "Menu layout removed or covered the shared season controls");
+            "Menu layout removed or covered the environment menu or season status");
 
         var table = new GameTable([new("Name", GameTable.Kind.Text), new("Leadership", GameTable.Kind.Number, 1, OfficerFields.Leadership)], 40);
         var memory = new FakeMemory(data);

@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <LocalDeveloperPackage Condition="'$(LocalDeveloperPackage)' == ''">false</LocalDeveloperPackage>
+    <DefineConstants Condition="'$(LocalDeveloperPackage)' == 'true'">$(DefineConstants);LOCAL_DEVELOPER</DefineConstants>
+  </PropertyGroup>
+</Project>

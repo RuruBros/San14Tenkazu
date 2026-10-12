@@ -29,6 +29,6 @@ internal static class GameSeasonScene
             {if(distant is not null)throw new InvalidDataException("Duplicate distant terrain shader source");distant=candidate.ToArray();}
         }
         if(shader is null||distant is null)throw new InvalidDataException("Authenticated terrain shader is missing from the installation");
-        return SeasonSceneData.Pack(GameSeasonMasks.ReadDirectory(directory).Select(m=>m.Mips).ToArray(),shader,distant);
+        return SeasonSceneData.WithDisasterArt(SeasonSceneData.Pack(GameSeasonMasks.ReadDirectory(directory).Select(m=>m.Mips).ToArray(),shader,distant));
     }
 }

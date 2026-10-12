@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
+using San14Tenkazu.EnvironmentRules;
 
 namespace San14Tenkazu.Seasons;
 
@@ -33,18 +34,21 @@ internal static class SeasonSceneData
         if(data.Length<HeaderBytes)throw new InvalidDataException("Scene upload is truncated");
         uint[] h=new uint[16];for(int i=0;i<h.Length;i++)h[i]=BinaryPrimitives.ReadUInt32LittleEndian(data[(i*4)..]);
         int masks=SeasonTreeSources.MaskByteCount,climate=ClimateSize*ClimateSize*12*8;
-        bool capture=h[1]==4&&h[13] is >=1 and <=2&&h[14]==(long)h[11]+h[12]&&h[15] is >=8 and <=1024&&h[15]%2==0;
-        if(h[0]!=Magic||(h[1]!=3&&!capture)||h[2]!=data.Length||h[3]!=HeaderBytes||h[4]!=masks||h[5]!=HeaderBytes+masks||
+        bool art=h[1] is 5 or 6&&h[14]==(long)h[11]+h[12]&&h[15]==EnvironmentArtData.Bytes;
+        long end=(long)h[11]+h[12]+(art?h[15]:0);long pathBytes=art?data.Length-end:h[15];
+        bool capture=(h[1]==4||h[1]==6&&art)&&h[13] is >=1 and <=2&&(art||h[14]==end)&&pathBytes is >=8 and <=1024&&pathBytes%2==0;
+        if(h[0]!=Magic||(h[1]!=3&&!capture&&!art)||h[2]!=data.Length||h[3]!=HeaderBytes||h[4]!=masks||h[5]!=HeaderBytes+masks||
             h[6]!=climate||h[7]!=ClimateSize||h[8]!=ClimateSize||h[9]!=12||h[10]!=SeasonTreeSources.Assets.Length||
-            (!capture&&h.Skip(13).Any(v=>v!=0))||h[11]!=HeaderBytes+masks+climate||h[12] is <32 or >262144||
-            data.Length!=(long)h[11]+h[12]+(capture?h[15]:0))
+            (!capture&&(art?h[13]!=0:h.Skip(13).Any(v=>v!=0)))||h[1]==6&&!capture||h[11]!=HeaderBytes+masks+climate||h[12] is <32 or >262144||
+            data.Length!=end+(capture?pathBytes:0))
             throw new InvalidDataException("Scene upload layout differs");
         if(capture)
         {
-            string path=Encoding.Unicode.GetString(data.Slice((int)h[14],(int)h[15]));
+            string path=Encoding.Unicode.GetString(data.Slice((int)end,(int)pathBytes));
             if(path[^1]!='\0'||path[..^1].Contains('\0')||!Path.IsPathFullyQualified(path[..^1]))
                 throw new InvalidDataException("Scene capture path differs");
         }
+        if(art)EnvironmentArtData.Validate(data.Slice((int)h[14],(int)h[15]));
         var shaders=data.Slice((int)h[11],(int)h[12]);
         uint firstBytes=BinaryPrimitives.ReadUInt32LittleEndian(shaders[24..]);
         if(firstBytes<32||firstBytes>shaders.Length-32||
@@ -66,15 +70,23 @@ internal static class SeasonSceneData
     }
     internal static byte[] WithWeatherCapture(byte[] scene,string outputPath)
     {
-        Validate(scene);if(BinaryPrimitives.ReadUInt32LittleEndian(scene.AsSpan(4))!=3)throw new InvalidDataException("Scene already requests capture");
+        Validate(scene);uint version=BinaryPrimitives.ReadUInt32LittleEndian(scene.AsSpan(4));if(version is not (3 or 5))throw new InvalidDataException("Scene already requests capture");
         string path=Path.GetFullPath(outputPath);if(File.Exists(path))throw new IOException("Weather capture already exists");
         byte[] destination=Encoding.Unicode.GetBytes(path+'\0');
         byte[] result=new byte[checked(scene.Length+destination.Length)];scene.CopyTo(result,0);destination.CopyTo(result,scene.Length);
-        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4),4);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4),version==5?6u:4u);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(8),(uint)result.Length);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(52),2);
-        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(56),(uint)scene.Length);
-        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(60),(uint)destination.Length);
+        if(version==3){BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(56),(uint)scene.Length);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(60),(uint)destination.Length);}
+        Validate(result);return result;
+    }
+    internal static byte[] WithDisasterArt(byte[] scene)
+    {
+        Validate(scene);if(BinaryPrimitives.ReadUInt32LittleEndian(scene.AsSpan(4))!=3)throw new InvalidDataException("Disaster art requires an uncaptured scene");
+        byte[] art=EnvironmentArtData.Read(),result=new byte[scene.Length+art.Length];scene.CopyTo(result,0);art.CopyTo(result,scene.Length);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4),5);BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(8),(uint)result.Length);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(56),(uint)scene.Length);BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(60),(uint)art.Length);
         Validate(result);return result;
     }
 }

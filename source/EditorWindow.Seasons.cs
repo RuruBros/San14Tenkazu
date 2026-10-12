@@ -41,7 +41,7 @@ internal sealed partial class EditorWindow
     private WC.StackPanel BuildSeasonControls()
     {
         var row=new WC.StackPanel{Orientation=WC.Orientation.Horizontal,VerticalAlignment=W.VerticalAlignment.Center};
-        row.Children.Add(new WC.TextBlock{Text=L.Seasons.Label,Foreground=CardSkin.InkOnDark,
+        row.Children.Add(new WC.TextBlock{Text=L.Seasons.Label,Foreground=CardSkin.Ink,
             VerticalAlignment=W.VerticalAlignment.Center,Margin=new W.Thickness(0,0,4,0)});
         row.Children.Add(seasonOn);row.Children.Add(seasonOff);
         WC.ToolTipService.SetShowOnDisabled(seasonOn,true);WC.ToolTipService.SetShowOnDisabled(seasonOff,true);
@@ -96,14 +96,14 @@ internal sealed partial class EditorWindow
         var value=seasonController?.Status ?? new(SeasonPhase.Off,null,0,true,Scope:SeasonScope.Full);
         bool stop=NeedsSeasonStop(value);
         // Ordinary editor work does not disable OFF or recovery retry.
-        bool available=!seasonStopping&&!seasonDisconnecting&&!seasonClosing;
+        bool available=!seasonStopping&&!seasonDisconnecting&&!seasonClosing&&!environmentChanging;
         bool connected=game is {Verified:true}&&snapshot is not null;
         seasonOn.IsEnabled=available&&!seasonStarting&&!busy&&connected&&(!stop||value.Requested);
         seasonOff.IsEnabled=available&&(stop||(!seasonStarting&&!busy&&connected));
         // The selected radio reports the user's request. The adjacent phase and receipt
         // report actual completion, including dates still awaiting a real Draw.
-        seasonOn.IsChecked=value.Requested;
-        seasonOff.IsChecked=!value.Requested;
+        seasonOn.IsChecked=value.Requested&&value.Scope!=SeasonScope.Weather;
+        seasonOff.IsChecked=seasonOn.IsChecked!=true;
         seasonOff.ToolTip=value.Phase==SeasonPhase.Faulted&&!value.OriginalRestored?
             L.Seasons.RecoverButton+"\n"+L.Seasons.RecoverTip:L.Seasons.OffTip;
         // Keep the last confirmed, explicitly dated label during a short
@@ -128,6 +128,7 @@ internal sealed partial class EditorWindow
         string? detail=seasonUiError??value.Error;
         seasonStatus.ToolTip=detail is {} error?SeasonStatusText(value)+"\n"+error:SeasonStatusText(value)+"\n"+L.Seasons.Tip;
         seasonStatus.Foreground=value.Phase==SeasonPhase.Faulted||seasonUiError is not null?CardSkin.Gold:CardSkin.InkOnDark;
+        UpdateEnvironmentControls();
     }
 
     private string SeasonStatusText(SeasonStatus value)
@@ -139,7 +140,7 @@ internal sealed partial class EditorWindow
             SeasonPhase.Connecting=>L.Seasons.Connecting,
             SeasonPhase.Applying=>L.Seasons.Applying(dated),
             SeasonPhase.PartialOn=>L.Seasons.TreeApplied(dated),
-            SeasonPhase.On=>L.Seasons.FullApplied(dated),
+            SeasonPhase.On=>value.Scope==SeasonScope.Weather?L.Environment.WeatherApplied(dated):L.Seasons.FullApplied(dated),
             SeasonPhase.Restoring=>L.Seasons.Restoring,
             SeasonPhase.Reconnecting=>L.Seasons.Reconnecting,
             SeasonPhase.Faulted=>L.Seasons.Failed(value.OriginalRestored?L.Seasons.Restored:L.Seasons.Unrestored,value.Error),
@@ -159,14 +160,19 @@ internal sealed partial class EditorWindow
     {
         UpdateSeasonControls();
         if(seasonController is not {} controller||seasonStopping||seasonDisconnecting||seasonClosing)return;
-        if(!requested){if(NeedsSeasonStop(controller.Status))await StopSeasonsAsync(false);return;}
-        if(NeedsSeasonStop(controller.Status)||seasonStarting||busy||game is not {Verified:true}||snapshot is null)return;
+        if(!requested){
+            if(EnvironmentRenderingActive&&controller.Status.Requested){await controller.SetSeasonalAsync(false);UpdateSeasonControls();}
+            else if(NeedsSeasonStop(controller.Status))await StopSeasonsAsync(false);return;
+        }
+        if(seasonStarting||busy||game is not {Verified:true}||snapshot is null)return;
+        if(controller.Status.Requested){await controller.SetSeasonalAsync(true);UpdateSeasonControls();return;}
+        if(NeedsSeasonStop(controller.Status))return;
         seasonUiError=null;seasonStarting=true;UpdateSeasonControls();
         try
         {
             seasonJournal??=new SeasonJournal(Path.Combine(seasonStorageRoot,"logs"));
             RecordSeason($"Season ON requested; scope=Full; journal={seasonJournal.Path}");
-            await controller.StartAsync();
+            await controller.SetSeasonalAsync(true);await controller.StartAsync();
         }
         catch(Exception error){seasonUiError=error.Message;RecordSeason(error.ToString());}
         finally{seasonStarting=false;UpdateSeasonControls();}
@@ -201,14 +207,15 @@ internal sealed partial class EditorWindow
         if(seasonClosing||seasonDisconnecting){e.Cancel=true;return;}
         if((OpenEditor is {Pending:>0}||aiView?.Pending==true||registeredEditor?.HasPending==true)&&!Confirm(L.Window.DiscardAndClose))
         {e.Cancel=true;return;}
-        if(seasonController is null){seasonStatusTimer?.Stop();registeredEditor?.AllowOwnerClose();return;}
+        if(environmentChanging){e.Cancel=true;return;}
+        if(seasonController is null&&environmentController is null){seasonStatusTimer?.Stop();registeredEditor?.AllowOwnerClose();return;}
         bool wasBusy=busy;
         e.Cancel=true;seasonClosing=true;liveTimer.Stop();scanCancellation?.Cancel();SetBusy(true,scanning:false);
         try
         {
             // Return from WPF's Closing event before a completed stop can close again.
             await System.Windows.Threading.Dispatcher.Yield();
-            if(await StopSeasonsAsync(true))
+            if(await StopEnvironmentAsync(true)&&await StopSeasonsAsync(true))
             {
                 seasonCloseApproved=true;Close();
             }

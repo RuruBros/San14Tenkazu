@@ -5,7 +5,7 @@ namespace San14Tenkazu.Seasons;
 
 internal static class SeasonBridgeProtocol
 {
-    internal const uint Magic=0x53425331, Version=5;
+    internal const uint Magic=0x53425331, Version=6;
     internal enum Command:uint { Hello=1, Apply=2, Heartbeat=3, Stop=4, ApplyTreeColor=5, TreeColorStatus=6, SceneStatus=7 }
     [StructLayout(LayoutKind.Sequential)]
     internal struct Recovery
@@ -47,6 +47,7 @@ internal static class SeasonBridgeProtocol
             BinaryPrimitives.WriteUInt32LittleEndian(span[32..],(uint)p.Date.Year);
             BinaryPrimitives.WriteUInt32LittleEndian(span[36..],(uint)p.Date.Month);
             BinaryPrimitives.WriteUInt32LittleEndian(span[40..],(uint)p.Date.Day);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[44..],p.Seasonal?0u:1u);
             double[] weights=[p.Weights.Spring,p.Weights.Summer,p.Weights.Autumn,p.Weights.Winter];
             for(int i=0;i<4;i++)BinaryPrimitives.WriteSingleLittleEndian(span[(48+i*4)..],(float)weights[i]);
         }

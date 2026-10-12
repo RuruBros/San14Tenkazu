@@ -6,6 +6,15 @@ namespace San14Tenkazu.Tests;
 public class SeasonBridgeProtocolTests
 {
     [Fact]
+    public void WeatherOnlyModeIsEncodedWithoutChangingCalendarWeights()
+    {
+        Assert.True(SeasonDate.TryCreate(195,7,1,out var date));var parameters=SeasonParameters.At(date);
+        var normal=SeasonBridgeProtocol.Encode(SeasonBridgeProtocol.Command.Apply,1,1,parameters);
+        var weather=SeasonBridgeProtocol.Encode(SeasonBridgeProtocol.Command.Apply,1,1,parameters with{Seasonal=false});
+        Assert.Equal(0u,BinaryPrimitives.ReadUInt32LittleEndian(normal.AsSpan(44)));Assert.Equal(1u,BinaryPrimitives.ReadUInt32LittleEndian(weather.AsSpan(44)));
+        Assert.Equal(normal[48..],weather[48..]);
+    }
+    [Fact]
     public void BootstrapMatchesNativeAbiAndPreservesWidePipeAndRecovery()
     {
         Assert.Equal(56,Marshal.SizeOf<SeasonBridgeProtocol.Recovery>());

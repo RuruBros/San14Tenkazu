@@ -12,6 +12,17 @@ public class SeasonControllerTests(ITestOutputHelper output)
     }
     private static readonly SeasonRenderIdentity Identity=new(42,new DateTime(2026,10,6,0,0,0,DateTimeKind.Utc),
         0x100000,0x200000,0x210000,0x220000,0x230000,0x240000,0x250000,0x260000);
+    [Fact]
+    public async Task WeatherOnlyAndSeasonalModesShareOneRecoverableSession()
+    {
+        await using var fixture=new Fixture();var controller=fixture.Controller;
+        await controller.SetSeasonalAsync(false);await controller.StartAsync();
+        var session=Assert.Single(fixture.Native.Sessions);Assert.False(Assert.Single(session.Applied).Seasonal);
+        Assert.Equal(SeasonScope.Weather,controller.Status.Scope);Assert.Equal(SeasonPhase.On,controller.Status.Phase);
+        await controller.SetSeasonalAsync(true);Assert.True(session.Applied[^1].Seasonal);Assert.Equal(SeasonScope.Full,controller.Status.Scope);
+        await controller.SetSeasonalAsync(false);Assert.False(session.Applied[^1].Seasonal);Assert.Single(fixture.Native.Sessions);
+        await controller.StopAsync();Assert.True(controller.Status.OriginalRestored);Assert.Equal(SeasonPhase.Off,controller.Status.Phase);
+    }
     private sealed class Source : ISeasonDateSource
     {
         internal SeasonSnapshot Current=new(Identity,Date());

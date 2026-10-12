@@ -31,9 +31,10 @@ internal static partial class RenderChecks
         internal TaskCompletionSource? ContinueApply;
         internal TaskCompletionSource? ContinueStop;
         internal bool StopEntered;
+        internal readonly List<SeasonParameters> Applied=[];
         private ulong applies;
         public async ValueTask<SeasonApplyReceipt> ApplyAsync(SeasonParameters parameters,CancellationToken token)
-        {if(ContinueApply is {} pending)await pending.Task.WaitAsync(token);return new(generation,parameters.Date,++applies,true);}
+        {if(ContinueApply is {} pending)await pending.Task.WaitAsync(token);Applied.Add(parameters);return new(generation,parameters.Date,++applies,true);}
         public async ValueTask<SeasonTreeColorReceipt> ApplyTreeColorAsync(SeasonParameters parameters,CancellationToken token)
         {if(ContinueApply is {} pending)await pending.Task.WaitAsync(token);ulong n=++applies;return new(generation,parameters.Date,n,n,n*3,n*3,n*3,1,174752,1048512,true,true,false);}
         public ValueTask HeartbeatAsync(CancellationToken token)=>ValueTask.CompletedTask;
@@ -87,9 +88,9 @@ internal static partial class RenderChecks
             double height=map.TranslatePoint(new W.Point(),root).Y;
             var bitmap=new WMI.RenderTargetBitmap((int)Math.Ceiling(width*dpi/96.0),(int)Math.Ceiling(height*dpi/96.0),dpi,dpi,WM.PixelFormats.Pbgra32);bitmap.Render(root);
             var encoder=new WMI.PngBitmapEncoder();encoder.Frames.Add(WMI.BitmapFrame.Create(bitmap));using var file=File.Create(Path.Combine(output,name+".png"));encoder.Save(file);
-            W.FrameworkElement[] actions=[(W.FrameworkElement)W.LogicalTreeHelper.GetParent(on),
-                Field<PlateButton>(window,"playButton"),
+            W.FrameworkElement[] actions=[Field<PlateButton>(window,"playButton"),
                 Field<PlateButton>(window,"undoButton"),Field<PlateButton>(window,"panelButton"),
+                Field<PlateButton>(window,"environmentButton"),
                 Field<WC.Border>(window,"registeredSeparator"),Field<PlateButton>(window,"registeredButton")];
             var bounds=actions.Select(a=>a.TransformToAncestor(root).TransformBounds(new W.Rect(0,0,a.ActualWidth,a.ActualHeight))).ToArray();
             bool fit=actions.Zip(bounds).All(p=>p.First.ActualWidth+1>=p.First.DesiredSize.Width-p.First.Margin.Left-p.First.Margin.Right

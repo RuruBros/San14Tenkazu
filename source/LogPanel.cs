@@ -20,6 +20,7 @@ internal sealed class LogPanel : WC.DockPanel
         Background = CardSkin.DarkWood, Foreground = CardSkin.InkOnDark, VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto
     };
     private readonly WC.Border body;
+    private readonly WC.DockPanel heading=new(){LastChildFill=true};
     // Points up while folded (the log opens upward), down while open.
     private readonly WS.Path chevron = new()
     {
@@ -36,8 +37,9 @@ internal sealed class LogPanel : WC.DockPanel
         {
             Background = CardSkin.DarkWood, BorderBrush = CardSkin.Gold, BorderThickness = new W.Thickness(0, 1, 0, 0),
             Padding = new W.Thickness(14, 3, 14, 4), Cursor = WI.Cursors.Hand,
-            Child = new WC.StackPanel { Orientation = WC.Orientation.Horizontal, Children = { chevron, title } }
+            Child = heading
         };
+        heading.Children.Add(new WC.StackPanel { Orientation = WC.Orientation.Horizontal, Children = { chevron, title } });
         bar.MouseEnter += (_, _) => Paint(true);
         bar.MouseLeave += (_, _) => Paint(false);
         bar.MouseLeftButtonUp += (_, e) =>
@@ -56,6 +58,13 @@ internal sealed class LogPanel : WC.DockPanel
         Children.Add(body);
         Paint(false);
     }
+#if LOCAL_DEVELOPER
+    internal void SetDeveloperButton(PlateButton button)
+    {
+        SetDock(button,WC.Dock.Right);button.VerticalAlignment=W.VerticalAlignment.Center;
+        heading.Children.Insert(0,button);
+    }
+#endif
 
     internal bool Open
     {

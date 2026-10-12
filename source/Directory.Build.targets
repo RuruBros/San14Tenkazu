@@ -1,0 +1,6 @@
+<Project>
+  <Target Name="ValidateDeveloperPackage" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(LocalDeveloperPackage)' == 'true' and ('$(DeveloperPackageBuild)' != 'true' or '$(GITHUB_ACTIONS)' == 'true' or '$(PublicRelease)' == 'true')"
+           Text="Developer menu is restricted to an explicit local developer build; public/GitHub builds must exclude it." />
+  </Target>
+</Project>

@@ -36,3 +36,16 @@ source/Seasons/Native/SeasonRiceGpu.h -text whitespace=cr-at-eol
 source/Seasons/Native/SeasonRiceChecks.cpp -text whitespace=cr-at-eol
 source/Seasons/Shaders/SeasonGameRice.hlsl -text whitespace=cr-at-eol
 source/Seasons/Shaders/SeasonVegetation.hlsli -text whitespace=cr-at-eol
+source/Seasons/Native/SeasonNoticeArt.h -text whitespace=cr-at-eol
+# Environment resources and bundled sources use the same byte-exact contract.
+source/Environment/Assets/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+source/Environment/Native/EnvironmentBridge.cpp -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentProtocol.h -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentPolicy.h -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentSignatures.h -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentWeather.h -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentChecks.cpp -text whitespace=cr-at-eol
+source/Environment/Native/BuildEnvironmentBridge.ps1 -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentNotification.h -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentNotificationSignatures.h -text whitespace=cr-at-eol
+source/Environment/Native/EnvironmentNoticeSound.h -text whitespace=cr-at-eol

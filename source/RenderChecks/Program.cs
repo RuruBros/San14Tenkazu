@@ -15,7 +15,17 @@ internal static partial class RenderChecks
     {
         try
         {
+            if(args.Contains("--developer-menu-check")){CheckDeveloperMenu(bool.Parse(args.First(a=>!a.StartsWith("--"))));return 0;}
             if (args.Contains("--column-editing")) { CheckColumnEditing(args.First(a => !a.StartsWith("--"))); return 0; }
+            if(args.Contains("--environment-menu")){CheckEnvironmentMenu(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--environment-overlay")){CheckEnvironmentOverlay(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--environment-vectors")){CheckEnvironmentVectors(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--environment-live")){CheckEnvironmentLive(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--environment-notification")){CheckEnvironmentNotification(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--environment-notification-art")){CheckEnvironmentNotificationArt(args.First(a=>!a.StartsWith("--")),args.Contains("--notification-original-only"),args.Contains("--notification-wait-ready"));return 0;}
+            if(args.Contains("--environment-art")){ExportEnvironmentArt(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--environment-art-assets")){PrepareEnvironmentArt(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--environment-bundle-check")){San14Tenkazu.EnvironmentRules.EnvironmentNativeBundle.VerifySources(args.First(a=>!a.StartsWith("--")));Console.WriteLine("PASS environment bundle/source pins");return 0;}
             if (args.Contains("--steam-discovery")) { CheckSteamDiscovery(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--package-smoke")) { CheckPortablePackage(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--unit-conditions")) { CheckUnitConditions(args.First(a => !a.StartsWith("--"))); return 0; }

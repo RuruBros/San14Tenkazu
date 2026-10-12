@@ -22,7 +22,7 @@ inline bool materialSha(const void* bytes,size_t count,const char* expected) {
 }
 struct TreeColorParameters {
     uint64_t epoch;uint32_t year,month,day;float weights[4];
-    bool full=false;
+    bool full=false,seasonal=true;
 };
 inline void calendarWeights(TreeColorParameters& p) {
     const auto season=[](uint32_t month){return month>=3&&month<=5?0:month>=6&&month<=8?1:month>=9&&month<=11?2:3;};

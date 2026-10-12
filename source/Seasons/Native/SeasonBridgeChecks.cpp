@@ -14,8 +14,11 @@ __declspec(noinline) void __fastcall mockDraw(void* d,uint32_t,uint32_t,uint32_t
     fixtureContext->Draw(3,0);inside=true;while(hold.load())Sleep(1);bump(d);
 }
 __declspec(noinline) void __fastcall mockLand(void* d,uint32_t,uint32_t,uint32_t){fixtureContext->Draw(3,0);bump(d);}
+__declspec(noinline) void __fastcall mockIndexed(void* d,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t){fixtureContext->Draw(3,0);bump(d);}
 __declspec(noinline) uint8_t __fastcall mockPrepare(void*,uint32_t mode){if(mode==99)return 0;
     if(fixtureSource)fixtureContext->PSSetShaderResources(0,1,&fixtureSource);return 1;}
+__declspec(noinline) void __fastcall mockBatch(void* d){auto counter=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);
+    if(mockPrepare(d,0)){mockIndexed(d,0,0,0,0,6);std::memcpy(static_cast<BYTE*>(d)+0x2ad0,&counter,4);}}
 __declspec(noinline) void __fastcall mockMesh(void* d,uint32_t mode,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t){
     if(!mockPrepare(d,mode))return;fixtureContext->Draw(3,0);inside=true;while(hold.load())Sleep(1);bump(d);}
 void checked(HRESULT hr){if(FAILED(hr))throw std::runtime_error("Owned WARP API failed");}
@@ -167,7 +170,7 @@ int main(int argc,char** argv){try{
         input.state=reinterpret_cast<uint64_t>(state);input.context=reinterpret_cast<uint64_t>(context);input.device=reinterpret_cast<uint64_t>(device.Get());
         swprintf_s(input.pipe,L"\\\\.\\pipe\\san14-seasons-own-%u-%llu-%u",GetCurrentProcessId(),GetTickCount64(),iteration);
         std::wcerr<<L"Owned client pipe: "<<input.pipe<<L"\n";
-        initialize();originalDraw=mockDraw;originalLand=mockLand;originalMesh=mockMesh;originalPrepare=mockPrepare;
+        initialize();originalDraw=mockDraw;originalLand=mockLand;originalMesh=mockMesh;originalPrepare=mockPrepare;originalIndexed=mockIndexed;originalBatch=mockBatch;
         Recovery result{};std::atomic<bool> done=false;
         std::thread worker([&]{result=serve(input,true);done=true;});
         HANDLE pipe=INVALID_HANDLE_VALUE;
@@ -193,8 +196,10 @@ int main(int argc,char** argv){try{
         mockDraw(driver,0,0,3);
         if(release.joinable())release.join();
         if(!held){
-            mockLand(driver,0,1,0);mockMesh(driver,0,0,0,0,3,1);
-            auto hello=send(pipe,Hello,input.generation,2);valid=valid&&!hello.error&&hello.actualDraws==3&&hello.renderThread==GetCurrentThreadId();
+            mockLand(driver,0,1,0);mockMesh(driver,0,0,0,0,3,1);mockIndexed(driver,0,0,0,0,6);
+            auto batchCounter=read<uint32_t>(reinterpret_cast<uint64_t>(driver),0x2ad0);mockBatch(driver);
+            valid=valid&&read<uint32_t>(reinterpret_cast<uint64_t>(driver),0x2ad0)==batchCounter;
+            auto hello=send(pipe,Hello,input.generation,2);valid=valid&&!hello.error&&hello.actualDraws==5&&hello.renderThread==GetCurrentThreadId();
             auto apply=send(pipe,Apply,input.generation,3);valid=valid&&apply.error==ERROR_NOT_SUPPORTED&&!apply.rendered&&!apply.capabilities;
             uint64_t sequence=4;
             if(color){

@@ -150,14 +150,14 @@ internal sealed partial class EditorWindow
 
     private async Task<bool> DisconnectAsync(string? message)
     {
-        if(seasonDisconnecting||seasonClosing)return false;
+        if(seasonDisconnecting||seasonClosing||environmentChanging)return false;
         bool wasBusy=busy;
         seasonDisconnecting=true;
         SetBusy(true,scanning:false);
         liveTimer.Stop();
         try
         {
-            if(!await StopSeasonsAsync(true)){AddLog(L.Seasons.DisconnectBlocked);return false;}
+            if(!await StopEnvironmentAsync(true)||!await StopSeasonsAsync(true)){AddLog(L.Seasons.DisconnectBlocked);return false;}
             ResetRules();
             undoHistory.Clear();   // the records' addresses mean nothing in another game
             map.HideEditors();

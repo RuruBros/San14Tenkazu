@@ -5,7 +5,8 @@ param(
     [Parameter(Mandatory)][string]$TaskStage,
     [Parameter(Mandatory)][string]$TaskCheckedOutput,
     [Parameter(Mandatory)][Collections.IDictionary]$TaskSourceState,
-    [switch]$VerifyComposition
+    [switch]$VerifyComposition,
+    [switch]$DeveloperMenu
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,9 +14,10 @@ Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $taskPayload = Join-Path $TaskStage 'San14Tenkazu'
 $taskLog = Join-Path $TaskStage 'package-publish.log'
+$taskBuildFlavor = @(('-p:LocalDeveloperPackage=' + $DeveloperMenu.IsPresent.ToString().ToLowerInvariant()), '-p:DeveloperPackageBuild=true')
 
 # Publish the app from the same build that was tested, without recompiling it.
-& dotnet publish (Join-Path $TaskRoot 'source/San14Tenkazu.csproj') -c Release -r win-x64 --self-contained true --no-build --no-restore -o $taskPayload -p:DebugType=None -p:DebugSymbols=false *> $taskLog
+& dotnet publish (Join-Path $TaskRoot 'source/San14Tenkazu.csproj') -c Release -r win-x64 --self-contained true --no-build --no-restore -o $taskPayload -p:DebugType=None -p:DebugSymbols=false @taskBuildFlavor *> $taskLog
 if ($LASTEXITCODE -ne 0) { throw "Portable publish failed; see $taskLog" }
 Assert-SourceState $TaskSourceState
 foreach ($taskAssembly in @('San14Tenkazu.dll', 'San14Tenkazu.Core.dll')) {
@@ -62,6 +64,7 @@ foreach ($taskFramework in $taskRuntime.includedFrameworks) {
 $taskVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $taskPayload 'San14Tenkazu.exe')).FileVersion
 if ($taskVersion -notmatch '^\d+(\.\d+){1,3}$') { throw "Invalid package version: $taskVersion" }
 $taskName = 'San14Tenkazu-' + $taskVersion + '-win-x64-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')
+if ($DeveloperMenu) { $taskName += '-local-developer' }
 $taskRows = @(foreach ($taskFile in Get-ChildItem -LiteralPath $taskPayload -Recurse -File | Sort-Object FullName) {
     [PSCustomObject]@{ relative = $taskFile.FullName.Substring($taskPayload.Length + 1).Replace('\', '/');
         bytes = $taskFile.Length; sha256 = (Get-FileHash -LiteralPath $taskFile.FullName -Algorithm SHA256).Hash }
@@ -70,7 +73,7 @@ $taskManifestPath = Join-Path $taskPayload 'San14Tenkazu.package.json'
 [ordered]@{ sources = $TaskSourceState; compositionChecked = $VerifyComposition.IsPresent } |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $TaskStage 'package-source-verification.json') -Encoding utf8
 [ordered]@{ formatVersion = 1; product = 'San14Tenkazu'; version = $taskVersion; runtimeIdentifier = 'win-x64';
-    selfContained = $true; utc = [DateTime]::UtcNow.ToString('o'); runtimes = @($taskRuntime.includedFrameworks);
+    selfContained = $true; developerMenu = $DeveloperMenu.IsPresent; publicRelease = (-not $DeveloperMenu.IsPresent); utc = [DateTime]::UtcNow.ToString('o'); runtimes = @($taskRuntime.includedFrameworks);
     files = $taskRows } |
     ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $taskManifestPath -Encoding utf8
 $taskExpected = @{}

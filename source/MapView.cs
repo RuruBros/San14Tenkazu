@@ -923,6 +923,7 @@ internal sealed partial class MapView : WC.DockPanel
             legend.Children.Add(chip);
         }
         ShowLegend();
+        AddEnvironmentLegend();
     }
 
     private const double LegendSize = 11.5;   // 8.5 pt

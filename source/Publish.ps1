@@ -1,7 +1,10 @@
 [CmdletBinding()]
-param([switch]$VerifyComposition, [switch]$PackageOnly)
+param([switch]$VerifyComposition, [switch]$PackageOnly, [switch]$PublicRelease)
 
 $ErrorActionPreference = 'Stop'
+# The local checkout's root executable is the developer build, with no ZIP required.
+$taskDeveloper = -not $PublicRelease -and $env:GITHUB_ACTIONS -ne 'true'
+$taskBuildFlavor = @(('-p:LocalDeveloperPackage=' + $taskDeveloper.ToString().ToLowerInvariant()), ('-p:DeveloperPackageBuild=' + $taskDeveloper.ToString().ToLowerInvariant()))
 $taskRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $taskSource = Join-Path $taskRoot 'source'
 $taskOutput = Join-Path $taskSource 'bin/Release/net8.0-windows'
@@ -24,7 +27,7 @@ function Get-SourceState {
             if ($taskEntry.PSIsContainer) {
                 if ($taskEntry.Name -notin @('bin', 'obj', 'artifacts', 'Tests', 'RenderChecks', 'Reverse')) { $taskFolders.Push($taskEntry.FullName) }
             }
-            elseif ($taskEntry.Extension -in @('.cs', '.csproj', '.props', '.targets', '.txt', '.ico', '.cpp', '.h', '.hlsl', '.hlsli', '.zip', '.json', '.ps1')) { $taskCandidates.Add($taskEntry) }
+            elseif ($taskEntry.Extension -in @('.cs', '.csproj', '.props', '.targets', '.txt', '.ico', '.cpp', '.h', '.hlsl', '.hlsli', '.zip', '.json', '.ps1', '.png', '.gz')) { $taskCandidates.Add($taskEntry) }
         }
     }
     foreach ($taskFile in $taskCandidates | Sort-Object FullName) {
@@ -58,14 +61,18 @@ try {
     $taskState = Get-SourceState
     if ($PackageOnly) {
         Write-Output 'Building the Windows x64 self-contained release and its checks...'
-        & dotnet publish (Join-Path $taskSource 'RenderChecks/San14Tenkazu.RenderChecks.csproj') -c Release -r win-x64 --self-contained true -o $taskOutput -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:DebugType=None -p:DebugSymbols=false *> (Join-Path $taskArtifacts 'publish-build.log')
+        & dotnet publish (Join-Path $taskSource 'RenderChecks/San14Tenkazu.RenderChecks.csproj') -c Release -r win-x64 --self-contained true -o $taskOutput -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:DebugType=None -p:DebugSymbols=false @taskBuildFlavor *> (Join-Path $taskArtifacts 'publish-build.log')
     }
     else {
-        & dotnet build (Join-Path $taskSource 'RenderChecks') --no-restore -c Release -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false *> (Join-Path $taskArtifacts 'publish-build.log')
+        & dotnet build (Join-Path $taskSource 'RenderChecks') --no-restore -c Release -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false @taskBuildFlavor *> (Join-Path $taskArtifacts 'publish-build.log')
     }
     if ($LASTEXITCODE -ne 0) { throw 'Release build failed; see source/RenderChecks/artifacts/publish-build.log' }
     Assert-SourceState $taskState
+    Invoke-Check @('--developer-menu-check', $taskDeveloper.ToString()) 'publish-developer-menu.log'
     Invoke-Check @('--season-bundle-check', (Join-Path $taskSource 'Seasons')) 'publish-season-bundle.log'
+    Invoke-Check @('--environment-bundle-check', (Join-Path $taskSource 'Environment')) 'publish-environment-bundle.log'
+    Invoke-Check @('--environment-menu', (Join-Path $taskArtifacts ('publish-environment-menu-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-environment-menu.log'
+    Invoke-Check @('--environment-overlay', (Join-Path $taskArtifacts ('publish-environment-overlay-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-environment-overlay.log'
     Invoke-Check @('--navigation', (Join-Path $taskArtifacts 'publish-navigation.jsonl')) 'publish-navigation.log'
     Invoke-Check @('--panes') 'publish-panes.log'
     Invoke-Check @('--column-editing', (Join-Path $taskArtifacts ('publish-column-editing-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-column-editing.log'
@@ -104,7 +111,7 @@ try {
     Assert-SourceState $taskState
 
     if ($PackageOnly) {
-        & (Join-Path $taskSource 'Release.Package.ps1') -TaskRoot $taskRoot -TaskStage $taskPackageStage -TaskCheckedOutput $taskOutput -TaskSourceState $taskState -VerifyComposition:$VerifyComposition
+        & (Join-Path $taskSource 'Release.Package.ps1') -TaskRoot $taskRoot -TaskStage $taskPackageStage -TaskCheckedOutput $taskOutput -TaskSourceState $taskState -VerifyComposition:$VerifyComposition -DeveloperMenu:$taskDeveloper
         Assert-SourceState $taskState
         return
     }

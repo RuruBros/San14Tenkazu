@@ -112,8 +112,8 @@ internal sealed class SeasonNativeSession(SeasonRenderIdentity identity,ulong ge
                 if(reply.Error is not (0 or 997))throw new IOException($"Native scene rendering failed: Win32 {reply.Error}");
                 if(reply.Date!=parameters.Date)throw new SeasonNativeDateChangedException(parameters.Date,reply.Date);
                 if(reply.MaterialEpoch!=pendingEpoch)throw new InvalidDataException("Scene epoch changed before the frame receipt");
-                if(reply.Rendered&&reply.CompletedEpoch==pendingEpoch&&reply.Capabilities==7&&reply.ColorScope==0&&
-                    reply.Selection[13]>0&&reply.Selection[14]>0&&reply.Swaps>0&&reply.Swaps==reply.Restores&&reply.GpuStateVerified==1)
+                if(reply.Rendered&&reply.CompletedEpoch==pendingEpoch&&reply.Capabilities==(parameters.Seasonal?7u:8u)&&reply.ColorScope==0&&
+                    reply.Selection[13]>0&&reply.Selection[14]>0&&(!parameters.Seasonal||reply.Swaps>0)&&reply.Swaps==reply.Restores&&reply.GpuStateVerified==1)
                 {
                     Record($"Scene native pass receipt: epoch={pendingEpoch}, date={reply.Date.Year}/{reply.Date.Month}/{reply.Date.Day}, trees={reply.TreeDraws}, land={reply.Selection[13]}, composite={reply.Selection[14]}; screen verification is separate");
                     return new(generation,parameters.Date,reply.Selection[14],true);

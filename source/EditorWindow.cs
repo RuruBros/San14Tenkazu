@@ -116,8 +116,11 @@ internal sealed partial class EditorWindow : W.Window
         // Connection and recorded status on the left; persistent actions on the right.
         var toolbar = new WC.DockPanel { LastChildFill = true };
         WC.StackPanel connection = Group(connectButton, reloadButton, calendarButton, cancelButton),
-            tools = Group(BuildSeasonControls(), playButton, undoButton, panelButton, registeredSeparator, registeredButton);
-        panelButton.Margin = new W.Thickness(0);
+            tools = Group(playButton, undoButton, panelButton, BuildEnvironmentMenu(), registeredSeparator, registeredButton);
+        environmentButton.Margin = new W.Thickness(0);
+#if LOCAL_DEVELOPER
+        log.SetDeveloperButton(BuildDeveloperMenu());
+#endif
         registeredSeparator.Margin = new W.Thickness(10, 0, 10, 0);
         registeredButton.Margin = new W.Thickness(0);
         WC.DockPanel.SetDock(connection, WC.Dock.Left);

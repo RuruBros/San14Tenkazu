@@ -82,9 +82,16 @@ internal static partial class GameMemory
     // ran (Result is its eax); otherwise it says why not.
     private static (string? Why, int Result) RunOnFrame(IntPtr handle, GameIdentity identity, Func<ulong, FrameCall> call, int codePages = 1)
     {
+        FrameDispatchGate.Wait();try{return RunOnFrameLocked(handle,identity,call,codePages);}finally{FrameDispatchGate.Release();}
+    }
+    internal static readonly SemaphoreSlim FrameDispatchGate=new(1);
+    private static (string? Why, int Result) RunOnFrameLocked(IntPtr handle, GameIdentity identity, Func<ulong, FrameCall> call, int codePages)
+    {
         if (!identity.Verified) return (L.Calls.WhyUnverified, 0);
-        ulong slot = identity.ModuleBase + AppUpdateSlotRva, update = identity.ModuleBase + AppUpdateRva;
-        if (ReadPointers(handle, slot, 1)[0] != update || !CodeIs(handle, update, AppUpdateStart)) return (L.Calls.WhyCode, 0);
+        ulong slot = identity.ModuleBase + AppUpdateSlotRva, originalUpdate = identity.ModuleBase + AppUpdateRva;
+        ulong update=EnvironmentRules.EnvironmentNativeBundle.FrameEntry(identity,ReadPointers(handle,slot,1)[0]);
+        if(update==0||!CodeIs(handle,originalUpdate,AppUpdateStart))return(L.Calls.WhyCode,0);
+        if(update!=originalUpdate&&!CodeIs(handle,update,EnvironmentRules.EnvironmentNativeBundle.Export(identity,"EnvironmentFrame").Code))return(L.Calls.WhyCode,0);
 
         int codeSize = checked(codePages * StubPage);
         IntPtr page = VirtualAllocEx(handle, IntPtr.Zero, (UIntPtr)(codeSize + StubPage), MemCommit | MemReserve, PageReadWrite);
@@ -140,7 +147,7 @@ internal static partial class GameMemory
         }
         finally
         {
-            try { WriteBytes(handle, slot, BitConverter.GetBytes(update)); }
+            try { if(update==originalUpdate)WriteBytes(handle,slot,BitConverter.GetBytes(update));else RestoreEnvironmentDispatch(handle,identity,code); }
             finally { VirtualProtectEx(handle, (IntPtr)unchecked((long)slot), (UIntPtr)8, slotProtect, out _); }
         }
         return reached switch

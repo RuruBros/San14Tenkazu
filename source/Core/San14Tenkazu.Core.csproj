@@ -20,5 +20,7 @@
     <EmbeddedResource Include="..\Seasons\Assets\climate.json" LogicalName="Seasons.climate.json" />
     <EmbeddedResource Include="..\Seasons\Assets\tree-catalog.json" LogicalName="Seasons.tree-catalog.json" />
     <EmbeddedResource Include="..\Seasons\Bundle\SeasonBridge.zip" LogicalName="Seasons.SeasonBridge.zip" />
+    <EmbeddedResource Include="..\Environment\Bundle\EnvironmentBridge.zip" LogicalName="Environment.EnvironmentBridge.zip" />
+    <EmbeddedResource Include="..\Environment\Assets\event-art-v2.bin.gz" LogicalName="Environment.event-art-v2.bin.gz" WithCulture="false" />
   </ItemGroup>
 </Project>

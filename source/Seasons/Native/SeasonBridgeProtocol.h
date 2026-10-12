@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 namespace seasons::bridge {
-inline constexpr uint32_t Magic=0x53425331,Version=5;
+inline constexpr uint32_t Magic=0x53425331,Version=6;
 enum Command:uint32_t {Hello=1,Apply=2,Heartbeat=3,Stop=4,ApplyTreeColor=5,TreeColorStatus=6,SceneStatus=7};
 struct Message {
     uint32_t magic,version,size,command;

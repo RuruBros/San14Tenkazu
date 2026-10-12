@@ -8,6 +8,13 @@
 #include "SeasonWeatherSnowBytecode.h"
 #include "SeasonWeatherCapture.h"
 #include "SeasonRiceGpu.h"
+#include "../../Environment/Native/EnvironmentWeather.h"
+#include "SeasonWeatherBoundsBytecode.h"
+#include "SeasonWeatherAreaVertexBytecode.h"
+#include "SeasonWeatherAreaBytecode.h"
+#include "SeasonWeatherMarkVertexBytecode.h"
+#include "SeasonWeatherMarkBytecode.h"
+#include "SeasonNoticeArt.h"
 
 struct SeasonSceneData {
     std::vector<BYTE> bytes;ComPtr<ID3DBlob> terrain,distantTerrain;std::string compileDiagnostic;
@@ -15,13 +22,16 @@ struct SeasonSceneData {
     const uint32_t* header()const{return reinterpret_cast<const uint32_t*>(bytes.data());}
     uint32_t detailedShaderBytes()const{uint32_t n{};std::memcpy(&n,bytes.data()+header()[11]+24,4);return n;}
     bool valid()const{
-        if(bytes.size()<64||bytes.size()>64+MaskBytes+ClimateBytes+263168)return false;const auto* h=header();
-        bool capture=h[1]==4&&h[13]>=1&&h[13]<=2&&h[14]==uint64_t(h[11])+h[12]&&h[15]>=8&&h[15]<=1024&&h[15]%2==0;
-        if(h[0]!=0x53475331||(h[1]!=3&&!capture)||h[2]!=bytes.size()||h[3]!=64||h[4]!=MaskBytes||h[5]!=64+MaskBytes||h[6]!=ClimateBytes||
+        if(bytes.size()<64||bytes.size()>64+MaskBytes+ClimateBytes+263168+NoticeArtBytes)return false;const auto* h=header();
+        bool art=(h[1]==5||h[1]==6)&&h[14]==uint64_t(h[11])+h[12]&&h[15]==NoticeArtBytes;
+        uint64_t end=uint64_t(h[11])+h[12]+(art?h[15]:0),pathBytes=art?bytes.size()-std::min<uint64_t>(bytes.size(),end):h[15];
+        bool capture=(h[1]==4||h[1]==6&&art)&&h[13]>=1&&h[13]<=2&&(art||h[14]==end)&&pathBytes>=8&&pathBytes<=1024&&pathBytes%2==0;
+        if(h[0]!=0x53475331||(h[1]!=3&&!capture&&!art)||h[2]!=bytes.size()||h[3]!=64||h[4]!=MaskBytes||h[5]!=64+MaskBytes||h[6]!=ClimateBytes||
            h[7]!=ClimateSize||h[8]!=ClimateSize||h[9]!=12||h[10]!=std::size(TreeAssets)||h[11]!=64+MaskBytes+ClimateBytes||h[12]<32||h[12]>262144||
-           (!capture&&(h[13]||h[14]||h[15]))||uint64_t(h[11])+h[12]+(capture?h[15]:0)!=bytes.size())return false;
-        if(capture){auto path=reinterpret_cast<const wchar_t*>(bytes.data()+h[14]);size_t length=h[15]/2;
+           (!capture&&(art?h[13]!=0:(h[13]||h[14]||h[15])))||h[1]==6&&!capture||end+(capture?pathBytes:0)!=bytes.size())return false;
+        if(capture){auto path=reinterpret_cast<const wchar_t*>(bytes.data()+end);size_t length=static_cast<size_t>(pathBytes/2);
             if(path[1]!=L':'||path[2]!=L'\\'||path[length-1]||std::wcslen(path)!=length-1)return false;}
+        if(art&&!validNoticeArt(bytes.data()+h[14],h[15]))return false;
         const auto* coverage=reinterpret_cast<const float*>(bytes.data()+64);
         for(size_t i=0;i<MaskBytes/4;i+=2)if(!std::isfinite(coverage[i])||!std::isfinite(coverage[i+1])||coverage[i]<0||coverage[i+1]<0||coverage[i]+coverage[i+1]>1.000001f)return false;
         const auto* climate=reinterpret_cast<const float*>(bytes.data()+h[5]);
@@ -42,7 +52,7 @@ struct SeasonSceneData {
     }
 };
 struct SeasonSceneTicket {
-    bool changed=false;uint32_t kind=0;
+    bool changed=false,observed=false;uint32_t kind=0;
     ComPtr<ID3D11PixelShader> shader;std::array<ComPtr<ID3D11Buffer>,2> constants;
     std::array<ComPtr<ID3D11ShaderResourceView>,6> resources;
     std::array<ComPtr<ID3D11SamplerState>,2> samplers;
@@ -51,6 +61,18 @@ class SeasonSceneGpu {
     const SeasonSceneData& source;
     ComPtr<ID3D11PixelShader> treeColor,treeDepth,land,distantLand,snow;
     ComPtr<ID3D11VertexShader> snowVertex;
+    ComPtr<ID3D11VertexShader> areaVertex,markVertex;ComPtr<ID3D11PixelShader> areaShader,markShader;
+    ComPtr<ID3D11Buffer> marks;ComPtr<ID3D11ShaderResourceView> marksView;
+    struct RegionMark{float x,z;uint32_t mask,padding;uint32_t dates[6];};
+    ComPtr<ID3D11ComputeShader> weatherBoundsShader;
+    ComPtr<ID3D11Texture2D> regionalWeather;
+    ComPtr<ID3D11ShaderResourceView> regionalView,weatherVolumeView;
+    ComPtr<ID3D11Buffer> weatherVolume;
+    ComPtr<ID3D11UnorderedAccessView> weatherVolumeWrite;
+    std::unique_ptr<environment::WeatherSnapshot> weatherSnapshot=std::make_unique<environment::WeatherSnapshot>();
+#ifdef SEASON_BRIDGE_FIXTURE
+    bool fixtureWeatherSet=false;
+#endif
     ComPtr<ID3D11Buffer> parameters,material;
     ComPtr<ID3D11SamplerState> clamp,plantWrap;
     ComPtr<ID3D11ShaderResourceView> climate;
@@ -83,6 +105,18 @@ class SeasonSceneGpu {
         SEASON_CREATE(device->CreatePixelShader(source.distantTerrain->GetBufferPointer(),source.distantTerrain->GetBufferSize(),nullptr,&distantLand));
         SEASON_CREATE(device->CreatePixelShader(SeasonWeatherSnowBytecode,sizeof(SeasonWeatherSnowBytecode),nullptr,&snow));
         SEASON_CREATE(device->CreateVertexShader(SeasonWeatherSnowVertexBytecode,sizeof(SeasonWeatherSnowVertexBytecode),nullptr,&snowVertex));
+        SEASON_CREATE(device->CreateComputeShader(SeasonWeatherBoundsBytecode,sizeof(SeasonWeatherBoundsBytecode),nullptr,&weatherBoundsShader));
+        SEASON_CREATE(device->CreateVertexShader(SeasonWeatherAreaVertexBytecode,sizeof(SeasonWeatherAreaVertexBytecode),nullptr,&areaVertex));
+        SEASON_CREATE(device->CreatePixelShader(SeasonWeatherAreaBytecode,sizeof(SeasonWeatherAreaBytecode),nullptr,&areaShader));
+        SEASON_CREATE(device->CreateVertexShader(SeasonWeatherMarkVertexBytecode,sizeof(SeasonWeatherMarkVertexBytecode),nullptr,&markVertex));
+        SEASON_CREATE(device->CreatePixelShader(SeasonWeatherMarkBytecode,sizeof(SeasonWeatherMarkBytecode),nullptr,&markShader));
+        static_assert(sizeof(RegionMark)==40);D3D11_BUFFER_DESC markDesc{46*sizeof(RegionMark),D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE,0,D3D11_RESOURCE_MISC_BUFFER_STRUCTURED,sizeof(RegionMark)};
+        SEASON_CREATE(device->CreateBuffer(&markDesc,nullptr,&marks));SEASON_CREATE(device->CreateShaderResourceView(marks.Get(),nullptr,&marksView));
+        D3D11_TEXTURE2D_DESC regional{220,220,1,1,DXGI_FORMAT_R16_UINT,{1,0},D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE,0,0};
+        SEASON_CREATE(device->CreateTexture2D(&regional,nullptr,&regionalWeather));SEASON_CREATE(device->CreateShaderResourceView(regionalWeather.Get(),nullptr,&regionalView));
+        D3D11_BUFFER_DESC volume{32,D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE|D3D11_BIND_UNORDERED_ACCESS,0,D3D11_RESOURCE_MISC_BUFFER_STRUCTURED,16};
+        SEASON_CREATE(device->CreateBuffer(&volume,nullptr,&weatherVolume));SEASON_CREATE(device->CreateShaderResourceView(weatherVolume.Get(),nullptr,&weatherVolumeView));
+        SEASON_CREATE(device->CreateUnorderedAccessView(weatherVolume.Get(),nullptr,&weatherVolumeWrite));
         D3D11_SAMPLER_DESC sampler{};sampler.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;sampler.AddressU=sampler.AddressV=sampler.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;
         sampler.ComparisonFunc=D3D11_COMPARISON_NEVER;sampler.MaxLOD=D3D11_FLOAT32_MAX;SEASON_CREATE(device->CreateSamplerState(&sampler,&clamp));
         sampler.AddressU=sampler.AddressV=sampler.AddressW=D3D11_TEXTURE_ADDRESS_WRAP;
@@ -105,7 +139,7 @@ class SeasonSceneGpu {
     }
     void updateParameters(ID3D11DeviceContext* context,const TreeColorParameters& p,const D3D11_VIEWPORT& vp){
         struct Data {float weights[4],extent[4];uint32_t months[2];float fraction,seconds,viewport[4];} data{};
-        static_assert(sizeof(Data)==64);std::memcpy(data.weights,p.weights,16);data.extent[2]=data.extent[3]=1.f/204800;
+        static_assert(sizeof(Data)==64);if(p.seasonal)std::memcpy(data.weights,p.weights,16);data.extent[2]=data.extent[3]=1.f/204800;
         data.months[0]=p.month-1;data.months[1]=p.month%12;data.fraction=float(p.day-1)/30;data.seconds=float((GetTickCount64()-start)%3600000)/1000;
 #ifdef SEASON_BRIDGE_FIXTURE
         data.seconds=fixedSeconds;
@@ -117,9 +151,10 @@ class SeasonSceneGpu {
 public:
 #ifdef SEASON_BRIDGE_FIXTURE
     void fixtureTime(float seconds){fixedSeconds=seconds;}
+    void fixtureWeather(const environment::WeatherSnapshot& value){*weatherSnapshot=value;fixtureWeatherSet=true;}
 #endif
     explicit SeasonSceneGpu(const SeasonSceneData& data):source(data){
-        if(data.header()[1]==4){auto path=reinterpret_cast<const wchar_t*>(data.bytes.data()+data.header()[14]);
+        if(data.header()[1]==4||data.header()[1]==6){auto offset=data.header()[1]==6?uint64_t(data.header()[14])+data.header()[15]:data.header()[14];auto path=reinterpret_cast<const wchar_t*>(data.bytes.data()+offset);
             capture.configure(path,data.header()[13]);riceCapture.configure(std::wstring(path)+L".rice",data.header()[13],true);riceStatisticsPath=std::wstring(path)+L".rice.json";}
     }
     void saveCaptureAfterDrain()const{capture.save();riceCapture.save();if(!riceStatisticsPath.empty())rice.saveStatistics(riceStatisticsPath);}
@@ -136,7 +171,7 @@ public:
         UINT count=1;D3D11_VIEWPORT vp{};context->RSGetViewports(&count,&vp);
         if(count!=1||vp.Width<=0||vp.Height<=0||vp.Width>4096||vp.Height>4096||vp.MaxDepth<=vp.MinDepth)return S_FALSE;
         SEASON_CREATE(initialize(context));
-        if(kind==3){
+        if(kind==3&&p.seasonal){
             ComPtr<ID3D11Buffer> original;context->PSGetConstantBuffers(0,1,&original);if(!original)return S_FALSE;
             D3D11_BUFFER_DESC d{};original->GetDesc(&d);if(d.ByteWidth!=1027*16)return S_FALSE;
             if(!terrainTable){
@@ -149,7 +184,7 @@ public:
             // Capture the verified detailed material table on the render thread.
             // The distant b0 contains scale values, not detail-layer indices.
             context->CopyResource(terrainTable.Get(),original.Get());
-        }else if(kind==5&&!terrainTableView)return S_FALSE;
+        }else if(kind==5&&p.seasonal&&!terrainTableView)return S_FALSE;
         ComPtr<ID3D11Buffer> vsConstants;context->VSGetConstantBuffers(0,1,&vsConstants);if(!vsConstants)return S_FALSE;
         SEASON_CREATE(world.update(context,vsConstants.Get()));
         if(kind!=2){
@@ -161,6 +196,7 @@ public:
             else sceneDepth.Reset();
         }
         updateParameters(context,p,vp);
+        if(!p.seasonal){ticket.observed=true;ticket.kind=kind;return S_OK;}
         struct Material {uint32_t policy;float cutoff,minDepth,inverseSpan;} m{TreeAssets[asset].policy|(TreeAssets[asset].green!=TreeAssets[asset].autumn?4u:0u),.49843138456344604f,vp.MinDepth,1/(vp.MaxDepth-vp.MinDepth)};
         if((kind==3||kind==5)&&plantControl&&plantDetail)m.policy|=256u;
         context->UpdateSubresource(material.Get(),0,nullptr,&m,0,0);
@@ -189,9 +225,36 @@ public:
         uint64_t total=parameters?SeasonSceneData::MaskBytes+SeasonSceneData::ClimateBytes+64+16+2*144:0;
         if(terrainTable){D3D11_BUFFER_DESC b{};terrainTable->GetDesc(&b);total+=b.ByteWidth;}
         D3D11_TEXTURE2D_DESC d{};if(sceneCopy){sceneCopy->GetDesc(&d);total+=uint64_t(d.Width)*d.Height*4;}
-        if(depthCopy){depthCopy->GetDesc(&d);total+=uint64_t(d.Width)*d.Height*(d.Format==DXGI_FORMAT_R32G8X24_TYPELESS?8:4);}return total+rice.gpuBytes();
+        if(depthCopy){depthCopy->GetDesc(&d);total+=uint64_t(d.Width)*d.Height*(d.Format==DXGI_FORMAT_R32G8X24_TYPELESS?8:4);}return total+rice.gpuBytes()+(regionalWeather?environment::TileCount*2:0)+(weatherVolume?32:0)+(marks?46*sizeof(RegionMark):0);
     }
     HRESULT weather(ID3D11DeviceContext* context,const TreeColorParameters& p,ID3D11RenderTargetView* target);
+    bool updateWeather(ID3D11DeviceContext* context,const TreeColorParameters& p){
+        bool received=false;
+#ifdef SEASON_BRIDGE_FIXTURE
+        received=fixtureWeatherSet;
+#else
+        auto module=GetModuleHandleW(L"EnvironmentBridge.dll");
+        if(module){auto readWeather=reinterpret_cast<BOOL(WINAPI*)(environment::WeatherSnapshot*)>(GetProcAddress(module,"EnvironmentReadWeather"));
+            if(readWeather)received=readWeather(weatherSnapshot.get())!=FALSE;}
+#endif
+        received=received&&weatherSnapshot->magic==environment::WeatherMagic&&weatherSnapshot->version==environment::WeatherVersion
+            &&weatherSnapshot->size==sizeof(*weatherSnapshot)&&weatherSnapshot->generation&&weatherSnapshot->sequence
+            &&weatherSnapshot->date==(p.year|(p.month<<16)|(p.day<<24));
+        std::array<uint16_t,environment::TileCount> cells{};std::array<RegionMark,46> indicators{};std::array<uint32_t,46> counts{};
+        if(received)for(size_t tile=0;tile<cells.size();tile++){
+            auto city=weatherSnapshot->regions[tile];if(city<1||city>46)continue;uint32_t code=weatherSnapshot->weather[city-1];
+            if(!(weatherSnapshot->flags&(1|4|64)))code&=~3;if(!(weatherSnapshot->flags&(2|4|128)))code&=~12;
+            auto& mark=indicators[city-1];mark.mask=((code&3)?1u:0u)|((code&12)?2u:0u);mark.dates[5]=weatherSnapshot->date;
+            for(uint32_t k=0;k<5;k++){auto date=weatherSnapshot->recentDates[(city-1)*5+k];
+                auto serial=[](uint32_t d){return (d&65535)*360+(((d>>16)&255)-1)*30+(d>>24)-1;};
+                if(date&&(weatherSnapshot->flags&(k<3?8u<<k:k==3?256u:512u))&&serial(weatherSnapshot->date)>=serial(date)&&serial(weatherSnapshot->date)-serial(date)<10){code|=16u<<k;mark.mask|=4u<<k;mark.dates[k]=date;}}
+            cells[tile]=static_cast<uint16_t>(code);float col=float(tile%220),row=float(tile/220);++counts[city-1];
+            mark.x+=37126+(1.5f*col+1)*468;mark.z+=12930+1.7320508075688772f*(row+(int(col)&1?.5f:1.f))*468;
+        }
+        for(size_t city=0;city<46;city++)if(counts[city]){indicators[city].x/=counts[city];indicators[city].z/=counts[city];}
+        context->UpdateSubresource(marks.Get(),0,nullptr,indicators.data(),0,0);
+        context->UpdateSubresource(regionalWeather.Get(),0,nullptr,cells.data(),440,0);return received;
+    }
 #undef SEASON_CREATE
 };
 
@@ -228,14 +291,21 @@ inline HRESULT SeasonSceneGpu::weather(ID3D11DeviceContext* context,const TreeCo
         hr=device->CreateDepthStencilView(depthCopy.Get(),&dv,&riceDepth);if(FAILED(hr))return hr;
     }
     updateParameters(context,p,colorViewport);
-    struct Weather {float minDepth,inverseSpan;uint32_t direction;float padding;} weather{colorViewport.MinDepth,1/(colorViewport.MaxDepth-colorViewport.MinDepth),depthDirection,0};
+    if(!updateWeather(context,p)&&!p.seasonal)return S_FALSE;
+    struct Weather {float minDepth,inverseSpan;uint32_t direction,flags;} weather{colorViewport.MinDepth,1/(colorViewport.MaxDepth-colorViewport.MinDepth),depthDirection,weatherSnapshot->flags};
     context->UpdateSubresource(material.Get(),0,nullptr,&weather,0,0);
     {
         seasons::PipelineScope scope(context,GetCurrentThreadId(),weatherState.Get());
         context->CopyResource(sceneCopy.Get(),originalColor.Get());context->CopyResource(depthCopy.Get(),originalDepth.Get());
+        ID3D11Buffer* weatherBuffers[]={parameters.Get(),material.Get()};context->CSSetConstantBuffers(12,2,weatherBuffers);
+        ID3D11ShaderResourceView* boundsViews[]={depthView.Get()};context->CSSetShaderResources(1,1,boundsViews);
+        auto* matrixView=colorWorld.get();context->CSSetShaderResources(101,1,&matrixView);
+        auto* volumeWrite=weatherVolumeWrite.Get();context->CSSetUnorderedAccessViews(0,1,&volumeWrite,nullptr);
+        context->CSSetShader(weatherBoundsShader.Get(),nullptr,0);context->Dispatch(1,1,1);
+        ID3D11UnorderedAccessView* emptyWrite=nullptr;context->CSSetUnorderedAccessViews(0,1,&emptyWrite,nullptr);
         context->RSSetState(weatherRaster.Get());context->RSSetViewports(1,&colorViewport);
         riceCapture.begin(context,sceneCopy.Get(),depthCopy.Get(),colorWorld.get(),captureParameters.data(),&weather,p.year,p.month,p.day);
-        auto riceResult=rice.draw(context,p,target,riceDepth.Get(),depthDirection,parameters.Get(),colorWorld.get());if(FAILED(riceResult))return riceResult;
+        auto riceResult=p.seasonal?rice.draw(context,p,target,riceDepth.Get(),depthDirection,parameters.Get(),colorWorld.get()):S_OK;if(FAILED(riceResult))return riceResult;
         riceCapture.afterPass(context,originalColor.Get());
         // Weather capture excludes the vegetation pass. Heat distortion has
         // been removed; WCAP v2 retains an unchanged historical haze stage.
@@ -246,10 +316,15 @@ inline HRESULT SeasonSceneGpu::weather(ID3D11DeviceContext* context,const TreeCo
         ID3D11Buffer* buffers[]={parameters.Get(),material.Get()};context->PSSetConstantBuffers(12,2,buffers);context->VSSetConstantBuffers(12,2,buffers);
         ID3D11ShaderResourceView* views[]={sceneView.Get(),depthView.Get()};context->PSSetShaderResources(0,2,views);context->VSSetShaderResources(1,1,&views[1]);
         ID3D11ShaderResourceView* privateViews[]={climate.Get(),colorWorld.get()};context->PSSetShaderResources(100,2,privateViews);context->VSSetShaderResources(100,2,privateViews);
+        ID3D11ShaderResourceView* regionalViews[]={regionalView.Get(),weatherVolumeView.Get()};context->VSSetShaderResources(106,2,regionalViews);
         auto* sampler=clamp.Get();context->PSSetSamplers(12,1,&sampler);context->VSSetSamplers(12,1,&sampler);
         capture.afterHaze(context,originalColor.Get());
-        context->OMSetBlendState(snowBlend.Get(),nullptr,UINT_MAX);context->VSSetShader(snowVertex.Get(),nullptr,0);context->PSSetShader(snow.Get(),nullptr,0);context->DrawInstanced(6,4096,0,0);
+        context->OMSetBlendState(snowBlend.Get(),nullptr,UINT_MAX);context->VSSetShader(snowVertex.Get(),nullptr,0);context->PSSetShader(snow.Get(),nullptr,0);context->DrawInstanced(6,16384,0,0);
         capture.afterSnow(context,originalColor.Get());
+        auto* markResource=marksView.Get();context->VSSetShaderResources(108,1,&markResource);
+        auto* regionResource=regionalView.Get();context->PSSetShaderResources(106,1,&regionResource);
+        context->VSSetShader(areaVertex.Get(),nullptr,0);context->PSSetShader(areaShader.Get(),nullptr,0);context->Draw(3,0);
+        context->VSSetShader(markVertex.Get(),nullptr,0);context->PSSetShader(markShader.Get(),nullptr,0);context->DrawInstanced(6,46*7,0,0);
         ID3D11ShaderResourceView* empty[2]{};context->PSSetShaderResources(0,2,empty);context->VSSetShaderResources(1,1,empty);
     }
     // The complete D3D11.1 pipeline is restored by the scope, including OM,

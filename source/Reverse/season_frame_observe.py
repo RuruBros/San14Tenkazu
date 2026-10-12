@@ -110,6 +110,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--build',type=Path,required=True);p.add_argument('--out',type=Path,required=True)
     p.add_argument('--milliseconds',type=int,default=300);p.add_argument('--live',action='store_true')
+    p.add_argument('--wait-notice-active',action='store_true',help='After read-only preflight, wait at most 20 seconds for the original report state before the bounded capture')
     p.add_argument('--sparse-bindings',action='store_true',help='Record every actual engine Draw, capture GPU bindings once per CPU owner/path group; repeated rows do not prove identical GPU bindings')
     p.add_argument('--render-thread-from',type=Path,required=True,help='Completed current-process actual Draw receipt with one authenticated render thread')
     p.add_argument('--target-present-returns',type=int,default=0,help='Close admission after 1..3 engine Present returns, or at hard deadline; default uses deadline only')
@@ -161,7 +162,18 @@ def main():
         audit['bindingSampling']['selection']='Exact scene candidate and first exact indexed UI candidate only'
     def save():(args.out/'audit.json').write_text(json.dumps(audit,indent=2),encoding='utf-8')
     save()
+    if args.wait_notice_active and not args.live:raise ValueError('Report-state waiting requires an explicit live capture')
     if not args.live:print(json.dumps(audit));return
+    if args.wait_notice_active:
+        print('WAIT_ACTIVE_ORIGINAL_NOTICE',flush=True);waiting=time.monotonic()
+        while True:
+            manager=g.exe+0x1b620b0;count=g.q(manager+0x10);items=g.q(manager+0x20)
+            if count>128:raise ValueError('Original report state count outside verified bound')
+            if any(g.q(g.q(items+i*8))==g.exe+0x13acdb8 for i in range(count)):break
+            if time.monotonic()-waiting>20:raise TimeoutError('No active original report before capture deadline')
+            time.sleep(.01)
+        check_identity(baseline,read_snapshot(g),check_clock=True)
+        audit['activeOriginalReportObserved']=True;save()
     handle=k32.OpenProcess(0x43a,False,g.pid)
     if not handle:raise c.WinError(c.get_last_error())
     k32.VirtualAllocEx.restype=c.c_void_p;k32.CreateRemoteThread.restype=c.c_void_p

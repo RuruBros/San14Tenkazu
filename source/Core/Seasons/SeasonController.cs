@@ -14,14 +14,14 @@ internal sealed class SeasonController(ISeasonDateSource dates, ISeasonNativeBac
     private Task? monitor;
     private ulong generation,lastFrame;
     private SeasonTreeColorReceipt? lastTreeColor;
-    private bool requested;
+    private bool requested,seasonal=true;
     private int disposed;
     internal SeasonStatus Status => Volatile.Read(ref status);
     internal event Action<SeasonStatus>? StatusChanged;
 
     private void Set(SeasonPhase phase, SeasonDate? date=null, bool restored=false, string? error=null)
     {
-        var next=new SeasonStatus(phase,date,generation,restored,error,scope,
+        var next=new SeasonStatus(phase,date,generation,restored,error,scope==SeasonScope.Full&&!seasonal?SeasonScope.Weather:scope,
             phase==SeasonPhase.PartialOn?lastTreeColor:null,requested);Volatile.Write(ref status,next);
         if (StatusChanged is not { } observers) return;
         foreach (Action<SeasonStatus> observer in observers.GetInvocationList())
@@ -71,6 +71,18 @@ internal sealed class SeasonController(ISeasonDateSource dates, ISeasonNativeBac
             catch (Exception exception) { await Fail(exception).ConfigureAwait(false); }
         }
         finally { gate.Release(); }
+    }
+    internal async Task SetSeasonalAsync(bool enabled,CancellationToken token=default)
+    {
+        await gate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(disposed!=0,this);if(seasonal==enabled)return;seasonal=enabled;
+            if(requested&&session is not null){var snapshot=await dates.ReadAsync(token).ConfigureAwait(false);snapshot.Validate();await Apply(snapshot,token).ConfigureAwait(false);}
+            else Set(Status.Phase,Status.Date,Status.OriginalRestored,Status.Error);
+        }
+        catch(Exception error){await Fail(error).ConfigureAwait(false);}
+        finally{gate.Release();}
     }
 
     private async ValueTask Connect(SeasonSnapshot snapshot,CancellationToken token,int attempts=3)
@@ -130,7 +142,7 @@ internal sealed class SeasonController(ISeasonDateSource dates, ISeasonNativeBac
             SeasonDate fullDate=snapshot.Date;Set(SeasonPhase.Applying,fullDate);
             try
             {
-                var receipt=await session!.ApplyAsync(SeasonParameters.At(fullDate),token).ConfigureAwait(false);
+                var receipt=await session!.ApplyAsync(SeasonParameters.At(fullDate) with{Seasonal=seasonal},token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
                 if(receipt.Generation!=generation||receipt.Date!=fullDate||!receipt.Rendered||receipt.Frame<=lastFrame)
                     throw new InvalidDataException("Native season passes have not been confirmed for this date/frame");
