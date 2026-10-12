@@ -234,13 +234,21 @@ public class CardEditTests
         Assert.Equal(80, after[data.ForceRecords[손책군], ForceFields.Friendship(조조군)]);
     }
 
-    [Fact]
-    public void LoyaltyFillsOnlyThoseServingARulerAndOnlyUpwards()
+    [Theory]
+    [InlineData(100)]
+    [InlineData(120)]
+    [InlineData(149)]
+    [InlineData(150)]
+    [InlineData(200)]
+    public void LoyaltyFillsOnlyThoseServingARulerAndOnlyUpwards(int loyalty)
     {
-        GameSnapshot data = Game().With(12, OfficerFields.Loyalty, 120).Build();
-        List<RecordEdit> edits = Fills.RaiseOfficers(data, [1, 10, 11, 12, 20], [OfficerFields.Loyalty]);
+        GameSnapshot data = Game().With(12, OfficerFields.Loyalty, loyalty)
+            .Officer(50, "포로", 0, 진류, status: 6).Build();
+        List<RecordEdit> edits = Fills.RaiseOfficers(data, [1, 10, 11, 12, 20, 50], [OfficerFields.Loyalty]);
 
-        // 조조 (ruler), 조인 (already past 100) and 유비 (재야) stay.
-        Assert.Equal(["하후돈", "하후연"], edits.Select(e => e.Label));
+        // Rulers, free officers, prisoners and loyalty already at or above 150 stay.
+        string[] expected = loyalty < 150 ? ["하후돈", "하후연", "조인"] : ["하후돈", "하후연"];
+        Assert.Equal(expected, edits.Select(e => e.Label));
+        Assert.All(edits, edit => Assert.Equal(new FieldChange(OfficerFields.Loyalty, 150), Assert.Single(edit.Changes)));
     }
 }

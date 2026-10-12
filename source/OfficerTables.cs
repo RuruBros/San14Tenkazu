@@ -8,7 +8,7 @@ namespace San14Tenkazu;
 // count, as the officers' list shows them (the portrait, the name over the 자, loyalty and the abilities with their
 // bars). Each table is as tall as its rows, so the card's page is the one thing that scrolls (a table scrolling
 // inside it read oddly); a row opens the officer's card. Where loyalty counts (군단장, 태수,
-// 일반), [충성 100] at the right of the table's name writes at once, after asking, for the officers of that table.
+// 일반), [충성 150] at the right of the table's name writes at once, after asking, for the officers of that table.
 internal sealed class OfficerTables : WC.StackPanel
 {
     internal static readonly FieldDef[] Values = [OfficerFields.Loyalty, .. OfficerFields.Abilities];
@@ -31,7 +31,7 @@ internal sealed class OfficerTables : WC.StackPanel
 
     internal event Action<int>? OfficerPicked;
 
-    // [충성 100] of a table: its officers and their status.
+    // [충성 150] of a table: its officers and their status.
     internal event Action<IReadOnlyList<int>, string>? LoyaltyClicked;
 
     // The fills write at once (after asking): only while connected and not busy.
@@ -76,7 +76,7 @@ internal sealed class OfficerTables : WC.StackPanel
             List<int> ids = group.Select(o => (int)o.Row.Tag).ToList();
             string status = group.Key;
             if (Vassals.Contains(status))
-                AddFill(title, L.Officer.Loyalty100, L.Officer.Loyalty100Tip(status),
+                AddFill(title, L.Officer.Loyalty150, L.Officer.Loyalty150Tip(status),
                     () => LoyaltyClicked?.Invoke(ids, status));
             title.Children.Add(new WC.TextBlock { Text = L.Officer.GroupCount(group.Key, group.Count()), Foreground = CardSkin.InkMuted, VerticalAlignment = W.VerticalAlignment.Bottom });
             Children.Add(title);

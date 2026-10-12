@@ -3,7 +3,7 @@ namespace San14Tenkazu;
 // The fills under the lists: one value written to every listed record that is below it.
 internal static class Fills
 {
-    // Officers' loyalty or abilities raised to 100 where lower (abilities with their experience). Loyalty only for
+    // Officers' loyalty raised to 150 or abilities to 100 where lower (abilities with their experience). Loyalty only for
     // those serving a ruler: rulers (a fixed marker), free officers and prisoners keep theirs.
     internal static List<RecordEdit> RaiseOfficers(GameSnapshot data, IEnumerable<int> officers, IReadOnlyList<FieldDef> which)
     {
@@ -13,7 +13,8 @@ internal static class Fills
         {
             if (!data.OfficerById.TryGetValue(id, out OfficerRecord? officer)) continue;
             if (loyalty && !OfficerFields.IsVassal(officer.Status)) continue;
-            var changes = which.Where(f => officer[f] < 100).Select(f => new FieldChange(f, 100)).ToList();
+            var changes = which.Select(f => new FieldChange(f, f == OfficerFields.Loyalty ? 150 : 100))
+                .Where(change => officer[change.Field] < change.Value).ToList();
             if (changes.Count > 0) edits.Add(new RecordEdit(RecordKind.Officer, officer.Address, officer.Data, officer.Name, changes));
         }
         return OfficerEdits.WithExperience(edits);

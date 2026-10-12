@@ -250,7 +250,7 @@ internal static partial class L
         internal static string NothingToChange(object? what) => Format(T(), (nameof(what), what));
         internal static string AndMore(object? count) => Format(T(), (nameof(count), count));
         internal static string WritesTo(object? what, object? count, object? names) => Format(T(), (nameof(what), what), (nameof(count), count), (nameof(names), names));
-        internal static string Loyalty100(object? who) => Format(T(), (nameof(who), who));
+        internal static string Loyalty150(object? who) => Format(T(), (nameof(who), who));
     }
 
     // 목록 창
@@ -564,8 +564,8 @@ internal static partial class L
         internal static string TacticCount(object? learned, object? max) => Format(T(), (nameof(learned), learned), (nameof(max), max));
         internal static string AddTieTip(object? tie, object? max) => Format(T(), (nameof(tie), tie), (nameof(max), max));
         internal static string NewTie(object? tie) => Format(T(), (nameof(tie), tie));
-        internal static string Loyalty100 => T();
-        internal static string Loyalty100Tip(object? status) => Format(T(), (nameof(status), status));
+        internal static string Loyalty150 => T();
+        internal static string Loyalty150Tip(object? status) => Format(T(), (nameof(status), status));
         internal static string GroupCount(object? group, object? count) => Format(T(), (nameof(group), group), (nameof(count), count));
     }
 

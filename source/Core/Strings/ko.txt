@@ -253,7 +253,7 @@ RaiseMorale = {force} 부대 사기 {morale}
 NothingToChange = {what}: 바꿀 대상이 없습니다.
 AndMore = 외 {count}
 WritesTo = {what}\n\n{count}개에 씁니다: {names}
-Loyalty100 = {who} 충성 100
+Loyalty150 = {who} 충성 150
 
 # 목록 창
 [Lists]
@@ -535,8 +535,8 @@ KeptTacticTip = 일반 전법 밖에서 익힌 전법입니다. 누르면 잊습
 TacticCount = 습득 전법 {learned}/{max}칸 (눌러서 익히기·잊기)
 AddTieTip = {tie} 장수를 추가합니다. 이름을 입력해 찾습니다(최대 {max}명).
 NewTie = 새 {tie}
-Loyalty100 = 충성 100
-Loyalty100Tip = 이 표의 {status} 장수 충성을 100으로 올립니다(100 이상은 그대로).\n확인한 뒤 바로 씁니다.
+Loyalty150 = 충성 150
+Loyalty150Tip = 이 표의 {status} 장수 충성을 150으로 올립니다(150 이상은 그대로).\n확인한 뒤 바로 씁니다.
 GroupCount = {group} {count}명
 
 # 장수 옮기기·등용·내보내기

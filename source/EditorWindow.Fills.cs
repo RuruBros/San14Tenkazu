@@ -1,6 +1,6 @@
 namespace San14Tenkazu;
 
-// The fills on the cards that write to many at once, after asking: [충성 100] over a city's, a gate's or a force's officers
+// The fills on the cards that write to many at once, after asking: [충성 150] over a city's, a gate's or a force's officers
 // of one status, [부상병을 병사로] and [사기 130] over a force's units. Undone as any write.
 internal sealed partial class EditorWindow
 {
@@ -31,7 +31,7 @@ internal sealed partial class EditorWindow
     {
         if (busy || snapshot is not { } data) return;
         List<RecordEdit> edits = Fills.RaiseOfficers(data, officers, [OfficerFields.Loyalty]);
-        if (ConfirmFill(L.Fills.Loyalty100(who), edits) && await WriteAsync(edits)) AfterWrite();
+        if (ConfirmFill(L.Fills.Loyalty150(who), edits) && await WriteAsync(edits)) AfterWrite();
     }
 
     private async Task FillUnitsAsync(string what, Func<GameSnapshot, List<RecordEdit>> fill)
