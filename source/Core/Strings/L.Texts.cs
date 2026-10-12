@@ -1090,7 +1090,13 @@ internal static partial class L
         internal static string StateMoved => T();
         internal static string ForceGone => T();
         internal static string AutoStopUnconfirmed => T();
-        internal static string UnitGoneUndone(object? unit) => Format(T(), (nameof(unit), unit));
+        internal static string UnitChanged(object? unit) => Format(T(), (nameof(unit), unit));
+        internal static string RollbackIncomplete => T();
+        internal static string RollbackContextChanged(object? field) => Format(T(), (nameof(field), field));
+        internal static string RollbackValueChanged => T();
+        internal static string RollbackReadbackFailed => T();
+        internal static string RollbackField(object? record, object? field, object? address, object? reason) =>
+            Format(T(), (nameof(record), record), (nameof(field), field), (nameof(address), address), (nameof(reason), reason));
         internal static string RecordMismatch(object? record) => Format(T(), (nameof(record), record));
         internal static string CityMismatch => T();
         internal static string KindMismatch(object? what) => Format(T(), (nameof(what), what));

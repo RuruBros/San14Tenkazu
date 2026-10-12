@@ -71,9 +71,10 @@ internal sealed partial class EditorWindow
             foreach (string item in drift) AddLog("  " + L.Apply.GameChangedBack(item));
             return true;
         }
-        catch (StaleEditException ex)
+        catch (Exception ex) when (ex is StaleEditException or WriteRecoveryException)
         {
-            // Nothing of it stays written; what the game holds now is read so the next try plans from it.
+            // A failed recovery can leave part of the change in memory. Show the freshly read state and
+            // preserve its full diagnostic; only a verified stale rollback gets the "all undone" message.
             try
             {
                 snapshot = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
@@ -81,7 +82,7 @@ internal sealed partial class EditorWindow
                 MergeSnapshot();
             }
             catch (Exception) { /* The regular refresh reads it again. */ }
-            ReportError(new InvalidOperationException(L.Apply.LinkedMoved(ex.Message)));
+            ReportError(ex is StaleEditException ? new InvalidOperationException(L.Apply.LinkedMoved(ex.Message)) : ex);
             return false;
         }
         catch (Exception ex)

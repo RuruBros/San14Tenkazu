@@ -1120,7 +1120,8 @@ internal static partial class GameMemory
     }
 
     // Writes every edit, re-validating each record first and reading it back afterwards.
-    // If anything fails, all bytes written by this call are restored.
+    // If anything fails, restore only bytes still belonging to this write and verify the recovery.
+    // An incomplete recovery reports every failed field instead of claiming the write was undone.
     // The game moves on while the editor shows what it read (and while a question waits for an answer), so each
     // record is compared with edit.Expected right before it is written: an edit that changes a linked field
     // (LinkedFields) is refused when any linked field of its record has moved since, and a plain value the game
@@ -1142,7 +1143,7 @@ internal static partial class GameMemory
     // The write itself, on the game's memory or (in the tests) on records made up in memory.
     internal static IReadOnlyList<string> Apply(IRecordMemory memory, GameClasses classes, IReadOnlyList<RecordEdit> edits)
     {
-        var undo = new List<(ulong Address, byte[] Old)>();
+        var undo = new WriteRecovery(memory, classes);
         var written = new HashSet<ulong>();   // fields this call has written: a later edit of the record finds them changed
         var overwritten = new List<string>();
         try
@@ -1172,10 +1173,8 @@ internal static partial class GameMemory
                 };
                 foreach (FieldChange change in edit.Changes.Concat(along))
                 {
-                    byte[] replacement = change.Field.Encode(change.Value);
                     ulong target = edit.Address + (ulong)change.Field.Offset;
-                    undo.Add((target, before.AsSpan(change.Field.Offset, change.Field.Size).ToArray()));
-                    memory.Write(target, replacement);
+                    undo.Write(edit, before, change);
                     written.Add(target);
                 }
                 byte[] after = memory.Read(edit.Address, edit.Expected.Length);
@@ -1195,20 +1194,17 @@ internal static partial class GameMemory
                     byte[] officer = memory.Read(restart.Officer, lit.Offset + lit.Size);
                     long marks = lit.Read(officer);
                     if (OfficerFields.Personalities[restart.Slot].Read(officer) != restart.Personality || (marks >> restart.Slot & 1) == 0) continue;
-                    ulong target = restart.Officer + (ulong)lit.Offset;
-                    undo.Add((target, officer.AsSpan(lit.Offset, lit.Size).ToArray()));
-                    memory.Write(target, lit.Encode(marks & ~(1L << restart.Slot)));
+                    var reset = new FieldChange(lit, marks & ~(1L << restart.Slot));
+                    var holder = new RecordEdit(RecordKind.Officer, restart.Officer, officer, edit.Label, [reset]);
+                    ValidateSameRecord(classes, holder, officer);
+                    undo.Write(holder, officer, reset, [OfficerFields.Personalities[restart.Slot]]);
                 }
             }
             return overwritten;
         }
-        catch
+        catch (Exception failure)
         {
-            for (int i = undo.Count - 1; i >= 0; i--)
-            {
-                try { memory.Write(undo[i].Address, undo[i].Old); }
-                catch (Win32Exception) { /* Keep restoring the rest. */ }
-            }
+            undo.Restore(failure);
             throw;
         }
     }
@@ -1410,7 +1406,7 @@ internal static partial class GameMemory
         };
         if (BitConverter.ToUInt64(data, 0) != vtable || !IsSameRecord(edit.Kind, data, edit.Expected))
             throw new InvalidOperationException(edit.Kind == RecordKind.Unit
-                ? L.Errors.UnitGoneUndone(edit.Label)
+                ? L.Errors.UnitChanged(edit.Label)
                 : L.Errors.RecordMismatch(edit.Label));
     }
 
