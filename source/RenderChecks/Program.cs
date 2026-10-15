@@ -26,6 +26,9 @@ internal static partial class RenderChecks
             if(args.Contains("--runtime-rule-persistence")){CheckRuntimeRulePersistence(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--settings-import-offline")){CheckSettingsImportOffline(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--developer-menu-check")){CheckDeveloperMenu(bool.Parse(args.First(a=>!a.StartsWith("--"))));return 0;}
+#if LOCAL_DEVELOPER
+            if(args.Contains("--developer-compatibility-read")){ReadDeveloperCompatibilityFromMenu(args.First(a=>!a.StartsWith("--")));return 0;}
+#endif
             if (args.Contains("--column-editing")) { CheckColumnEditing(args.First(a => !a.StartsWith("--"))); return 0; }
             if(args.Contains("--environment-menu")){CheckEnvironmentMenu(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--environment-overlay")){CheckEnvironmentOverlay(args.First(a=>!a.StartsWith("--")));return 0;}

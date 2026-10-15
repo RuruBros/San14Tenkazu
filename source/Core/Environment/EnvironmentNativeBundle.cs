@@ -38,6 +38,9 @@ internal static class EnvironmentNativeBundle
     {
         foreach(var pair in Read())if(Hash(File.ReadAllBytes(Path.Combine(path,pair.Key)))!=Hash(pair.Value))throw new InvalidDataException("Environment bundle directory differs: "+pair.Key);
     }
+#if LOCAL_DEVELOPER
+    internal static void VerifyEmbedded() => _ = Read();
+#endif
     internal static void VerifySources(string path)
     {
         var files=Read();foreach(string name in SourceNames)if(Hash(File.ReadAllBytes(Path.Combine(path,"Native",name)))!=Hash(files["sources/"+name]))throw new InvalidDataException("Environment checkout source differs: "+name);

@@ -205,6 +205,9 @@ internal sealed partial class EditorWindow
 
     private async void OnEditorClosing(object? sender,CancelEventArgs e)
     {
+#if LOCAL_DEVELOPER
+        if(compatibilityCancellation is {} diagnostic){diagnostic.Cancel();e.Cancel=true;return;}
+#endif
         if(runtimeRulesChanging){e.Cancel=true;return;}
         if(seasonCloseApproved){registeredEditor?.AllowOwnerClose();return;}
         if(seasonClosing||seasonDisconnecting){e.Cancel=true;return;}

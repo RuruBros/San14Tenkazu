@@ -26,8 +26,11 @@ internal sealed partial class EditorWindow
         window.Stop.Click+=async()=>await CancelDeveloperTest();
         window.ReadText.Click+=async()=>await ReadDeveloperNoticeText();
         window.ReadTraits.Click+=async()=>await ReadDeveloperTraitList();
+        window.ReadCompatibility.Click+=()=>compatibilityTask=ReadDeveloperCompatibility();
+        window.CancelCompatibility.Click+=()=>compatibilityCancellation?.Cancel();
         bool closeAllowed=false,closePending=false;
         window.Closing+=async(_,e)=>{
+            if(compatibilityCancellation is {} reading){reading.Cancel();e.Cancel=true;return;}
             if(closeAllowed)return;e.Cancel=true;if(developerChanging||closePending)return;closePending=true;
             try {
                 // Leave WPF's Closing event even when there is no active test to stop.
@@ -42,6 +45,7 @@ internal sealed partial class EditorWindow
         if(developerMenu is not {} window)return;
         bool available=!developerChanging&&!environmentChanging&&!busy&&!seasonClosing&&!seasonDisconnecting;
         window.SetAvailable(available&&game is{Verified:true}&&layout is not null&&snapshot is not null,available);
+        window.SetCompatibilityAvailable(available&&!refreshing&&!rulePolling&&!runtimeRulesChecking&&!environmentChecking&&!seasonStarting&&!seasonStopping,compatibilityCancellation is not null);
         window.SetReceipt(environmentController?.Status);
     }
     private async Task RefreshDeveloperCities()

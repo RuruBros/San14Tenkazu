@@ -18,6 +18,8 @@ internal sealed class DisasterTestWindow:W.Window
     internal readonly PlateButton ReadTraits=new("9개성 표시 진단");
     internal readonly WC.TextBox TraitLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal readonly WC.TabControl Tabs=new(){Background=CardSkin.Parchment,BorderBrush=CardSkin.Gold,Padding=new W.Thickness(0)};
+    internal readonly PlateButton ReadCompatibility=new("호환성 읽기 전용 진단"),CancelCompatibility=new("진단 취소");
+    internal readonly WC.TextBox CompatibilityLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal City? Target=>Cities.SelectedItem as City;
     internal DisasterTestWindow()
     {
@@ -37,11 +39,19 @@ internal sealed class DisasterTestWindow:W.Window
         ReadTraits.Margin = new W.Thickness(0, 0, 0, 14); instructions.Children.Add(ReadTraits);
         WC.DockPanel.SetDock(instructions, WC.Dock.Top); diagnostic.Children.Add(instructions); diagnostic.Children.Add(TraitLog);
         Tabs.Items.Add(new WC.TabItem { Header = "개성 목록 진단", Content = diagnostic, Background = CardSkin.Parchment, Foreground = CardSkin.Ink, Padding = new W.Thickness(12, 6, 12, 6) });
+        var compatibility=new WC.DockPanel{Margin=new W.Thickness(20)};
+        var heading=new WC.StackPanel();
+        heading.Children.Add(new WC.TextBlock{Text="게임을 일시정지한 뒤 실행하세요. EXE·클래스·테이블·기능별 검사와 Native 원본 코드·권한을 두 번 읽어 JSON에 기록합니다. 게임 메모리·날짜·설정 원본을 변경하지 않습니다. DLL 주입·Hook·원격 호출은 없습니다. 연결 변경·값 변화·취소 시 미확정으로 중단합니다. Native 실행 가능 여부는 이 진단만으로 확정하지 않습니다.",TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,0,0,14)});
+        var reads=new WC.WrapPanel();foreach(var b in new[]{ReadCompatibility,CancelCompatibility}){b.Margin=new W.Thickness(0,0,8,14);reads.Children.Add(b);}heading.Children.Add(reads);
+        WC.DockPanel.SetDock(heading,WC.Dock.Top);compatibility.Children.Add(heading);compatibility.Children.Add(CompatibilityLog);
+        Tabs.Items.Add(new WC.TabItem{Header="호환성 진단",Content=compatibility,Background=CardSkin.Parchment,Foreground=CardSkin.Ink,Padding=new W.Thickness(12,6,12,6)});
     }
     private bool available;
     private void SelectionChanged(){Preview.IsEnabled=Damage.IsEnabled=available&&Target is not null&&Kind.SelectedIndex>=0;}
     internal void SetAvailable(bool ready,bool stop){available=ready;Cities.IsEnabled=Kind.IsEnabled=Refresh.IsEnabled=ReadText.IsEnabled=ReadTraits.IsEnabled=ready;Stop.IsEnabled=stop;SelectionChanged();}
     internal void AppendTraitDiagnostic(string text){TraitLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);TraitLog.ScrollToEnd();}
+    internal void SetCompatibilityAvailable(bool ready,bool reading){ReadCompatibility.IsEnabled=ready;CancelCompatibility.IsEnabled=reading;}
+    internal void AppendCompatibility(string text){CompatibilityLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);CompatibilityLog.ScrollToEnd();}
     internal void SetCities(GameSnapshot data){int selected=Target?.Id??1;Cities.ItemsSource=data.Cities.Where(c=>c.CityId is >=1 and <=46).Select(c=>new City(c.CityId,data.ForceOfCity(c.CityId),c.Name+" · "+data.ForceName(data.ForceOfCity(c.CityId)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);}
     internal void Append(string text){Log.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);Log.ScrollToEnd();}
     internal void SetReceipt(EnvironmentStatus? status)
