@@ -16,10 +16,12 @@ internal static partial class RenderChecks
 {
     private sealed class MenuEnvironmentSession:IEnvironmentSession
     {
+        internal bool FailApply;
+        internal int Applies;
         internal EnvironmentProtocol.Reply Receipt=new(){Magic=EnvironmentProtocol.Magic,Version=EnvironmentProtocol.Version,Size=58552,Generation=5,
             Date=192|(4u<<16)|(21u<<24),Weather=new byte[46],Events=new EnvironmentProtocol.Event[1024],RecentDates=new uint[230]};
         public ValueTask<EnvironmentProtocol.Reply> ApplyAsync(EnvironmentSettings value,CancellationToken token)
-        {Receipt.Flags=(uint)value.Effects;Receipt.Values=value.Values;Receipt.Sequence++;Receipt.Applied=Receipt.Sequence;return ValueTask.FromResult(Receipt);}
+        {Applies++;if(FailApply)throw new IOException("fixture environment apply failure");Receipt.Flags=(uint)value.Effects;Receipt.Values=value.Values;Receipt.Sequence++;Receipt.Applied=Receipt.Sequence;return ValueTask.FromResult(Receipt);}
         public ValueTask<EnvironmentProtocol.Reply> QueryAsync(CancellationToken token)=>ValueTask.FromResult(Receipt);
         public ValueTask StopAsync()=>ValueTask.CompletedTask;
     }
@@ -44,7 +46,8 @@ internal static partial class RenderChecks
         static void Click(PlateButton button){Require(button.IsEnabled,"Button disabled");((Action)typeof(PlateButton).GetField("Click",Hidden)!.GetValue(button)!).Invoke();}
         static bool HasCombo(W.DependencyObject node){if(node is WC.ComboBox)return true;foreach(object child in W.LogicalTreeHelper.GetChildren(node))if(child is W.DependencyObject value&&HasCombo(value))return true;return false;}
         var context=SynchronizationContext.Current;SynchronizationContext.SetSynchronizationContext(new WT.DispatcherSynchronizationContext(WT.Dispatcher.CurrentDispatcher));
-        var editor=new EditorWindow(()=>false,Path.Combine(output,"storage"));new System.Windows.Interop.WindowInteropHelper(editor).EnsureHandle();
+        var editor=new EditorWindow(()=>false,Path.Combine(output,"storage"));
+        Set(editor,"environmentReadPace",new Func<GameIdentity,GameLayout,GamePace>((_,_)=>GamePace.Paused));new System.Windows.Interop.WindowInteropHelper(editor).EnsureHandle();
         var root=(W.FrameworkElement)editor.Content;editor.Content=null;var host=new W.Window{Content=root,Width=1100,Height=750,ShowActivated=false,ShowInTaskbar=false};
         EnvironmentSettingsWindow? menu=null;var session=new MenuEnvironmentSession();var controller=new EnvironmentController(new MenuEnvironmentBackend(session),_=>{});
         try
@@ -54,6 +57,7 @@ internal static partial class RenderChecks
             Click(Field<PlateButton>(editor,"environmentButton"));Pump();menu=Field<EnvironmentSettingsWindow>(editor,"environmentMenu");
             Check("season-choices-moved-inside-menu",IsDescendant(menu,on)&&IsDescendant(menu,off)&&menu.Choices.Count==10);
             Check("direct-numeric-fields-without-presets",menu.Numbers.Count==23&&!HasCombo(menu));
+            Check("shared-apply-outside-three-tabs-with-collapsed-history",menu.Tabs.Items.Count==3&&!IsDescendant(menu.Tabs,menu.Apply)&&!menu.RecentHistory.IsExpanded&&!IsDescendant(menu.Tabs,menu.RecentHistory));
             for(uint flags=0;flags<1024;flags++)
             {
                 foreach(var pair in menu.Choices)pair.Value.IsChecked=(flags&(uint)pair.Key)!=0;
@@ -71,12 +75,17 @@ internal static partial class RenderChecks
             var saved=new EnvironmentSettingsFile(Path.Combine(output,"storage","environment","settings.json")).Read().Settings!;
             Check("disconnected-saves-without-starting-native",saved.Effects==(EnvironmentEffects.RainMovement|EnvironmentEffects.Flood)&&
                 saved.Values.RainReduction==17&&saved.Values.HeavyRainReduction==41&&saved.Values.FloodChance==17&&saved.Values.WildfireFoodPercent==29&&Field<EnvironmentController?>(editor,"environmentController") is null);
+            var savedJournal=Field<SeasonJournal>(editor,"environmentJournal");
+            var releasedJournal=(Task<bool>)Call(editor,"StopEnvironmentAsync",true)!;Pump(()=>releasedJournal.IsCompleted);
+            Check("disconnected-save-releases-timing-journal",releasedJournal.GetAwaiter().GetResult()&&Field<SeasonJournal?>(editor,"environmentJournal") is null);
+            using(var exclusive=File.Open(savedJournal.Path,FileMode.Open,FileAccess.ReadWrite,FileShare.None))
+                Check("disconnected-timing-journal-is-flushed-and-closed",exclusive.Length>0);
             menu.Close();Pump();Click(Field<PlateButton>(editor,"environmentButton"));Pump();menu=Field<EnvironmentSettingsWindow>(editor,"environmentMenu");
             Check("reopened-menu-retains-saved-combination",menu.Selection(saved)==saved);
             Set(editor,"game",new GameIdentity(1,DateTime.UnixEpoch,0,"fixture",true,TestGame.Classes));Set(editor,"snapshot",new TestGame().Build());
             Set(editor,"layout",new GameLayout(new(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),0,0,0,0,0,0,0,0,[],[],0,0,0));
             Set(editor,"environmentController",controller);Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
-            Call(editor,"UpdateEnvironmentControls");Check("menu-reports-actual-applied-combination",controller.Status.Actual==saved.Effects&&menu.Status.Text.Contains(L.Environment.Rain));
+            Call(editor,"UpdateEnvironmentControls");Check("menu-reports-actual-applied-combination",controller.Status.Actual==saved.Effects&&menu.Status.Text.Contains("비 이동"));
             SeasonDate.TryCreate(192,4,21,out var date);
             var render=new SeasonRenderIdentity(1,DateTime.UnixEpoch,1,2,3,4,5,6,7,8);var seasonBackend=new EditorSeasonBackend();
             var seasons=new SeasonController(new EditorSeasonSource(new(render,date)),seasonBackend,scope:SeasonScope.Full);
@@ -85,10 +94,15 @@ internal static partial class RenderChecks
             menu.Choices[EnvironmentEffects.RainVisual].IsChecked=true;Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
             Check("rain-graphics-start-with-seasonal-off",seasons.Status is{Phase:SeasonPhase.On,Scope:SeasonScope.Weather,Requested:true}
                 &&off.IsChecked==true&&seasonBackend.Sessions.Single().Applied[^1].Seasonal==false);
-            typeof(WC.RadioButton).GetMethod("OnClick",Hidden)!.Invoke(on,null);Pump(()=>!Field<bool>(editor,"seasonStarting"));
+            typeof(WC.RadioButton).GetMethod("OnClick",Hidden)!.Invoke(on,null);Pump();
+            Call(editor,"UpdateSeasonControls");
+            Check("season-on-is-draft-until-shared-save",seasons.Status.Scope==SeasonScope.Weather&&menu.HasPendingChanges&&on.IsChecked==true);
+            Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
             Check("seasonal-on-reuses-weather-session",seasons.Status.Scope==SeasonScope.Full&&on.IsChecked==true
                 &&seasonBackend.Sessions.Count==1&&seasonBackend.Sessions[0].Applied[^1].Seasonal);
             typeof(WC.RadioButton).GetMethod("OnClick",Hidden)!.Invoke(off,null);Pump();
+            Check("season-off-is-draft-until-shared-save",seasons.Status.Scope==SeasonScope.Full&&menu.HasPendingChanges);
+            Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
             Check("seasonal-off-keeps-weather-graphics",seasons.Status is{Phase:SeasonPhase.On,Scope:SeasonScope.Weather,Requested:true}
                 &&off.IsChecked==true&&controller.Status.Actual.HasFlag(EnvironmentEffects.RainVisual)&&!seasonBackend.Sessions[0].Applied[^1].Seasonal);
             menu.Choices[EnvironmentEffects.RainVisual].IsChecked=false;menu.Choices[EnvironmentEffects.SnowVisual].IsChecked=true;
@@ -96,23 +110,67 @@ internal static partial class RenderChecks
             Check("rain-and-snow-graphics-select-independently",controller.Status.Actual.HasFlag(EnvironmentEffects.SnowVisual)
                 &&!controller.Status.Actual.HasFlag(EnvironmentEffects.RainVisual)&&seasons.Status.Scope==SeasonScope.Weather);
             seasonBackend.Sessions[0].Restored=false;var failedStop=seasons.StopAsync();Pump(()=>failedStop.IsCompleted);failedStop.GetAwaiter().GetResult();
-            Call(editor,"UpdateSeasonControls");Check("weather-recovery-error-keeps-off-available",seasons.Status is{Phase:SeasonPhase.Faulted,OriginalRestored:false}&&off.IsEnabled);
-            seasonBackend.Sessions[0].Restored=true;typeof(WC.RadioButton).GetMethod("OnClick",Hidden)!.Invoke(off,null);Pump();
+            Call(editor,"UpdateSeasonControls");Check("weather-recovery-error-keeps-shared-stop-available",seasons.Status is{Phase:SeasonPhase.Faulted,OriginalRestored:false}&&menu.DisableAll.IsEnabled);
+            seasonBackend.Sessions[0].Restored=true;Click(menu.DisableAll);Pump(()=>!Field<bool>(editor,"environmentChanging"));
             Check("off-retries-failed-weather-recovery",seasons.Status is{Phase:SeasonPhase.Off,OriginalRestored:true}&&seasonBackend.Sessions[0].Disposed);
-            Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
+            menu.Choices[EnvironmentEffects.SnowVisual].IsChecked=true;Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
             Check("graphics-restart-after-confirmed-recovery",seasons.Status is{Phase:SeasonPhase.On,Scope:SeasonScope.Weather}&&seasonBackend.Sessions.Count==2);
-            foreach(int dpi in new[]{96,144})
+            for(int tab=0;tab<menu.Tabs.Items.Count;tab++)foreach(int dpi in new[]{96,144})
             {
-                menu.UpdateLayout();var content=(W.FrameworkElement)menu.Content;var bitmap=new WMI.RenderTargetBitmap((int)Math.Ceiling(content.ActualWidth*dpi/96),(int)Math.Ceiling(content.ActualHeight*dpi/96),dpi,dpi,WM.PixelFormats.Pbgra32);bitmap.Render(content);
-                var encoder=new WMI.PngBitmapEncoder();encoder.Frames.Add(WMI.BitmapFrame.Create(bitmap));using var file=File.Create(Path.Combine(output,"menu-"+dpi+".png"));encoder.Save(file);
-                log.WriteLine(JsonSerializer.Serialize(new{dpi,choices=menu.Choices.Values.Select(c=>new{c.ActualWidth,c.ActualHeight}),apply=new{menu.Apply.ActualWidth,menu.Apply.DesiredSize,menu.Apply.Margin}}));
-                Check("native-wpf-layout-"+dpi,menu.Choices.Values.All(c=>c.ActualHeight>0&&c.ActualWidth>100)&&menu.Apply.ActualWidth+menu.Apply.Margin.Left+menu.Apply.Margin.Right+1>=menu.Apply.DesiredSize.Width);
+                menu.Tabs.SelectedIndex=tab;menu.Width=dpi==96?760:580;menu.Height=650;Pump();menu.UpdateLayout();
+                var content=(W.FrameworkElement)menu.Content;var bitmap=new WMI.RenderTargetBitmap((int)Math.Ceiling(content.ActualWidth*dpi/96),(int)Math.Ceiling(content.ActualHeight*dpi/96),dpi,dpi,WM.PixelFormats.Pbgra32);var drawing=new WM.DrawingVisual();using(var dc=drawing.RenderOpen())dc.DrawRectangle(new WM.VisualBrush(content),null,new W.Rect(0,0,content.ActualWidth,content.ActualHeight));bitmap.Render(drawing);
+                var encoder=new WMI.PngBitmapEncoder();encoder.Frames.Add(WMI.BitmapFrame.Create(bitmap));using var file=File.Create(Path.Combine(output,$"menu-{tab}-{dpi}.png"));encoder.Save(file);
+                var applyBounds=menu.Apply.TransformToAncestor(content).TransformBounds(new W.Rect(0,0,menu.Apply.ActualWidth,menu.Apply.ActualHeight));
+                Check($"native-wpf-shared-footer-tab-{tab}-{dpi}",applyBounds.Left>=0&&applyBounds.Right<=content.ActualWidth+1&&applyBounds.Top>=0&&applyBounds.Bottom<=content.ActualHeight+1&&menu.Tabs.ActualHeight>150);
             }
+            menu.RecentHistory.IsExpanded=true;menu.UpdateLayout();
+            var footerBounds=menu.Apply.TransformToAncestor((W.FrameworkElement)menu.Content).TransformBounds(new W.Rect(0,0,menu.Apply.ActualWidth,menu.Apply.ActualHeight));
+            Check("expanded-history-keeps-shared-footer-visible",footerBounds.Bottom<=((W.FrameworkElement)menu.Content).ActualHeight+1&&menu.Tabs.ActualHeight>100);
+            menu.RecentHistory.IsExpanded=false;menu.Tabs.SelectedIndex=0;
+            Set(editor,"environmentReadPace",new Func<GameIdentity,GameLayout,GamePace>((_,_)=>GamePace.Running));
+            on.IsChecked=true;off.IsChecked=false;menu.Numbers[nameof(EnvironmentValues.RainReduction)].Text="23";
+            Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
+            var deferred=new EnvironmentSettingsFile(Path.Combine(output,"storage","environment","settings.json")).Read().Settings!;
+            Check("running-saves-entire-draft-without-applying",deferred.Seasonal&&deferred.Values.RainReduction==23&&seasons.Status.Scope==SeasonScope.Weather&&!menu.HasPendingChanges&&menu.Status.Text.Contains("일시정지"));
+            menu.Choices[EnvironmentEffects.Flood].IsChecked=true;
+            var pendingApply=(Task)Call(editor,"ReapplyEnvironmentAsync",true)!;Pump(()=>pendingApply.IsCompleted);pendingApply.GetAwaiter().GetResult();
+            Check("automatic-apply-preserves-unsaved-draft",seasons.Status.Scope==SeasonScope.Weather&&menu.HasPendingChanges&&menu.Choices[EnvironmentEffects.Flood].IsChecked==true);
+            menu.Choices[EnvironmentEffects.Flood].IsChecked=false;
+            Set(editor,"environmentReadPace",new Func<GameIdentity,GameLayout,GamePace>((_,_)=>GamePace.Paused));
+#if LOCAL_DEVELOPER
+            Set(editor,"developerRendering",true);int beforeDeveloper=session.Applies;
+            var heldForDeveloper=(Task)Call(editor,"ReapplyEnvironmentAsync",true)!;Pump(()=>heldForDeveloper.IsCompleted);heldForDeveloper.GetAwaiter().GetResult();
+            Check("automatic-apply-does-not-interfere-with-developer-session",session.Applies==beforeDeveloper&&seasons.Status.Scope==SeasonScope.Weather);
+            Set(editor,"developerRendering",false);
+#endif
+            var automatic=(Task)Call(editor,"ReapplyEnvironmentAsync",true)!;Pump(()=>automatic.IsCompleted);automatic.GetAwaiter().GetResult();
+            Check("paused-refresh-applies-saved-season-and-effects-together",seasons.Status.Scope==SeasonScope.Full&&session.Receipt.Values.RainReduction==23&&!menu.HasPendingChanges);
+            ulong appliedSequence=session.Receipt.Sequence;
+            var same=(Task)Call(editor,"ReapplyEnvironmentAsync",false)!;Pump(()=>same.IsCompleted);same.GetAwaiter().GetResult();
+            Check("same-settings-not-reapplied",session.Receipt.Sequence==appliedSequence);
             Click(menu.DisableAll);Pump(()=>!Field<bool>(editor,"environmentChanging"));
             Check("all-off-clears-selection-and-restores",controller.Status.Restored&&controller.Status.Phase==EnvironmentPhase.Off&&menu.Selection(saved).Effects==EnvironmentEffects.None);
             Check("all-off-restores-weather-renderer",seasons.Status is{Phase:SeasonPhase.Off,OriginalRestored:true,Requested:false}&&seasonBackend.Sessions.All(s=>s.Disposed));
             menu.Close();Pump();Click(Field<PlateButton>(editor,"environmentButton"));Pump();menu=Field<EnvironmentSettingsWindow>(editor,"environmentMenu");
-            Check("all-off-persisted",menu.Selection(saved).Effects==EnvironmentEffects.None);
+            Check("all-off-persisted",menu.Selection(saved).Effects==EnvironmentEffects.None&&!menu.Selection(saved).Seasonal);
+            session.FailApply=true;menu.Choices[EnvironmentEffects.RainVisual].IsChecked=true;
+            Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
+            int failedApplies=session.Applies;
+            var noRetry=(Task)Call(editor,"ReapplyEnvironmentAsync",false)!;Pump(()=>noRetry.IsCompleted);noRetry.GetAwaiter().GetResult();
+            Check("apply-failure-preserves-save-and-blocks-automatic-retry",session.Applies==failedApplies&&menu.Status.Text.Contains("fixture environment apply failure")&&new EnvironmentSettingsFile(Path.Combine(output,"storage","environment","settings.json")).Read().Settings!.Effects==EnvironmentEffects.RainVisual);
+            session.FailApply=false;
+            var retry=(Task)Call(editor,"ReapplyEnvironmentAsync",true)!;Pump(()=>retry.IsCompleted);retry.GetAwaiter().GetResult();
+            Check("explicit-refresh-retries-failed-saved-settings",session.Applies==failedApplies+1&&controller.Status.Phase==EnvironmentPhase.On);
+            menu.Close();Pump();Click(Field<PlateButton>(editor,"environmentButton"));Pump();menu=Field<EnvironmentSettingsWindow>(editor,"environmentMenu");
+            Check("reopen-retains-confirmed-applied-status",menu.Status.Text.Contains(L.Environment.AppliedTogether)&&!menu.Status.Text.Contains(L.Environment.NotApplied)&&!menu.HasPendingChanges);
+            Click(menu.DisableAll);Pump(()=>!Field<bool>(editor,"environmentChanging"));
+            var journal=Field<SeasonJournal>(editor,"environmentJournal");
+            var flushed=journal.DisposeAsync().AsTask();Pump(()=>flushed.IsCompleted);flushed.GetAwaiter().GetResult();Set(editor,"environmentJournal",null);
+            string[] timings=File.ReadAllLines(journal.Path).Where(line=>line.Contains("Timing:")).ToArray();
+            foreach(string stage in new[]{"validate-and-save","pause-check","environment-native-apply","season-mode","weather-renderer"})
+                Check("timing-records-"+stage,timings.Any(line=>line.Contains("stage="+stage+",")));
+            Check("timing-distinguishes-pause-wait",timings.Any(line=>line.Contains("operation=environment-apply,")&&line.Contains("outcome=waiting-for-pause")));
+            Check("timing-distinguishes-failure",timings.Any(line=>line.Contains("operation=environment-apply,")&&line.Contains("outcome=incomplete")));
             Console.WriteLine("PASS environment native WPF menu, 1024 combinations, direct numeric validation/persistence, actual status, OFF");
         }
         finally

@@ -4,16 +4,18 @@ namespace San14Tenkazu;
 
 internal static class GameSeasonSources
 {
-    internal static byte[] Read(GameIdentity game)
+    internal static byte[] Read(GameIdentity game,Action<string>? log=null)
     {
         string executable=GameMemory.ExecutablePath(game)??throw new IOException("Game installation is unavailable");
-        return ReadDirectory(Path.GetDirectoryName(executable)!);
+        return ReadDirectory(Path.GetDirectoryName(executable)!,log);
     }
-    internal static byte[] ReadDirectory(string directory)
+    internal static byte[] ReadDirectory(string directory,Action<string>? log=null)
     {
+        using var timing=new SeasonTiming(log,"material-read");
         string data=Path.Combine(directory,"0002");
         var index=KtglArchive.ReadIndex(data,"MaterialEditor");
-        return SeasonTreeSources.Pack(asset=>
+        timing.Step("archive-index");
+        var result=SeasonTreeSources.Pack(asset=>
         {
             var candidates=index.Where(e=>e.Ktid==asset.Ktid&&e.Type==KtglArchive.TextureType).ToArray();
             if(candidates.Length!=1)throw new InvalidDataException($"Original season material is ambiguous: {asset.Ktid:X8}");
@@ -24,5 +26,7 @@ internal static class GameSeasonSources
                 throw new InvalidDataException($"Original season texture descriptor differs: {asset.Ktid:X8}, format={t.Format:X2}, {t.Width}x{t.Height}, mips={t.Mips}, bytes={t.DataEnd-t.DataOffset}");
             return g1t.AsSpan(t.DataOffset,asset.Bytes).ToArray();
         });
+        timing.Step("read-and-authenticate",$"assets={SeasonTreeSources.Assets.Length}, bytes={result.Length}");
+        timing.Complete();return result;
     }
 }

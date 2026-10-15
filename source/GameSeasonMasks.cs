@@ -6,8 +6,10 @@ internal static class GameSeasonMasks
 {
     internal sealed record Material(SeasonTreeSources.Asset Asset,byte[] Bc7,uint Policy,IReadOnlyList<SeasonTreeMaskMip> Mips);
     internal static IReadOnlyList<Material> ReadDirectory(string directory)
+        =>FromSources(GameSeasonSources.ReadDirectory(directory));
+    internal static IReadOnlyList<Material> FromSources(byte[] sources)
     {
-        byte[] sources=GameSeasonSources.ReadDirectory(directory);SeasonTreeSources.Validate(sources);
+        SeasonTreeSources.Validate(sources);
         var decoded=new List<SeasonCutoutMip>[SeasonTreeSources.Assets.Length];int start=0;
         Span<uint> block=stackalloc uint[16];
         for(int index=0;index<decoded.Length;index++)

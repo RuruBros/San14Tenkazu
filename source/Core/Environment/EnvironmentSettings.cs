@@ -28,7 +28,7 @@ internal readonly record struct EnvironmentValues(int RainReduction,int HeavyRai
             ||new[]{FloodChance,WildfireChance,DroughtChance,BlizzardChance,HeatwaveChance}.Any(v=>v is <0 or >1000))throw new InvalidDataException(L.Environment.InvalidSettings);
     }
 }
-internal sealed record EnvironmentSettings(int Version, EnvironmentEffects Effects,EnvironmentValues Values,ulong Seed)
+internal sealed record EnvironmentSettings(int Version, EnvironmentEffects Effects,EnvironmentValues Values,ulong Seed,bool Seasonal=false)
 {
     internal static EnvironmentSettings New() => new(3,EnvironmentEffects.None,EnvironmentValues.Default,BitConverter.ToUInt64(RandomNumberGenerator.GetBytes(8))|1);
     internal void Validate()

@@ -276,7 +276,7 @@ internal sealed partial class MapSurface
         W.Point p = e.GetPosition(this);
         if (IsMouseCaptured && MoveDrag(p)) return;
         UpdateHover(p);
-        if (hoverCity != 0 || hoverUnit is not null) PlaceCard(p);
+        if (card.Visibility == W.Visibility.Visible) PlaceCard(p);
     }
 
     // The pointer coordinates are shared by native input and the off-screen navigation replay.
@@ -400,7 +400,7 @@ internal sealed partial class MapSurface
 
     private void UpdateHover(W.Point p)
     {
-        MapHit hit = unitModes.IsMouseOver ? default : HitTest(p);
+        MapHit hit = unitModes.IsMouseOver ? default : HoverHitTest(p);
         SetHover(hit);
         Cursor = hit.City != 0 || hit.Unit is not null || hit.Gate != 0 || hit.Facility is not null ? WI.Cursors.Hand : CanPan ? WI.Cursors.SizeAll : WI.Cursors.Arrow;
     }
@@ -448,7 +448,13 @@ internal sealed partial class MapSurface
             L.Map.CityStores(city[CityFields.Troops], city[CityFields.Gold], city[CityFields.Food]);
     }
 
-    private string HoverText() => hoverSpot ?? (hoverUnit is { } unit ? DescribeUnit(unit) + StackedUnder(unit) : Describe(hoverCity));
+    private string HoverText()
+    {
+        if(hoverSpot is {} spot)return spot;
+        string text=hoverUnit is {} unit?DescribeUnit(unit)+StackedUnder(unit):Describe(hoverCity);
+        int city=hoverUnit is {} key&&snapshot?.Unit(key.Slot,key.Commander) is {} current?EnvironmentCityAtTile(current.Tile):hoverCity;
+        return DescribeEnvironment(city,includeCity:false) is {} weather?text+"\n\n"+weather:text;
+    }
 
     private string DescribeUnit((int Slot, int Commander) key)
     {

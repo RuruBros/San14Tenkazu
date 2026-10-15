@@ -26,17 +26,21 @@ internal sealed class SeasonClimateAtlas
             throw new ArgumentOutOfRangeException(nameof(extent));
         var data=new float[checked(width*height*12*2)];
         // Each texel represents its center; this matches D3D's normalized texture coordinates.
-        Parallel.For(0,12,new ParallelOptions{MaxDegreeOfParallelism=2},month=>
+        Parallel.For(0,height,new ParallelOptions{MaxDegreeOfParallelism=2},y=>
         {
-            var date=new MonthBlend(month+1,month==11?1:month+2,0);
-            for(int y=0;y<height;y++)for(int x=0;x<width;x++)
+            Span<MonthlyClimate> months=stackalloc MonthlyClimate[12];
+            for(int x=0;x<width;x++)
             {
                 double gx=extent.MinX+(x+0.5)/width*(extent.MaxX-extent.MinX);
                 double gz=extent.MinZ+(y+0.5)/height*(extent.MaxZ-extent.MinZ);
-                var sample=climate.Sample(gx,gz,date);int at=((month*height+y)*width+x)*2;
-                data[at]=(float)sample.TemperatureC;data[at+1]=(float)sample.PrecipitationMm;
-                if(!float.IsFinite(data[at]) || !float.IsFinite(data[at+1]))
-                    throw new InvalidDataException("Nonfinite climate atlas value");
+                climate.SampleMonths(gx,gz,months);
+                for(int month=0;month<12;month++)
+                {
+                    int at=((month*height+y)*width+x)*2;
+                    data[at]=(float)months[month].TemperatureC;data[at+1]=(float)months[month].PrecipitationMm;
+                    if(!float.IsFinite(data[at]) || !float.IsFinite(data[at+1]))
+                        throw new InvalidDataException("Nonfinite climate atlas value");
+                }
             }
         });
         return new(width,height,extent,data);

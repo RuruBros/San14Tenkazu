@@ -27,11 +27,14 @@ internal sealed class EnvironmentNativeBackend(GameIdentity identity,byte[] clim
 {
     public async ValueTask<IEnvironmentSession> StartAsync(CancellationToken token)
     {
+        using var timing=new SeasonTiming(log,"environment-connect");
         string directory=EnvironmentNativeBundle.Resolve(identity,root,log);
+        timing.Step("bundle-verification");
         using var owner=Process.GetCurrentProcess();
         ulong generation=BitConverter.ToUInt64(System.Security.Cryptography.RandomNumberGenerator.GetBytes(8))|1;
         string name="san14-environment-"+Guid.NewGuid().ToString("N");
         var process=new SeasonNativeProcess(identity,directory,log,environment:true);
+        timing.Step("native-code-validation");
         var pipe=new NamedPipeClientStream(".",name,PipeDirection.InOut,PipeOptions.Asynchronous);
         var session=new NativeSession(process,pipe,generation,climate,log);
         try
@@ -44,11 +47,14 @@ internal sealed class EnvironmentNativeBackend(GameIdentity identity,byte[] clim
             await GameMemory.FrameDispatchGate.WaitAsync(token).ConfigureAwait(false);
             try
             {
+                timing.Step("frame-dispatch-gate");
                 await Task.Run(()=>process.StartEnvironment(input,token),token).ConfigureAwait(false);
+                timing.Step("native-load-and-start");
                 await pipe.ConnectAsync(5000,token).ConfigureAwait(false);
+                timing.Step("native-startup-and-pipe");
             }
             finally{GameMemory.FrameDispatchGate.Release();}
-            return session;
+            timing.Complete();return session;
         }
         catch(Exception failure)
         {
@@ -94,12 +100,16 @@ internal sealed class EnvironmentNativeBackend(GameIdentity identity,byte[] clim
         }
         public async ValueTask<EnvironmentProtocol.Reply> ApplyAsync(EnvironmentSettings settings,CancellationToken token)
         {
+            using var timing=new SeasonTiming(log,"environment-frame-apply");
             settings.Validate();var reply=await Send(1,settings,token).ConfigureAwait(false);ulong requested=sequence;
+            timing.Step("request-reply");
+            int polls=0;
             for(int i=0;i<60&&reply.Applied!=requested;i++)
-            {await Task.Delay(50,token).ConfigureAwait(false);reply=await Send(2,null,token).ConfigureAwait(false);}
+            {await Task.Delay(50,token).ConfigureAwait(false);reply=await Send(2,null,token).ConfigureAwait(false);polls++;}
             if(reply.Applied!=requested||reply.Flags!=(uint)settings.Effects||reply.Values!=settings.Values)
                 throw new IOException("Environment configuration was not acknowledged by the game frame");
-            return reply;
+            timing.Step("frame-acknowledged",$"polls={polls}, generation={generation}, sequence={requested}");
+            timing.Complete();return reply;
         }
         public ValueTask<EnvironmentProtocol.Reply> QueryAsync(CancellationToken token)=>Send(2,null,token);
         public async ValueTask StopAsync()

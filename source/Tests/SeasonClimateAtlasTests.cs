@@ -5,6 +5,42 @@ namespace San14Tenkazu.Tests;
 public class SeasonClimateAtlasTests
 {
     [Fact]
+    public void ReusedCoordinateWeightsPreserveEveryMonthlyDoubleIncludingExactAnchorsAndTies()
+    {
+        var climate=SeasonClimate.Load();
+        var points=climate.Stations.Select(s=>(s.X,s.Z)).Concat(new[]{(0.0,0.0),(102400.0,102400.0),(204800.0,204800.0),(-10.0,204810.0)});
+        foreach(var (x,z) in points)
+        {
+            var months=new MonthlyClimate[12];climate.SampleMonths(x,z,months);
+            for(int month=0;month<12;month++)Assert.Equal(climate.Sample(x,z,new(month+1,month==11?1:month+2,0)),months[month]);
+        }
+        double[] Values(double offset)=>Enumerable.Range(0,12).Select(i=>offset+i).ToArray();
+        var ties=new SeasonClimate([new ClimateStation(2,2,1,0,Values(10),Values(100)),new ClimateStation(1,1,-1,0,Values(20),Values(200))]);
+        var tied=new MonthlyClimate[12];ties.SampleMonths(0,0,tied);
+        for(int month=0;month<12;month++)Assert.Equal(ties.Sample(0,0,new(month+1,month==11?1:month+2,0)),tied[month]);
+        Assert.Throws<ArgumentException>(()=>climate.SampleMonths(0,0,new MonthlyClimate[11]));
+        Assert.Throws<ArgumentOutOfRangeException>(()=>climate.SampleMonths(double.NaN,0,new MonthlyClimate[12]));
+        Assert.Throws<ArgumentOutOfRangeException>(()=>climate.SampleMonths(double.MaxValue,0,new MonthlyClimate[12]));
+    }
+
+    [Fact]
+    public void RowParallelAtlasPreservesOriginalMonthlyLayoutBitForBit()
+    {
+        var climate=SeasonClimate.Load();var extent=new ClimateExtent(-37,13,204811,204823);
+        foreach(var (width,height) in new[]{(1,1),(19,7),(5,23)})
+        {
+            var atlas=SeasonClimateAtlas.Build(climate,width,height,extent);
+            for(int month=0;month<12;month++)for(int y=0;y<height;y++)for(int x=0;x<width;x++)
+            {
+                double gx=extent.MinX+(x+0.5)/width*(extent.MaxX-extent.MinX),gz=extent.MinZ+(y+0.5)/height*(extent.MaxZ-extent.MinZ);
+                var expected=climate.Sample(gx,gz,new(month+1,month==11?1:month+2,0));int at=((month*height+y)*width+x)*2;
+                Assert.Equal(BitConverter.SingleToInt32Bits((float)expected.TemperatureC),BitConverter.SingleToInt32Bits(atlas.Data.Span[at]));
+                Assert.Equal(BitConverter.SingleToInt32Bits((float)expected.PrecipitationMm),BitConverter.SingleToInt32Bits(atlas.Data.Span[at+1]));
+            }
+        }
+    }
+
+    [Fact]
     public void TexelCentersMatchSourceNormalsAndDecemberWraps()
     {
         var climate=SeasonClimate.Load();var extent=new ClimateExtent(0,0,204800,204800);

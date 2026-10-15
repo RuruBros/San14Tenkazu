@@ -109,11 +109,14 @@ internal static class SeasonNativeBundle
     }
 }
 
-internal sealed class SeasonPackagedBackend(GameIdentity game,string cacheRoot,Action<string>? log=null,Func<byte[]>? sources=null,Func<byte[]>? sceneData=null):ISeasonNativeBackend
+internal sealed class SeasonPackagedBackend(GameIdentity game,string cacheRoot,Action<string>? log=null,Func<byte[]>? sources=null,Func<byte[]>? sceneData=null,Func<byte[],byte[]>? sceneFromSources=null):ISeasonNativeBackend
 {
     public async ValueTask<ISeasonNativeSession> StartAsync(SeasonSnapshot snapshot,ulong generation,CancellationToken token)
     {
+        using var timing=new SeasonTiming(log,"renderer-start");
         string directory=await Task.Run(()=>SeasonNativeBundle.ResolveForGame(game,cacheRoot,log),token).ConfigureAwait(false);
-        return await new SeasonNativeBackend(game,directory,log,sources,sceneData).StartAsync(snapshot,generation,token).ConfigureAwait(false);
+        timing.Step("bundle-verification");
+        var session=await new SeasonNativeBackend(game,directory,log,sources,sceneData,sceneFromSources).StartAsync(snapshot,generation,token).ConfigureAwait(false);
+        timing.Complete("connection-returned");return session;
     }
 }

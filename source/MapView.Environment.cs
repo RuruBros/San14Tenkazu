@@ -6,16 +6,11 @@ namespace San14Tenkazu;
 internal sealed partial class MapView
 {
     private EnvironmentOverlay? environment;
-    internal void SetEnvironment(EnvironmentOverlay? value){var flags=environment?.Flags;var preview=environment?.PreviewCity;environment=value;surface.SetEnvironment(value);if(flags!=value?.Flags||preview!=value?.PreviewCity)BuildLegend();}
-    private void AddEnvironmentLegend()
+    internal void SetEnvironment(EnvironmentOverlay? value){var preview=environment?.PreviewCity;environment=value;surface.SetEnvironment(value);if(preview!=value?.PreviewCity)BuildLegend();}
+    private void AddEnvironmentPreviewLegend()
     {
         if(environment is not {} value)return;
         if(value.PreviewCity>0)legend.Children.Add(new System.Windows.Controls.TextBlock{Text="[표시 전용 테스트 · 피해 없음]",Foreground=CardSkin.Ink});
-        foreach(var item in new[]{(1,L.Environment.RainVisual),(2,L.Environment.SnowVisual),(3,L.Environment.Flood),(4,L.Environment.Wildfire),(5,L.Environment.Drought),(6,L.Environment.Blizzard),(7,L.Environment.Heatwave)}){
-            bool selected=item.Item1 switch{1=>(value.Flags&(EnvironmentEffects.RainVisual|EnvironmentEffects.RainMovement|EnvironmentEffects.WeatherMorale))!=0,2=>(value.Flags&(EnvironmentEffects.SnowVisual|EnvironmentEffects.SnowMovement|EnvironmentEffects.WeatherMorale))!=0,_=>(value.Flags&EnvironmentOverlay.DisasterFlag(item.Item1))!=0};
-            if(!selected)continue;var color=EnvironmentColor(item.Item1);
-            legend.Children.Add(new System.Windows.Controls.TextBlock{Text="● "+item.Item2,Foreground=new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(color.R,color.G,color.B)),FontSize=11.5,Margin=new System.Windows.Thickness(4,4,8,4),ToolTip=L.Environment.OverlayHint});
-        }
     }
     internal static Color EnvironmentColor(int kind)=>kind switch{1=>Color.FromArgb(92,176,232),2=>Color.FromArgb(222,242,255),3=>Color.FromArgb(65,150,245),4=>Color.FromArgb(247,135,64),6=>Color.FromArgb(113,210,240),7=>Color.FromArgb(243,91,80),_=>Color.FromArgb(224,187,69)};
     internal static WMI.BitmapSource RenderEnvironment(GameSnapshot data,EnvironmentOverlay value)
