@@ -87,7 +87,7 @@ internal static partial class GameMemory
     internal static readonly SemaphoreSlim FrameDispatchGate=new(1);
     private static (string? Why, int Result) RunOnFrameLocked(IntPtr handle, GameIdentity identity, Func<ulong, FrameCall> call, int codePages)
     {
-        if (!identity.Verified) return (L.Calls.WhyUnverified, 0);
+        if (!identity.Verified || !GameCapabilities.Inspect(identity,GameFeature.GameCalls).CanAttempt) return (L.Calls.WhyUnverified, 0);
         ulong slot = identity.ModuleBase + AppUpdateSlotRva, originalUpdate = identity.ModuleBase + AppUpdateRva;
         ulong update=EnvironmentRules.EnvironmentNativeBundle.FrameEntry(identity,ReadPointers(handle,slot,1)[0]);
         if(update==0||!CodeIs(handle,originalUpdate,AppUpdateStart))return(L.Calls.WhyCode,0);
@@ -275,7 +275,7 @@ internal static partial class GameMemory
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
-            if (!identity.Verified) return L.Calls.WhyUnverified;
+            if (!identity.Verified || !GameCapabilities.Inspect(identity,GameFeature.GameCalls).CanAttempt) return L.Calls.WhyUnverified;
             ulong keeper = identity.ModuleBase + CameraKeeperRva;
             byte[] held = new byte[4];
             if (TryReadPointer(handle, keeper + MainCamera) != identity.ModuleBase + MainCameraVtableRva) return L.Calls.WhyNoCamera;

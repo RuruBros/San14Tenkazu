@@ -522,7 +522,7 @@ internal static partial class GameMemory
             string hash = Convert.ToHexString(SHA256.HashData(exe));
             bool verified = GameBuildProfiles.Find(hash) is not null && !TreatAsUnverified;
             ulong moduleBase = (ulong)module.BaseAddress.ToInt64();
-            return new GameIdentity(game.Id, game.StartTime.ToUniversalTime(), moduleBase, hash, verified, GameClasses.Find(exe, moduleBase));
+            return new GameIdentity(game.Id, game.StartTime.ToUniversalTime(), moduleBase, hash, verified, GameClasses.Find(exe, moduleBase, requireAll: verified));
         }
         finally
         {
@@ -738,8 +738,8 @@ internal static partial class GameMemory
         ulong At(int slot) => BitConverter.ToUInt64(window, slot * 8);
 
         GameClasses c = identity.Classes;
-        var known = new HashSet<ulong> { c.Force, c.Corps, c.Tile, c.County, c.Building, c.Officer, c.Unit, c.World, c.Kingdom, c.Item,
-            c.Personality, c.Tactic, c.Policy, c.Doctrine, c.Post, c.Rank, c.Formation };
+        var known = new HashSet<ulong>(new[] { c.Force, c.Corps, c.Tile, c.County, c.Building, c.Officer, c.Unit, c.World, c.Kingdom, c.Item,
+            c.Personality, c.Tactic, c.Policy, c.Doctrine, c.Post, c.Rank, c.Formation }.Where(v => v != 0));
         var vtables = new Dictionary<ulong, ulong>();
         byte[] word = new byte[8];
         ulong VtableOf(ulong pointer)
@@ -1134,6 +1134,7 @@ internal static partial class GameMemory
     // changed meanwhile is written over and returned, to be reported.
     internal static IReadOnlyList<string> Apply(GameIdentity identity, IReadOnlyList<RecordEdit> edits)
     {
+        GameCapabilities.Require(identity, GameFeature.DataWrite);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
         IntPtr handle = OpenProcess(access, false, identity.ProcessId);
@@ -1313,7 +1314,7 @@ internal static partial class GameMemory
             {
                 var names = new List<GameName>();
                 ulong[] pointers;
-                if (table.Table(layout.Tables) == 0) return [];
+                if (table.Table(layout.Tables) == 0 || table.Class(identity.Classes) == 0) return [];
                 try { pointers = ReadPointers(handle, table.Table(layout.Tables), table.Count); }
                 catch (Win32Exception) { return []; }
                 byte[] record = new byte[Math.Max(table.Read, minimumRead)];
@@ -1412,7 +1413,7 @@ internal static partial class GameMemory
             RecordKind.PlayRecord => PlayRecordFields.Header,
             _ => classes.Officer
         };
-        if (BitConverter.ToUInt64(data, 0) != vtable || !IsSameRecord(edit.Kind, data, edit.Expected))
+        if (vtable == 0 || BitConverter.ToUInt64(data, 0) != vtable || !IsSameRecord(edit.Kind, data, edit.Expected))
             throw new InvalidOperationException(edit.Kind == RecordKind.Unit
                 ? L.Errors.UnitChanged(edit.Label)
                 : L.Errors.RecordMismatch(edit.Label));
@@ -1483,7 +1484,7 @@ internal static partial class GameMemory
     private static bool HasVtable(IntPtr handle, ulong address, ulong vtable)
     {
         byte[] value = new byte[8];
-        return address != 0 && TryRead(handle, address, value) && BitConverter.ToUInt64(value) == vtable;
+        return vtable != 0 && address != 0 && TryRead(handle, address, value) && BitConverter.ToUInt64(value) == vtable;
     }
 
     private static bool VerifyCityArray(IntPtr handle, ulong arrayBase, ulong vtable)
@@ -1510,7 +1511,7 @@ internal static partial class GameMemory
 
     private static void RequireVtable(byte[] record, ulong vtable, string what)
     {
-        if (BitConverter.ToUInt64(record, 0) != vtable)
+        if (vtable == 0 || BitConverter.ToUInt64(record, 0) != vtable)
             throw new InvalidOperationException(L.Errors.KindMismatch(what));
     }
 

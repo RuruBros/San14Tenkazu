@@ -9,6 +9,7 @@ internal static partial class GameMemory
     internal static RuntimeRuleSettings? ReadRuntimeRules(GameIdentity identity)
     {
         if (!identity.Verified || !IsSameGame(identity)) return null;
+        GameCapabilities.Require(identity, GameFeature.RuntimeTraits);
         IntPtr handle = OpenRead(identity.ProcessId);
         try { return RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase); }
         finally { CloseHandle(handle); }
@@ -18,6 +19,8 @@ internal static partial class GameMemory
     {
         wanted.Validate();
         if (!identity.Verified || !IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
+        GameCapabilities.Require(identity, GameFeature.RuntimeAbilities);
+        if (wanted.TraitList9) GameCapabilities.Require(identity, GameFeature.TraitList);
         lock (RuntimeRuleLock)
         {
             var journal = new RuntimeRuleJournal(journalPath);

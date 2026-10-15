@@ -9,6 +9,7 @@ internal static partial class GameMemory
     // date or editor-map update is involved. This is not ownership of GPU objects.
     internal static SeasonSnapshot ReadSeasonSnapshot(GameIdentity identity)
     {
+        GameCapabilities.Require(identity,GameFeature.Seasons);
         if (!identity.Verified || !identity.ExeHash.Equals(VerifiedExeHash,StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("The season renderer requires the verified executable");
         if (!IsSameGame(identity)) throw new InvalidOperationException("The season game process changed");

@@ -14,6 +14,8 @@ internal sealed partial class EditorWindow
     private void TrustBuild(GameIdentity identity, GameLayout found, GameSnapshot data)
     {
         checks = GameChecks.Run(data, catalog);
+        foreach (var capability in GameCapabilities.Inspect(identity))
+            AddLog($"Compatibility {capability.Feature}: {capability.State}; {string.Join("; ", capability.Evidence.Select(e => e.Stage+":"+e.Detail))}");
         List<GameChecks.Check> failed = checks.Where(c => !c.Passed).ToList();
         AddLog(failed.Count == 0 ? L.Builds.ChecksPassed(checks.Count) : L.Builds.ChecksFailed(checks.Count, failed.Count));
         foreach (GameChecks.Check check in failed) AddLog("  " + L.Builds.CheckFailed(check.Group, check));
