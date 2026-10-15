@@ -78,6 +78,7 @@ try {
     Invoke-Check @('--environment-overlay', (Join-Path $taskArtifacts ('publish-environment-overlay-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-environment-overlay.log'
     Invoke-Check @('--navigation', (Join-Path $taskArtifacts 'publish-navigation.jsonl')) 'publish-navigation.log'
     Invoke-Check @('--panes') 'publish-panes.log'
+    Invoke-Check @('--ui-organization', (Join-Path $taskArtifacts 'publish-ui-organization')) 'publish-ui-organization.log'
     Invoke-Check @('--column-editing', (Join-Path $taskArtifacts ('publish-column-editing-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-column-editing.log'
     Invoke-Check @('--independence', (Join-Path $taskArtifacts 'publish-independence')) 'publish-independence.log'
     Invoke-Check @('--pane-history', (Join-Path $taskArtifacts 'publish-pane-history')) 'publish-pane-history.log'
