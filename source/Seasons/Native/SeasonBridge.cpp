@@ -1,3 +1,5 @@
+#include "GameBuildFacts.g.h"
+extern "C" __declspec(dllexport) const char San14BuildProfileIdentity[]=SAN14_BUILD_PROFILE_IDENTITY;
 // Product connection/lifetime layer. No command table or D3D11 vtable patch.
 // Material/weather rendering is not published as successful by this layer.
 #define NOMINMAX
@@ -32,13 +34,13 @@ struct OwnedLocal {void* value=nullptr;~OwnedLocal(){if(value)LocalFree(value);}
 bool copyBootstrap(Bootstrap* destination,const Bootstrap* source) noexcept{
     __try{*destination=*source;return true;}__except(EXCEPTION_EXECUTE_HANDLER){return false;}
 }
-using Draw=void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t);
-using Mesh=void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t);
-using Indexed=void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t);
+using Draw=gamebuild::Abi::Draw;
+using Mesh=gamebuild::Abi::Mesh;
+using Indexed=gamebuild::Abi::Indexed;
 Draw originalDraw,originalLand;Mesh originalMesh;
 Indexed originalIndexed;
-using Batch=void(__fastcall*)(void*);Batch originalBatch;
-using Prepare=uint8_t(__fastcall*)(void*,uint32_t);
+using Batch=gamebuild::Abi::Batch;Batch originalBatch;
+using Prepare=gamebuild::Abi::Prepare;
 Prepare originalPrepare;
 SRWLOCK dispatch=SRWLOCK_INIT;std::mutex connection;
 std::atomic<long> callbacks{0};
@@ -76,11 +78,11 @@ struct Session {
     bool sameScene()const{
         if(fixture)return true;
         const auto& i=input;
-        auto world=read<uint64_t>(i.module+0x277df18)+0x290;
-        auto state=read<uint64_t>(world,0x86f58),manager=read<uint64_t>(i.module+0x1b9fb70);
-        auto scene=read<uint64_t>(manager,0x210),parent=read<uint64_t>(scene,0x50),driver=read<uint64_t>(parent,0x18);
-        return world==i.world&&state==i.state&&manager==i.manager&&read<uint32_t>(manager,8)==0&&scene==i.scene&&
-            driver==i.driver&&read<uint64_t>(driver,0x10)==i.context&&read<uint64_t>(driver,0x3078)==i.device;
+        auto world=read<uint64_t>(i.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
+        auto state=read<uint64_t>(world,gamebuild::Memory::StatePointer),manager=read<uint64_t>(i.module+gamebuild::Scene::ManagerRva);
+        auto scene=read<uint64_t>(manager,gamebuild::Scene::SceneOffset),parent=read<uint64_t>(scene,gamebuild::Scene::ParentOffset),driver=read<uint64_t>(parent,gamebuild::Scene::DriverOffset);
+        return world==i.world&&state==i.state&&manager==i.manager&&read<uint32_t>(manager,gamebuild::Scene::ManagerStateOffset)==0&&scene==i.scene&&
+            driver==i.driver&&read<uint64_t>(driver,gamebuild::Scene::ContextOffset)==i.context&&read<uint64_t>(driver,gamebuild::Scene::DeviceOffset)==i.device;
     }
 };
 std::atomic<std::shared_ptr<Session>> current;
@@ -143,7 +145,7 @@ bool copyShader(void* destination,const void* source,size_t length) noexcept {
 }
 bool sceneShader(Session& s,void* driver,uint32_t kind){
     const auto d=reinterpret_cast<uint64_t>(driver);auto vo=read<uint64_t>(d,0xa8),po=read<uint64_t>(d,0xb8);
-    if(!vo||!po||read<uint64_t>(vo)!=s.input.module+0x14beb58||read<uint64_t>(po)!=s.input.module+0x14beb90)return false;
+    if(!vo||!po||read<uint64_t>(vo)!=s.input.module+gamebuild::Scene::VertexOwnerClassRva||read<uint64_t>(po)!=s.input.module+gamebuild::Scene::PixelOwnerClassRva)return false;
     ComPtr<ID3D11VertexShader> vs;ComPtr<ID3D11PixelShader> ps;s.context->VSGetShader(&vs,nullptr,nullptr);s.context->PSGetShader(&ps,nullptr,nullptr);
     if(reinterpret_cast<uint64_t>(vs.Get())!=read<uint64_t>(vo,40)||reinterpret_cast<uint64_t>(ps.Get())!=read<uint64_t>(po,40))return false;
     for(const auto& entry:s.shaderIdentities)if(entry.vo==vo&&entry.po==po&&entry.vs==vs&&entry.ps==ps&&entry.kind==kind)return entry.accepted;
@@ -194,7 +196,7 @@ void enterTree(MaterialTicket& ticket) noexcept {
             if(!sceneShader(*s,ticket.driver,sceneKind))return;
             ++s->selection[sceneKind==1?4:5];
         }else if(!s->fixture){
-            if(!vo||!po||read<uint64_t>(vo)!=s->input.module+0x14beb58||read<uint64_t>(po)!=s->input.module+0x14beb90)return;
+            if(!vo||!po||read<uint64_t>(vo)!=s->input.module+gamebuild::Scene::VertexOwnerClassRva||read<uint64_t>(po)!=s->input.module+gamebuild::Scene::PixelOwnerClassRva)return;
             ComPtr<ID3D11VertexShader> vs;ComPtr<ID3D11PixelShader> ps;context->VSGetShader(&vs,nullptr,nullptr);context->PSGetShader(&ps,nullptr,nullptr);
             if(reinterpret_cast<uint64_t>(vs.Get())!=read<uint64_t>(vo,40)||reinterpret_cast<uint64_t>(ps.Get())!=read<uint64_t>(po,40))return;
             ++s->selection[4];
@@ -378,12 +380,12 @@ void __fastcall onBatch(void* d){Scope s;MaterialTicket ticket{&s,d,0,0};ticket.
 }
 Patch patches[6];
 void initialize(){using namespace season::frame;
-    patches[0]={reinterpret_cast<PVOID*>(&originalDraw),reinterpret_cast<void*>(onDraw),0x960f90,DrawCode,sizeof(DrawCode)};
-    patches[1]={reinterpret_cast<PVOID*>(&originalLand),reinterpret_cast<void*>(onLand),0x960ee0,LandCode,sizeof(LandCode)};
-    patches[2]={reinterpret_cast<PVOID*>(&originalMesh),reinterpret_cast<void*>(onMesh),0x960e90,MeshCode,sizeof(MeshCode)};
-    patches[3]={reinterpret_cast<PVOID*>(&originalPrepare),reinterpret_cast<void*>(onPrepare),0x963c60,ExpectedPrepareCode,sizeof(ExpectedPrepareCode)};
-    patches[4]={reinterpret_cast<PVOID*>(&originalIndexed),reinterpret_cast<void*>(onIndexed),0x960e50,IndexedCode,sizeof(IndexedCode)};
-    patches[5]={reinterpret_cast<PVOID*>(&originalBatch),reinterpret_cast<void*>(onBatch),0x9625f0,BatchCode,sizeof(BatchCode)};
+    patches[0]={reinterpret_cast<PVOID*>(&originalDraw),reinterpret_cast<void*>(onDraw),gamebuild::Engine::DrawRva,DrawCode,sizeof(DrawCode)};
+    patches[1]={reinterpret_cast<PVOID*>(&originalLand),reinterpret_cast<void*>(onLand),gamebuild::Engine::LandRva,LandCode,sizeof(LandCode)};
+    patches[2]={reinterpret_cast<PVOID*>(&originalMesh),reinterpret_cast<void*>(onMesh),gamebuild::Engine::MeshRva,MeshCode,sizeof(MeshCode)};
+    patches[3]={reinterpret_cast<PVOID*>(&originalPrepare),reinterpret_cast<void*>(onPrepare),gamebuild::Engine::PrepareRva,ExpectedPrepareCode,sizeof(ExpectedPrepareCode)};
+    patches[4]={reinterpret_cast<PVOID*>(&originalIndexed),reinterpret_cast<void*>(onIndexed),gamebuild::Engine::IndexedRva,IndexedCode,sizeof(IndexedCode)};
+    patches[5]={reinterpret_cast<PVOID*>(&originalBatch),reinterpret_cast<void*>(onBatch),gamebuild::Engine::BatchRva,BatchCode,sizeof(BatchCode)};
 }
 LONG transaction(bool attach){
     AcquireSRWLockExclusive(&dispatch);std::vector<HANDLE> threads;LONG result=NO_ERROR;

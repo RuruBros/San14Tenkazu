@@ -9,7 +9,7 @@ internal static class AiExtensionStub
     internal const ulong SelectorRva = 0xB2BC40, AgentUnitRva = 0xB6070, ValidRva = 0x32F500;
     internal const ulong CorpsIndexRva = 0x22BAE0, DirectCorpsRva = 0x233960;
     internal const ulong RecoverRva = 0x20060, EvadeRva = 0x201E0, RetreatRva = 0x61120, HoldRva = 0x304700;
-    internal const ulong WorldPointerRva = 0x277DF18;
+    internal const ulong WorldPointerRva = GameBuildFacts.Memory.BasePointerRva;
     internal const ulong Magic = 0x3154584549415453; // STAIEXT1
 
     internal static byte[] Build(ulong exe, ulong data)

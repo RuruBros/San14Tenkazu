@@ -9,7 +9,7 @@ internal readonly record struct DemoEnd(bool ByGame, string? Why);
 
 // The editor runs the game's own code on its frame (RunOnFrame): a call, optionally followed by the native
 // transition/refresh calls that must finish in that same frame.
-// CApp::Update (exe+0x14B600, the third slot of CApp's vtable) runs the frame: the state manager and with it the
+// CApp::Update (exe+GameBuildFacts.Engine.UpdateRva, the third slot of CApp's vtable) runs the frame: the state manager and with it the
 // states and their menus, one frame at a time, paused or not (60 times a second, checked live; the thread it runs on
 // stayed the same within a run, but not from one hour to the next). The editor points that slot for a moment at a
 // small stub that calls the function once and goes on to Update, and puts the slot back as soon as the stub has run.
@@ -32,7 +32,7 @@ internal readonly record struct DemoEnd(bool ByGame, string? Why);
 // - The camera's flight to a hex (exe+0x451360; ShowTileInGame), which the game's lists and buttons call.
 internal static partial class GameMemory
 {
-    private const ulong AppUpdateSlotRva = 0x1387728, AppUpdateRva = 0x14B600, DemoSwitchRva = 0x33A630, SurrenderRva = 0x3C1A00;
+    private const ulong AppUpdateSlotRva = GameBuildFacts.Engine.UpdateSlotRva, AppUpdateRva = GameBuildFacts.Engine.UpdateRva, DemoSwitchRva = 0x33A630, SurrenderRva = 0x3C1A00;
     private const ulong OwnedItemAddRva = 0x31F2E0, OwnedItemRemoveRva = 0x32B0E0, CameraToTileRva = 0x451360, GiveBaseRva = 0x3A9300;
     // The first bytes of the functions in the verified build.
     private static readonly byte[] AppUpdateStart = Convert.FromHexString(
@@ -296,7 +296,7 @@ internal static partial class GameMemory
     // state written into the record alone leave the list as it was (read 2026-10-03, checked in an emulator: 노자 given
     // that way added nothing to 하진's 지력 until it was added). [world + 0x110] points at the list's number among the
     // game's lists (a dword, below the dword at exe+0x27D1120), [exe+0x27D10F0] at their first nodes, and a node is
-    // {record, next}; world is the game's own pointer at exe+0x277DF18.
+    // {record, next}; world is the game's own pointer at exe+GameBuildFacts.Memory.BasePointerRva.
     private const ulong OwnedItemsList = 0x110, ListFirstsRva = 0x27D10F0, ListCountRva = 0x27D1120;
 
     // Whether the list needs a 명품 added (true), removed (false) or neither (null): it holds exactly the held ones.

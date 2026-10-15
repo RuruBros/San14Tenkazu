@@ -1,5 +1,8 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[string]$PythonExecutable)
 $ErrorActionPreference='Stop'
+& (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
+$taskGameProfile=Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json') -Raw | ConvertFrom-Json
+$taskGameProfileHash=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant()
 $taskFiles=@('SeasonBridge.cpp','SeasonBridgeProtocol.h','SeasonBridgeChecks.cpp','FrameSignatures.h','PrepareSignature.h','RuntimeGuard.h','SeasonTreeColorGpu.h','..\Shaders\SeasonTreeColorSource.hlsl','BuildSeasonBridge.ps1')
 $taskFiles+=@('SeasonSceneChecks.cpp','SeasonSceneGpu.h','SeasonWeatherCapture.h','SeasonWorldGpu.h','SeasonShaderTranslation.h','SeasonShaderProfiles.h','SeasonShaderAdmission.h','SeasonGroundSourceGpu.h','SeasonTreeCatalog.h',
     '..\Assets\tree-catalog.json','..\..\Reverse\season_tree_catalog.py',
@@ -8,10 +11,12 @@ $taskFiles+=@('SeasonSceneChecks.cpp','SeasonSceneGpu.h','SeasonWeatherCapture.h
 $taskFiles+=@('SeasonRiceGpu.h','SeasonRiceChecks.cpp','..\Shaders\SeasonGameRice.hlsl','..\Shaders\SeasonVegetation.hlsli')
 $taskFiles+=@('..\..\Environment\Native\EnvironmentWeather.h')
 $taskFiles+=@('SeasonNoticeArt.h')
+$taskFiles+=@('GameBuildFacts.g.h')
 $taskHashes=@{}
 foreach($taskFile in $taskFiles){$taskHashes[$taskFile]=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $taskFile)).Hash.ToLower()}
 $taskSourceRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-& (Join-Path $taskSourceRoot 'Reverse\.venv\Scripts\python.exe') (Join-Path $taskSourceRoot 'Reverse\season_tree_catalog.py') --check
+if(-not $PythonExecutable){$PythonExecutable=Join-Path $taskSourceRoot 'Reverse\.venv\Scripts\python.exe'}
+& $PythonExecutable (Join-Path $taskSourceRoot 'Reverse\season_tree_catalog.py') --check
 if($LASTEXITCODE -ne 0){throw 'Managed/native tree catalogs differ.'}
 $taskZip=Join-Path $taskSourceRoot 'Reverse\.cache\tools\detours-4.0.1.zip'
 if((Get-FileHash -LiteralPath $taskZip).Hash -ne '5ab84eb08fb9befeb16ffd04ca283731b1e0e1e53b1947ce7868d4b9654e43fc'){throw 'Microsoft Detours source archive differs.'}
@@ -77,4 +82,6 @@ foreach($taskFile in $taskFiles){if((Get-FileHash -LiteralPath (Join-Path $PSScr
 $taskSnapshot=Join-Path $taskOut 'sources';New-Item -ItemType Directory -Path $taskSnapshot -ErrorAction Stop | Out-Null
 $taskManifestHashes=@{}
 foreach($taskFile in $taskFiles){$taskName=[IO.Path]::GetFileName($taskFile);Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskName) -ErrorAction Stop;$taskManifestHashes[$taskName]=$taskHashes[$taskFile]}
-[ordered]@{nativeBuild=56;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
+& (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
+if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant() -cne $taskGameProfileHash){throw 'Game build profile changed during Native build.'}
+[ordered]@{nativeBuild=57;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8

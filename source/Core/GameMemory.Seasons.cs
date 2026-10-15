@@ -28,14 +28,14 @@ internal static partial class GameMemory
                 byte[] clock=ReadBytes(handle,state+StateYearOffset,5);
                 if (!SeasonDate.TryCreate(BinaryPrimitives.ReadUInt16LittleEndian(clock),clock[2],clock[3],out var date))
                     throw new InvalidDataException("Season game calendar is invalid");
-                ulong manager=Pointer(identity.ModuleBase+0x1B9FB70);
-                if (BinaryPrimitives.ReadInt32LittleEndian(ReadBytes(handle,manager+8,4))!=0)
+                ulong manager=Pointer(identity.ModuleBase+GameBuildFacts.Scene.ManagerRva);
+                if (BinaryPrimitives.ReadInt32LittleEndian(ReadBytes(handle,manager+GameBuildFacts.Scene.ManagerStateOffset,4))!=0)
                     throw new InvalidDataException("A loaded season scene is required");
-                ulong scene=Pointer(manager+0x210),parent=Pointer(scene+0x50),driver=Pointer(parent+0x18);
-                if (!HasVtable(handle,driver,identity.ModuleBase+0x14BCE98))
+                ulong scene=Pointer(manager+GameBuildFacts.Scene.SceneOffset),parent=Pointer(scene+GameBuildFacts.Scene.ParentOffset),driver=Pointer(parent+GameBuildFacts.Scene.DriverOffset);
+                if (!HasVtable(handle,driver,identity.ModuleBase+GameBuildFacts.Scene.DriverClassRva))
                     throw new InvalidDataException("Season scene driver class changed");
                 var result=new SeasonSnapshot(new(identity.ProcessId,identity.StartTimeUtc,identity.ModuleBase,
-                    world,state,manager,scene,driver,Pointer(driver+0x3078),Pointer(driver+0x10)),date);
+                    world,state,manager,scene,driver,Pointer(driver+GameBuildFacts.Scene.DeviceOffset),Pointer(driver+GameBuildFacts.Scene.ContextOffset)),date);
                 result.Validate();return result;
             }
             // An inconsistent read is not fed into native rendering. Retry this

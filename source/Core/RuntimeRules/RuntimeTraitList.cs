@@ -6,7 +6,7 @@ namespace San14Tenkazu;
 // existing screens keep valid pointers until closed. Exposed storage lives until process exit.
 internal static class RuntimeTraitList
 {
-    internal const uint Site = 0x2BF033, CodeStart = 0x2BEFE0, CodeEnd = 0x2BF876;
+    internal const uint Site = GameBuildFacts.Runtime.Site, CodeStart = GameBuildFacts.Runtime.CodeStart, CodeEnd = GameBuildFacts.Runtime.CodeEnd;
     internal const int Size = 0x8000, CodeSize = 0x1000, ColumnsOffset = CodeSize, RecordSize = 0x60;
     internal static readonly byte[] Original = Convert.FromHexString("488B4577488986500100004C8B6D7F");
     internal sealed record Block(uint Rva, string Bytes, int[] Fixups, int TraitIndex = -1, int TraitBase = 61);
@@ -27,8 +27,7 @@ internal static class RuntimeTraitList
     }
     private static Layout Load()
     {
-        using var stream = typeof(RuntimeTraitList).Assembly.GetManifestResourceStream("RuntimeRules.trait-list.json")!;
-        var definition = JsonSerializer.Deserialize<Layout>(stream)!;
+        var definition = JsonSerializer.Deserialize<Layout>(GameBuildProfiles.Current.ReadResource("RuntimeRules.trait-list.json"))!;
         ValidateDefinition(definition);
         return definition;
     }
@@ -142,7 +141,7 @@ internal static class RuntimeTraitList
             }
             else
             {
-            c.Emit("534883EC20"); c.Imm64("48BB", module + 0x277DF18); c.Emit("488B1B");
+            c.Emit("534883EC20"); c.Imm64("48BB", module + GameBuildFacts.Memory.BasePointerRva); c.Emit("488B1B");
             c.Imm32("BA", slot); c.Call(module + 0x2305D0);
             c.Emit("3D63010000"); int invalid = c.Branch("0F8F");
             c.Emit("4898488B9CC318DD0700"); int valid = c.Branch("E9"); c.Target(invalid);

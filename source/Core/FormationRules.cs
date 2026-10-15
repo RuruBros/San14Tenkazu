@@ -63,7 +63,7 @@ internal sealed record FormationSnapshot(ulong Root, ulong State, ulong Array, F
 // accepts pointers from a saved profile. The native ID getter derives ID from the contiguous 0xC8 array.
 internal static class FormationMemory
 {
-    internal const ulong RootRva = 0x277DF18, TableOffset = 0x77428, StateOffset = 0x871E8;
+    internal const ulong RootRva = GameBuildFacts.Memory.BasePointerRva, TableOffset = 0x77428, StateOffset = 0x871E8;
     private static ulong Pointer(IRecordMemory memory, ulong at) => BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(at, 8));
     private static bool Address(ulong at) => at is >= 0x10000 and < 0x0000800000000000 && (at & 7) == 0;
     internal static FormationSnapshot Read(IRecordMemory memory, GameIdentity game)

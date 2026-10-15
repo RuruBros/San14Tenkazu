@@ -1,0 +1,813 @@
+{
+  "schemaVersion": 1,
+  "id": "san14ce-ko-87ed4e46590e",
+  "exeSha256": "87ED4E46590E0939C9EFCAEF14FA0F892917604DFDA86E0A4BE319FCCFFA2D6A",
+  "processName": "SAN14CE_KO",
+  "layoutId": "san14ce-ko-layout-v1",
+  "nativeContractId": "san14ce-ko-native-v1",
+  "groups": {
+    "Memory": {
+      "BasePointerRva": {
+        "type": "ulong",
+        "value": 41410328
+      },
+      "BaseAdjust": {
+        "type": "ulong",
+        "value": 656
+      },
+      "CityTable": {
+        "type": "ulong",
+        "value": 55976
+      },
+      "ForceTable": {
+        "type": "ulong",
+        "value": 56480
+      },
+      "CorpsTable": {
+        "type": "ulong",
+        "value": 56896
+      },
+      "TileTable": {
+        "type": "ulong",
+        "value": 57312
+      },
+      "CountyTable": {
+        "type": "ulong",
+        "value": 444512
+      },
+      "BuildingTable": {
+        "type": "ulong",
+        "value": 448520
+      },
+      "OfficerTable": {
+        "type": "ulong",
+        "value": 473024
+      },
+      "UnitTable": {
+        "type": "ulong",
+        "value": 517544
+      },
+      "MaxCounties": {
+        "type": "int",
+        "value": 501
+      },
+      "MaxBuildings": {
+        "type": "int",
+        "value": 3063
+      },
+      "MaxOfficers": {
+        "type": "int",
+        "value": 4096
+      },
+      "ForceCount": {
+        "type": "int",
+        "value": 52
+      },
+      "UnitSlots": {
+        "type": "int",
+        "value": 501
+      },
+      "MapColumns": {
+        "type": "int",
+        "value": 220
+      },
+      "MapRows": {
+        "type": "int",
+        "value": 220
+      },
+      "StatePointer": {
+        "type": "ulong",
+        "value": 552792
+      },
+      "StateRead": {
+        "type": "int",
+        "value": 64
+      },
+      "StatePlayerForceOffset": {
+        "type": "int",
+        "value": 58
+      },
+      "StateFlagsOffset": {
+        "type": "int",
+        "value": 5800
+      },
+      "StateYearOffset": {
+        "type": "int",
+        "value": 52
+      },
+      "StateHourOffset": {
+        "type": "int",
+        "value": 56
+      },
+      "DemoPlayFlag": {
+        "type": "uint",
+        "value": 256
+      },
+      "MaxPlayerForce": {
+        "type": "int",
+        "value": 45
+      },
+      "CityStride": {
+        "type": "int",
+        "value": 360
+      },
+      "CountyStride": {
+        "type": "int",
+        "value": 152
+      },
+      "OfficerStride": {
+        "type": "int",
+        "value": 496
+      },
+      "TileStride": {
+        "type": "int",
+        "value": 32
+      },
+      "BuildingStride": {
+        "type": "int",
+        "value": 32
+      },
+      "UnitStride": {
+        "type": "int",
+        "value": 512
+      },
+      "TileCountyOffset": {
+        "type": "int",
+        "value": 18
+      },
+      "ForceRead": {
+        "type": "int",
+        "value": 288
+      },
+      "ForceCountryOffset": {
+        "type": "int",
+        "value": 72
+      },
+      "ForceColorOffset": {
+        "type": "int",
+        "value": 73
+      },
+      "CorpsLeaderOffset": {
+        "type": "int",
+        "value": 18
+      },
+      "TribeFirst": {
+        "type": "int",
+        "value": 47
+      },
+      "TribeLast": {
+        "type": "int",
+        "value": 51
+      },
+      "GateFirst": {
+        "type": "int",
+        "value": 52
+      },
+      "GateLast": {
+        "type": "int",
+        "value": 61
+      },
+      "BaseSlots": {
+        "type": "int",
+        "value": 63
+      },
+      "GateSlot": {
+        "type": "int",
+        "value": 53
+      },
+      "GateRead": {
+        "type": "int",
+        "value": 192
+      },
+      "TileLandmarkOffset": {
+        "type": "int",
+        "value": 30
+      },
+      "TileBaseOffset": {
+        "type": "int",
+        "value": 26
+      },
+      "BuildingTileOffset": {
+        "type": "int",
+        "value": 16
+      },
+      "BuildingTypeOffset": {
+        "type": "int",
+        "value": 18
+      },
+      "BuildingForceOffset": {
+        "type": "int",
+        "value": 19
+      },
+      "BuildingDurabilityOffset": {
+        "type": "int",
+        "value": 20
+      },
+      "BuildingBuiltOffset": {
+        "type": "int",
+        "value": 22
+      },
+      "CountryTable": {
+        "type": "ulong",
+        "value": 491224
+      },
+      "ItemTable": {
+        "type": "ulong",
+        "value": 489608
+      },
+      "ItemSlots": {
+        "type": "int",
+        "value": 202
+      },
+      "ItemStride": {
+        "type": "int",
+        "value": 128
+      },
+      "CountryCount": {
+        "type": "int",
+        "value": 101
+      },
+      "CountryRead": {
+        "type": "int",
+        "value": 48
+      },
+      "CountryNameOffset": {
+        "type": "int",
+        "value": 16
+      },
+      "PersonalityTableOffset": {
+        "type": "ulong",
+        "value": 514696
+      },
+      "TacticTableOffset": {
+        "type": "ulong",
+        "value": 488000
+      },
+      "PolicyTableOffset": {
+        "type": "ulong",
+        "value": 494272
+      },
+      "IdeologyTableOffset": {
+        "type": "ulong",
+        "value": 494184
+      },
+      "OfficeTableOffset": {
+        "type": "ulong",
+        "value": 492136
+      },
+      "RankTableOffset": {
+        "type": "ulong",
+        "value": 492032
+      },
+      "FormationTableOffset": {
+        "type": "ulong",
+        "value": 487832
+      },
+      "FormationMobilityOffset": {
+        "type": "int",
+        "value": 127
+      },
+      "TableNameOffset": {
+        "type": "int",
+        "value": 16
+      },
+      "CityCount": {
+        "type": "int",
+        "value": 46
+      }
+    },
+    "Fields": {
+      "FacilityFieldsDurabilityOffset": {
+        "type": "int",
+        "value": 20
+      },
+      "CityFieldsGoldOffset": {
+        "type": "int",
+        "value": 52
+      },
+      "CityFieldsFoodOffset": {
+        "type": "int",
+        "value": 56
+      },
+      "CityFieldsTroopsOffset": {
+        "type": "int",
+        "value": 60
+      },
+      "CityFieldsWoundedOffset": {
+        "type": "int",
+        "value": 64
+      },
+      "CityFieldsMoraleOffset": {
+        "type": "int",
+        "value": 68
+      },
+      "CityFieldsDurabilityOffset": {
+        "type": "int",
+        "value": 20
+      },
+      "CityFieldsScaleOffset": {
+        "type": "int",
+        "value": 184
+      },
+      "CityFieldsGovernorOffset": {
+        "type": "int",
+        "value": 46
+      },
+      "CityFieldsGateGovernorOffset": {
+        "type": "int",
+        "value": 46
+      },
+      "GateFieldsTroopsOffset": {
+        "type": "int",
+        "value": 60
+      },
+      "GateFieldsMoraleOffset": {
+        "type": "int",
+        "value": 68
+      },
+      "GateFieldsDurabilityOffset": {
+        "type": "int",
+        "value": 20
+      },
+      "GateFieldsBaseDurabilityOffset": {
+        "type": "int",
+        "value": 70
+      },
+      "CountyFieldsPopulationOffset": {
+        "type": "int",
+        "value": 82
+      },
+      "CountyFieldsPublicOrderOffset": {
+        "type": "int",
+        "value": 84
+      },
+      "CountyFieldsCommerceOffset": {
+        "type": "int",
+        "value": 60
+      },
+      "CountyFieldsAgricultureOffset": {
+        "type": "int",
+        "value": 62
+      },
+      "CountyFieldsBarracksOffset": {
+        "type": "int",
+        "value": 64
+      },
+      "OfficerFieldsLoyaltyOffset": {
+        "type": "int",
+        "value": 232
+      },
+      "OfficerFieldsMeritOffset": {
+        "type": "int",
+        "value": 448
+      },
+      "OfficerFieldsLeadershipOffset": {
+        "type": "int",
+        "value": 236
+      },
+      "OfficerFieldsStrengthOffset": {
+        "type": "int",
+        "value": 237
+      },
+      "OfficerFieldsIntelligenceOffset": {
+        "type": "int",
+        "value": 238
+      },
+      "OfficerFieldsPoliticsOffset": {
+        "type": "int",
+        "value": 239
+      },
+      "OfficerFieldsCharmOffset": {
+        "type": "int",
+        "value": 240
+      },
+      "OfficerFieldsBirthOffset": {
+        "type": "int",
+        "value": 172
+      },
+      "OfficerFieldsDebutOffset": {
+        "type": "int",
+        "value": 170
+      },
+      "OfficerFieldsDeathOffset": {
+        "type": "int",
+        "value": 174
+      },
+      "isGenderOffset": {
+        "type": "int",
+        "value": 169
+      },
+      "isSpouseOffset": {
+        "type": "int",
+        "value": 186
+      },
+      "isSwornOffset": {
+        "type": "int",
+        "value": 188
+      },
+      "isCompatibilityOffset": {
+        "type": "int",
+        "value": 190
+      },
+      "isFormationsOffset": {
+        "type": "int",
+        "value": 300
+      },
+      "isUniqueTacticOffset": {
+        "type": "int",
+        "value": 304
+      },
+      "isIdeologyOffset": {
+        "type": "int",
+        "value": 332
+      },
+      "isPolicyOffset": {
+        "type": "int",
+        "value": 333
+      },
+      "isPersonalitiesInEffectOffset": {
+        "type": "int",
+        "value": 388
+      },
+      "isCorpsFieldOffset": {
+        "type": "int",
+        "value": 224
+      },
+      "isBaseFieldOffset": {
+        "type": "int",
+        "value": 226
+      },
+      "isPlaceFieldOffset": {
+        "type": "int",
+        "value": 228
+      },
+      "isStatusFieldOffset": {
+        "type": "int",
+        "value": 230
+      },
+      "isFormerLordOffset": {
+        "type": "int",
+        "value": 354
+      },
+      "isFormerLordMonthsOffset": {
+        "type": "int",
+        "value": 356
+      },
+      "isPrisonerOfOffset": {
+        "type": "int",
+        "value": 357
+      },
+      "isCaptivityOffset": {
+        "type": "int",
+        "value": 360
+      },
+      "isJoinedYearOffset": {
+        "type": "int",
+        "value": 358
+      },
+      "isServiceOffset": {
+        "type": "int",
+        "value": 444
+      },
+      "isServiceValueOffset": {
+        "type": "int",
+        "value": 446
+      },
+      "isOfficeOffset": {
+        "type": "int",
+        "value": 231
+      },
+      "isPolicyLevelOffset": {
+        "type": "int",
+        "value": 386
+      },
+      "ForceFieldsCountryOffset": {
+        "type": "int",
+        "value": 72
+      },
+      "ForceFieldsColorOffset": {
+        "type": "int",
+        "value": 73
+      },
+      "ForceFieldsStrategistOffset": {
+        "type": "int",
+        "value": 82
+      },
+      "ForceFieldsRankOffset": {
+        "type": "int",
+        "value": 71
+      },
+      "ItemFieldsOwnerOffset": {
+        "type": "int",
+        "value": 74
+      },
+      "ItemFieldsPlaceOffset": {
+        "type": "int",
+        "value": 76
+      },
+      "ItemFieldsStateOffset": {
+        "type": "int",
+        "value": 80
+      },
+      "PlayRecordFieldsUnlocks1Offset": {
+        "type": "int",
+        "value": 412
+      },
+      "PlayRecordFieldsUnlocks2Offset": {
+        "type": "int",
+        "value": 416
+      },
+      "PlayRecordFieldsChangedOffset": {
+        "type": "int",
+        "value": 628
+      },
+      "UnitFieldsTroopsOffset": {
+        "type": "int",
+        "value": 22
+      },
+      "UnitFieldsWoundedOffset": {
+        "type": "int",
+        "value": 24
+      },
+      "UnitFieldsMoraleOffset": {
+        "type": "int",
+        "value": 26
+      }
+    },
+    "Scene": {
+      "ManagerRva": {
+        "type": "ulong",
+        "value": 28965744
+      },
+      "ManagerStateOffset": {
+        "type": "ulong",
+        "value": 8
+      },
+      "SceneOffset": {
+        "type": "ulong",
+        "value": 528
+      },
+      "ParentOffset": {
+        "type": "ulong",
+        "value": 80
+      },
+      "DriverOffset": {
+        "type": "ulong",
+        "value": 24
+      },
+      "DriverClassRva": {
+        "type": "ulong",
+        "value": 21745304
+      },
+      "DeviceOffset": {
+        "type": "ulong",
+        "value": 12408
+      },
+      "ContextOffset": {
+        "type": "ulong",
+        "value": 16
+      },
+      "VertexOwnerClassRva": {
+        "type": "ulong",
+        "value": 21752664
+      },
+      "PixelOwnerClassRva": {
+        "type": "ulong",
+        "value": 21752720
+      }
+    },
+    "Engine": {
+      "UpdateRva": {
+        "type": "ulong",
+        "value": 1357312
+      },
+      "UpdateSlotRva": {
+        "type": "ulong",
+        "value": 20477736
+      },
+      "MoveSpeedRva": {
+        "type": "ulong",
+        "value": 2527568
+      },
+      "AddMoraleRva": {
+        "type": "ulong",
+        "value": 2557264
+      },
+      "ForegroundRva": {
+        "type": "ulong",
+        "value": 27665204
+      },
+      "DrawRva": {
+        "type": "ulong",
+        "value": 9834384
+      },
+      "LandRva": {
+        "type": "ulong",
+        "value": 9834208
+      },
+      "MeshRva": {
+        "type": "ulong",
+        "value": 9834128
+      },
+      "PrepareRva": {
+        "type": "ulong",
+        "value": 9845856
+      },
+      "IndexedRva": {
+        "type": "ulong",
+        "value": 9834064
+      },
+      "BatchRva": {
+        "type": "ulong",
+        "value": 9840112
+      }
+    },
+    "Runtime": {
+      "Site": {
+        "type": "uint",
+        "value": 2879539
+      },
+      "CodeStart": {
+        "type": "uint",
+        "value": 2879456
+      },
+      "CodeEnd": {
+        "type": "uint",
+        "value": 2881654
+      },
+      "AbilityCodeStart": {
+        "type": "uint",
+        "value": 2858320
+      },
+      "ExecutableLimit": {
+        "type": "uint",
+        "value": 20185088
+      }
+    }
+  },
+  "resources": [
+    {
+      "path": "Core/RuntimeRules/patches.json",
+      "name": "RuntimeRules.patches.json",
+      "sha256": "bc7886e8fa077ae28d0187b2cfae6705d7f758acd57fab185a421c7622b72a3e"
+    },
+    {
+      "path": "Core/RuntimeRules/trait-list.json",
+      "name": "RuntimeRules.trait-list.json",
+      "sha256": "664166ac94b2223456ddb0916c1d702bc14fbaccac65964e90fc4b41d48d7036"
+    }
+  ],
+  "guards": {
+    "Season": [
+      {
+        "rva": 9834384,
+        "size": 70,
+        "sha256": "782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"
+      },
+      {
+        "rva": 9834208,
+        "size": 82,
+        "sha256": "dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"
+      },
+      {
+        "rva": 9834128,
+        "size": 67,
+        "sha256": "ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"
+      },
+      {
+        "rva": 9845856,
+        "size": 533,
+        "sha256": "8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"
+      },
+      {
+        "rva": 9834064,
+        "size": 52,
+        "sha256": "4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"
+      },
+      {
+        "rva": 9840112,
+        "size": 443,
+        "sha256": "75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b"
+      }
+    ],
+    "Environment": [
+      {
+        "rva": 1357312,
+        "size": 835,
+        "sha256": "69988a6862929a3dc85ba0cee04b1a0594b4f1f7007f3a7b70e4514afc4d2de4"
+      },
+      {
+        "rva": 2527568,
+        "size": 131,
+        "sha256": "a1c1aef8569eda856dbfa23caa7f16cc6db0e80e67b6e735bbec0aadc7b97bf2"
+      },
+      {
+        "rva": 2557264,
+        "size": 2209,
+        "sha256": "cd03f1f0c0ef7bc813b93053d0f467fb81c6612821069dcb27d070d22ae4a97d"
+      }
+    ]
+  },
+  "signatures": {
+    "Seasons/Native/FrameSignatures.h": {
+      "namespace": "season::frame",
+      "arrays": [
+        {
+          "name": "IndexedCode",
+          "bytes": "40534883ec20488bd9e8022e000084c0741c488b4b104533c9448b4424508b542458488b01ff5060ff83d02a00004883c4205bc3",
+          "sha256": "4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"
+        },
+        {
+          "name": "LandCode",
+          "bytes": "48895c2408574883ec30418bf8488bd9e86b2d000084c0742e488b4b1033d2488b83900000004533c989542428448bc7895424204c8b118b501c41ff92a0000000ff83d02a0000488b5c24404883c4305fc3",
+          "sha256": "dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"
+        },
+        {
+          "name": "MeshCode",
+          "bytes": "40534883ec30488bd9e8c22d000084c0742b488b4b1033d2448b4c2460448b44247089542428488b01895424208b542468ff90a0000000ff83d02a00004883c4305bc3",
+          "sha256": "ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"
+        },
+        {
+          "name": "DrawCode",
+          "bytes": "48895c24084889742410574883ec20418bf9418bf0488bd9e8b32c000084c07415488b4b10448bc68bd7488b01ff5068ff83d02a0000488b5c2430488b7424384883c4205fc3",
+          "sha256": "782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"
+        },
+        {
+          "name": "InstancedCode",
+          "bytes": "48895c24084889742410574883ec30418bf9418bf0488bd9e8632c000084c07426488b4b10448bc78b4424688bd6448b4c2460894424204c8b1141ff92a8000000ff83d02a0000488b5c2440488b7424484883c4305fc3",
+          "sha256": "f1661504d65a5e54580f6ee42476f2483b0fb08887998fa646659f250264f7b6"
+        },
+        {
+          "name": "IndirectCode",
+          "bytes": "48895c24084889742410574883ec20418bf9498bf0488bd9e8032c000084c0741a488b4b10448bc7488b5618488b01ff9040010000ff83d02a0000488b5c2430488b7424384883c4205fc3",
+          "sha256": "d055bb98fb245ec048b9285499f0ca0b12cd4d76c14ea7d7d88cc83faa012bb1"
+        },
+        {
+          "name": "AutoCode",
+          "bytes": "40534883ec20488bd9e8322e000084c07413488b4b10488b01ff9030010000ff83d02a00004883c4205bc3",
+          "sha256": "5cd336ea9cc3e3beb543c86eb6adad0b7903f95b503994afc96ae6d91ad3e266"
+        },
+        {
+          "name": "InlineCode",
+          "bytes": "89542410555657415541574883ec40418bc04d8be90faf842490000000418be8448b89182a0000488bf9448bf84c8d501748b8abaaaaaaaaaaaaaa49f7e2488bf248c1ee04413bf10f87290100008b89302a00004533c003ce4c89a42480000000413bc97607448987302a0000488b87082a0000488d542430488b4f10458bc8443987302a000048895424284c8b6010410f95c1488b014183c104498bd44489442420ff507085c07931488b0d87b5e701488b89402f00004885c90f84ae00000089842490000000488d942490000000488b01ff5008e9940000008b87302a00004d8bc748895c2470498bd58d1c40c1e3038bcb48034c2430e8529c6b00488b4f104533c0498bd4488b01ff507801b7302a000033d28b87302a0000488bcf448b8c24900000004c8b87082a0000c7442428010000008987382a0000895c2420e8eb5500008b542478488bcfe87f2a0000488b5c247084c07415488b4f104533c08bd5488b01ff5068ff87d02a00004c8ba424800000004883c440415f415d5f5e5dc3",
+          "sha256": "e6ca1ff950779a01e8b42269ef06bb753e465952af2e9ad380f515fb0c46f5e6"
+        },
+        {
+          "name": "BatchCode",
+          "bytes": "48895c240848896c24104889742418574883ec30488b5910488bf1488bb9082a00004533c0488ba9102a0000488bcb488b03488b5710ff5078488b034533c0488b5510488bcbff507833c0c7442428010000004c8bc7488986202a000033d2488986282a0000488bce89442420448d4818e85a4100004839ae90000000741f488b4e104533c94889ae90000000448b4518488b5510488b01ff90980000008b96402a000083fa010f85a30000008bbee4010000488b9ec000000085ff741c4883be202a0000007408488bcee830ffffffc786e40100000000000048399ec0000000740e48899ec000000048899eb029000080be7829000000740f488b9688290000488bcee8873300008b9e382a0000ba010000008bae302a0000488bce2bdde84c15000084c07415488b4e10448bc58bd3488b01ff5068ff86d02a00004c8b86c00000008bd7488bcee852280000eb328b9e3c2a0000488bce8bbe342a00002bdfe80a15000084c07418488b4e104533c9448bc78bd3488b01ff5060ff86d02a00008b86382a0000ff86d42a0000ff8ed02a0000488b5c2440488b6c24488986302a00008b863c2a00008986342a0000488b7424504883c4305fc3",
+          "sha256": "75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b"
+        },
+        {
+          "name": "PrepareCode",
+          "bytes": "48895c240848896c24104889742418574883ec30488b7910488bd9488ba9a80000004863f23bb1d0270000743a83fe08750b8b919828000083c220eb0d488d0d949eb500488bc68b14b185d2750732c0e9ab010000488b07488bcfff90c000000089b3d02700008b839c28000085c00f84e7000000a8087448488b05e889e7014c8d8bb0040000488b93980000004c8bc5488b4d404c8b90f83000004c89542420e83a570000488bd04885c074a0488b07488bcfff908800000083a39c280000f7f6839c280000017426488d9390270000488bcbe847e6ffff4c8b07488bd0488bcf41ff905801000083a39c280000fef6839c28000002742d488d9398270000488bcbe888e3ffff4c8b174183c9ff4533c0488bd0488bcf41ff921801000083a39c280000fdf6839c28000004742d488d93c8270000488bcbe8b2e4ffff4c8b0f488bd0448b8318010000488bcf41ff912001000083a39c280000fb83bb282600000074114c8b83a800000033d2488bcbe8dae9ffff4c8b83c80000004d85c0741683bb2c26000000740dba01000000488bcbe8b8e9ffff4c8b83d00000004d85c0741683bb3026000000740dba02000000488bcbe896e9ffff4c8b83d80000004d85c0741683bb3426000000740dba03000000488bcbe874e9ffff4c8b83b80000004d85c0741683bb3826000000740dba04000000488bcbe852e9ffffb001488b5c2440488b6c2448488b7424504883c4305fc3",
+          "sha256": "8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"
+        },
+        {
+          "name": "PresentCode",
+          "bytes": "48895c240848896c24104889742418574883ec20488bea488bf9e82148feffb201488bcf488bf0e8e45300008b9f202b00004c8d8fa82e000041b001488bcf488d93b40200004803d28b14d7e88f5100008b8fb82e00008b87e42f00000faf87982e0000898fbc2e0000488b8f582b0000c787b82e000000000000482b8cdf302b000048c1f9028d14888b87b42e00003bc28997b02e0000488bcf0f43d08997b42e000033d2e8e55e0000488bcfe8ede7ffff4885ed7507488dafc02f0000488b4f304885c9740a4883c110ff1526bb9e00488b4f10488b01ff9078030000807d00007421488b4d084885c9740433d2eb26488b8f803000004885c9742333d2448d4201eb15488b8f803000004885c9740f8b975c3000004533c0488b01ff5040488b4f304885c9740a4883c110ff1574b89e00e80747fefff30f1015d722a400482bc6482bb7f03200000f57c0488987e0320000f3480f2ac67904f30f58c2488b05097ee8010f57c9f30f5905d2e39e00488b4818f3480f2ac94885c97904f30f58caf30f5ec1f30f1187f8320000e8ab46feff488b5c2430488b6c2438488b742440488987f03200004883c4205fc3",
+          "sha256": "8249f288ba68659fadd02963ae90da53902de1ac9f49613fded0e85c49e92153"
+        }
+      ]
+    },
+    "Seasons/Native/PrepareSignature.h": {
+      "namespace": "",
+      "arrays": [
+        {
+          "name": "ExpectedPrepareCode",
+          "bytes": "48895c240848896c24104889742418574883ec30488b7910488bd9488ba9a80000004863f23bb1d0270000743a83fe08750b8b919828000083c220eb0d488d0d949eb500488bc68b14b185d2750732c0e9ab010000488b07488bcfff90c000000089b3d02700008b839c28000085c00f84e7000000a8087448488b05e889e7014c8d8bb0040000488b93980000004c8bc5488b4d404c8b90f83000004c89542420e83a570000488bd04885c074a0488b07488bcfff908800000083a39c280000f7f6839c280000017426488d9390270000488bcbe847e6ffff4c8b07488bd0488bcf41ff905801000083a39c280000fef6839c28000002742d488d9398270000488bcbe888e3ffff4c8b174183c9ff4533c0488bd0488bcf41ff921801000083a39c280000fdf6839c28000004742d488d93c8270000488bcbe8b2e4ffff4c8b0f488bd0448b8318010000488bcf41ff912001000083a39c280000fb83bb282600000074114c8b83a800000033d2488bcbe8dae9ffff4c8b83c80000004d85c0741683bb2c26000000740dba01000000488bcbe8b8e9ffff4c8b83d00000004d85c0741683bb3026000000740dba02000000488bcbe896e9ffff4c8b83d80000004d85c0741683bb3426000000740dba03000000488bcbe874e9ffff4c8b83b80000004d85c0741683bb3826000000740dba04000000488bcbe852e9ffffb001488b5c2440488b6c2448488b7424504883c4305fc3",
+          "sha256": "8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"
+        }
+      ]
+    },
+    "Environment/Native/EnvironmentSignatures.h": {
+      "namespace": "",
+      "arrays": [
+        {
+          "name": "AppUpdateCode",
+          "bytes": "48895c241048896c241848897424205741544155415641574883ec30448ba9c8020000498bf0488bea488bf94585ed740d4881c1a0020000ff15ea4c1f01b901000000ff15d74a1f01b902000000ff15cc4a1f014533ff33c0f0440fb17f0c448be033c0f0440fb17f1089442460e8fdd87e00488b9f500100004c8db7c8000000498bce4889442420e892169f004d8b462048b8cdcccccccccccccc49f7e048c1ea038d0c9203c9442bc1488b4c2420482bcb4b894cc630493b4e10760449894e10493b4e18730449894e1849ff46204585c0750e498bcee813150000f2410f114628498bcee8b5189f00488b44242048898750010000410fbae41e73534c8b05035b6802488bd6488bcd4d8b4078e8ec08ffff4c8b05ed5a6802488bd6488bcd4d8b8080000000e8d308ffff33c0f0440fb17f0c6666660f1f8400000000008bc88bd00fbaf11ef00fb14f0c3bc275ef4585e47910488b4508488b4808488b41404c897808e85558ecff488bc8e84dd77200448b4c24604c8bc6488bd5488bcfe8bae5ffff85c00f85000100008b471485c075254439bf180200007418e8cd59ecff488bc84c8bc6488bd5e82f9cecffe98200000085c0747ee8b159ecff488bc84c8bc6488bd5e8139cecff488b05345a6802488b48784885c97414488b058c43a5014c39b81002000074044c8b7920e8ca36ecff488bc84d8bcf4c8bc5488bd6e879322300e8b436ecff488bc8488bd6e8d9272300488b0de284a6014885c97408488bd6e8b5f40300e84059ecff488bc8e8086becffe8a358ecff488bc84c8bcf4c8bc6488bd5e8f24f4200837f14007414488b0da584a6014885c97408488bd6e8e80a0400488b0d596e68024c8bc6488bd5e886ad2b00e8a15aecff488bc8488b10ff5218ff15aa521f01e82d57ecff488bc8e8b5e07100e82057ecff488bc8e818b77100e81357ecff488bc8488bd6e8a8637200e80357ecff488bc8488bd6e8c8cf7200e8537c0000488bc8e80bc07200488b0db48a6802488bd6e88c047600e8d756ecff488bc8488bd6e8dc757200e807fb7100488bc8488bd6e86cd27200e8f7fa7100488bc8488bd6e8cc7772004585ed740d488d8fa0020000ff15b2471f01488b5c2468488b6c2470488b7424784883c430415f415e415d415c5fc3",
+          "sha256": "69988a6862929a3dc85ba0cee04b1a0594b4f1f7007f3a7b70e4514afc4d2de4"
+        },
+        {
+          "name": "MoveSpeedCode",
+          "bytes": "40534883ec40488bd9e8a2630c00488bcbe86abf04003d0fbd0000760833c04883c4405bc3488bcb0f29742430e80e1ffcff4533c948c744242000000000488bd0488bcb458d4101e8f3700400660f6e35b3fa7d0133d20f5bf6488bcbf30f59f0e88ac6040083c064660f6ec00f5bc0f30f5ef0f30f2cc60f287424304883c4405bc3",
+          "sha256": "a1c1aef8569eda856dbfa23caa7f16cc6db0e80e67b6e735bbec0aadc7b97bf2"
+        },
+        {
+          "name": "AddMoraleCode",
+          "bytes": "4055565741544155415641574881ecc002000048c78424a0000000feffffff48899c2418030000488b0512b681014833c448898424b002000044894c2444498bf04c894424588bfa4c8be1e860ef0b0085c00f841c08000033ed85ff796c896c24204533c94c8d8424b000000033d2498bcce8f99cffff8b8c24e400000085c974488bc79933c22bc20fafc10faf051d8a7d01660f6ec80f5bc9f30f5e0d5a260d01f30f2cc185c0751a0f57c00f2fc1760af30f100dd2260d01eb08f30f100d84250d01f30f2cc103f8498bcce8aee3fbff410fb65c241a3bd80f4fd8498bcce89be3fbff03df79048bddeb053bd80f4fd88bd3498bcce8d40ffdff85db0f85700700004c8bfd48896c24384c8bed488bcee899ee0b008d7b0385c00f8429010000488bcee896f4fbff488bd8488bc8e87bee0b0085c00f8487000000488bcbe8bb1ffcff85c0750c488bcbe82f25fcff85c0746f488bcbe8a31ffcff488bcb85c07427e8e7d7fbff83f833770583f8347c028bc58bd0488b0d4ad85002e85dba0b004c8be8e9c2050000e8c0d7fbff8d48cc8bd583f9090f96c28d48cd85d20f44cd8d41ff83f8098d513376028bd5488b0d11d85002e824ba0b004c8be8e989050000488bcee884d6fbff3d0fbd000077144863c8488b05ebd75002488b9cc870e20000eb0e488b05dad75002488b9870e20000488bcbe8b3ed0b0085c00f8448050000488bcbe8a30dfcffffc83df30100000f8733050000488b1da7d75002488bcee8870dfcff3df40100007f0f48984c8bbcc338e80700e90e0500004c8bbb38e80700e902050000488d1dce2e0d0148895c2448392d03095602740d488d0d02095602ff156cfb0c01488b059509560248390596095602750748896c2450eb164533c033d2488d0d49095602e87c83daff4889442450392dc1085602740e488d0dc0085602ff15daf80c019048895c2460833da508560200740d488d0da4085602ff150efb0c01488b053709560248390538095602750a4c8bf548896c2468eb194533c033d2488d0de8085602e81b83daff4c8bf04889442468833d5c08560200740e488d0d5b085602ff1575f80c0190410fb74c242a488b05a7d6500281f90fbd0000770a488b8cc870e20000eb07488b8870e200004c8d4424488bd7e80a720300488b7424504885f6742648833d4008560200741c8b06488b0d3d0856024885c9740e3b05620856027306488b1cc1eb03488bdd41bf004001004885db0f84410100000f1f840000000000488b33c7442430ff000000896c24404c8bc6488d542440488d4c2430e88fe1efff8b44243083f81b740c83c0fb83f8010f87f1000000488bcee8f2f1fbff488bf8488bc8e8d7eb0b0085c0742c0fb747103d0fbd000077138bc8488b05d7d55002488bb4c870e20000eb0e488b05c6d55002488bb070e200004d85f67405418b06eb03498bc7488b0d830756024885c974283b05a807560273208bc0488b0cc14885c97415483931740b488b49084885c975f2eb054885c9756d410fb77c242a488bcee8f8d3fbff8bc88bd7e82f9a050085c07452833df406560200740d488d0df3065602ff155df90c014d85f67405418b06eb03498bc741b0018bd0488d0dfc065602e80784daff4885c07403488930833db806560200740d488d0db7065602ff15d1f60c01488b5b084885db0f85ccfeffff488b7424504d85f67403458b3e418bcf488b05dd06560248833cc8000f86a5010000410fb744242a3d0fbd000077138bc8488b05ccd45002488b9cc870e20000eb0e488b05bbd45002488b9870e200004d85f6746f48833d77065602007465833d36065602007423488d0d35065602ff159ff80c01833d2006560200740d488d0d1f065602ff1539f60c014c8bc3418b16488d0d34065602e86faefdff48833d2f06560200741d418b06488b0d2b0656024885c9740e3b05500656027306488b14c1eb03488bd5488b3a488bcfe82af0fbff488bd8488bc8e80fea0b0085c0745e488bcbe8531bfcff488bcb85c07418e897d3fbff83f833770583f8347c028bc58bd0e9b0000000e8af20fcff85c00f84b2000000488bcbe86fd3fbff8d48cc8bd583f9090f96c28d48cd85d20f44cd8d41ff83f8098d5133767d8bd5eb79488bcfe845d2fbff3d0fbd000077144863c8488b05acd35002488b9cc870e20000eb0e488b059bd35002488b9870e20000488bcbe874e90b0085c0744b488bcbe86809fcffffc83df3010000773a488b1d70d35002488bcfe85009fcff3df40100007f0c48984c8bbcc338e80700eb1d4c8bbb38e80700eb14488b0d45d35002e858b50b004c8be84c8b7c24384d85f6745548833dfb04560200744b833dba04560200740d488d0db9045602ff1523f70c01418b16488d0dd1045602e85c7bdaff498bd6488d0d0a055602e80d7cdaff833d8604560200740e488d0d85045602ff159ff40c01904885f6745448833da104560200744a833d6004560200740d488d0d5f045602ff15c9f60c018b16488d0d78045602e8037bdaff488bd6488d0db1045602e8b47bdaff833d2d04560200740e488d0d2c045602ff1546f40c0190bf03000000488b742458837c2444000f45fd897c2430e8022bf6ff4885c07479e8f82af6ffe8431df6ff83f8ff746a488b054fd25002488b88e8710800e83bdc0b00488bf84885c07425498bcce85bbffbff8bd8488b17488bcfff52608bc88bd3e88795050085c07405e85eea0b00498bcce876acfbff4885c07419498bcce869acfbff488bc8e8412cfcff85c07405e8a8ea0b008b7c243083bc242003000000745048896c247889ac24900000004c896424704c89bc24800000004c89ac2488000000c78424940000000100000089bc2498000000488d542470488b0da3d15002e836dd0a0085c0753f4d8bc5498bd7eb25488bcee872e70b00488bdd85c0490f45dd488bcee861e70b0085c0490f45ef4c8bc3488bd5897c242041b901000000498bcce82381feffb801000000eb0233c0488b8c24b00200004833cce8aa8fd800488b9c24180300004881c4c0020000415f415e415d415c5f5e5dc3",
+          "sha256": "cd03f1f0c0ef7bc813b93053d0f467fb81c6612821069dcb27d070d22ae4a97d"
+        }
+      ]
+    }
+  },
+  "abi": {
+    "Draw": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t)",
+    "Mesh": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t)",
+    "Indexed": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t)",
+    "Batch": "void(__fastcall*)(void*)",
+    "Prepare": "uint8_t(__fastcall*)(void*,uint32_t)",
+    "Update": "void(__fastcall*)(void*,void*,void*)",
+    "Speed": "int(__fastcall*)(void*)",
+    "AddMorale": "void(__fastcall*)(void*,int,void*,int,int)"
+  }
+}

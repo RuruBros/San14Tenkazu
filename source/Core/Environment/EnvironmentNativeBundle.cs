@@ -10,13 +10,10 @@ namespace San14Tenkazu.EnvironmentRules;
 internal static class EnvironmentNativeBundle
 {
     // Updated only after native build/checks and exact source snapshot packaging.
-    internal const string DllHash="e413bb68315edaef30c410572b38a62a4d4aca1b4c1a076e52ff954a1bf9627a";
-    internal const string ManifestHash="3a4cd0e880cb212baaa3ef29ad4547610cc46033b221f8938522d70fdc9e1cf3";
-    internal static readonly (ulong Rva,int Size,string Hash)[] Targets=[
-        (0x14b600,835,"69988a6862929a3dc85ba0cee04b1a0594b4f1f7007f3a7b70e4514afc4d2de4"),
-        (0x269150,131,"a1c1aef8569eda856dbfa23caa7f16cc6db0e80e67b6e735bbec0aadc7b97bf2"),
-        (0x270550,2209,"cd03f1f0c0ef7bc813b93053d0f467fb81c6612821069dcb27d070d22ae4a97d")];
-    internal static readonly string[] SourceNames=["EnvironmentBridge.cpp","EnvironmentProtocol.h","EnvironmentPolicy.h","EnvironmentSignatures.h","EnvironmentWeather.h","EnvironmentChecks.cpp","BuildEnvironmentBridge.ps1","EnvironmentNotification.h","EnvironmentNotificationSignatures.h","EnvironmentNoticeSound.h"];
+    internal const string DllHash="32cb74defb2620ce1ad0bae22ca80e00aa4f9bc77e2a3e86815b56a368da6aba";
+    internal const string ManifestHash="332925a832216994c1b67c6cddd28418f19a7422bc237af8fe1c6a88eb7cc9aa";
+    internal static readonly (ulong Rva,int Size,string Hash)[] Targets=GameBuildFacts.EnvironmentTargets();
+    internal static readonly string[] SourceNames=["EnvironmentBridge.cpp","EnvironmentProtocol.h","EnvironmentPolicy.h","EnvironmentSignatures.h","EnvironmentWeather.h","EnvironmentChecks.cpp","BuildEnvironmentBridge.ps1","EnvironmentNotification.h","EnvironmentNotificationSignatures.h","EnvironmentNoticeSound.h","GameBuildFacts.g.h"];
     private static string Hash(byte[] value)=>Convert.ToHexString(SHA256.HashData(value)).ToLowerInvariant();
     private static Dictionary<string,byte[]> Read()
     {
@@ -32,6 +29,8 @@ internal static class EnvironmentNativeBundle
         if(result.Count!=names.Count||Hash(result["EnvironmentBridge.dll"])!=DllHash||Hash(result["build.json"])!=ManifestHash)throw new InvalidDataException("Environment bundle hash differs");
         using var json=JsonDocument.Parse(System.Text.Encoding.UTF8.GetString(result["build.json"]).TrimStart('\uFEFF'));
         if(json.RootElement.GetProperty("protocolVersion").GetUInt32()!=EnvironmentProtocol.Version)throw new InvalidDataException("Environment bundle protocol differs");
+        GameBuildProfiles.Current.VerifyNativeManifest(json.RootElement);
+        GameBuildProfiles.Current.VerifyNativeBinary(result["EnvironmentBridge.dll"]);
         foreach(string name in SourceNames)if(Hash(result["sources/"+name])!=json.RootElement.GetProperty("hashes").GetProperty(name).GetString())throw new InvalidDataException("Environment source hash differs: "+name);
         return result;
     }
@@ -70,7 +69,7 @@ internal static class EnvironmentNativeBundle
     }
     internal static ulong FrameEntry(GameIdentity identity,ulong entry)
     {
-        if(entry==identity.ModuleBase+0x14b600)return entry;
+        if(entry==identity.ModuleBase+GameBuildFacts.Engine.UpdateRva)return entry;
         using var game=Process.GetProcessById(identity.ProcessId);
         var modules=game.Modules.Cast<ProcessModule>().Where(m=>Path.GetFileName(m.FileName).Equals("EnvironmentBridge.dll",StringComparison.OrdinalIgnoreCase)).ToArray();
         if(modules.Length!=1)return 0;

@@ -51,10 +51,10 @@ internal static partial class GameMemory
             if(unit.Address<layout.UnitArray||unit.Address>=layout.UnitArray+(ulong)(layout.UnitCount*UnitStride)||
                 (unit.Address-layout.UnitArray)%UnitStride!=0||!ReadBytes(handle,unit.Address,UnitStride).AsSpan().SequenceEqual(unit.Data))
                 throw new InvalidOperationException(L.Errors.StateMoved);
-            var target=environment?EnvironmentNativeBundle.Export(identity,"EnvironmentMovement"):(identity.ModuleBase+0x269150,ReadBytes(handle,identity.ModuleBase+0x269150,32));
+            var target=environment?EnvironmentNativeBundle.Export(identity,"EnvironmentMovement"):(identity.ModuleBase+GameBuildFacts.Engine.MoveSpeedRva,ReadBytes(handle,identity.ModuleBase+GameBuildFacts.Engine.MoveSpeedRva,32));
             if(!environment)
             {
-                byte[] body=ReadBytes(handle,identity.ModuleBase+0x269150,131);
+                byte[] body=ReadBytes(handle,identity.ModuleBase+GameBuildFacts.Engine.MoveSpeedRva,131);
                 if(Convert.ToHexString(SHA256.HashData(body)).ToLowerInvariant()!=EnvironmentNativeBundle.Targets[1].Hash)throw new InvalidDataException(L.Calls.WhyCode);
             }
             var result=RunOnFrame(handle,identity,_=>new FrameCall(target.Item1,target.Item2,unit.Address,0,[],false));

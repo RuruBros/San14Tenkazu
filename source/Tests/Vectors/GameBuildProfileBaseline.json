@@ -1,0 +1,263 @@
+{
+  "origin": "Captured from pre-refactor workspace files; never generated from current.json.",
+  "facts": {
+    "Memory.BasePointerRva": 41410328,
+    "Memory.BaseAdjust": 656,
+    "Memory.CityTable": 55976,
+    "Memory.ForceTable": 56480,
+    "Memory.CorpsTable": 56896,
+    "Memory.TileTable": 57312,
+    "Memory.CountyTable": 444512,
+    "Memory.BuildingTable": 448520,
+    "Memory.OfficerTable": 473024,
+    "Memory.UnitTable": 517544,
+    "Memory.MaxCounties": 501,
+    "Memory.MaxBuildings": 3063,
+    "Memory.MaxOfficers": 4096,
+    "Memory.ForceCount": 52,
+    "Memory.UnitSlots": 501,
+    "Memory.MapColumns": 220,
+    "Memory.MapRows": 220,
+    "Memory.StatePointer": 552792,
+    "Memory.StateRead": 64,
+    "Memory.StatePlayerForceOffset": 58,
+    "Memory.StateFlagsOffset": 5800,
+    "Memory.StateYearOffset": 52,
+    "Memory.StateHourOffset": 56,
+    "Memory.DemoPlayFlag": 256,
+    "Memory.MaxPlayerForce": 45,
+    "Memory.CityStride": 360,
+    "Memory.CountyStride": 152,
+    "Memory.OfficerStride": 496,
+    "Memory.TileStride": 32,
+    "Memory.BuildingStride": 32,
+    "Memory.UnitStride": 512,
+    "Memory.TileCountyOffset": 18,
+    "Memory.ForceRead": 288,
+    "Memory.ForceCountryOffset": 72,
+    "Memory.ForceColorOffset": 73,
+    "Memory.CorpsLeaderOffset": 18,
+    "Memory.TribeFirst": 47,
+    "Memory.TribeLast": 51,
+    "Memory.GateFirst": 52,
+    "Memory.GateLast": 61,
+    "Memory.BaseSlots": 63,
+    "Memory.GateSlot": 53,
+    "Memory.GateRead": 192,
+    "Memory.TileLandmarkOffset": 30,
+    "Memory.TileBaseOffset": 26,
+    "Memory.BuildingTileOffset": 16,
+    "Memory.BuildingTypeOffset": 18,
+    "Memory.BuildingForceOffset": 19,
+    "Memory.BuildingDurabilityOffset": 20,
+    "Memory.BuildingBuiltOffset": 22,
+    "Memory.CountryTable": 491224,
+    "Memory.ItemTable": 489608,
+    "Memory.ItemSlots": 202,
+    "Memory.ItemStride": 128,
+    "Memory.CountryCount": 101,
+    "Memory.CountryRead": 48,
+    "Memory.CountryNameOffset": 16,
+    "Memory.PersonalityTableOffset": 514696,
+    "Memory.TacticTableOffset": 488000,
+    "Memory.PolicyTableOffset": 494272,
+    "Memory.IdeologyTableOffset": 494184,
+    "Memory.OfficeTableOffset": 492136,
+    "Memory.RankTableOffset": 492032,
+    "Memory.FormationTableOffset": 487832,
+    "Memory.FormationMobilityOffset": 127,
+    "Memory.TableNameOffset": 16,
+    "Memory.CityCount": 46,
+    "Fields.FacilityFieldsDurabilityOffset": 20,
+    "Fields.CityFieldsGoldOffset": 52,
+    "Fields.CityFieldsFoodOffset": 56,
+    "Fields.CityFieldsTroopsOffset": 60,
+    "Fields.CityFieldsWoundedOffset": 64,
+    "Fields.CityFieldsMoraleOffset": 68,
+    "Fields.CityFieldsDurabilityOffset": 20,
+    "Fields.CityFieldsScaleOffset": 184,
+    "Fields.CityFieldsGovernorOffset": 46,
+    "Fields.CityFieldsGateGovernorOffset": 46,
+    "Fields.GateFieldsTroopsOffset": 60,
+    "Fields.GateFieldsMoraleOffset": 68,
+    "Fields.GateFieldsDurabilityOffset": 20,
+    "Fields.GateFieldsBaseDurabilityOffset": 70,
+    "Fields.CountyFieldsPopulationOffset": 82,
+    "Fields.CountyFieldsPublicOrderOffset": 84,
+    "Fields.CountyFieldsCommerceOffset": 60,
+    "Fields.CountyFieldsAgricultureOffset": 62,
+    "Fields.CountyFieldsBarracksOffset": 64,
+    "Fields.OfficerFieldsLoyaltyOffset": 232,
+    "Fields.OfficerFieldsMeritOffset": 448,
+    "Fields.OfficerFieldsLeadershipOffset": 236,
+    "Fields.OfficerFieldsStrengthOffset": 237,
+    "Fields.OfficerFieldsIntelligenceOffset": 238,
+    "Fields.OfficerFieldsPoliticsOffset": 239,
+    "Fields.OfficerFieldsCharmOffset": 240,
+    "Fields.OfficerFieldsBirthOffset": 172,
+    "Fields.OfficerFieldsDebutOffset": 170,
+    "Fields.OfficerFieldsDeathOffset": 174,
+    "Fields.isGenderOffset": 169,
+    "Fields.isSpouseOffset": 186,
+    "Fields.isSwornOffset": 188,
+    "Fields.isCompatibilityOffset": 190,
+    "Fields.isFormationsOffset": 300,
+    "Fields.isUniqueTacticOffset": 304,
+    "Fields.isIdeologyOffset": 332,
+    "Fields.isPolicyOffset": 333,
+    "Fields.isPersonalitiesInEffectOffset": 388,
+    "Fields.isCorpsFieldOffset": 224,
+    "Fields.isBaseFieldOffset": 226,
+    "Fields.isPlaceFieldOffset": 228,
+    "Fields.isStatusFieldOffset": 230,
+    "Fields.isFormerLordOffset": 354,
+    "Fields.isFormerLordMonthsOffset": 356,
+    "Fields.isPrisonerOfOffset": 357,
+    "Fields.isCaptivityOffset": 360,
+    "Fields.isJoinedYearOffset": 358,
+    "Fields.isServiceOffset": 444,
+    "Fields.isServiceValueOffset": 446,
+    "Fields.isOfficeOffset": 231,
+    "Fields.isPolicyLevelOffset": 386,
+    "Fields.ForceFieldsCountryOffset": 72,
+    "Fields.ForceFieldsColorOffset": 73,
+    "Fields.ForceFieldsStrategistOffset": 82,
+    "Fields.ForceFieldsRankOffset": 71,
+    "Fields.ItemFieldsOwnerOffset": 74,
+    "Fields.ItemFieldsPlaceOffset": 76,
+    "Fields.ItemFieldsStateOffset": 80,
+    "Fields.PlayRecordFieldsUnlocks1Offset": 412,
+    "Fields.PlayRecordFieldsUnlocks2Offset": 416,
+    "Fields.PlayRecordFieldsChangedOffset": 628,
+    "Fields.UnitFieldsTroopsOffset": 22,
+    "Fields.UnitFieldsWoundedOffset": 24,
+    "Fields.UnitFieldsMoraleOffset": 26
+  },
+  "guards": {
+    "Season": [
+      {
+        "rva": 9834384,
+        "size": 70,
+        "sha256": "782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"
+      },
+      {
+        "rva": 9834208,
+        "size": 82,
+        "sha256": "dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"
+      },
+      {
+        "rva": 9834128,
+        "size": 67,
+        "sha256": "ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"
+      },
+      {
+        "rva": 9845856,
+        "size": 533,
+        "sha256": "8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"
+      },
+      {
+        "rva": 9834064,
+        "size": 52,
+        "sha256": "4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"
+      },
+      {
+        "rva": 9840112,
+        "size": 443,
+        "sha256": "75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b"
+      }
+    ],
+    "Environment": [
+      {
+        "rva": 1357312,
+        "size": 835,
+        "sha256": "69988a6862929a3dc85ba0cee04b1a0594b4f1f7007f3a7b70e4514afc4d2de4"
+      },
+      {
+        "rva": 2527568,
+        "size": 131,
+        "sha256": "a1c1aef8569eda856dbfa23caa7f16cc6db0e80e67b6e735bbec0aadc7b97bf2"
+      },
+      {
+        "rva": 2557264,
+        "size": 2209,
+        "sha256": "cd03f1f0c0ef7bc813b93053d0f467fb81c6612821069dcb27d070d22ae4a97d"
+      }
+    ]
+  },
+  "signatures": {
+    "IndexedCode": {
+      "size": 52,
+      "sha256": "4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"
+    },
+    "LandCode": {
+      "size": 82,
+      "sha256": "dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"
+    },
+    "MeshCode": {
+      "size": 67,
+      "sha256": "ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"
+    },
+    "DrawCode": {
+      "size": 70,
+      "sha256": "782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"
+    },
+    "InstancedCode": {
+      "size": 87,
+      "sha256": "f1661504d65a5e54580f6ee42476f2483b0fb08887998fa646659f250264f7b6"
+    },
+    "IndirectCode": {
+      "size": 75,
+      "sha256": "d055bb98fb245ec048b9285499f0ca0b12cd4d76c14ea7d7d88cc83faa012bb1"
+    },
+    "AutoCode": {
+      "size": 43,
+      "sha256": "5cd336ea9cc3e3beb543c86eb6adad0b7903f95b503994afc96ae6d91ad3e266"
+    },
+    "InlineCode": {
+      "size": 387,
+      "sha256": "e6ca1ff950779a01e8b42269ef06bb753e465952af2e9ad380f515fb0c46f5e6"
+    },
+    "BatchCode": {
+      "size": 443,
+      "sha256": "75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b"
+    },
+    "PrepareCode": {
+      "size": 533,
+      "sha256": "8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"
+    },
+    "PresentCode": {
+      "size": 433,
+      "sha256": "8249f288ba68659fadd02963ae90da53902de1ac9f49613fded0e85c49e92153"
+    },
+    "ExpectedPrepareCode": {
+      "size": 533,
+      "sha256": "8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"
+    },
+    "AppUpdateCode": {
+      "size": 835,
+      "sha256": "69988a6862929a3dc85ba0cee04b1a0594b4f1f7007f3a7b70e4514afc4d2de4"
+    },
+    "MoveSpeedCode": {
+      "size": 131,
+      "sha256": "a1c1aef8569eda856dbfa23caa7f16cc6db0e80e67b6e735bbec0aadc7b97bf2"
+    },
+    "AddMoraleCode": {
+      "size": 2209,
+      "sha256": "cd03f1f0c0ef7bc813b93053d0f467fb81c6612821069dcb27d070d22ae4a97d"
+    }
+  },
+  "resources": {
+    "RuntimeRules.patches.json": "bc7886e8fa077ae28d0187b2cfae6705d7f758acd57fab185a421c7622b72a3e",
+    "RuntimeRules.trait-list.json": "664166ac94b2223456ddb0916c1d702bc14fbaccac65964e90fc4b41d48d7036"
+  },
+  "abi": {
+    "Draw": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t)",
+    "Mesh": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t)",
+    "Indexed": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t)",
+    "Batch": "void(__fastcall*)(void*)",
+    "Prepare": "uint8_t(__fastcall*)(void*,uint32_t)",
+    "Update": "void(__fastcall*)(void*,void*,void*)",
+    "Speed": "int(__fastcall*)(void*)",
+    "AddMorale": "void(__fastcall*)(void*,int,void*,int,int)"
+  }
+}

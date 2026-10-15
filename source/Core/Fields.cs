@@ -50,20 +50,20 @@ internal readonly record struct FieldChange(FieldDef Field, long Value);
 // lifecycle (0x294B90), so this editor changes the durability of a standing facility, starting at 1.
 internal static class FacilityFields
 {
-    internal static readonly FieldDef Durability = new(L.Fields.Durability, RecordKind.Building, 0x14, FieldKind.UInt16, 1, 9999, L.Facility.DurabilityHint);
+    internal static readonly FieldDef Durability = new(L.Fields.Durability, RecordKind.Building, GameBuildFacts.Fields.FacilityFieldsDurabilityOffset, FieldKind.UInt16, 1, 9999, L.Facility.DurabilityHint);
 }
 
 // City record (0x168 bytes). Verified against the running game and public PK tables
 // (fearlessrevolution RTK14 PK tables, github.com/PaysageDVII7/San14PaysageMod).
 internal static class CityFields
 {
-    internal static readonly FieldDef Gold = new(L.Fields.Gold, RecordKind.City, 0x34, FieldKind.Int32, 0, int.MaxValue, CapsHint(c => c.Gold));
-    internal static readonly FieldDef Food = new(L.Fields.Food, RecordKind.City, 0x38, FieldKind.Int32, 0, int.MaxValue, CapsHint(c => c.Food));
-    internal static readonly FieldDef Troops = new(L.Fields.Troops, RecordKind.City, 0x3C, FieldKind.Int32, 0, int.MaxValue, CapsHint(c => c.Troops));
-    internal static readonly FieldDef Wounded = new(L.Fields.Wounded, RecordKind.City, 0x40, FieldKind.Int32, 0, int.MaxValue, L.Fields.WoundedHint);
-    internal static readonly FieldDef Morale = new(L.Fields.Morale, RecordKind.City, 0x44, FieldKind.UInt16, 0, 255, L.Fields.CityMoraleHint);
-    internal static readonly FieldDef Durability = new(L.Fields.Durability, RecordKind.Building, 0x14, FieldKind.UInt16, 0, 60_000, L.Fields.DurabilityHint);
-    internal static readonly FieldDef Scale = new(L.Fields.Scale, RecordKind.City, 0xB8, FieldKind.Byte, 1, 4, L.Fields.ScaleHint);
+    internal static readonly FieldDef Gold = new(L.Fields.Gold, RecordKind.City, GameBuildFacts.Fields.CityFieldsGoldOffset, FieldKind.Int32, 0, int.MaxValue, CapsHint(c => c.Gold));
+    internal static readonly FieldDef Food = new(L.Fields.Food, RecordKind.City, GameBuildFacts.Fields.CityFieldsFoodOffset, FieldKind.Int32, 0, int.MaxValue, CapsHint(c => c.Food));
+    internal static readonly FieldDef Troops = new(L.Fields.Troops, RecordKind.City, GameBuildFacts.Fields.CityFieldsTroopsOffset, FieldKind.Int32, 0, int.MaxValue, CapsHint(c => c.Troops));
+    internal static readonly FieldDef Wounded = new(L.Fields.Wounded, RecordKind.City, GameBuildFacts.Fields.CityFieldsWoundedOffset, FieldKind.Int32, 0, int.MaxValue, L.Fields.WoundedHint);
+    internal static readonly FieldDef Morale = new(L.Fields.Morale, RecordKind.City, GameBuildFacts.Fields.CityFieldsMoraleOffset, FieldKind.UInt16, 0, 255, L.Fields.CityMoraleHint);
+    internal static readonly FieldDef Durability = new(L.Fields.Durability, RecordKind.Building, GameBuildFacts.Fields.CityFieldsDurabilityOffset, FieldKind.UInt16, 0, 60_000, L.Fields.DurabilityHint);
+    internal static readonly FieldDef Scale = new(L.Fields.Scale, RecordKind.City, GameBuildFacts.Fields.CityFieldsScaleOffset, FieldKind.Byte, 1, 4, L.Fields.ScaleHint);
 
     // +0x46 is left out: it held its scale's durability cap in 44 of 46 cities, but the game does not take its full
     // durability from it (한중 held 2,000 at 중 while the game showed 3,100 / 3,100). A castle's full durability is its
@@ -72,8 +72,8 @@ internal static class CityFields
 
     // 태수: the officer who governs a city (0 none, which the game leaves at times while officers are present), and the
     // same field of a gate's record.
-    internal static readonly FieldDef Governor = new(L.Fields.Governor, RecordKind.City, 0x2E, FieldKind.UInt16, 0, ushort.MaxValue);
-    internal static readonly FieldDef GateGovernor = new(L.Fields.Governor, RecordKind.Gate, 0x2E, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef Governor = new(L.Fields.Governor, RecordKind.City, GameBuildFacts.Fields.CityFieldsGovernorOffset, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef GateGovernor = new(L.Fields.Governor, RecordKind.Gate, GameBuildFacts.Fields.CityFieldsGateGovernorOffset, FieldKind.UInt16, 0, ushort.MaxValue);
     internal const int NameOffset = 0x12;
     internal const int IdOffset = 0x4E;
     internal const int GovernorOffset = 0x2E;
@@ -103,10 +103,10 @@ internal static class CityFields
 // its base durability (5,000~8,000).
 internal static class GateFields
 {
-    internal static readonly FieldDef Troops = new(L.Fields.Troops, RecordKind.Gate, 0x3C, FieldKind.Int32, 0, int.MaxValue);
-    internal static readonly FieldDef Morale = new(L.Fields.Morale, RecordKind.Gate, 0x44, FieldKind.UInt16, 0, 255, L.Fields.GateMoraleHint);
-    internal static readonly FieldDef Durability = new(L.Fields.Durability, RecordKind.Building, 0x14, FieldKind.UInt16, 0, 60_000, L.Fields.GateDurabilityHint);
-    internal static readonly FieldDef BaseDurability = new(L.Fields.BaseDurability, RecordKind.Gate, 0x46, FieldKind.UInt16, 0, ushort.MaxValue, L.Fields.GateBaseDurabilityHint);
+    internal static readonly FieldDef Troops = new(L.Fields.Troops, RecordKind.Gate, GameBuildFacts.Fields.GateFieldsTroopsOffset, FieldKind.Int32, 0, int.MaxValue);
+    internal static readonly FieldDef Morale = new(L.Fields.Morale, RecordKind.Gate, GameBuildFacts.Fields.GateFieldsMoraleOffset, FieldKind.UInt16, 0, 255, L.Fields.GateMoraleHint);
+    internal static readonly FieldDef Durability = new(L.Fields.Durability, RecordKind.Building, GameBuildFacts.Fields.GateFieldsDurabilityOffset, FieldKind.UInt16, 0, 60_000, L.Fields.GateDurabilityHint);
+    internal static readonly FieldDef BaseDurability = new(L.Fields.BaseDurability, RecordKind.Gate, GameBuildFacts.Fields.GateFieldsBaseDurabilityOffset, FieldKind.UInt16, 0, ushort.MaxValue, L.Fields.GateBaseDurabilityHint);
 
     internal static readonly FieldDef[] All = [Troops, Morale, Durability, BaseDurability];
 }
@@ -115,11 +115,11 @@ internal static class GateFields
 // run 0~1000 with levels at 100/300/600/1000.
 internal static class CountyFields
 {
-    internal static readonly FieldDef Population = new(L.Fields.Population, RecordKind.County, 0x52, FieldKind.UInt16, 0, ushort.MaxValue, L.Fields.PopulationHint);
-    internal static readonly FieldDef PublicOrder = new(L.Fields.PublicOrder, RecordKind.County, 0x54, FieldKind.Byte, 0, 100);
-    internal static readonly FieldDef Commerce = new(L.Fields.Commerce, RecordKind.County, 0x3C, FieldKind.UInt16, 0, 1000, L.Fields.DevelopmentHint);
-    internal static readonly FieldDef Agriculture = new(L.Fields.Agriculture, RecordKind.County, 0x3E, FieldKind.UInt16, 0, 1000, L.Fields.DevelopmentHint);
-    internal static readonly FieldDef Barracks = new(L.Fields.Barracks, RecordKind.County, 0x40, FieldKind.UInt16, 0, 1000, L.Fields.DevelopmentHint);
+    internal static readonly FieldDef Population = new(L.Fields.Population, RecordKind.County, GameBuildFacts.Fields.CountyFieldsPopulationOffset, FieldKind.UInt16, 0, ushort.MaxValue, L.Fields.PopulationHint);
+    internal static readonly FieldDef PublicOrder = new(L.Fields.PublicOrder, RecordKind.County, GameBuildFacts.Fields.CountyFieldsPublicOrderOffset, FieldKind.Byte, 0, 100);
+    internal static readonly FieldDef Commerce = new(L.Fields.Commerce, RecordKind.County, GameBuildFacts.Fields.CountyFieldsCommerceOffset, FieldKind.UInt16, 0, 1000, L.Fields.DevelopmentHint);
+    internal static readonly FieldDef Agriculture = new(L.Fields.Agriculture, RecordKind.County, GameBuildFacts.Fields.CountyFieldsAgricultureOffset, FieldKind.UInt16, 0, 1000, L.Fields.DevelopmentHint);
+    internal static readonly FieldDef Barracks = new(L.Fields.Barracks, RecordKind.County, GameBuildFacts.Fields.CountyFieldsBarracksOffset, FieldKind.UInt16, 0, 1000, L.Fields.DevelopmentHint);
 
     internal static readonly FieldDef[] All = [Population, PublicOrder, Commerce, Agriculture, Barracks];
     internal static readonly FieldDef[] Development = [Commerce, Agriculture, Barracks];
@@ -139,20 +139,20 @@ internal static class CountyFields
 // the Chinese PK build, so every field after the names sits 0x38 bytes earlier.
 internal static class OfficerFields
 {
-    internal static readonly FieldDef Loyalty = new(L.Fields.Loyalty, RecordKind.Officer, 0xE8, FieldKind.Byte, 0, 255, L.Fields.LoyaltyHint);
+    internal static readonly FieldDef Loyalty = new(L.Fields.Loyalty, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsLoyaltyOffset, FieldKind.Byte, 0, 255, L.Fields.LoyaltyHint);
     // Officer_AddMerit (0x169530) reads/writes this unsigned word and caps it at 0xFFFF.
-    internal static readonly FieldDef Merit = new(L.Fields.Merit, RecordKind.Officer, 0x1C0, FieldKind.UInt16, 0, ushort.MaxValue);
-    internal static readonly FieldDef Leadership = new(L.Fields.Leadership, RecordKind.Officer, 0xEC, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
-    internal static readonly FieldDef Strength = new(L.Fields.Strength, RecordKind.Officer, 0xED, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
-    internal static readonly FieldDef Intelligence = new(L.Fields.Intelligence, RecordKind.Officer, 0xEE, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
-    internal static readonly FieldDef Politics = new(L.Fields.Politics, RecordKind.Officer, 0xEF, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
-    internal static readonly FieldDef Charm = new(L.Fields.Charm, RecordKind.Officer, 0xF0, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
-    internal static readonly FieldDef Birth = new(L.Fields.Birth, RecordKind.Officer, 0xAC, FieldKind.UInt16, 1, 999);
+    internal static readonly FieldDef Merit = new(L.Fields.Merit, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsMeritOffset, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef Leadership = new(L.Fields.Leadership, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsLeadershipOffset, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
+    internal static readonly FieldDef Strength = new(L.Fields.Strength, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsStrengthOffset, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
+    internal static readonly FieldDef Intelligence = new(L.Fields.Intelligence, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsIntelligenceOffset, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
+    internal static readonly FieldDef Politics = new(L.Fields.Politics, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsPoliticsOffset, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
+    internal static readonly FieldDef Charm = new(L.Fields.Charm, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsCharmOffset, FieldKind.Byte, 0, 255, L.Fields.AbilityHint);
+    internal static readonly FieldDef Birth = new(L.Fields.Birth, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsBirthOffset, FieldKind.UInt16, 1, 999);
     // The year an officer comes into play, right before the birth year. Read on 2026-10-02 (a game in 251):
     // every 미등장 officer held a later year and nearly every officer in play an earlier one, 19 years after
     // the birth year at the median.
-    internal static readonly FieldDef Debut = new(L.Fields.Debut, RecordKind.Officer, 0xAA, FieldKind.UInt16, 1, 999, L.Fields.DebutHint);
-    internal static readonly FieldDef Death = new(L.Fields.Death, RecordKind.Officer, 0xAE, FieldKind.UInt16, 1, 999, L.Fields.DeathHint);
+    internal static readonly FieldDef Debut = new(L.Fields.Debut, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsDebutOffset, FieldKind.UInt16, 1, 999, L.Fields.DebutHint);
+    internal static readonly FieldDef Death = new(L.Fields.Death, RecordKind.Officer, GameBuildFacts.Fields.OfficerFieldsDeathOffset, FieldKind.UInt16, 1, 999, L.Fields.DeathHint);
 
     internal static readonly FieldDef[] Abilities = [Leadership, Strength, Intelligence, Politics, Charm];
     internal static readonly FieldDef[] Years = [Birth, Debut, Death];
@@ -193,20 +193,20 @@ internal static class OfficerFields
     // What the officer card (OfficerDetailCard) edits. Found on 2026-10-02 by reading all 1,001 officers of a
     // running game against the game's own tables and what the game shows (유비 왕도, 조조 패도, 여포 천하무쌍,
     // 관우·장비·유비 one 의형제 group), and written and held for 4 s on a free officer.
-    internal static readonly FieldDef Gender = new(L.Fields.Gender, RecordKind.Officer, 0xA9, FieldKind.Byte, 0, 1, L.Fields.GenderHint);
+    internal static readonly FieldDef Gender = new(L.Fields.Gender, RecordKind.Officer, GameBuildFacts.Fields.isGenderOffset, FieldKind.Byte, 0, 1, L.Fields.GenderHint);
     // An officer ID is not his slot: the DLC's and the player's own officers have IDs from 5000 (229 of 1,435
     // officers over 4095, 5,152 the largest, read on 2026-10-02); 0xFFFF is the game's "nobody".
     internal const int IdMax = ushort.MaxValue - 1;
 
     // 배우자: an officer ID, kept in both spouses (all but one pair of 1,001 officers pointed back).
-    internal static readonly FieldDef Spouse = new(L.Fields.Spouse, RecordKind.Officer, 0xBA, FieldKind.UInt16, 0, IdMax);
+    internal static readonly FieldDef Spouse = new(L.Fields.Spouse, RecordKind.Officer, GameBuildFacts.Fields.isSpouseOffset, FieldKind.UInt16, 0, IdMax);
     // 의형제: the group's ID, the ID of one of its officers (유비's for 유비·관우·장비), the same in every member.
-    internal static readonly FieldDef Sworn = new(L.Fields.Sworn, RecordKind.Officer, 0xBC, FieldKind.UInt16, 0, IdMax);
-    internal static readonly FieldDef Compatibility = new(L.Fields.Compatibility, RecordKind.Officer, 0xBE, FieldKind.UInt16, 0, 149, L.Fields.CompatibilityHint);
+    internal static readonly FieldDef Sworn = new(L.Fields.Sworn, RecordKind.Officer, GameBuildFacts.Fields.isSwornOffset, FieldKind.UInt16, 0, IdMax);
+    internal static readonly FieldDef Compatibility = new(L.Fields.Compatibility, RecordKind.Officer, GameBuildFacts.Fields.isCompatibilityOffset, FieldKind.UInt16, 0, 149, L.Fields.CompatibilityHint);
     // 진형: the formations he can lead a unit in, bit k for the formation table's k, as the game tests it (0x232350,
     // read 2026-10-03; the card took it for 공적 before). 1,851 officers held bits 1~10 and the tribes' 사이 (14), which
     // the game grants only to the tribe officers (IsTribeOfficer) whatever the bit says.
-    internal static readonly FieldDef Formations = new(L.Fields.Formations, RecordKind.Officer, 0x12C, FieldKind.Int32, 0, int.MaxValue);
+    internal static readonly FieldDef Formations = new(L.Fields.Formations, RecordKind.Officer, GameBuildFacts.Fields.isFormationsOffset, FieldKind.Int32, 0, int.MaxValue);
     internal const int TribeOfficerFirst = 4101, TribeOfficerLast = 4200;
 
     internal static bool IsTribeOfficer(int id) => id is >= TribeOfficerFirst and <= TribeOfficerLast;
@@ -217,10 +217,10 @@ internal static class OfficerFields
     internal static IEnumerable<int> FormationsFor(int id) =>
         UnitFields.LandFormations.Where(f => f != UnitFields.TribeFormation || IsTribeOfficer(id));
     // 고유 전법: an index into the tactics (31~170 are the officers' own, 1~26 the common ones).
-    internal static readonly FieldDef UniqueTactic = new(L.Fields.UniqueTactic, RecordKind.Officer, 0x130, FieldKind.Byte, 0, 200);
+    internal static readonly FieldDef UniqueTactic = new(L.Fields.UniqueTactic, RecordKind.Officer, GameBuildFacts.Fields.isUniqueTacticOffset, FieldKind.Byte, 0, 200);
     // 주의 (1 왕도 · 2 패도 · 3 아도 · 4 할거 · 5 명리 · 6 예교) and the officer's 정책 (an index into the policies).
-    internal static readonly FieldDef Ideology = new(L.Fields.Ideology, RecordKind.Officer, 0x14C, FieldKind.Byte, 1, 6);
-    internal static readonly FieldDef Policy = new(L.Fields.Policy, RecordKind.Officer, 0x14D, FieldKind.Byte, 0, 120);
+    internal static readonly FieldDef Ideology = new(L.Fields.Ideology, RecordKind.Officer, GameBuildFacts.Fields.isIdeologyOffset, FieldKind.Byte, 1, 6);
+    internal static readonly FieldDef Policy = new(L.Fields.Policy, RecordKind.Officer, GameBuildFacts.Fields.isPolicyOffset, FieldKind.Byte, 0, 120);
 
     // 개성: nine slots of personality IDs from +0x118, filled from the first; the game's officers use up to five.
     internal static readonly FieldDef[] Personalities = Enumerable.Range(0, 9)
@@ -229,7 +229,7 @@ internal static class OfficerFields
     // now" for the unit he leads, lit and cleared by the game within seconds, and for the timed ones (일심, 무황) the
     // count left before the effect ends. Both are saved. The game clears a slot's two when it changes the slot's 개성
     // (OfficerEdits.SlotStateCleared).
-    internal static readonly FieldDef PersonalitiesInEffect = new(L.Fields.PersonalitiesInEffect, RecordKind.Officer, 0x184, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef PersonalitiesInEffect = new(L.Fields.PersonalitiesInEffect, RecordKind.Officer, GameBuildFacts.Fields.isPersonalitiesInEffectOffset, FieldKind.UInt16, 0, ushort.MaxValue);
     internal static readonly FieldDef[] PersonalityTimeLeft = Enumerable.Range(0, 9)
         .Select(i => new FieldDef(L.Fields.PersonalityTimeLeft(i + 1), RecordKind.Officer, 0x186 + i * 2, FieldKind.UInt16, 0, 720)).ToArray();
     // 습득 전법: up to five tactics, filled from the first: mostly of the 26 common ones, but officers learn others as
@@ -248,29 +248,29 @@ internal static class OfficerFields
     // Whom an officer serves and where (found 2026-10-02 by watching the game's own moves over 20 months: 재야 officers
     // recruited, officers dismissed, captured, released and recruited from prison). +0xE4 is where he is now: his base
     // while he is in it, other values while he marches, travels or is out on a task.
-    internal static readonly FieldDef CorpsField = new(L.Fields.Corps, RecordKind.Officer, 0xE0, FieldKind.Byte, 0, 255);
-    internal static readonly FieldDef BaseField = new(L.Fields.Base, RecordKind.Officer, 0xE2, FieldKind.UInt16, 0, 255);
-    internal static readonly FieldDef PlaceField = new(L.Fields.Place, RecordKind.Officer, 0xE4, FieldKind.UInt16, 0, ushort.MaxValue);
-    internal static readonly FieldDef StatusField = new(L.Fields.Status, RecordKind.Officer, 0xE6, FieldKind.Byte, 1, 9);
+    internal static readonly FieldDef CorpsField = new(L.Fields.Corps, RecordKind.Officer, GameBuildFacts.Fields.isCorpsFieldOffset, FieldKind.Byte, 0, 255);
+    internal static readonly FieldDef BaseField = new(L.Fields.Base, RecordKind.Officer, GameBuildFacts.Fields.isBaseFieldOffset, FieldKind.UInt16, 0, 255);
+    internal static readonly FieldDef PlaceField = new(L.Fields.Place, RecordKind.Officer, GameBuildFacts.Fields.isPlaceFieldOffset, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef StatusField = new(L.Fields.Status, RecordKind.Officer, GameBuildFacts.Fields.isStatusFieldOffset, FieldKind.Byte, 1, 9);
     // The ruler he left or who let him go, and the months he will not serve that ruler (12 after a dismissal, 2 after
     // a release from prison).
-    internal static readonly FieldDef FormerLord = new(L.Fields.FormerLord, RecordKind.Officer, 0x162, FieldKind.UInt16, 0, ushort.MaxValue);
-    internal static readonly FieldDef FormerLordMonths = new(L.Fields.FormerLordMonths, RecordKind.Officer, 0x164, FieldKind.Byte, 0, 255);
+    internal static readonly FieldDef FormerLord = new(L.Fields.FormerLord, RecordKind.Officer, GameBuildFacts.Fields.isFormerLordOffset, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef FormerLordMonths = new(L.Fields.FormerLordMonths, RecordKind.Officer, GameBuildFacts.Fields.isFormerLordMonthsOffset, FieldKind.Byte, 0, 255);
     // A prisoner's own force, and the months he has been held.
-    internal static readonly FieldDef PrisonerOf = new(L.Fields.PrisonerOf, RecordKind.Officer, 0x165, FieldKind.Byte, 0, 255);
-    internal static readonly FieldDef Captivity = new(L.Fields.Captivity, RecordKind.Officer, 0x168, FieldKind.Byte, 0, 255);
+    internal static readonly FieldDef PrisonerOf = new(L.Fields.PrisonerOf, RecordKind.Officer, GameBuildFacts.Fields.isPrisonerOfOffset, FieldKind.Byte, 0, 255);
+    internal static readonly FieldDef Captivity = new(L.Fields.Captivity, RecordKind.Officer, GameBuildFacts.Fields.isCaptivityOffset, FieldKind.Byte, 0, 255);
     // The year he took service (0 for none), and two values the game resets when he takes or leaves service
     // (+0x1BC 2 for a 재야 officer recruited; their meaning is not known).
-    internal static readonly FieldDef JoinedYear = new(L.Fields.JoinedYear, RecordKind.Officer, 0x166, FieldKind.UInt16, 0, 999);
-    internal static readonly FieldDef Service = new(L.Fields.Service, RecordKind.Officer, 0x1BC, FieldKind.Byte, 0, 255);
-    internal static readonly FieldDef ServiceValue = new(L.Fields.ServiceValue, RecordKind.Officer, 0x1BE, FieldKind.Int32, int.MinValue, int.MaxValue);
+    internal static readonly FieldDef JoinedYear = new(L.Fields.JoinedYear, RecordKind.Officer, GameBuildFacts.Fields.isJoinedYearOffset, FieldKind.UInt16, 0, 999);
+    internal static readonly FieldDef Service = new(L.Fields.Service, RecordKind.Officer, GameBuildFacts.Fields.isServiceOffset, FieldKind.Byte, 0, 255);
+    internal static readonly FieldDef ServiceValue = new(L.Fields.ServiceValue, RecordKind.Officer, GameBuildFacts.Fields.isServiceValueOffset, FieldKind.Int32, int.MinValue, int.MaxValue);
     internal const int Dismissed = 12, Released = 2, RecruitedService = 2;
     // 관직: an index into the game's offices (73 없음). No two officers of a force held the same one, and only
     // the officers serving a ruler held any (2026-10-02), so giving an office takes it from whoever had it.
-    internal static readonly FieldDef Office = new(L.Fields.Office, RecordKind.Officer, 0xE7, FieldKind.Byte, 1, 255);
+    internal static readonly FieldDef Office = new(L.Fields.Office, RecordKind.Officer, GameBuildFacts.Fields.isOfficeOffset, FieldKind.Byte, 1, 255);
     internal const int NoOffice = 73;
     // 정책 등급 (1~5) of the officer's own 정책 (per San14PaysageMod, its +0x1BA less the Chinese build's 0x38).
-    internal static readonly FieldDef PolicyLevel = new(L.Fields.PolicyLevel, RecordKind.Officer, 0x182, FieldKind.Byte, 1, 5);
+    internal static readonly FieldDef PolicyLevel = new(L.Fields.PolicyLevel, RecordKind.Officer, GameBuildFacts.Fields.isPolicyLevelOffset, FieldKind.Byte, 1, 5);
 
     internal const int IdOffset = 0x10;
     internal const int FaceOffset = 0xA6; // portrait number: face_NNNN in ScreenLayout.rdb
@@ -311,9 +311,9 @@ internal static class OfficerFields
 // 7 officer IDs each), per github.com/PaysageDVII7/San14PaysageMod (Program.cs, the force policy dump).
 internal static class ForceFields
 {
-    internal static readonly FieldDef Country = new(L.Fields.Country, RecordKind.Force, 0x48, FieldKind.Byte, 0, 100);
-    internal static readonly FieldDef Color = new(L.Fields.ForceColor, RecordKind.Force, 0x49, FieldKind.Byte, 0, 60);
-    internal static readonly FieldDef Strategist = new(L.Fields.Strategist, RecordKind.Force, 0x52, FieldKind.UInt16, 0, OfficerFields.IdMax);
+    internal static readonly FieldDef Country = new(L.Fields.Country, RecordKind.Force, GameBuildFacts.Fields.ForceFieldsCountryOffset, FieldKind.Byte, 0, 100);
+    internal static readonly FieldDef Color = new(L.Fields.ForceColor, RecordKind.Force, GameBuildFacts.Fields.ForceFieldsColorOffset, FieldKind.Byte, 0, 60);
+    internal static readonly FieldDef Strategist = new(L.Fields.Strategist, RecordKind.Force, GameBuildFacts.Fields.ForceFieldsStrategistOffset, FieldKind.UInt16, 0, OfficerFields.IdMax);
 
     internal const int RulerOffset = 0x10;
 
@@ -345,7 +345,7 @@ internal static class ForceFields
 
     // 작위: an index into the game's ranks (1 황제, 2 왕, 3 공, ... 8 주자사, 9 없음; read on 2026-10-02: 여포 1 in a
     // scenario where he is 황제, 이각 4 대사마).
-    internal static readonly FieldDef Rank = new(L.Fields.Rank, RecordKind.Force, 0x47, FieldKind.Byte, 1, 12);
+    internal static readonly FieldDef Rank = new(L.Fields.Rank, RecordKind.Force, GameBuildFacts.Fields.ForceFieldsRankOffset, FieldKind.Byte, 1, 12);
 
     // 정책: five fields of policies (전투, 지원, 모략, 내정, 인사), each seven officers who carry them out (their own
     // 정책, officer +0x14D), then the days each still needs before it works (0 when it works), then a level. Per
@@ -379,11 +379,11 @@ internal static class ForceFields
 // ID (0 none; five items held 3001, whose meaning is not known); the officer record has no list of its own.
 internal static class ItemFields
 {
-    internal static readonly FieldDef Owner = new(L.Fields.ItemOwner, RecordKind.Item, 0x4A, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef Owner = new(L.Fields.ItemOwner, RecordKind.Item, GameBuildFacts.Fields.ItemFieldsOwnerOffset, FieldKind.UInt16, 0, ushort.MaxValue);
     // Where an item not yet found lies (a county's index, 0 once someone holds it).
-    internal static readonly FieldDef Place = new(L.Fields.Place, RecordKind.Item, 0x4C, FieldKind.UInt16, 0, ushort.MaxValue);
+    internal static readonly FieldDef Place = new(L.Fields.Place, RecordKind.Item, GameBuildFacts.Fields.ItemFieldsPlaceOffset, FieldKind.UInt16, 0, ushort.MaxValue);
     // 1 found (held), 2 not found yet, 3 not in play yet (the meaning of 0, 4 and 6 is not known).
-    internal static readonly FieldDef State = new(L.Fields.ItemState, RecordKind.Item, 0x50, FieldKind.Byte, 0, 255);
+    internal static readonly FieldDef State = new(L.Fields.ItemState, RecordKind.Item, GameBuildFacts.Fields.ItemFieldsStateOffset, FieldKind.Byte, 0, 255);
     internal const int Found = 1, Hidden = 2;
 
     internal const int NameOffset = 0x10, NameChars = 7;
@@ -447,10 +447,10 @@ internal static class PlayRecordFields
     // Tutorials cleared, a bit each (0x3EF860).
     internal const int TutorialsOffset = 0x24;
     // Which 고대무장 may appear, a bit each (AncientOfficers.Bit), in two words (the game reads it as one of 64 bits).
-    internal static readonly FieldDef Unlocks1 = new(L.Fields.AncientUnlocks1, RecordKind.PlayRecord, 0x19C, FieldKind.Int32, int.MinValue, int.MaxValue);
-    internal static readonly FieldDef Unlocks2 = new(L.Fields.AncientUnlocks2, RecordKind.PlayRecord, 0x1A0, FieldKind.Int32, int.MinValue, int.MaxValue);
+    internal static readonly FieldDef Unlocks1 = new(L.Fields.AncientUnlocks1, RecordKind.PlayRecord, GameBuildFacts.Fields.PlayRecordFieldsUnlocks1Offset, FieldKind.Int32, int.MinValue, int.MaxValue);
+    internal static readonly FieldDef Unlocks2 = new(L.Fields.AncientUnlocks2, RecordKind.PlayRecord, GameBuildFacts.Fields.PlayRecordFieldsUnlocks2Offset, FieldKind.Int32, int.MinValue, int.MaxValue);
     // Raised by each of the game's setters along with its change (0x3EF450 sets it to 1), so a write raises it too.
-    internal static readonly FieldDef Changed = new(L.Fields.PlayRecordChanged, RecordKind.PlayRecord, 0x274, FieldKind.Byte, 0, 1);
+    internal static readonly FieldDef Changed = new(L.Fields.PlayRecordChanged, RecordKind.PlayRecord, GameBuildFacts.Fields.PlayRecordFieldsChangedOffset, FieldKind.Byte, 0, 1);
 }
 
 // The fields that tie a record to others: whom an officer serves and where, who governs a base, who holds an office,
@@ -494,9 +494,9 @@ internal static class LinkedFields
 // so the Korean build has the same layout) and were checked against the running Korean game.
 internal static class UnitFields
 {
-    internal static readonly FieldDef Troops = new(L.Fields.Troops, RecordKind.Unit, 0x16, FieldKind.UInt16, 1, 60_000, L.Fields.UnitTroopsHint);
-    internal static readonly FieldDef Wounded = new(L.Fields.Wounded, RecordKind.Unit, 0x18, FieldKind.UInt16, 0, 60_000);
-    internal static readonly FieldDef Morale = new(L.Fields.Morale, RecordKind.Unit, 0x1A, FieldKind.Byte, 0, 150, L.Fields.UnitMoraleHint);
+    internal static readonly FieldDef Troops = new(L.Fields.Troops, RecordKind.Unit, GameBuildFacts.Fields.UnitFieldsTroopsOffset, FieldKind.UInt16, 1, 60_000, L.Fields.UnitTroopsHint);
+    internal static readonly FieldDef Wounded = new(L.Fields.Wounded, RecordKind.Unit, GameBuildFacts.Fields.UnitFieldsWoundedOffset, FieldKind.UInt16, 0, 60_000);
+    internal static readonly FieldDef Morale = new(L.Fields.Morale, RecordKind.Unit, GameBuildFacts.Fields.UnitFieldsMoraleOffset, FieldKind.Byte, 0, 150, L.Fields.UnitMoraleHint);
 
     internal static readonly FieldDef[] All = [Troops, Wounded, Morale];
 
