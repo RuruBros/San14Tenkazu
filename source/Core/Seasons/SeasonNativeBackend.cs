@@ -17,7 +17,7 @@ internal sealed class SeasonNativeDrawPendingException:IOException
     internal SeasonNativeDrawPendingException():base("Waiting for the requested season render passes"){}
 }
 
-internal sealed class SeasonNativeBackend(GameIdentity game,string buildDirectory,Action<string>? log=null,Func<byte[]>? sources=null,Func<byte[]>? sceneData=null):ISeasonNativeBackend
+internal sealed class SeasonNativeBackend(GameIdentity game,string buildDirectory,Action<string>? log=null,Func<byte[]>? sources=null,Func<byte[]>? sceneData=null,Func<byte[],byte[]>? sceneFromSources=null):ISeasonNativeBackend
 {
     public async ValueTask<ISeasonNativeSession> StartAsync(SeasonSnapshot snapshot,ulong generation,CancellationToken token)
     {
@@ -28,7 +28,7 @@ internal sealed class SeasonNativeBackend(GameIdentity game,string buildDirector
         var session=new SeasonNativeSession(snapshot.Identity,generation,log);
         // Once a loader or session worker has started, retain a recoverable
         // session on failure. Start must never lose ownership of partial work.
-        await session.Connect(game,buildDirectory,sources,token,sceneData).ConfigureAwait(false);return session;
+        await session.Connect(game,buildDirectory,sources,token,sceneData,sceneFromSources).ConfigureAwait(false);return session;
     }
 }
 
@@ -47,33 +47,41 @@ internal sealed class SeasonNativeSession(SeasonRenderIdentity identity,ulong ge
     [DllImport("kernel32.dll",SetLastError=true)]
     private static extern bool GetNamedPipeServerProcessId(Microsoft.Win32.SafeHandles.SafePipeHandle handle,out uint processId);
     private void Record(string message){try{log?.Invoke(message);}catch(Exception e){Trace.TraceError("Season native journal: {0}",e);}}
-    internal async Task Connect(GameIdentity game,string buildDirectory,Func<byte[]>? sources,CancellationToken token,Func<byte[]>? sceneData=null)
+    internal async Task Connect(GameIdentity game,string buildDirectory,Func<byte[]>? sources,CancellationToken token,Func<byte[]>? sceneData=null,Func<byte[],byte[]>? sceneFromSources=null)
     {
+        using var timing=new SeasonTiming(Record,"renderer-connect");
         try
         {
+            if(sceneData is not null&&sceneFromSources is not null)throw new ArgumentException("Only one scene source provider may be specified");
             if(generation==0)throw new InvalidDataException("Native generation must be nonzero");
             string name=$"san14-seasons-{game.ProcessId}-{Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant()}";
             using var controller=Process.GetCurrentProcess();
             byte[] materialSources=await Task.Run(()=>sources?.Invoke()??throw new InvalidDataException("Original season materials are required"),token).ConfigureAwait(false);
             SeasonTreeSources.Validate(materialSources);
-            byte[]? scene=sceneData is null?null:await Task.Run(sceneData,token).ConfigureAwait(false);
+            timing.Step("material-read-and-validate",$"bytes={materialSources.Length}");
+            byte[]? scene=sceneFromSources is not null?await Task.Run(()=>sceneFromSources(materialSources),token).ConfigureAwait(false)
+                :sceneData is null?null:await Task.Run(sceneData,token).ConfigureAwait(false);
             if(scene is not null)SeasonSceneData.Validate(scene);
+            timing.Step("scene-prepare-and-validate",$"bytes={scene?.Length??0}, sourceReused={sceneFromSources is not null}");
             var input=new SeasonBridgeProtocol.Bootstrap{Magic=SeasonBridgeProtocol.Magic,Version=SeasonBridgeProtocol.Version,Size=448,
                 Generation=generation,ControllerStartFileTime=(ulong)controller.StartTime.ToUniversalTime().ToFileTimeUtc(),
                 ControllerPid=(uint)Environment.ProcessId,LeaseMs=3000,Module=identity.ModuleBase,World=identity.World,
                 State=identity.State,Manager=identity.Manager,Scene=identity.Scene,Driver=identity.Driver,
                 Device=identity.Device,Context=identity.Context,Pipe=@"\\.\pipe\"+name};
             process=new SeasonNativeProcess(game,buildDirectory,Record);
+            timing.Step("native-code-validation");
             await Task.Run(()=>process.Start(input,materialSources,token,scene),CancellationToken.None).ConfigureAwait(false);
+            timing.Step("native-load-and-upload");
             token.ThrowIfCancellationRequested();
             pipe=new(".",name,PipeDirection.InOut,PipeOptions.Asynchronous);
             await pipe.ConnectAsync(10000,token).ConfigureAwait(false);
+            timing.Step("native-startup-and-pipe");
             if(!GetNamedPipeServerProcessId(pipe.SafePipeHandle,out uint pid)||pid!=(uint)identity.ProcessId)
                 throw new InvalidDataException("Native pipe server belongs to another process");
             for(int attempt=0;attempt<20;attempt++)
             {
                 var reply=await Send(SeasonBridgeProtocol.Command.Hello,null,token).ConfigureAwait(false);
-                if(reply.Error==0&&reply.ActualDraws>0&&reply.RenderThread>0){Record($"Native connected: generation={generation}, actualDraws={reply.ActualDraws}, thread={reply.RenderThread}, capabilities={reply.Capabilities}");return;}
+                if(reply.Error==0&&reply.ActualDraws>0&&reply.RenderThread>0){Record($"Native connected: generation={generation}, actualDraws={reply.ActualDraws}, thread={reply.RenderThread}, capabilities={reply.Capabilities}");timing.Step("draw-ownership-confirmed");timing.Complete();return;}
                 if(reply.Error!=997)throw new IOException($"Native connection failed: Win32 {reply.Error}");
                 await Task.Delay(50,token).ConfigureAwait(false);
             }
@@ -92,7 +100,9 @@ internal sealed class SeasonNativeSession(SeasonRenderIdentity identity,ulong ge
     }
     public async ValueTask<SeasonApplyReceipt> ApplyAsync(SeasonParameters parameters,CancellationToken token)
     {
+        using var timing=new SeasonTiming(Record,"renderer-apply");
         await gate.WaitAsync(token).ConfigureAwait(false);
+        timing.Step("session-gate",$"seasonal={parameters.Seasonal}, generation={generation}");
         try
         {
             if(restored is not null)throw new InvalidOperationException("Native season session stopped");
@@ -104,6 +114,7 @@ internal sealed class SeasonNativeSession(SeasonRenderIdentity identity,ulong ge
                 if(reply.Error!=0||reply.MaterialEpoch==0)throw new IOException($"Native scene request rejected: Win32 {reply.Error}");
                 pendingParameters=parameters;pendingEpoch=reply.MaterialEpoch;
             }
+            timing.Step("request-acknowledged",$"epoch={pendingEpoch}");
             for(int attempt=0;attempt<15;attempt++)
             {
                 await Task.Delay(50,token).ConfigureAwait(false);
@@ -116,10 +127,11 @@ internal sealed class SeasonNativeSession(SeasonRenderIdentity identity,ulong ge
                     reply.Selection[13]>0&&reply.Selection[14]>0&&(!parameters.Seasonal||reply.Swaps>0)&&reply.Swaps==reply.Restores&&reply.GpuStateVerified==1)
                 {
                     Record($"Scene native pass receipt: epoch={pendingEpoch}, date={reply.Date.Year}/{reply.Date.Month}/{reply.Date.Day}, trees={reply.TreeDraws}, land={reply.Selection[13]}, composite={reply.Selection[14]}; screen verification is separate");
+                    timing.Step("draw-and-restoration-confirmed",$"polls={attempt+1}");timing.Complete();
                     return new(generation,parameters.Date,reply.Selection[14],true);
                 }
             }
-            throw new SeasonNativeDrawPendingException();
+            timing.Complete("pending-draw");throw new SeasonNativeDrawPendingException();
         }
         finally{gate.Release();}
     }

@@ -12,7 +12,17 @@ internal static class GameSeasonScene
         return ReadDirectory(Path.GetDirectoryName(executable)!);
     }
     internal static byte[] ReadDirectory(string directory)
+        =>ReadDirectory(directory,(Action<string>?)null);
+    internal static byte[] ReadDirectory(string directory,Action<string>? log)
+        =>ReadDirectory(directory,GameSeasonSources.ReadDirectory(directory,log),log);
+    internal static byte[] Read(GameIdentity game,byte[] sources,Action<string>? log=null)
     {
+        string executable=GameMemory.ExecutablePath(game)??throw new IOException("Game installation is unavailable");
+        return ReadDirectory(Path.GetDirectoryName(executable)!,sources,log);
+    }
+    internal static byte[] ReadDirectory(string directory,byte[] sources,Action<string>? log=null)
+    {
+        using var timing=new SeasonTiming(log,"scene-prepare");
         string data=Path.Combine(directory,"0002");
         var entry=KtglArchive.ReadIndex(data,"system").Single(e=>e.Ktid==0xDC52FD1C);
         byte[] container=KtglArchive.Read(data,entry);byte[]? shader=null,distant=null;
@@ -29,6 +39,13 @@ internal static class GameSeasonScene
             {if(distant is not null)throw new InvalidDataException("Duplicate distant terrain shader source");distant=candidate.ToArray();}
         }
         if(shader is null||distant is null)throw new InvalidDataException("Authenticated terrain shader is missing from the installation");
-        return SeasonSceneData.WithDisasterArt(SeasonSceneData.Pack(GameSeasonMasks.ReadDirectory(directory).Select(m=>m.Mips).ToArray(),shader,distant));
+        timing.Step("terrain-read-and-authenticate");
+        var masks=GameSeasonMasks.FromSources(sources);
+        timing.Step("decode-and-build-masks",$"sourceReused=true, assets={masks.Count}");
+        var scene=SeasonSceneData.Pack(masks.Select(m=>m.Mips).ToArray(),shader,distant,log);
+        timing.Step("climate-and-scene-pack",$"bytes={scene.Length}");
+        scene=SeasonSceneData.WithDisasterArt(scene);
+        timing.Step("disaster-art-pack",$"bytes={scene.Length}");
+        timing.Complete();return scene;
     }
 }

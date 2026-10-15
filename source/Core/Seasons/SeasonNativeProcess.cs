@@ -118,46 +118,59 @@ internal sealed class SeasonNativeProcess:IDisposable
     }
     internal void Start(SeasonBridgeProtocol.Bootstrap input,byte[] sources,CancellationToken token,byte[]? sceneData=null)
     {
+        using var timing=new SeasonTiming(log,"renderer-native-start");
         token.ThrowIfCancellationRequested();SeasonTreeSources.Validate(sources);var modules=Modules();
         if(modules.Any(m=>Path.GetFileName(m.Path).Equals("renderdoc.dll",StringComparison.OrdinalIgnoreCase)))
             throw new InvalidDataException("Wrapped game contexts are not accepted");
         var resident=modules.Where(m=>Path.GetFileName(m.Path).Equals("SeasonBridge.dll",StringComparison.OrdinalIgnoreCase)).ToArray();
         if(resident.Any(m=>!m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase)))throw new InvalidDataException("Another native bridge build is already resident");
+        timing.Step("source-and-resident-check",$"resident={resident.Length==1}");
         if(resident.Length==0)
         {
             ulong entry=LoaderEntry();IntPtr path=Allocate(Encoding.Unicode.GetBytes(dll+'\0'));
             loaderPlan!.Verify();
+            timing.Step("public-loader-validation");
             loader=Launch(entry,path);Wait(loader,5000);
         }
+        timing.Step("library-ready");
         token.ThrowIfCancellationRequested();
         var loaded=Modules().Single(m=>m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase));
         if(Hash(File.ReadAllBytes(dll))!=dllHash||GameMemory.ReadSeasonSnapshot(game).Identity.ModuleBase!=input.Module)
             throw new InvalidDataException("Native DLL/process identity changed before session start");
+        timing.Step("loaded-library-validation");
         input.Sources=(ulong)Allocate(sources).ToInt64();input.SourceBytes=(uint)sources.Length;
+        timing.Step("material-upload-readback",$"bytes={sources.Length}");
         if(sceneData is not null){SeasonSceneData.Validate(sceneData);input.SceneData=(ulong)Allocate(sceneData).ToInt64();input.SceneBytes=(uint)sceneData.Length;}
+        timing.Step("scene-validation-upload-readback",$"bytes={sceneData?.Length??0}");
         log($"Native authenticated original material upload: bytes={input.SourceBytes}, assets={SeasonTreeSources.Assets.Length}");
         bootstrap=Allocate(SeasonBridgeProtocol.Bytes(input));
         worker=Launch(loaded.Base+ExportRva(dll,"SeasonBridgeSession"),bootstrap);
+        timing.Step("worker-launched");timing.Complete();
     }
     // The independently bundled gameplay worker reuses only the authenticated CPU loader and allocation lifetime.
     // It receives no render source, scene resource or GPU pointer, and has its own protocol/recovery receipt.
     internal void StartEnvironment(EnvironmentProtocol.Bootstrap input,CancellationToken token)
     {
+        using var timing=new SeasonTiming(log,"environment-native-start");
         if(!environment)throw new InvalidOperationException("Environment worker contract required");
         token.ThrowIfCancellationRequested();var modules=Modules();
         var residents=modules.Where(m=>Path.GetFileName(m.Path).Equals("EnvironmentBridge.dll",StringComparison.OrdinalIgnoreCase)).ToArray();
         if(residents.Any(m=>!m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase)))throw new InvalidDataException(L.Seasons.RestartRequired);
+        timing.Step("resident-check",$"resident={residents.Length==1}");
         if(residents.Length==0)
         {
             ulong entry=LoaderEntry();IntPtr path=Allocate(Encoding.Unicode.GetBytes(dll+'\0'));
             loaderPlan!.Verify();
+            timing.Step("public-loader-validation");
             loader=Launch(entry,path);Wait(loader,5000);
         }
+        timing.Step("library-ready");
         token.ThrowIfCancellationRequested();
         var loaded=Modules().Single(m=>m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase));
         if(Hash(File.ReadAllBytes(dll))!=dllHash||!GameMemory.IsSameGame(game)||input.Module!=game.ModuleBase)
             throw new InvalidDataException("Environment DLL/process identity changed before session start");
         bootstrap=Allocate(EnvironmentProtocol.Bytes(input));worker=Launch(loaded.Base+ExportRva(dll,"EnvironmentSession"),bootstrap);
+        timing.Step("worker-launched");timing.Complete();
     }
     internal EnvironmentProtocol.Recovery RecoverEnvironment(ulong generation)
     {

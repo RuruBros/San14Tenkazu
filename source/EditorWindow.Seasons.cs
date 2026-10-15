@@ -45,14 +45,13 @@ internal sealed partial class EditorWindow
             VerticalAlignment=W.VerticalAlignment.Center,Margin=new W.Thickness(0,0,4,0)});
         row.Children.Add(seasonOn);row.Children.Add(seasonOff);
         WC.ToolTipService.SetShowOnDisabled(seasonOn,true);WC.ToolTipService.SetShowOnDisabled(seasonOff,true);
-        // Click also runs for an already-selected OFF, allowing recovery retry.
-        // Programmatic IsChecked updates never send a Native request.
-        seasonOn.Click+=async(_,_)=>await SetSeasonsAsync(true);
-        seasonOff.Click+=async(_,_)=>await SetSeasonsAsync(false);
+        // These radios edit the window draft. Native requests run only through Save and Apply.
+        seasonOn.Click+=(_,_)=>environmentMenu?.SelectionChanged();
+        seasonOff.Click+=(_,_)=>environmentMenu?.SelectionChanged();
         UpdateSeasonControls();return row;
     }
 
-    // Connection alone never requests an effect. No DLL is extracted/loaded until ON.
+    // Saved enabled settings request Native startup only when eligible for application.
     private sealed class RecordedSeasonDateSource(GameIdentity identity,Action<SeasonSnapshot> record):ISeasonDateSource
     {
         private readonly GameSeasonDateSource source=new(identity);
@@ -67,7 +66,8 @@ internal sealed partial class EditorWindow
         seasonController=new(new RecordedSeasonDateSource(identity,value=>seasonJournal?.Record(
             $"Date read: pid={value.Identity.ProcessId}, date={value.Date.Year}/{value.Date.Month}/{value.Date.Day}, "+
             $"scene=0x{value.Identity.Scene:x}, device=0x{value.Identity.Device:x}, context=0x{value.Identity.Context:x}")),new SeasonPackagedBackend(identity,
-            Path.Combine(seasonStorageRoot,"native"),RecordSeason,()=>GameSeasonSources.Read(identity),()=>GameSeasonScene.Read(identity)),scope:SeasonScope.Full);
+            Path.Combine(seasonStorageRoot,"native"),RecordSeason,()=>GameSeasonSources.Read(identity,RecordSeason),
+            sceneFromSources:sources=>GameSeasonScene.Read(identity,sources,RecordSeason)),scope:SeasonScope.Full);
         seasonController.StatusChanged+=OnSeasonStatusChanged;UpdateSeasonControls();
     }
 
@@ -102,8 +102,10 @@ internal sealed partial class EditorWindow
         seasonOff.IsEnabled=available&&(stop||(!seasonStarting&&!busy&&connected));
         // The selected radio reports the user's request. The adjacent phase and receipt
         // report actual completion, including dates still awaiting a real Draw.
-        seasonOn.IsChecked=value.Requested&&value.Scope!=SeasonScope.Weather;
-        seasonOff.IsChecked=seasonOn.IsChecked!=true;
+        if(environmentMenu is null){
+            seasonOn.IsChecked=value.Requested&&value.Scope!=SeasonScope.Weather;
+            seasonOff.IsChecked=seasonOn.IsChecked!=true;
+        }
         seasonOff.ToolTip=value.Phase==SeasonPhase.Faulted&&!value.OriginalRestored?
             L.Seasons.RecoverButton+"\n"+L.Seasons.RecoverTip:L.Seasons.OffTip;
         // Keep the last confirmed, explicitly dated label during a short
@@ -164,7 +166,7 @@ internal sealed partial class EditorWindow
             if(EnvironmentRenderingActive&&controller.Status.Requested){await controller.SetSeasonalAsync(false);UpdateSeasonControls();}
             else if(NeedsSeasonStop(controller.Status))await StopSeasonsAsync(false);return;
         }
-        if(seasonStarting||busy||game is not {Verified:true}||snapshot is null)return;
+        if(seasonStarting||(busy&&!environmentChanging)||game is not {Verified:true}||snapshot is null)return;
         if(controller.Status.Requested){await controller.SetSeasonalAsync(true);UpdateSeasonControls();return;}
         if(NeedsSeasonStop(controller.Status))return;
         seasonUiError=null;seasonStarting=true;UpdateSeasonControls();

@@ -53,7 +53,7 @@ internal sealed class SeasonClimate
                 s.GetProperty("precipitationMm").EnumerateArray().Select(v=>v.GetDouble()).ToArray()));
         return new(list);
     }
-    internal MonthlyClimate Sample(double x, double z, MonthBlend date)
+    private (ClimateStation Station,double Distance)[] Nearest(double x,double z)
     {
         if (!double.IsFinite(x) || !double.IsFinite(z)) throw new ArgumentOutOfRangeException(nameof(x));
         // All verified city anchors, inverse squared distance. Keeping a fixed anchor set avoids
@@ -61,6 +61,19 @@ internal sealed class SeasonClimate
         var nearest=stations.Select(s=>(Station:s,Distance:(s.X-x)*(s.X-x)+(s.Z-z)*(s.Z-z)))
             .OrderBy(s=>s.Distance).ThenBy(s=>s.Station.Id).ToArray();
         if (nearest.Any(s=> !double.IsFinite(s.Distance))) throw new ArgumentOutOfRangeException(nameof(x),"Climate distance exceeds the numeric range");
+        return nearest;
+    }
+    internal MonthlyClimate Sample(double x,double z,MonthBlend date)=>Sample(Nearest(x,z),date);
+    internal void SampleMonths(double x,double z,Span<MonthlyClimate> months)
+    {
+        if(months.Length!=12)throw new ArgumentException("Twelve monthly output slots are required",nameof(months));
+        // The anchor order and distances depend on the coordinate, not the month.
+        // Preserve the original sorted summation order and monthly arithmetic.
+        var nearest=Nearest(x,z);
+        for(int month=0;month<12;month++)months[month]=Sample(nearest,new MonthBlend(month+1,month==11?1:month+2,0));
+    }
+    private static MonthlyClimate Sample((ClimateStation Station,double Distance)[] nearest,MonthBlend date)
+    {
         if (nearest[0].Distance<1e-12) return nearest[0].Station.Sample(date);
         double temp=0,rain=0,weight=0;
         foreach (var item in nearest)

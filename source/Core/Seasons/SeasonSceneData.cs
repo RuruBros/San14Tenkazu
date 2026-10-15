@@ -13,21 +13,26 @@ internal static class SeasonSceneData
     internal const int HeaderBytes=64,ClimateSize=256;
     internal const string TerrainShaderHash="08f898d88d527a70b8a4f0a8bf283e5c4abffcf7cc53d7992400005878a7d381";
     internal const string DistantTerrainShaderHash="7a99093d74cea74d44fccde0d69c8a9d7af4b1300a3a7f24b7195c784d9d93f9";
-    internal static byte[] Pack(IReadOnlyList<IReadOnlyList<SeasonTreeMaskMip>> masks,byte[] terrainShader,byte[] distantTerrainShader)
+    internal static byte[] Pack(IReadOnlyList<IReadOnlyList<SeasonTreeMaskMip>> masks,byte[] terrainShader,byte[] distantTerrainShader,Action<string>? log=null)
     {
+        using var timing=new SeasonTiming(log,"scene-pack");
         if(masks.Count!=SeasonTreeSources.Assets.Length)throw new InvalidDataException("Scene mask count differs");
         var climate=SeasonClimateAtlas.Build(SeasonClimate.Load(),ClimateSize,ClimateSize,new(0,0,204800,204800));
+        timing.Step("climate-atlas-build");
         using var stream=new MemoryStream();using var writer=new BinaryWriter(stream);
         writer.Write(new byte[HeaderBytes]);
         foreach(var levels in masks)foreach(var mip in levels)foreach(float value in mip.LeafBranchCoverage)writer.Write(value);
+        timing.Step("mask-serialization");
         int climateOffset=checked((int)stream.Position);
         foreach(float value in climate.Data.Span)writer.Write(value);
+        timing.Step("climate-serialization");
         int shaderOffset=checked((int)stream.Position);writer.Write(terrainShader);writer.Write(distantTerrainShader);
         byte[] result=stream.ToArray();uint[] header=[Magic,3,(uint)result.Length,HeaderBytes,
             (uint)(climateOffset-HeaderBytes),(uint)climateOffset,(uint)(shaderOffset-climateOffset),ClimateSize,
             ClimateSize,12,(uint)masks.Count,(uint)shaderOffset,(uint)(terrainShader.Length+distantTerrainShader.Length),0,0,0];
         for(int i=0;i<header.Length;i++)BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(i*4),header[i]);
-        Validate(result);return result;
+        timing.Step("shader-and-header-pack");
+        Validate(result);timing.Step("payload-validation");timing.Complete();return result;
     }
     internal static void Validate(ReadOnlySpan<byte> data)
     {

@@ -76,11 +76,11 @@ internal static partial class RenderChecks
         var on=Field<WC.RadioButton>(window,"seasonOn");var off=Field<WC.RadioButton>(window,"seasonOff");
         var text=Field<WC.TextBlock>(window,"seasonStatus");
         var map=Field<MapView>(window,"map");var surface=Field<MapSurface>(map,"surface");
-        void Click(WC.RadioButton radio)
+        void Request(WC.RadioButton radio)
         {
-            Require(radio.IsEnabled,"Cannot click a disabled season choice");
-            // Run WPF's actual radio toggle/grouping before the product's Click handler.
-            typeof(WC.RadioButton).GetMethod("OnClick",Hidden)!.Invoke(radio,null);
+            // Exercise controller lifecycle requests directly. The environment menu check covers
+            // actual draft radio clicks and the shared Save and Apply button.
+            _=(Task)Call(window,"SetSeasonsAsync",ReferenceEquals(radio,on))!;
         }
         void Capture(string name,int width=1100,int dpi=96)
         {
@@ -143,13 +143,13 @@ internal static partial class RenderChecks
             on.IsChecked=true;Call(window,"UpdateControls");
             Record("programmatic-radio-update-does-not-start-native",controller.Status.Phase==SeasonPhase.Off&&on.IsChecked==false&&off.IsChecked==true
                 &&(fake is null||fake.Sessions.Count==0));
-            Click(off);Record("selected-off-is-idempotent",controller.Status.Phase==SeasonPhase.Off&&controller.Status.OriginalRestored);
+            Request(off);Record("selected-off-is-idempotent",controller.Status.Phase==SeasonPhase.Off&&controller.Status.OriginalRestored);
             Record("no-native-cache-before-on",!Directory.Exists(Path.Combine(output,"product-storage","native")));Capture("connected-off-144",1000,144);
-            Click(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));
-            Record("radio-click-scene-on",controller.Status.Phase==SeasonPhase.On&&on.IsChecked==true&&off.IsChecked==false,
+            Request(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));
+            Record("controller-request-scene-on",controller.Status.Phase==SeasonPhase.On&&on.IsChecked==true&&off.IsChecked==false,
                 new{status=text.Text,controller.Status,treeDate=new{controller.Status.Date?.Year,controller.Status.Date?.Month,controller.Status.Date?.Day}});
             ulong generation=controller.Status.Generation;int sessions=fake?.Sessions.Count??0;
-            Click(on);Record("selected-on-is-idempotent",controller.Status.Phase==SeasonPhase.On&&controller.Status.Requested
+            Request(on);Record("selected-on-is-idempotent",controller.Status.Phase==SeasonPhase.On&&controller.Status.Requested
                 &&controller.Status.Generation==generation&&(fake?.Sessions.Count??0)==sessions);
             Capture("tree-applied-96");
             Capture("tree-applied-wide-96",1500);
@@ -198,7 +198,7 @@ internal static partial class RenderChecks
                 Capture("date-update-pending-96");session.ContinueApply.SetResult();Await(update);session.ContinueApply=null;
                 Record("date-update-publishes-only-actual-receipt",on.IsChecked==true&&off.IsChecked==false&&controller.Status.Phase==SeasonPhase.On&&controller.Status.Date==summer);
             }
-            Call(window,"SetBusy",true,false);Record("off-enabled-during-editor-busy",off.IsEnabled&&!on.IsEnabled);
+            Call(window,"SetBusy",true,false);Record("controller-stays-active-during-editor-busy",controller.Status is {Phase:SeasonPhase.On,Requested:true});
             using(var scanning=new CancellationTokenSource())
             {
                 Set(window,"scanCancellation",scanning);Call(window,"SetBusy",true,true);
@@ -210,15 +210,15 @@ internal static partial class RenderChecks
                 var hold=Stopwatch.StartNew();PumpUntil(()=>hold.ElapsedMilliseconds>=2600);
                 Record("independent-date-watch-during-busy",controller.Status.Phase==SeasonPhase.On);
             }
-            Click(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping"));
-            Record("radio-click-off-after-recovery",controller.Status.Phase==SeasonPhase.Off&&controller.Status.OriginalRestored&&on.IsChecked==false&&off.IsChecked==true);
+            Request(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping"));
+            Record("controller-request-off-after-recovery",controller.Status.Phase==SeasonPhase.Off&&controller.Status.OriginalRestored&&on.IsChecked==false&&off.IsChecked==true);
             Call(window,"SetBusy",false,false);Capture("restored-144",1000,144);
-            Click(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));Record("on-after-off",controller.Status.Phase==SeasonPhase.On);
+            Request(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));Record("on-after-off",controller.Status.Phase==SeasonPhase.On);
             if(fake is not null)
             {
-                fake.Sessions[^1].Restored=false;Click(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping"));
+                fake.Sessions[^1].Restored=false;Request(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping"));
                 Record("failed-recovery-keeps-controller",ReferenceEquals(controller,Field<SeasonController>(window,"seasonController"))&&
-                    !controller.Status.OriginalRestored&&!fake.Sessions[^1].Disposed&&off.IsEnabled&&!on.IsEnabled
+                    !controller.Status.OriginalRestored&&!fake.Sessions[^1].Disposed
                     &&off.IsChecked==true&&off.ToolTip.ToString()!.StartsWith(L.Seasons.RecoverButton,StringComparison.Ordinal));
                 Capture("recovery-unconfirmed-96");
                 Task<bool> disconnect=(Task<bool>)Call(window,"DisconnectAsync",new object?[]{null})!;Await(disconnect);
@@ -226,13 +226,13 @@ internal static partial class RenderChecks
                 var cancel=new System.ComponentModel.CancelEventArgs();Call(window,"OnEditorClosing",window,cancel);
                 PumpUntil(()=>!Field<bool>(window,"seasonClosing"));
                 Record("close-blocked-keeps-controller",cancel.Cancel&&!fake.Sessions[^1].Disposed&&Field<SeasonController>(window,"seasonController")==controller);
-                fake.Sessions[^1].Restored=true;Click(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping"));
+                fake.Sessions[^1].Restored=true;Request(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping"));
                 Record("recovery-retry-off",controller.Status.Phase==SeasonPhase.Off&&fake.Sessions[^1].Disposed);
-                fake.ContinueNext=new(TaskCreationOptions.RunContinuationsAsynchronously);Click(on);PumpUntil(()=>controller.Status.Phase==SeasonPhase.Applying);
-                Record("cancel-enabled-during-pending-draw",off.IsEnabled&&on.IsChecked==true&&off.IsChecked==false&&controller.Status.TreeColor is null);
-                Click(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping")&&!Field<bool>(window,"seasonStarting"));
+                fake.ContinueNext=new(TaskCreationOptions.RunContinuationsAsynchronously);Request(on);PumpUntil(()=>controller.Status.Phase==SeasonPhase.Applying);
+                Record("controller-awaits-draw-before-stop-request",controller.Status is {Phase:SeasonPhase.Applying,Requested:true,TreeColor:null});
+                Request(off);PumpUntil(()=>!Field<bool>(window,"seasonStopping")&&!Field<bool>(window,"seasonStarting"));
                 Record("pending-draw-cancelled-and-restored",controller.Status.Phase==SeasonPhase.Off&&controller.Status.OriginalRestored&&fake.Sessions[^1].Disposed);
-                Click(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));
+                Request(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));
                 var closingSession=fake.Sessions[^1];closingSession.ContinueStop=new(TaskCreationOptions.RunContinuationsAsynchronously);
                 cancel=new System.ComponentModel.CancelEventArgs();Call(window,"OnEditorClosing",window,cancel);PumpUntil(()=>closingSession.StopEntered);
                 Call(window,"SetBusy",false,false);
@@ -247,7 +247,7 @@ internal static partial class RenderChecks
             {
                 Set(window,"game",identity);Set(window,"snapshot",data);Call(window,"AttachSeasons",identity);controller=Field<SeasonController>(window,"seasonController");
                 Record("reconnected-default-off",controller.Status.Phase==SeasonPhase.Off&&on.IsChecked==false&&off.IsChecked==true);
-                Click(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));Record("reconnected-actual-scene-passes",controller.Status.Phase==SeasonPhase.On,new{controller.Status});
+                Request(on);PumpUntil(()=>!Field<bool>(window,"seasonStarting"));Record("reconnected-actual-scene-passes",controller.Status.Phase==SeasonPhase.On,new{controller.Status});
                 disconnected=(Task<bool>)Call(window,"DisconnectAsync",new object?[]{null})!;Await(disconnected);Record("reconnected-final-restoration",disconnected.Result);
                 string[] lines=Directory.GetFiles(Path.Combine(output,"product-storage","logs"),"*.log").SelectMany(File.ReadAllLines).ToArray();
                 Record("recorded-independent-date-reads",lines.Count(l=>l.Contains("Date read:"))>=5,new{dateReads=lines.Count(l=>l.Contains("Date read:"))});

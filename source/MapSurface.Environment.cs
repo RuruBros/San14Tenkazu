@@ -20,15 +20,15 @@ internal sealed partial class MapSurface
         environment=value;string key=value is null?"":$"{value.Date}/{value.Flags}/{value.Values}/{value.PreviewCity}/{value.PreviewKind}/{Convert.ToHexString(value.Weather)}/{string.Join(',',value.RecentDates)}";
         bool sameRegions=ReferenceEquals(snapshot,environmentSnapshot)||(snapshot is {} current&&environmentSnapshot is {} previous&&current.TileCounties.AsSpan().SequenceEqual(previous.TileCounties)&&current.Counties.Select(c=>(c.Index,c.HomeCity)).SequenceEqual(previous.Counties.Select(c=>(c.Index,c.HomeCity))));
         if(key==environmentKey&&sameRegions)return;environmentKey=key;environmentSnapshot=snapshot;int version=++environmentVersion;environmentHits.Clear();
-        if(value is null){environmentFill.Source=null;environmentLayer?.Redraw();RequestFrame();return;}
-        if(snapshot is not {} data)return;
+        if(value is null){environmentFill.Source=null;environmentLayer?.Redraw();RequestFrame();RefreshEnvironmentHover();return;}
+        if(snapshot is not {} data){RefreshEnvironmentHover();return;}
         Task.Run(()=>MapView.RenderEnvironment(data,value)).ContinueWith(task=>Dispatcher.InvokeAsync(()=>
         {
             if(version!=environmentVersion)return;
             if(task.IsCompletedSuccessfully){environmentFill.Source=task.Result;environmentFill.Width=WorldWidth;environmentFill.Height=WorldHeight;}
             else System.Diagnostics.Trace.TraceError("Environment region image: {0}",task.Exception);
-            environmentLayer.Redraw();RequestFrame();
-        }),TaskScheduler.Default);environmentLayer?.Redraw();
+            environmentLayer.Redraw();RequestFrame();RefreshEnvironmentHover();
+        }),TaskScheduler.Default);environmentLayer?.Redraw();RefreshEnvironmentHover();
     }
     private void DrawEnvironment(IMapCanvas dc)
     {
@@ -46,14 +46,42 @@ internal sealed partial class MapSurface
                 DrawEnvironmentSymbol(dc,mark.Kind,new W.Point(box.X+15,box.Y+12),ink);
                 string tag=value.IsPreview(city,mark.Kind)?"테스트":mark.Kind<3?L.Environment.Current:EnvironmentProtocol.Date(mark.Date).Month+"/"+EnvironmentProtocol.Date(mark.Date).Day;
                 var label=Mark(tag,9,HudInk,dpi);dc.DrawText(label,new W.Point(box.X+(30-label.Width)/2,box.Y+22));
-                string name=mark.Kind switch{1=>L.Environment.RainVisual,2=>L.Environment.SnowVisual,3=>L.Environment.Flood,4=>L.Environment.Wildfire,6=>L.Environment.Blizzard,7=>L.Environment.Heatwave,_=>L.Environment.Drought};
-                var date=EnvironmentProtocol.Date(mark.Kind<3?value.Date:mark.Date);string dated=$"{date.Year}/{date.Month}/{date.Day}";
-                string when=value.IsPreview(city,mark.Kind)?"표시 전용 테스트 · 피해 없음":mark.Kind<3?L.Environment.CurrentWeather(dated):L.Environment.RecentDamage(dated);
-                int movement=EnvironmentPolicy.MovementPercent(value.Weather[city-1],value.Flags,value.Values);
-                string tip=data.Cities.FirstOrDefault(c=>c?.CityId==city)?.Name??CityNames.ById[city];
-                environmentHits.Add((box,city,tip+" · "+name+"\n"+when+"\n"+L.Environment.OverlayValues(100-movement,(value.Flags&EnvironmentEffects.WeatherMorale)!=0&&value.Weather[city-1]!=0?value.Values.WeatherMoraleLoss:0)));
+                if(DescribeEnvironment(city,mark.Kind) is {} tip)environmentHits.Add((box,city,tip));
             }
         }
+    }
+    private int EnvironmentCityAtTile(int tile)=>snapshot is {} data&&tile>=0&&tile<data.TileCounties.Length
+        ?data.County(data.TileCounties[tile])?.HomeCity??0:0;
+    private string? DescribeEnvironment(int city,int kind=0,bool includeCity=true)
+    {
+        if(environment is not {} value||snapshot is not {} data||city is <1 or >46)return null;
+        var marks=value.Marks(city).Where(mark=>kind==0||mark.Kind==kind).ToArray();if(marks.Length==0)return null;
+        var lines=new List<string>();
+        if(includeCity)lines.Add(data.Cities.FirstOrDefault(c=>c?.CityId==city)?.Name??CityNames.ById[city]);
+        foreach(var mark in marks)
+        {
+            lines.Add(mark.Kind switch{1=>L.Environment.RainVisual,2=>L.Environment.SnowVisual,3=>L.Environment.Flood,4=>L.Environment.Wildfire,6=>L.Environment.Blizzard,7=>L.Environment.Heatwave,_=>L.Environment.Drought});
+            var date=EnvironmentProtocol.Date(mark.Kind<3?value.Date:mark.Date);string dated=$"{date.Year}/{date.Month}/{date.Day}";
+            lines.Add(value.IsPreview(city,mark.Kind)?"표시 전용 테스트 · 피해 없음":mark.Kind<3?L.Environment.CurrentWeather(dated):L.Environment.RecentDamage(dated));
+        }
+        int movement=EnvironmentPolicy.MovementPercent(value.Weather[city-1],value.Flags,value.Values);
+        lines.Add(L.Environment.OverlayValues(100-movement,(value.Flags&EnvironmentEffects.WeatherMorale)!=0&&value.Weather[city-1]!=0?value.Values.WeatherMoraleLoss:0));
+        return string.Join("\n",lines);
+    }
+    // Region information is hover-only: ordinary hit tests still control clicks and double-click navigation.
+    private MapHit HoverHitTest(W.Point location)
+    {
+        var hit=HitTest(location);if(!hit.IsEmpty)return hit;
+        WM.Matrix transform=Gpu&&presentedView.Zoom>0?presentedTransform:worldTransform.Matrix;
+        if(!transform.HasInverse)return default;transform.Invert();var world=transform.Transform(location);
+        return MapTerrain.TileAt(world.X,world.Y) is {} tile&&DescribeEnvironment(EnvironmentCityAtTile(tile)) is {} text
+            ?new MapHit(0,null,text):default;
+    }
+    private void RefreshEnvironmentHover()
+    {
+        if(!IsMouseOver||IsMoving){SetHover(default);return;}
+        var point=System.Windows.Input.Mouse.GetPosition(this);UpdateHover(point);
+        if(card.Visibility==W.Visibility.Visible){cardText.Text=HoverText();PlaceCard(point);}
     }
     private static void DrawEnvironmentSymbol(IMapCanvas dc,int kind,W.Point p,WM.Brush ink)
     {

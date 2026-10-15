@@ -70,13 +70,28 @@ public class EnvironmentTests
         string root=Path.Combine(Path.GetTempPath(),"san14-environment-"+Guid.NewGuid().ToString("N"));var file=new EnvironmentSettingsFile(Path.Combine(root,"settings.json"));
         try
         {
-            Assert.Null(file.Read().Settings);var value=EnvironmentSettings.New() with{Effects=EnvironmentEffects.Flood|EnvironmentEffects.SnowMovement,Values=EnvironmentValues.Default with{RainReduction=17,HeavyRainReduction=41,FloodChance=17,FloodTroopsPercent=13,WildfireFoodPercent=29}};
+            Assert.Null(file.Read().Settings);var value=EnvironmentSettings.New() with{Seasonal=true,Effects=EnvironmentEffects.Flood|EnvironmentEffects.SnowMovement,Values=EnvironmentValues.Default with{RainReduction=17,HeavyRainReduction=41,FloodChance=17,FloodTroopsPercent=13,WildfireFoodPercent=29}};
             string stamp=file.Save(value,"");Assert.Equal(value,file.Read().Settings);Assert.Equal(stamp,file.Read().Stamp);
             var next=value with{Effects=EnvironmentEffects.Drought};file.Save(next,stamp);Assert.Throws<IOException>(()=>file.Save(value,stamp));Assert.Equal(next,file.Read().Settings);
             Assert.Throws<InvalidDataException>(()=>(value with{Seed=0}).Validate());Assert.Throws<InvalidDataException>(()=>(value with{Effects=(EnvironmentEffects)1024}).Validate());
             Assert.Throws<InvalidDataException>(()=>(value with{Values=value.Values with{RainReduction=100}}).Validate());Assert.Throws<InvalidDataException>(()=>(value with{Values=value.Values with{FloodChance=1001}}).Validate());
         }
         finally{if(Directory.Exists(root))Directory.Delete(root,true);}
+    }
+    [Fact]
+    public void ExistingVersionThreeSettingsDefaultSeasonalOffWithoutRewritingTheFile()
+    {
+        string root=Path.Combine(Path.GetTempPath(),"san14-env-seasonal-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
+        try
+        {
+            var value=EnvironmentSettings.New() with{Effects=EnvironmentEffects.RainVisual};
+            var node=System.Text.Json.Nodes.JsonNode.Parse(System.Text.Json.JsonSerializer.Serialize(value))!.AsObject();node.Remove("Seasonal");
+            string path=Path.Combine(root,"settings.json"),text=node.ToJsonString();File.WriteAllText(path,text);
+            var file=new EnvironmentSettingsFile(path);var read=file.Read();
+            Assert.Equal(value,read.Settings);Assert.False(read.Settings!.Seasonal);Assert.Equal(text,File.ReadAllText(path));
+            var selected=value with{Seasonal=true};file.Save(selected,read.Stamp);Assert.Equal(selected,file.Read().Settings);
+        }
+        finally{Directory.Delete(root,true);}
     }
     [Fact]
     public void LegacyPresetsMigrateToExactNumbersWithoutChangingTheFileUntilSave()

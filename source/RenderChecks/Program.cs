@@ -15,6 +15,7 @@ internal static partial class RenderChecks
     {
         try
         {
+            if(args.Contains("--season-prepare-timings")){CheckSeasonPreparationTimings(args);return 0;}
             if (args.Contains("--unified-drafts")) { CheckUnifiedDrafts(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--table-drafts")) { CheckTableDrafts(args.First(a => !a.StartsWith("--"))); return 0; }
             if(args.Contains("--runtime-rule-worker")){RunRuntimeRuleWorker();return 0;}
