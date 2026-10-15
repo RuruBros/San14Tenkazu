@@ -35,8 +35,7 @@ internal static class RuntimeRulePatches
     internal static readonly RuntimePatch[] All = Load();
     private static RuntimePatch[] Load()
     {
-        using var stream = typeof(RuntimeRulePatches).Assembly.GetManifestResourceStream("RuntimeRules.patches.json")!;
-        return JsonSerializer.Deserialize<RuntimePatch[]>(stream)!;
+        return JsonSerializer.Deserialize<RuntimePatch[]>(GameBuildProfiles.Current.ReadResource("RuntimeRules.patches.json"))!;
     }
 
     internal static byte[] Guard(RuntimePatch site, RuntimeRuleSettings settings)

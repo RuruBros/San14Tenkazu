@@ -38,7 +38,7 @@ internal sealed record GameLayout(
 }
 
 // A static pointer in the exe leading to the city table: [exe + Rva] + Delta. (On the verified build the one the game
-// itself uses is exe+0x277DF18, 0xDD38 below the city table.)
+// itself uses is exe+GameBuildFacts.Memory.BasePointerRva, 0xDD38 below the city table.)
 internal readonly record struct BasePointer(ulong Rva, ulong Delta);
 
 internal sealed record CityRecord(int CityId, ulong Address, byte[] Data)
@@ -407,63 +407,63 @@ internal sealed record GameCatalog(GameName[] Personalities, GameName[] Tactics,
 
 internal static partial class GameMemory
 {
-    private const string ProcessName = "SAN14CE_KO";
-    private const string VerifiedExeHash = "87ED4E46590E0939C9EFCAEF14FA0F892917604DFDA86E0A4BE319FCCFFA2D6A";
+    private const string ProcessName = GameBuildFacts.ProcessName;
+    private const string VerifiedExeHash = GameBuildFacts.ExeSha256;
 
     // A test switch: SAN14TENKAZU_UNVERIFIED=1 treats the verified build as an unknown one (tables found by class,
     // read-only until the self-checks pass and writing is allowed), to try that path without another build.
     private static readonly bool TreatAsUnverified = Environment.GetEnvironmentVariable("SAN14TENKAZU_UNVERIFIED") == "1";
 
     // Game base object of the verified build: [exe + BasePointerRva] + BaseAdjust, and the offsets of its tables.
-    private const ulong BasePointerRva = 0x277DF18;
-    private const ulong BaseAdjust = 0x290;
-    private const ulong CityTable = 0xDAA8, ForceTable = 0xDCA0, CorpsTable = 0xDE40, TileTable = 0xDFE0;
-    private const ulong CountyTable = 0x6C860, BuildingTable = 0x6D808, OfficerTable = 0x737C0, UnitTable = 0x7E5A8;
-    private const int MaxCounties = 501, MaxBuildings = 3063, MaxOfficers = 4096, ForceCount = 52, UnitSlots = 501;
+    private const ulong BasePointerRva = GameBuildFacts.Memory.BasePointerRva;
+    private const ulong BaseAdjust = GameBuildFacts.Memory.BaseAdjust;
+    private const ulong CityTable = GameBuildFacts.Memory.CityTable, ForceTable = GameBuildFacts.Memory.ForceTable, CorpsTable = GameBuildFacts.Memory.CorpsTable, TileTable = GameBuildFacts.Memory.TileTable;
+    private const ulong CountyTable = GameBuildFacts.Memory.CountyTable, BuildingTable = GameBuildFacts.Memory.BuildingTable, OfficerTable = GameBuildFacts.Memory.OfficerTable, UnitTable = GameBuildFacts.Memory.UnitTable;
+    private const int MaxCounties = GameBuildFacts.Memory.MaxCounties, MaxBuildings = GameBuildFacts.Memory.MaxBuildings, MaxOfficers = GameBuildFacts.Memory.MaxOfficers, ForceCount = GameBuildFacts.Memory.ForceCount, UnitSlots = GameBuildFacts.Memory.UnitSlots;
     // The map: 220 × 220 hexes, one tile record each (MapTerrain in the editor draws them).
-    internal const int MapColumns = 220, MapRows = 220;
+    internal const int MapColumns = GameBuildFacts.Memory.MapColumns, MapRows = GameBuildFacts.Memory.MapRows;
     internal const int TileCount = MapColumns * MapRows;
 
     // Game state object (CWorldData): [base + StatePointer]. Its byte +0x3A is the player's force, which the game
     // uses to index the force table. 설정 → 데모 플레이 (exe+0x33B9F0) sets that byte to 0 and bit 0x100 of the
     // dword at +0x16A8, which the game checks before saving, loading, editing and counting records.
     // (It also sets bit 2 of +0x17CD, only stored in saves, and resets the player's corps delegation settings.)
-    private const ulong StatePointer = 0x86F58;
-    private const int StateRead = 0x40, StatePlayerForceOffset = 0x3A, StateFlagsOffset = 0x16A8, StateYearOffset = 0x34, StateHourOffset = 0x38;
+    private const ulong StatePointer = GameBuildFacts.Memory.StatePointer;
+    private const int StateRead = GameBuildFacts.Memory.StateRead, StatePlayerForceOffset = GameBuildFacts.Memory.StatePlayerForceOffset, StateFlagsOffset = GameBuildFacts.Memory.StateFlagsOffset, StateYearOffset = GameBuildFacts.Memory.StateYearOffset, StateHourOffset = GameBuildFacts.Memory.StateHourOffset;
     // Whether the game runs is told by its clock (date and hour) moving: watched every PaceStep ms for up to PaceWatch
     // ms. While it runs the hour moves every 0.1~0.2 s, but it stands a moment now and then (half a second was once
     // too short). (2026-10-02: recording the game while the user paused and resumed it found no flag that holds;
     // exe+0x1B5CAD0 followed the presses then, but read 1 most of the time once the game ran unwatched.)
     private const int PaceWatch = 800, PaceStep = 50;
-    private const uint DemoPlayFlag = 0x100;
-    internal const int MaxPlayerForce = 45; // 46~50 are the tribes
-    internal const int CityStride = 0x168, CountyStride = 0x98, OfficerStride = 0x1F0, TileStride = 0x20, BuildingStride = 0x20, UnitStride = 0x200;
-    private const int TileCountyOffset = 0x12;
-    private const int ForceRead = 0x120, CorpsRead = CorpsFields.Size, ForceCountryOffset = 0x48, ForceColorOffset = 0x49;
+    private const uint DemoPlayFlag = GameBuildFacts.Memory.DemoPlayFlag;
+    internal const int MaxPlayerForce = GameBuildFacts.Memory.MaxPlayerForce; // 46~50 are the tribes
+    internal const int CityStride = GameBuildFacts.Memory.CityStride, CountyStride = GameBuildFacts.Memory.CountyStride, OfficerStride = GameBuildFacts.Memory.OfficerStride, TileStride = GameBuildFacts.Memory.TileStride, BuildingStride = GameBuildFacts.Memory.BuildingStride, UnitStride = GameBuildFacts.Memory.UnitStride;
+    private const int TileCountyOffset = GameBuildFacts.Memory.TileCountyOffset;
+    private const int ForceRead = GameBuildFacts.Memory.ForceRead, CorpsRead = CorpsFields.Size, ForceCountryOffset = GameBuildFacts.Memory.ForceCountryOffset, ForceColorOffset = GameBuildFacts.Memory.ForceColorOffset;
     // A corps record: +0x10 its force, +0x11 its number within the force, +0x12 its 군단장 (read 2026-10-02: 조조, 손책, 원소
     // leading their first corps).
-    private const int CorpsLeaderOffset = 0x12;
+    private const int CorpsLeaderOffset = GameBuildFacts.Memory.CorpsLeaderOffset;
     // Past the cities in the base table: tribes 47~51 (city records), a placeholder, then gates 52~61.
-    internal const int TribeFirst = 47, TribeLast = 51, GateFirst = 52, GateLast = 61;
-    private const int BaseSlots = 63, GateSlot = 53;
-    private const int GateRead = 0xC0;
-    private const int TileLandmarkOffset = 0x1E, TileBaseOffset = 0x1A;
-    internal const int BuildingTileOffset = 0x10;
-    internal const int BuildingTypeOffset = 0x12, BuildingForceOffset = 0x13, BuildingDurabilityOffset = 0x14, BuildingBuiltOffset = 0x16;
+    internal const int TribeFirst = GameBuildFacts.Memory.TribeFirst, TribeLast = GameBuildFacts.Memory.TribeLast, GateFirst = GameBuildFacts.Memory.GateFirst, GateLast = GameBuildFacts.Memory.GateLast;
+    private const int BaseSlots = GameBuildFacts.Memory.BaseSlots, GateSlot = GameBuildFacts.Memory.GateSlot;
+    private const int GateRead = GameBuildFacts.Memory.GateRead;
+    private const int TileLandmarkOffset = GameBuildFacts.Memory.TileLandmarkOffset, TileBaseOffset = GameBuildFacts.Memory.TileBaseOffset;
+    internal const int BuildingTileOffset = GameBuildFacts.Memory.BuildingTileOffset;
+    internal const int BuildingTypeOffset = GameBuildFacts.Memory.BuildingTypeOffset, BuildingForceOffset = GameBuildFacts.Memory.BuildingForceOffset, BuildingDurabilityOffset = GameBuildFacts.Memory.BuildingDurabilityOffset, BuildingBuiltOffset = GameBuildFacts.Memory.BuildingBuiltOffset;
     // Country names (국호): base + CountryTable holds 101 pointers to records with the UTF-16 name at +0x10;
     // a force's byte +0x48 indexes it (0 = none; 1~48 are the game's names such as 위·촉·오·허).
-    private const ulong CountryTable = 0x77ED8;
-    private const ulong ItemTable = 0x77888;
-    private const int ItemSlots = 202;
-    internal const int ItemStride = 0x80;
-    private const int CountryCount = 101, CountryRead = 0x30, CountryNameOffset = 0x10;
+    private const ulong CountryTable = GameBuildFacts.Memory.CountryTable;
+    private const ulong ItemTable = GameBuildFacts.Memory.ItemTable;
+    private const int ItemSlots = GameBuildFacts.Memory.ItemSlots;
+    internal const int ItemStride = GameBuildFacts.Memory.ItemStride;
+    private const int CountryCount = GameBuildFacts.Memory.CountryCount, CountryRead = GameBuildFacts.Memory.CountryRead, CountryNameOffset = GameBuildFacts.Memory.CountryNameOffset;
     // More tables of names, each base + Table holding pointers to records with the name at +0x10 (read on
     // 2026-10-02, every record checked by its vtable): 개성 (the description at +0x3C), 전법 (1~26 the common
     // ones, 31~170 the officers' own), 정책 and 주의 (descriptions at +0x3C, +0x2C), 관직 (73 없음; its grade at +0x37
     // and the troops its holder may lead at +0x34: 정동장군 2품 18,000, 없음 3,000), 작위 (what it takes at +0x44,
     // such as "지배도시 25이상.").
-    private const ulong PersonalityTableOffset = 0x7DA88, TacticTableOffset = 0x77240, PolicyTableOffset = 0x78AC0, IdeologyTableOffset = 0x78A68,
-        OfficeTableOffset = 0x78268, RankTableOffset = 0x78200, FormationTableOffset = 0x77198;
+    private const ulong PersonalityTableOffset = GameBuildFacts.Memory.PersonalityTableOffset, TacticTableOffset = GameBuildFacts.Memory.TacticTableOffset, PolicyTableOffset = GameBuildFacts.Memory.PolicyTableOffset, IdeologyTableOffset = GameBuildFacts.Memory.IdeologyTableOffset,
+        OfficeTableOffset = GameBuildFacts.Memory.OfficeTableOffset, RankTableOffset = GameBuildFacts.Memory.RankTableOffset, FormationTableOffset = GameBuildFacts.Memory.FormationTableOffset;
     private sealed record NameTable(Func<GameTables, ulong> Table, int Count, Func<GameClasses, ulong> Class, int Read, int NameChars,
         int DescriptionOffset = 0, Func<byte[], string>? Describe = null);
     private static readonly NameTable PersonalityTable = new(t => t.Personality, 356, c => c.Personality, 0xB6, 6, 0x3C);
@@ -475,7 +475,7 @@ internal static partial class GameMemory
     private static readonly NameTable RankTable = new(t => t.Rank, 13, c => c.Rank, 0x80, 13, 0x44);
     // 진형: 21 records of 0xC8 bytes (0 unused), +0x7F its 기동, what a unit's speed is made from (0x2B0210 reads it, or
     // the same value kept encoded beside it; both agreed on all 20 on 2026-10-03).
-    private const int FormationMobilityOffset = 0x7F;
+    private const int FormationMobilityOffset = GameBuildFacts.Memory.FormationMobilityOffset;
     private static readonly NameTable FormationTable = new(t => t.Formation, 21, c => c.Formation, 0x80, 5,
         Describe: record => L.Terms.Mobility(record[FormationMobilityOffset]));
 
@@ -485,8 +485,8 @@ internal static partial class GameMemory
         baseObject + BuildingTable, baseObject + OfficerTable, baseObject + UnitTable, baseObject + StatePointer, baseObject + CountryTable,
         baseObject + ItemTable, baseObject + PersonalityTableOffset, baseObject + TacticTableOffset, baseObject + PolicyTableOffset,
         baseObject + IdeologyTableOffset, baseObject + OfficeTableOffset, baseObject + RankTableOffset, baseObject + FormationTableOffset);
-    private const int TableNameOffset = 0x10;
-    internal const int CityCount = 46;
+    private const int TableNameOffset = GameBuildFacts.Memory.TableNameOffset;
+    internal const int CityCount = GameBuildFacts.Memory.CityCount;
 
     private const uint ProcessQueryInformation = 0x0400;
     private const uint ProcessVmRead = 0x0010;
@@ -520,7 +520,7 @@ internal static partial class GameMemory
             // treats it as unverified (EditorForm: read-only until its self-checks pass and writing is allowed).
             byte[] exe = File.ReadAllBytes(module.FileName);
             string hash = Convert.ToHexString(SHA256.HashData(exe));
-            bool verified = hash.Equals(VerifiedExeHash, StringComparison.OrdinalIgnoreCase) && !TreatAsUnverified;
+            bool verified = GameBuildProfiles.Find(hash) is not null && !TreatAsUnverified;
             ulong moduleBase = (ulong)module.BaseAddress.ToInt64();
             return new GameIdentity(game.Id, game.StartTime.ToUniversalTime(), moduleBase, hash, verified, GameClasses.Find(exe, moduleBase));
         }
@@ -699,7 +699,7 @@ internal static partial class GameMemory
     }
 
     // The exe's static pointers (in its own writable memory) to at most 1 MiB below the city table: the base object
-    // that holds the table is among them. (2026-10-02, verified build: three, the game's own exe+0x277DF18 one of them.)
+    // that holds the table is among them. (2026-10-02, verified build: three, the game's own exe+GameBuildFacts.Memory.BasePointerRva one of them.)
     private static List<BasePointer> StaticPointers(IntPtr handle, GameIdentity identity, ulong cityTable)
     {
         const ulong Reach = 0x100000;

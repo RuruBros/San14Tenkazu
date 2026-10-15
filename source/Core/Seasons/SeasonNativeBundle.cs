@@ -9,14 +9,14 @@ namespace San14Tenkazu.Seasons;
 // A matching resident DLL uses its real path; the native path guard stays intact.
 internal static class SeasonNativeBundle
 {
-    internal const string DllHash="cbbcd304ae04900d45a7d0c442d6729dd0f516e78bc3856d35dc2be24ecc0f03";
-    private const string ManifestHash="2f5932557aed7edda1fe21dfad615d99dbb53683c143009aef425933a053ecd4";
+    internal const string DllHash="3648134e0448ce366edf39afdb9b5cf2c6b58a2121e2624904bb405562c0832c";
+    private const string ManifestHash="961022452f45c718e0aa0eff16e6e9d18d70b686c20e00170419f41141b5e07b";
     private static readonly string[] SourceNames=["SeasonBridge.cpp","SeasonBridgeProtocol.h","SeasonBridgeChecks.cpp",
         "FrameSignatures.h","PrepareSignature.h","RuntimeGuard.h","SeasonTreeColorGpu.h","SeasonTreeColorSource.hlsl","BuildSeasonBridge.ps1",
         "SeasonSceneChecks.cpp","SeasonSceneGpu.h","SeasonWeatherCapture.h","SeasonWorldGpu.h","SeasonShaderTranslation.h","SeasonShaderProfiles.h","SeasonShaderAdmission.h","SeasonGroundSourceGpu.h","SeasonTreeCatalog.h",
         "SeasonRiceGpu.h","SeasonRiceChecks.cpp","SeasonGameRice.hlsl","SeasonVegetation.hlsli",
         "tree-catalog.json","season_tree_catalog.py","SeasonWorldMatrix.hlsl","SeasonWorldPosition.hlsli","SeasonGameTree.hlsl","SeasonGameTerrain.hlsli",
-        "SeasonGameWeather.hlsl","SeasonGameParameters.hlsli","SeasonCommon.hlsli","SeasonTreeCoverage.hlsli","SeasonWeather.hlsli","EnvironmentWeather.h","SeasonNoticeArt.h"];
+        "SeasonGameWeather.hlsl","SeasonGameParameters.hlsli","SeasonCommon.hlsli","SeasonTreeCoverage.hlsli","SeasonWeather.hlsli","EnvironmentWeather.h","SeasonNoticeArt.h","GameBuildFacts.g.h"];
     private static readonly object Gate=new();
     private static string Hash(byte[] bytes)=>Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
@@ -39,6 +39,8 @@ internal static class SeasonNativeBundle
         using var manifest=JsonDocument.Parse(reader.ReadToEnd());
         if(manifest.RootElement.GetProperty("protocolVersion").GetUInt32()!=SeasonBridgeProtocol.Version)
             throw new InvalidDataException("Native bundle protocol differs");
+        GameBuildProfiles.Current.VerifyNativeManifest(manifest.RootElement);
+        GameBuildProfiles.Current.VerifyNativeBinary(files["SeasonBridge.dll"]);
         foreach(var name in SourceNames)
             if(Hash(files["sources/"+name])!=manifest.RootElement.GetProperty("hashes").GetProperty(name).GetString())
                 throw new InvalidDataException($"Native bundle snapshot differs: {name}");

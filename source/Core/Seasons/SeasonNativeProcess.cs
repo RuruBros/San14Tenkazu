@@ -28,13 +28,7 @@ internal sealed class SeasonNativeProcess:IDisposable
     private readonly string dllHash;
     private readonly bool environment;
     private readonly (ulong Rva,int Size,string Hash)[] targets;
-    private static readonly (ulong Rva,int Size,string Hash)[] Targets=[
-        (0x960f90,70,"782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"),
-        (0x960ee0,82,"dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"),
-        (0x960e90,67,"ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"),
-        (0x963c60,533,"8a6edf8fc9bdf6daf9356ba7ed78adb312ad41d48c97651308298078a9e6d044"),
-        (0x960e50,52,"4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"),
-        (0x9625f0,443,"75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b")];
+    private static readonly (ulong Rva,int Size,string Hash)[] Targets=GameBuildFacts.SeasonTargets();
     [StructLayout(LayoutKind.Explicit,Size=48)] private struct Region
     {
         [FieldOffset(0)] internal IntPtr Base;
@@ -57,13 +51,16 @@ internal sealed class SeasonNativeProcess:IDisposable
     internal SeasonNativeProcess(GameIdentity identity,string buildDirectory,Action<string> journal,bool environment=false)
     {
         if(!identity.Verified||!GameMemory.IsSameGame(identity))throw new InvalidDataException("Verified native season process required");
-        this.environment=environment;targets=environment?EnvironmentNativeBundle.Targets:Targets;
+        var profile=GameBuildProfiles.Require(identity);
+        this.environment=environment;targets=(environment?profile.EnvironmentTargets:profile.SeasonTargets).ToArray();
         game=identity;log=journal;dll=Path.GetFullPath(Path.Combine(buildDirectory,environment?"EnvironmentBridge.dll":"SeasonBridge.dll"));
         using var manifest=JsonDocument.Parse(File.ReadAllText(Path.Combine(buildDirectory,"build.json")));
         if(!manifest.RootElement.TryGetProperty("protocolVersion",out var version)||version.GetUInt32()!=(environment?EnvironmentProtocol.Version:SeasonBridgeProtocol.Version))
             throw new InvalidDataException("Native bridge protocol version differs before process access");
+        profile.VerifyNativeManifest(manifest.RootElement);
         dllHash=manifest.RootElement.GetProperty("dllSha256").GetString()!;
         if(Hash(File.ReadAllBytes(dll))!=dllHash)throw new InvalidDataException("Native DLL differs from build receipt");
+        profile.VerifyNativeBinary(File.ReadAllBytes(dll));
         foreach(var file in manifest.RootElement.GetProperty("hashes").EnumerateObject())
             if(Hash(File.ReadAllBytes(Path.Combine(buildDirectory,"sources",file.Name)))!=file.Value.GetString())
                 throw new InvalidDataException($"Native source snapshot differs: {file.Name}");
@@ -196,7 +193,7 @@ internal sealed class SeasonNativeProcess:IDisposable
             if(!receipt.Confirmed(generation))throw new IOException($"Environment recovery unconfirmed: error={receipt.Error}");
         }
         if(!originals.All(p=>Read(p.Address,p.Bytes.Length).AsSpan().SequenceEqual(p.Bytes)&&Query(p.Address).Protection==p.Protection)||
-            BinaryPrimitives.ReadUInt64LittleEndian(Read(game.ModuleBase+0x1387728,8))!=game.ModuleBase+0x14b600)
+            BinaryPrimitives.ReadUInt64LittleEndian(Read(game.ModuleBase+GameBuildFacts.Engine.UpdateSlotRva,8))!=game.ModuleBase+GameBuildFacts.Engine.UpdateRva)
             throw new IOException("Environment original code/dispatch restoration differs");
         foreach(var allocation in allocations)
         {
@@ -247,30 +244,5 @@ internal sealed class SeasonNativeProcess:IDisposable
         if(!released)throw new IOException("Retain native process ownership until recovery is confirmed");
         if(worker!=IntPtr.Zero){CloseHandle(worker);worker=IntPtr.Zero;}if(loader!=IntPtr.Zero){CloseHandle(loader);loader=IntPtr.Zero;}CloseHandle(handle);disposed=true;
     }
-    internal static uint ExportRva(string file,string name)
-    {
-        byte[] data=File.ReadAllBytes(file);using var stream=new MemoryStream(data);using var pe=new PEReader(stream);
-        var directory=pe.PEHeaders.PEHeader?.ExportTableDirectory??throw new InvalidDataException("Native PE header missing");
-        int At(uint rva)
-        {
-            foreach(var section in pe.PEHeaders.SectionHeaders)
-                if(rva>=(uint)section.VirtualAddress&&rva-(uint)section.VirtualAddress<(uint)section.SizeOfRawData)
-                    return checked(section.PointerToRawData+(int)(rva-(uint)section.VirtualAddress));
-            throw new InvalidDataException("Native export RVA is outside file data");
-        }
-        uint U(int at)=>BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(at,4));int table=At((uint)directory.RelativeVirtualAddress);
-        uint count=U(table+24),functions=U(table+28),names=U(table+32),ordinals=U(table+36);
-        if(count>65536)throw new InvalidDataException("Native export count exceeds bounds");
-        for(uint i=0;i<count;i++)
-        {
-            int text=At(U(At(names)+checked((int)i*4)));int end=Array.IndexOf(data,(byte)0,text,Math.Min(256,data.Length-text));
-            if(end<0||Encoding.ASCII.GetString(data,text,end-text)!=name)continue;
-            ushort ordinal=BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(At(ordinals)+checked((int)i*2),2));
-            uint rva=U(At(functions)+ordinal*4);
-            if(rva>=(uint)directory.RelativeVirtualAddress&&rva-(uint)directory.RelativeVirtualAddress<(uint)directory.Size)
-                throw new InvalidDataException("Forwarded native worker export is not accepted");
-            return rva;
-        }
-        throw new InvalidDataException($"Native export missing: {name}");
-    }
+    internal static uint ExportRva(string file,string name) => NativeExports.Rva(File.ReadAllBytes(file),name);
 }

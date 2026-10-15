@@ -1,3 +1,5 @@
+#include "GameBuildFacts.g.h"
+extern "C" __declspec(dllexport) const char San14BuildProfileIdentity[]=SAN14_BUILD_PROFILE_IDENTITY;
 #define NOMINMAX
 #include <windows.h>
 #include <tlhelp32.h>
@@ -28,8 +30,8 @@ template<class T> bool write(uint64_t address,T value) noexcept {
     __except(EXCEPTION_EXECUTE_HANDLER){return false;}
 }
 #include "EnvironmentNotification.h"
-using Update=void(__fastcall*)(void*,void*,void*);
-using Speed=int(__fastcall*)(void*);
+using Update=gamebuild::Abi::Update;
+using Speed=gamebuild::Abi::Speed;
 Update originalUpdate{};Speed originalSpeed{};
 SRWLOCK dispatch=SRWLOCK_INIT;
 std::mutex connection;
@@ -56,20 +58,20 @@ struct Session {
     DWORD speedProtect{},slotProtect{};bool prepared{},speedHooked{},slotHooked{};
     explicit Session(const Bootstrap& value):input(value){state.generation=value.generation;}
     bool world(World& result) {
-        result.root=read<uint64_t>(input.module+0x277df18)+0x290;
-        result.state=read<uint64_t>(result.root,0x86f58);
+        result.root=read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
+        result.state=read<uint64_t>(result.root,gamebuild::Memory::StatePointer);
         if(!result.state||read<uint64_t>(result.state)!=input.worldClass)return false;
-        auto manager=read<uint64_t>(input.module+0x1b9fb70);
-        if(!manager||read<uint32_t>(manager,8)!=0||!read<uint64_t>(manager,0x210))return false;
+        auto manager=read<uint64_t>(input.module+gamebuild::Scene::ManagerRva);
+        if(!manager||read<uint32_t>(manager,gamebuild::Scene::ManagerStateOffset)!=0||!read<uint64_t>(manager,gamebuild::Scene::SceneOffset))return false;
         result.date=read<uint32_t>(result.state,0x34);if(!validDate(result.date))return false;
-        result.tiles=read<uint64_t>(result.root,0xdfe0);result.units=read<uint64_t>(result.root,0x7e5a8);
+        result.tiles=read<uint64_t>(result.root,gamebuild::Memory::TileTable);result.units=read<uint64_t>(result.root,gamebuild::Memory::UnitTable);
         if(!result.tiles||!result.units||read<uint64_t>(result.tiles)!=input.tileClass||read<uint64_t>(result.units)!=input.unitClass)return false;
         for(uint32_t city=1;city<=46;city++) {
-            result.cities[city]=read<uint64_t>(result.root,0xdaa8+city*8);
+            result.cities[city]=read<uint64_t>(result.root,gamebuild::Memory::CityTable+city*8);
             if(read<uint64_t>(result.cities[city])!=input.cityClass||read<uint16_t>(result.cities[city],0x4e)!=city)return false;
         }
-        for(uint32_t county=1;county<=500;county++)result.counties[county]=read<uint64_t>(result.root,0x6c860+county*8);
-        return result.date==read<uint32_t>(result.state,0x34)&&result.root==read<uint64_t>(input.module+0x277df18)+0x290;
+        for(uint32_t county=1;county<=500;county++)result.counties[county]=read<uint64_t>(result.root,gamebuild::Memory::CountyTable+county*8);
+        return result.date==read<uint32_t>(result.state,0x34)&&result.root==read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
     }
     uint32_t region(const World& world,uint32_t tile) const {
         if(tile>=48400)return 0;
@@ -128,7 +130,7 @@ struct Session {
         return true;
 #else
         DWORD pid{};GetWindowThreadProcessId(GetForegroundWindow(),&pid);
-        return pid==GetCurrentProcessId()&&read<uint8_t>(input.module+0x1a62334)==1;
+        return pid==GetCurrentProcessId()&&read<uint8_t>(input.module+gamebuild::Engine::ForegroundRva)==1;
 #endif
     }
     void testFrame(const World& w,const Message& config,uint32_t hour,bool continuous,bool changed) {
@@ -243,8 +245,8 @@ struct Session {
             if(newTroops<=0||read<uint16_t>(unit,0x16)!=troops||read<uint8_t>(unit,0x1a)!=morale)return fail(ERROR_RETRY);
             if(newTroops!=troops&&!write<uint16_t>(unit+0x16,static_cast<uint16_t>(newTroops)))return fail(ERROR_WRITE_FAULT);
             if(newMorale!=morale) {
-                using AddMorale=void(__fastcall*)(void*,int,void*,int,int);
-                reinterpret_cast<AddMorale>(input.module+0x270550)(reinterpret_cast<void*>(unit),newMorale-morale,nullptr,0,1);
+                using AddMorale=gamebuild::Abi::AddMorale;
+                reinterpret_cast<AddMorale>(input.module+gamebuild::Engine::AddMoraleRva)(reinterpret_cast<void*>(unit),newMorale-morale,nullptr,0,1);
                 newMorale=read<uint8_t>(unit,0x1a);
             }
             if(read<uint16_t>(unit,0x16)!=newTroops)return fail(ERROR_WRITE_FAULT);
@@ -277,14 +279,14 @@ struct Session {
         for(auto& date:result.recentDates)if(date&&(serial(currentWorld.date)<serial(date)||serial(currentWorld.date)-serial(date)>=10))date=0;
         for(uint32_t city=1;city<=46;city++){int t{},p{};climate(*config,city,currentWorld.date,t,p);
             result.weather[city-1]=static_cast<uint8_t>(weather(config->seed,serial(currentWorld.date),city,t,p));}
-        return currentWorld.date==read<uint32_t>(currentWorld.state,0x34)&&currentWorld.root==read<uint64_t>(input.module+0x277df18)+0x290;
+        return currentWorld.date==read<uint32_t>(currentWorld.state,0x34)&&currentWorld.root==read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
     }
     int speed(void* value,int original) {
         if(!admission||original<=0||thread!=GetCurrentThreadId())return original;
         ++speedCalls;auto config=pending.load();if(!config||!(config->flags&(RainMovement|SnowMovement)))return original;
         std::lock_guard lock(stateLock);if(state.applied!=config->sequence||!previous.root)return original;
         auto unit=reinterpret_cast<uint64_t>(value);
-        if(read<uint64_t>(input.module+0x277df18)+0x290!=previous.root||read<uint64_t>(previous.root,0x86f58)!=previous.state)return original;
+        if(read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust!=previous.root||read<uint64_t>(previous.root,gamebuild::Memory::StatePointer)!=previous.state)return original;
         if(unit<previous.units||unit>=previous.units+501*0x200||((unit-previous.units)%0x200)!=0)return original;
         if(read<uint64_t>(unit)!=input.unitClass)return original;
         auto tile=read<uint16_t>(unit,0x2a);uint32_t city=region(previous,tile);if(!city)return original;
@@ -349,9 +351,9 @@ extern "C" __declspec(dllexport) void __fastcall EnvironmentFrame(void* app,void
 // Evaluate the exact movement callback on the authenticated game frame, without moving a unit.
 extern "C" __declspec(dllexport) int __fastcall EnvironmentMovement(void* unit) {return originalSpeed?speed(unit):0;}
 extern "C" __declspec(dllexport) DWORD WINAPI EnvironmentRestoreDispatch(uint64_t* request) {
-    uint64_t args[2]{};if(!request||!copy(args,reinterpret_cast<uint64_t>(request))||!args[0]||!args[1]||reinterpret_cast<uint64_t>(originalUpdate)!=args[0]+0x14b600)return ERROR_INVALID_PARAMETER;
+    uint64_t args[2]{};if(!request||!copy(args,reinterpret_cast<uint64_t>(request))||!args[0]||!args[1]||reinterpret_cast<uint64_t>(originalUpdate)!=args[0]+gamebuild::Engine::UpdateRva)return ERROR_INVALID_PARAMETER;
     AcquireSRWLockShared(&dispatch);auto s=current.load();auto next=s&&s->admission&&s->slotHooked?reinterpret_cast<void*>(EnvironmentFrame):reinterpret_cast<void*>(originalUpdate);
-    auto before=InterlockedCompareExchangePointer(reinterpret_cast<void**>(args[0]+0x1387728),next,reinterpret_cast<void*>(args[1]));
+    auto before=InterlockedCompareExchangePointer(reinterpret_cast<void**>(args[0]+gamebuild::Engine::UpdateSlotRva),next,reinterpret_cast<void*>(args[1]));
     ReleaseSRWLockShared(&dispatch);return before==reinterpret_cast<void*>(args[1])||before==reinterpret_cast<void*>(originalUpdate)?NO_ERROR:ERROR_INVALID_STATE;
 }
 namespace {
@@ -361,12 +363,12 @@ Recovery finish(const std::shared_ptr<Session>& s) {
     s->stopPresentation=true;auto uiDeadline=GetTickCount64()+2000;
     while(s->presentationBusy&&GetTickCount64()<uiDeadline)Sleep(1);
     if(s->presentationBusy){result.error=ERROR_BUSY;return result;}
-    auto speedTarget=reinterpret_cast<BYTE*>(s->input.module+0x269150);
+    auto speedTarget=reinterpret_cast<BYTE*>(s->input.module+gamebuild::Engine::MoveSpeedRva);
     if(s->speedHooked) {
         if(std::memcmp(speedTarget,s->speedInstalled,sizeof(MoveSpeedCode))){result.error=ERROR_INVALID_DATA;return result;}
         result.error=transaction(false);if(result.error)return result;s->speedHooked=false;
     }
-    auto slot=reinterpret_cast<void**>(s->input.module+0x1387728);
+    auto slot=reinterpret_cast<void**>(s->input.module+gamebuild::Engine::UpdateSlotRva);
     if(s->slotHooked) {
         DWORD old{};if(!VirtualProtect(slot,8,PAGE_READWRITE,&old)){result.error=GetLastError();return result;}
         bool restored=false;auto deadline=GetTickCount64()+2000;
@@ -384,10 +386,10 @@ Recovery finish(const std::shared_ptr<Session>& s) {
     result.frames=s->frames;result.thread=s->thread;result.complete=1;current.store(nullptr);s->pending.store(nullptr);return result;
 }
 bool attach(const std::shared_ptr<Session>& s) {
-    auto speedTarget=reinterpret_cast<BYTE*>(s->input.module+0x269150),app=reinterpret_cast<BYTE*>(s->input.module+0x14b600);
-    auto slot=reinterpret_cast<void**>(s->input.module+0x1387728);MEMORY_BASIC_INFORMATION info{},slotInfo{};
+    auto speedTarget=reinterpret_cast<BYTE*>(s->input.module+gamebuild::Engine::MoveSpeedRva),app=reinterpret_cast<BYTE*>(s->input.module+gamebuild::Engine::UpdateRva);
+    auto slot=reinterpret_cast<void**>(s->input.module+gamebuild::Engine::UpdateSlotRva);MEMORY_BASIC_INFORMATION info{},slotInfo{};
     if(std::memcmp(speedTarget,MoveSpeedCode,sizeof(MoveSpeedCode))||std::memcmp(app,AppUpdateCode,sizeof(AppUpdateCode))||
-        std::memcmp(reinterpret_cast<void*>(s->input.module+0x270550),AddMoraleCode,sizeof(AddMoraleCode))||!noticeCode(s->input.module)||
+        std::memcmp(reinterpret_cast<void*>(s->input.module+gamebuild::Engine::AddMoraleRva),AddMoraleCode,sizeof(AddMoraleCode))||!noticeCode(s->input.module)||
         *slot!=app||!VirtualQuery(speedTarget,&info,sizeof(info))||info.Protect!=PAGE_EXECUTE_READ||
         !VirtualQuery(slot,&slotInfo,sizeof(slotInfo)))return false;
     s->speedProtect=info.Protect;s->slotProtect=slotInfo.Protect;std::memcpy(s->speedBefore,speedTarget,sizeof(MoveSpeedCode));s->prepared=true;

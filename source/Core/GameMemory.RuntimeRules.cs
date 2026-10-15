@@ -36,7 +36,7 @@ internal static partial class GameMemory
             try
             {
                 var ranges = RuntimeRulePatches.All.Where(p => !p.Bytes(previous).SequenceEqual(p.Bytes(wanted))
-                        || (previous.Growth || wanted.Growth) && p.CodeStart == 0x2B9D50)
+                        || (previous.Growth || wanted.Growth) && p.CodeStart == GameBuildFacts.Runtime.AbilityCodeStart)
                     .Select(p => (identity.ModuleBase + p.CodeStart, identity.ModuleBase + p.CodeEnd)).ToList();
                 if (previous.TraitList9 || wanted.TraitList9)
                     ranges.Add((identity.ModuleBase + RuntimeTraitList.CodeStart, identity.ModuleBase + RuntimeTraitList.CodeEnd));
@@ -61,7 +61,7 @@ internal static partial class GameMemory
                 if (ReadPace(identity, current) != GamePace.Paused) throw new InvalidOperationException("게임 진행 상태가 바뀌었습니다. 일시정지 후 다시 적용하세요.");
                 if (listAllocation != 0) ProtectRuntimeTraitList(handle, listAllocation);
                 var writes = RuntimeRulePatches.All.Select(p => new RuntimeRuleWrite(identity.ModuleBase + p.Rva,
-                    p.Bytes(previous), p.Bytes(wanted), p.Rva < 0x1340000))
+                    p.Bytes(previous), p.Bytes(wanted), p.Rva < GameBuildFacts.Runtime.ExecutableLimit))
                     .Where(p => !p.Before.SequenceEqual(p.After)).ToList();
                 int conversions = 0;
                 if (wanted.Growth || previous.Growth)
