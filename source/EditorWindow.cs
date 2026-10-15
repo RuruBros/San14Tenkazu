@@ -113,7 +113,7 @@ internal sealed partial class EditorWindow : W.Window
         Height = Math.Min(950, area.Height * 0.95);
         WindowStartupLocation = W.WindowStartupLocation.CenterScreen;
 
-        // Connection and recorded status on the left; persistent actions on the right.
+        // Connection tools stay left, editing/settings tools align right; status fills the space between them.
         var toolbar = new WC.DockPanel { LastChildFill = true };
         WC.StackPanel connection = Group(connectButton, reloadButton, calendarButton, cancelButton),
             tools = Group(playButton, undoButton, panelButton, BuildEnvironmentMenu(), registeredSeparator, registeredButton);

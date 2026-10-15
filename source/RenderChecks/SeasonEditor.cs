@@ -97,7 +97,10 @@ internal static partial class RenderChecks
                 &&p.Second.Left>=0&&p.Second.Right<=root.ActualWidth+1&&p.Second.Bottom<=height);
             bool ordered=bounds.Zip(bounds.Skip(1)).All(p=>p.First.Right<=p.Second.Left);
             var receipt=text.TransformToAncestor(root).TransformBounds(new W.Rect(0,0,text.ActualWidth,text.ActualHeight));
-            Record("toolbar-layout-"+name,fit&&ordered&&text.ActualWidth>=100&&receipt.Right<=bounds[0].Left
+            var connection=Field<PlateButton>(window,"calendarButton");
+            var connectionBounds=connection.TransformToAncestor(root).TransformBounds(new W.Rect(0,0,connection.ActualWidth,connection.ActualHeight));
+            Record("toolbar-layout-"+name,fit&&ordered&&text.ActualWidth>=100&&receipt.Left>=connectionBounds.Right&&receipt.Right<=bounds[0].Left
+                &&receipt.Top<bounds.Max(b=>b.Bottom)&&receipt.Bottom>bounds.Min(b=>b.Top)
                 &&on.IsChecked!=off.IsChecked&&on.GroupName==off.GroupName,
                 new{width,dpi,status=text.Text,statusWidth=text.ActualWidth,actions=bounds.Select(b=>new{b.Left,b.Right,b.Top,b.Bottom}),on.IsChecked,offChecked=off.IsChecked});
         }
