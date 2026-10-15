@@ -27,10 +27,13 @@ internal static partial class RenderChecks
         Require((typeof(EnvironmentController).GetMethod("TestAsync",Hidden)!=null)==expected,"Developer controller entry point differs from package flavor");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadNoticeTypography")==expected,"Read-only typography entry leaked into public build");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadTraitListDiagnostic")==expected,"Trait diagnostic entry leaked into public build");
+        Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadCompatibilityDiagnostic")==expected,"Compatibility diagnostic entry leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("ReadDeveloperCompatibility",Hidden)!=null)==expected,"Compatibility menu entry leaked into public build");
         Require((typeof(LogPanel).GetMethod("SetDeveloperButton",Hidden)!=null)==expected,"Developer log-header entry leaked into public build");
 #if LOCAL_DEVELOPER
         CheckNoticeTypographyReader();
         CheckTraitListDiagnostic();
+        CheckCompatibilityDiagnostic();
         CheckDeveloperEntry();
         var fixture=new DeveloperFixture();var controller=new EnvironmentController(fixture,Console.WriteLine);
         try {
@@ -41,8 +44,8 @@ internal static partial class RenderChecks
         }finally{controller.DisposeAsync().AsTask().GetAwaiter().GetResult();}
         Require(fixture.Stopped,"Developer controller must restore native ownership on disposal");
         var window=new DisasterTestWindow();window.SetCities(new TestGame().Build());window.SetAvailable(true,true);
-        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==2&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
-            && window.Tabs.Items[1] is WC.TabItem{Header:"개성 목록 진단"},"Developer tabs must separate disaster actions and read-only trait diagnostics");
+        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==3&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
+            && window.Tabs.Items[1] is WC.TabItem{Header:"개성 목록 진단"}&&window.Tabs.Items[2] is WC.TabItem{Header:"호환성 진단"},"Developer tabs must separate approved actions");
         try {
             window.Show();window.UpdateLayout();
             Require(window.Kind.Items.Count==5&&window.Cities.Items.Count>0,"Disaster/city choices missing");
@@ -69,6 +72,10 @@ internal static partial class RenderChecks
             window.Tabs.SelectedIndex=1;window.UpdateLayout();
             Require(window.ReadTraits.ActualWidth>0&&window.ReadTraits.ActualHeight>0&&window.TraitLog.ActualHeight>100,
                 "Trait diagnostic action and result log must fit the second tab");
+            window.Tabs.SelectedIndex=2;window.SetCompatibilityAvailable(true,false);window.UpdateLayout();
+            Require(window.ReadCompatibility.IsEnabled&&!window.CancelCompatibility.IsEnabled&&window.CompatibilityLog.ActualHeight>100,"Compatibility tab layout missing");
+            window.SetCompatibilityAvailable(false,true);
+            Require(!window.ReadCompatibility.IsEnabled&&window.CancelCompatibility.IsEnabled,"Read-only cancellation must remain enabled while reading");
             Console.WriteLine("PASS local developer WPF choices, distinct actions, cancellation, receipt, typography and preview provenance");
         }finally{window.Close();}
 #endif
@@ -92,7 +99,7 @@ internal static partial class RenderChecks
             var bounds=button.TransformToAncestor(log).TransformBounds(new W.Rect(0,0,button.ActualWidth,button.ActualHeight));
             Require(bounds.Right>log.ActualWidth-24&&bounds.Top>=0&&bounds.Bottom<=log.ActualHeight,"Developer entry must sit at the right edge of the log header");
             Click(button);Pump();var first=Field<DisasterTestWindow>(editor,"developerMenu");
-            Require(first.IsVisible&&first.Tabs.Items.Count==2&&!log.Open,"One click must open the tabbed window without expanding the log");
+            Require(first.IsVisible&&first.Tabs.Items.Count==3&&!log.Open,"One click must open the tabbed window without expanding the log");
             Click(button);Pump();Require(ReferenceEquals(first,Field<DisasterTestWindow>(editor,"developerMenu")),"Repeated click must reuse the same tools window");
             first.Close();Pump();
             var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(log.ActualWidth),(int)Math.Ceiling(log.ActualHeight),96,96,System.Windows.Media.PixelFormats.Pbgra32);

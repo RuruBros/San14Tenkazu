@@ -54,6 +54,9 @@ internal static class SeasonNativeBundle
             if(Hash(File.ReadAllBytes(Path.Combine(directory,file.Key)))!=Hash(file.Value))
                 throw new InvalidDataException($"Native bundle file differs: {file.Key}");
     }
+#if LOCAL_DEVELOPER
+    internal static void VerifyEmbedded() => _ = ReadBundle();
+#endif
 
     internal static void VerifySources(string seasonDirectory)
     {
