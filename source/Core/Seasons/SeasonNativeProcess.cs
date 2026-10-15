@@ -24,7 +24,7 @@ internal sealed class SeasonNativeProcess:IDisposable
     private IntPtr loader,worker,bootstrap;
     private bool released;
     private bool disposed;
-    private readonly List<(ulong Address,byte[] Data,uint Protection)> loaderSnapshots=[];
+    private PublicLibraryLoader? loaderPlan;
     private readonly string dllHash;
     private readonly bool environment;
     private readonly (ulong Rva,int Size,string Hash)[] targets;
@@ -112,35 +112,9 @@ internal sealed class SeasonNativeProcess:IDisposable
     }
     private ulong LoaderEntry()
     {
-        var modules=Modules();var kernel=modules.Single(m=>Path.GetFileName(m.Path).Equals("kernel32.dll",StringComparison.OrdinalIgnoreCase));
-        if(Hash(File.ReadAllBytes(kernel.Path))!="4f7e85e01b521aa002692b1e868bee9a3a9ba19b815ce5d16d2e959fb0289feb")
-            throw new InvalidDataException("This Windows loader build has not been validated");
-        ulong entry=kernel.Base+ExportRva(kernel.Path,"LoadLibraryW");ulong cursor=entry;
-        var snapshots=new List<(ulong Address,byte[] Data,uint Protection)>();bool verified=false;
-        for(int hop=0;hop<5;hop++)
-        {
-            byte[] data=Read(cursor,32);var region=Query(cursor);
-            if(region.State!=0x1000||region.Protection is not (0x20 or 0x40))throw new InvalidDataException("Loader relay is not executable");
-            snapshots.Add((cursor,data,region.Protection));
-            var steam=modules.FirstOrDefault(m=>Path.GetFileName(m.Path).Equals("gameoverlayrenderer64.dll",StringComparison.OrdinalIgnoreCase));
-            if(steam.Path is not null&&cursor==steam.Base+0xad730&&
-                Hash(File.ReadAllBytes(steam.Path))=="59057f983ae6f02b7eb2495bf65e0430129dd81dff8d9628c764bd1a07e23fee"&&
-                data.AsSpan().SequenceEqual(Convert.FromHexString("48895c2410574883ec50803df7310e0000488bd9746d488b7c2458488bd14c8b")))
-            {verified=true;break;}
-            if(data[0]==0xe9)cursor=checked((ulong)((long)cursor+5+BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(1))));
-            else if(data[0]==0xff&&data[1]==0x25)
-            {
-                ulong slot=checked((ulong)((long)cursor+6+BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(2))));
-                cursor=BinaryPrimitives.ReadUInt64LittleEndian(Read(slot,8));
-            }
-            else throw new InvalidDataException("Unknown public loader dispatch; no direct relay invocation is permitted");
-        }
-        if(!verified)throw new InvalidDataException("Public loader relay exceeds verified bounds");
-        foreach(var snapshot in snapshots)
-            if(!Read(snapshot.Address,32).AsSpan().SequenceEqual(snapshot.Data)||Query(snapshot.Address).Protection!=snapshot.Protection)
-                throw new InvalidDataException("Public loader relay changed before dispatch");
-        loaderSnapshots.Clear();loaderSnapshots.AddRange(snapshots);
-        log($"Verified public LoadLibraryW: entry=0x{entry:x}, hops={snapshots.Count}; existing entry/relay preserved");return entry;
+        loaderPlan=PublicLibraryLoader.Inspect(handle,game.ProcessId);
+        log($"Validated public LoadLibraryW: entry=0x{loaderPlan.Entry:x}, hops={loaderPlan.Hops}; loaded PE, executable mappings and stable dispatch checked");
+        return loaderPlan.Entry;
     }
     internal void Start(SeasonBridgeProtocol.Bootstrap input,byte[] sources,CancellationToken token,byte[]? sceneData=null)
     {
@@ -152,9 +126,7 @@ internal sealed class SeasonNativeProcess:IDisposable
         if(resident.Length==0)
         {
             ulong entry=LoaderEntry();IntPtr path=Allocate(Encoding.Unicode.GetBytes(dll+'\0'));
-            foreach(var snapshot in loaderSnapshots)
-                if(!Read(snapshot.Address,32).AsSpan().SequenceEqual(snapshot.Data)||Query(snapshot.Address).Protection!=snapshot.Protection)
-                    throw new InvalidDataException("Public loader relay changed immediately before invocation");
+            loaderPlan!.Verify();
             loader=Launch(entry,path);Wait(loader,5000);
         }
         token.ThrowIfCancellationRequested();
@@ -178,9 +150,7 @@ internal sealed class SeasonNativeProcess:IDisposable
         if(residents.Length==0)
         {
             ulong entry=LoaderEntry();IntPtr path=Allocate(Encoding.Unicode.GetBytes(dll+'\0'));
-            foreach(var snapshot in loaderSnapshots)
-                if(!Read(snapshot.Address,32).AsSpan().SequenceEqual(snapshot.Data)||Query(snapshot.Address).Protection!=snapshot.Protection)
-                    throw new InvalidDataException("Public loader relay changed immediately before invocation");
+            loaderPlan!.Verify();
             loader=Launch(entry,path);Wait(loader,5000);
         }
         token.ThrowIfCancellationRequested();

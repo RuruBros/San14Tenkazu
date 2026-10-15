@@ -29,7 +29,7 @@ internal static class Personality
             Rec rec = w.Entry(Tables.Personalities, person.U16(0x118 + slot * 2), 0x163);
             if (Valid(rec) && !Flag(rec, 4)) return 0;
         }
-        return slot > 4 ? 0 : person.U16(0x118 + slot * 2);
+        return slot >= w.RuntimeRules.Slots ? 0 : person.U16(0x118 + slot * 2);
     }
 
     // 0x22C630: the value effect `kind` has in a 개성 (its first effect +0xB6/+0xB8, else its second +0xBA/+0xBC),

@@ -325,6 +325,7 @@ internal sealed partial class EditorWindow
                 }
                 break;
             case OfficerEditorCard when data.OfficerById.TryGetValue(officerEditor.OfficerId, out OfficerRecord? officer):
+                officerEditor.FollowRuntimeRules(data.RuntimeRules);
                 officerEditor.Follow(officer, Standing(data, officer));
                 officerEditor.FollowRevival(data, officer);
                 officerEditor.FollowStatusChange(data, officer);
@@ -601,6 +602,7 @@ internal sealed partial class EditorWindow
         // The offices the force's other officers hold: giving one takes it from them.
         var holders = data.OfficersOf(force).Where(o => o.Id != officer.Id && o[OfficerFields.Office] != OfficerFields.NoOffice)
             .GroupBy(o => (int)o[OfficerFields.Office]).ToDictionary(g => g.Key, g => g.First().Name);
+        officerEditor.RuntimeRules = data.RuntimeRules;
         officerEditor.Open(officer, Standing(data, officer), others, sworn, items, holders, Transfers.Targets(data));
         officerEditor.FollowRevival(data, officer, opening: true);
         officerEditor.FollowStatusChange(data, officer, opening: true);

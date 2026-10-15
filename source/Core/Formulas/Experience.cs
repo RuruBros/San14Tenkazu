@@ -77,7 +77,9 @@ internal static class Experience
         if (!Objects.PersonValid(p)) return (exp, level);
         Rec force = Objects.ForceOf(w, p);
         if (force.Index == 0x33 || (uint)(force.Index - 0x2E) < 5) return (exp, level);
-        if (level == 100) return (exp, level);
+        if (w.RuntimeRules.Abilities == AbilityRuleMode.Original && level == 100
+            || w.RuntimeRules.Abilities == AbilityRuleMode.Cap200 && level >= 100
+            || w.RuntimeRules.Growth && level >= 200) return (exp, level);
         // the game holds the amount unsigned: a negative 개성 sum wraps the product and the division hands out
         // tens of millions of exp (a bug no shipped 개성 triggers; kept as the code has it)
         uint amt = (uint)amount;
@@ -90,6 +92,18 @@ internal static class Experience
         if (w.Settings.I32(0xE58) == 0) exp += unchecked((int)(BattlePower.Slider(w, 0x18) * (bonus + amt))) / 100;
         else exp = unchecked((int)((uint)exp + bonus + amt));
         // levels
+        if (w.RuntimeRules.Growth)
+        {
+            int threshold100 = w.Entry(Tables.Levels, 100, 100).I32(0x10 + 4 * k);
+            while (level < 200)
+            {
+                long threshold = level < 100 ? w.Entry(Tables.Levels, level + 1, 100).I32(0x10 + 4 * k)
+                    : (long)threshold100 * (level + 1) * (level + 1) / 10000;
+                if ((uint)exp < threshold) break;
+                level++;
+            }
+            return (exp, level);
+        }
         Rec next = w.Entry(Tables.Levels, level + 1, 100);
         if (next.Index != 0 && (uint)next.I32(0x10 + 4 * k) <= (uint)exp)
         {

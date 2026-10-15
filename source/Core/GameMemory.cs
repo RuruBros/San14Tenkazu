@@ -171,6 +171,7 @@ internal readonly record struct ForceInfo(int Id, int RulerId, int ColorIndex, s
 
 internal sealed class GameSnapshot
 {
+    internal RuntimeRuleSettings? RuntimeRules { get; init; } = RuntimeRuleSettings.Original;
     internal required CityRecord[] Cities { get; init; }          // index = city ID
     internal required CountyRecord[] Counties { get; init; }      // counties owned by the 46 cities
     internal required OfficerRecord[] Officers { get; init; }     // officers with a name
@@ -330,7 +331,8 @@ internal sealed class GameSnapshot
             DemoFlag = DemoFlag,
             Date = Date,
             Hour = Hour,
-            Pace = Pace
+            Pace = Pace,
+            RuntimeRules = RuntimeRules
         };
     }
 
@@ -362,7 +364,10 @@ internal sealed class GameSnapshot
 }
 
 internal sealed record RecordEdit(RecordKind Kind, ulong Address, byte[] Expected, string Label, IReadOnlyList<FieldChange> Changes,
-    IReadOnlyList<SlotRestart>? Restarts = null, MilitaryPointGuard? MilitaryPoints = null);
+    IReadOnlyList<SlotRestart>? Restarts = null, MilitaryPointGuard? MilitaryPoints = null)
+{
+    internal RuntimeRuleSettings? ExpectedRuntimeRules { get; init; }
+}
 
 // An officer's 개성 slot the game is to judge afresh once the 개성 is written (PersonalityEdits.Plan): its mark of
 // being lit for his unit is cleared, as the game's own slot setter clears it.
@@ -974,6 +979,7 @@ internal static partial class GameMemory
 
             return new GameSnapshot
             {
+                RuntimeRules = identity.Verified ? RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase) : null,
                 Cities = cities,
                 Counties = counties.ToArray(),
                 Officers = officers.ToArray(),
@@ -1135,6 +1141,8 @@ internal static partial class GameMemory
         try
         {
             ValidateForceAgreementCalls(handle, identity, edits);
+            foreach (var expected in edits.Select(e => e.ExpectedRuntimeRules).OfType<RuntimeRuleSettings>().Distinct())
+                RuntimeRulePatches.VerifyFull((address, length) => ReadBytes(handle, address, length), identity.ModuleBase, expected);
             return Apply(new ProcessMemory(handle), identity.Classes, edits);
         }
         finally { CloseHandle(handle); }

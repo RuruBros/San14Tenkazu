@@ -71,7 +71,11 @@ internal static class OfficerEdits
             if (item[ItemFields.Place] != 0) moves.Add(new FieldChange(ItemFields.Place, 0));
             edits.Add(new RecordEdit(RecordKind.Item, item.Address, item.Data, L.Edits.ItemLabel(item.Name), moves));
         }
-        return new EditPlan(WithExperience(edits), self.Name);
+        if (data.RuntimeRules is null && request.Own.Any(c => OfficerFields.Abilities.Contains(c.Field) || OfficerFields.Personalities.Contains(c.Field)))
+            return EditPlan.Refuse("개성·성장 규칙을 확인할 수 없습니다. 다른 패치와의 충돌을 확인하세요.");
+        return new EditPlan(WithExperience(edits, data.RuntimeRules?.Growth ?? false)
+            .Select(e => e with { ExpectedRuntimeRules = e.Changes.Any(c => OfficerFields.Abilities.Contains(c.Field)
+                || OfficerFields.Personalities.Contains(c.Field)) ? data.RuntimeRules : null }).ToList(), self.Name);
     }
 
     // The 습득 전법 slots for the common tactics picked: those he learned beyond the common ones stay first, in their
@@ -103,11 +107,11 @@ internal static class OfficerEdits
 
     // An officer's edited ability takes its experience along (OfficerFields.ExperienceFor), so the game finds the two
     // as it keeps them itself. The experience is logged and undone with the ability.
-    internal static List<RecordEdit> WithExperience(IEnumerable<RecordEdit> edits) =>
+    internal static List<RecordEdit> WithExperience(IEnumerable<RecordEdit> edits, bool growth = false) =>
         edits.Select(edit => edit.Kind != RecordKind.Officer ? edit : edit with
         {
             Changes = [.. edit.Changes, .. edit.Changes.Where(c => OfficerFields.Abilities.Contains(c.Field))
-                .Select(c => OfficerFields.ExperienceFor(edit.Expected, c.Field, c.Value))
+                .Select(c => OfficerFields.ExperienceFor(edit.Expected, c.Field, c.Value, growth))
                 .Where(c => c.Field.Read(edit.Expected) != c.Value)]
         }).ToList();
 }

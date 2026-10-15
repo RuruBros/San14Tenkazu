@@ -166,25 +166,26 @@ internal static class OfficerFields
     private static readonly FieldDef[] Experience = Abilities
         .Select((ability, index) => new FieldDef(L.Fields.Experience(ability.Label), RecordKind.Officer, 0x104 + index * 4, FieldKind.Int32, 0, int.MaxValue)).ToArray();
 
-    private static long ExperienceAt(long value, bool charm) => (charm ? value * value : value * value * value) + value * 5000 + Math.Max(value - 70, 0) * 5000;
+    private static long ExperienceAt(long value, bool charm, bool growth = false) => AbilityProgress.Threshold(value, charm, growth);
 
     // The experience to write with an ability's new value: that value's own, plus what the officer had
     // gained towards his next point (kept below the point after the new value).
-    internal static FieldChange ExperienceFor(ReadOnlySpan<byte> record, FieldDef ability, long value)
+    internal static FieldChange ExperienceFor(ReadOnlySpan<byte> record, FieldDef ability, long value, bool growth = false)
     {
         FieldDef experience = Experience[Array.IndexOf(Abilities, ability)];
         bool charm = ability == Charm;
-        long gained = Math.Max(0, experience.Read(record) - ExperienceAt(ability.Read(record), charm));
-        long room = ExperienceAt(value + 1, charm) - ExperienceAt(value, charm) - 1;
-        return new FieldChange(experience, ExperienceAt(value, charm) + Math.Min(gained, room));
+        if (growth && value > 200) throw new ArgumentOutOfRangeException(nameof(value), "200 성장 모드에서는 능력치를 200까지 입력할 수 있습니다.");
+        long gained = Math.Max(0, experience.Read(record) - ExperienceAt(ability.Read(record), charm, growth));
+        long room = ExperienceAt(value + 1, charm, growth) - ExperienceAt(value, charm, growth) - 1;
+        return new FieldChange(experience, ExperienceAt(value, charm, growth) + Math.Min(gained, room));
     }
 
     // Whether an ability is the point its experience has reached (GameChecks: the record is read where it should be).
-    internal static bool FitsExperience(ReadOnlySpan<byte> record, FieldDef ability)
+    internal static bool FitsExperience(ReadOnlySpan<byte> record, FieldDef ability, bool growth = false)
     {
         bool charm = ability == Charm;
         long value = ability.Read(record), experience = Experience[Array.IndexOf(Abilities, ability)].Read(record);
-        return experience >= ExperienceAt(value, charm) && experience < ExperienceAt(value + 1, charm);
+        return experience >= ExperienceAt(value, charm, growth) && (growth && value == 200 || experience < ExperienceAt(value + 1, charm, growth));
     }
 
     internal static bool IsExperience(FieldDef field) => Experience.Contains(field);

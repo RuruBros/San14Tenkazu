@@ -248,7 +248,7 @@ internal static partial class RenderChecks
         var seasonOn = Field<WC.RadioButton>(window, "seasonOn");
         var seasonOff = Field<WC.RadioButton>(window, "seasonOff");
         var seasonStatus = Field<WC.TextBlock>(window, "seasonStatus");
-        var environmentMenu = Field<PlateButton>(window, "environmentButton");
+        var environmentMenu = Field<PlateButton>(window, "settingsButton");
         Require(environmentMenu.ActualWidth > 0 && seasonStatus.ActualWidth > 0 && !IsDescendant((W.DependencyObject)window.Content,seasonOn) && !IsDescendant((W.DependencyObject)window.Content,seasonOff)
             && seasonStatus.TranslatePoint(new W.Point(), windowContent).Y < initialMap.TranslatePoint(new W.Point(), windowContent).Y,
             "Menu layout removed or covered the environment menu or season status");

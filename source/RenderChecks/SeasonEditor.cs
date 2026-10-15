@@ -90,7 +90,7 @@ internal static partial class RenderChecks
             var encoder=new WMI.PngBitmapEncoder();encoder.Frames.Add(WMI.BitmapFrame.Create(bitmap));using var file=File.Create(Path.Combine(output,name+".png"));encoder.Save(file);
             W.FrameworkElement[] actions=[Field<PlateButton>(window,"playButton"),
                 Field<PlateButton>(window,"undoButton"),Field<PlateButton>(window,"panelButton"),
-                Field<PlateButton>(window,"environmentButton"),
+                Field<PlateButton>(window,"settingsButton"),
                 Field<WC.Border>(window,"registeredSeparator"),Field<PlateButton>(window,"registeredButton")];
             var bounds=actions.Select(a=>a.TransformToAncestor(root).TransformBounds(new W.Rect(0,0,a.ActualWidth,a.ActualHeight))).ToArray();
             bool fit=actions.Zip(bounds).All(p=>p.First.ActualWidth+1>=p.First.DesiredSize.Width-p.First.Margin.Left-p.First.Margin.Right

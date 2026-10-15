@@ -65,8 +65,8 @@ internal static class UnitConditions
     // bypass flag 4. Detox checks ID 77, not another personality with effect 52.
     internal static bool? HasPersonality(GameSnapshot data, OfficerRecord? officer, int id)
     {
-        if (officer is null) return null;
-        for (int slot = 0; slot < 5; slot++)
+        if (officer is null || data.RuntimeRules is null) return null;
+        for (int slot = 0; slot < data.RuntimeRules.Slots; slot++)
         {
             if (officer[OfficerFields.Personalities[slot]] != id) continue;
             if (officer.Id is >= 5101 and <= 5200) return true;
@@ -80,9 +80,9 @@ internal static class UnitConditions
     // of its activation timer. Wounded soldiers have a separate fire-loss path.
     internal static bool? HasKind(GameSnapshot data, OfficerRecord? officer, int kind)
     {
-        if (officer is null) return null;
+        if (officer is null || data.RuntimeRules is null) return null;
         bool complete = true;
-        for (int slot = 0; slot < 5; slot++)
+        for (int slot = 0; slot < data.RuntimeRules.Slots; slot++)
         {
             int id = (int)officer[OfficerFields.Personalities[slot]];
             if (id is <= 0 or > 355) continue;

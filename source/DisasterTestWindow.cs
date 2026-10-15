@@ -15,6 +15,8 @@ internal sealed class DisasterTestWindow:W.Window
     internal readonly PlateButton ReadText=new("현재 알림 글자 상태 읽기"){ToolTip="현재 열린 게임 알림의 텍스트 영역·글꼴 데이터만 읽어 로그에 저장합니다."};
     internal readonly WC.TextBlock Status=new(){TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,12,0,12)};
     internal readonly WC.TextBox Log=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto,MinHeight=150};
+    internal readonly PlateButton ReadTraits=new("9개성 표시 진단");
+    internal readonly WC.TextBox TraitLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal readonly WC.TabControl Tabs=new(){Background=CardSkin.Parchment,BorderBrush=CardSkin.Gold,Padding=new W.Thickness(0)};
     internal City? Target=>Cities.SelectedItem as City;
     internal DisasterTestWindow()
@@ -29,10 +31,17 @@ internal sealed class DisasterTestWindow:W.Window
         form.Children.Add(new WC.TextBlock{Text="표시 전용: 게임을 일시정지하고 게임 창을 선택하면 원본 알림·그림·효과음과 지도 표식을 확인합니다. 피해는 없습니다.\n실제 피해: 다음 정상 1/11/21일에 한 번 적용합니다. 발생 확률·기상만 지정하며 지형 조건과 현재 피해 수치를 사용합니다. 모든 세력을 선택할 수 있습니다.\n날짜 점프·되돌림·불러오기 감지 시 취소합니다. 적용된 피해는 자동으로 되돌리지 않습니다.",TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,0,0,12)});
         var actions=new WC.WrapPanel();foreach(var button in new[]{Preview,Damage,Stop,ReadText}){button.Margin=new W.Thickness(0,0,8,8);actions.Children.Add(button);}form.Children.Add(actions);form.Children.Add(Status);
         Cities.SelectionChanged+=(_,_)=>SelectionChanged();Kind.SelectionChanged+=(_,_)=>SelectionChanged();
+        var diagnostic = new WC.DockPanel { Margin = new W.Thickness(20) };
+        var instructions = new WC.StackPanel();
+        instructions.Children.Add(new WC.TextBlock { Text = "게임을 일시정지한 뒤 실행하세요. 개성 목록의 열 정의를 두 번 읽어 기준 데이터와 비교합니다.\n게임 메모리·저장 파일을 변경하지 않으며, 한 번 읽고 종료합니다. 서로 다르게 읽히면 미확정 결과로 기록합니다.", TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 0, 0, 14) });
+        ReadTraits.Margin = new W.Thickness(0, 0, 0, 14); instructions.Children.Add(ReadTraits);
+        WC.DockPanel.SetDock(instructions, WC.Dock.Top); diagnostic.Children.Add(instructions); diagnostic.Children.Add(TraitLog);
+        Tabs.Items.Add(new WC.TabItem { Header = "개성 목록 진단", Content = diagnostic, Background = CardSkin.Parchment, Foreground = CardSkin.Ink, Padding = new W.Thickness(12, 6, 12, 6) });
     }
     private bool available;
     private void SelectionChanged(){Preview.IsEnabled=Damage.IsEnabled=available&&Target is not null&&Kind.SelectedIndex>=0;}
-    internal void SetAvailable(bool ready,bool stop){available=ready;Cities.IsEnabled=Kind.IsEnabled=Refresh.IsEnabled=ReadText.IsEnabled=ready;Stop.IsEnabled=stop;SelectionChanged();}
+    internal void SetAvailable(bool ready,bool stop){available=ready;Cities.IsEnabled=Kind.IsEnabled=Refresh.IsEnabled=ReadText.IsEnabled=ReadTraits.IsEnabled=ready;Stop.IsEnabled=stop;SelectionChanged();}
+    internal void AppendTraitDiagnostic(string text){TraitLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);TraitLog.ScrollToEnd();}
     internal void SetCities(GameSnapshot data){int selected=Target?.Id??1;Cities.ItemsSource=data.Cities.Where(c=>c.CityId is >=1 and <=46).Select(c=>new City(c.CityId,data.ForceOfCity(c.CityId),c.Name+" · "+data.ForceName(data.ForceOfCity(c.CityId)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);}
     internal void Append(string text){Log.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);Log.ScrollToEnd();}
     internal void SetReceipt(EnvironmentStatus? status)

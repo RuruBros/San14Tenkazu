@@ -9,6 +9,8 @@
     <RootNamespace>San14Tenkazu</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="RuntimeRules\patches.json" LogicalName="RuntimeRules.patches.json" />
+    <EmbeddedResource Include="RuntimeRules\trait-list.json" LogicalName="RuntimeRules.trait-list.json" />
     <!-- Its types stay internal: only the editor and its tests use them. -->
     <InternalsVisibleTo Include="San14Tenkazu" />
     <InternalsVisibleTo Include="San14Tenkazu.Tests" />
