@@ -24,7 +24,7 @@ internal sealed partial class EditorWindow
             Child = new WC.Border { Background = CardSkin.Parchment, BorderBrush = CardSkin.Gold,
                 BorderThickness = new W.Thickness(1), Padding = new W.Thickness(10), Child = options }
         };
-        foreach (PlateButton option in new[] { BuildRuntimeRulesMenu(), BuildEnvironmentMenu() })
+        foreach (PlateButton option in new[] { BuildRuntimeRulesMenu(), BuildEnvironmentMenu(), BuildRulesImportMenu() })
         {
             option.Margin = new W.Thickness(0, 3, 0, 3);
             options.Children.Add(option);

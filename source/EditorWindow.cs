@@ -253,6 +253,7 @@ internal sealed partial class EditorWindow : W.Window
         UpdateRegisteredButton();
         reloadButton.IsEnabled = !busy && connected;
         runtimeRulesButton.IsEnabled = !busy && connected && game is { Verified: true };
+        if(rulesImportButton is {} import)import.IsEnabled=!busy&&connected&&!RulesPending&&ruleKept?.Profile is not null&&game is {Verified:true};
         map.AiEnabled = !busy;
         // [검색 취소] only matters while the slow memory search runs.
         cancelButton.Visibility = busy && scanCancellation is not null ? W.Visibility.Visible : W.Visibility.Collapsed;

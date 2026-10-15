@@ -171,7 +171,7 @@ internal sealed class RuleProfileFile(string path)
         return new(profile, Stamp(bytes));
     }
 
-    internal RuleProfileRead Save(RuleProfile profile, string expectedStamp)
+    internal RuleProfileRead Save(RuleProfile profile, string expectedStamp, bool preservePrevious = false)
     {
         profile.Validate();
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
@@ -179,6 +179,7 @@ internal sealed class RuleProfileFile(string path)
         using var guard = new FileStream(path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         byte[]? before = File.Exists(path) ? File.ReadAllBytes(path) : null;
         if (opened && before is null || Stamp(before) != expectedStamp) throw new InvalidOperationException(L.Rules.ProfileMoved);
+        if (preservePrevious && before is not null) SettingsHistory.Keep(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, "settings-history"), before);
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(profile, Json);
         string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
@@ -190,6 +191,17 @@ internal sealed class RuleProfileFile(string path)
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
         return new(profile, Stamp(bytes));
+    }
+
+    internal RuleProfileRead Import(SettingsImportSource source, RuleProfile targetBaseline, string expectedStamp, SettingsMigrationPolicy? policy = null)
+    {
+        if (Path.GetFullPath(path).Equals(source.PathName, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException(L.Compatibility.MigrationUnsupported);
+        using var sourceGuard = source.Guard();
+        var current = Read();
+        if (current.Stamp != expectedStamp || current.Profile is null || !current.Profile.SameAs(targetBaseline)) throw new IOException(L.Rules.ProfileMoved);
+        var migrated = SettingsMigration.Rules(source.Parse<RuleProfile>(), targetBaseline, policy);
+        source.Archive(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, "settings-history"));
+        return Save(migrated, expectedStamp, preservePrevious: true);
     }
 
     // File and game form one user operation. If persistence fails after the memory write, restore memory;

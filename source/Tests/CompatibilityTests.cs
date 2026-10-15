@@ -80,3 +80,76 @@ public sealed class CompatibilityTests
         return bytes;
     }
 }
+
+public sealed class SettingsMigrationTests
+{
+    private const string Next="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    private static SettingsMigrationPolicy Policy(bool route=true,string schema="runtime-settings-v1")=>new(
+        [new(GameBuildFacts.ExeSha256,"runtime-settings-v1",RuleProfile.CurrentSchema),new(Next,schema,RuleProfile.CurrentSchema)],
+        route?[new(GameBuildFacts.ExeSha256,Next,true,true)]:[]);
+    private static RuleProfile Baseline()=>new FormationFixture().Snapshot().Baseline(GameBuildFacts.ExeSha256);
+    [Fact]
+    public void CrossBuildMigrationRequiresReviewedDirectionalRouteAndIdenticalSemanticContract()
+    {
+        var source=new RuntimeRulePreference(1,GameBuildFacts.ExeSha256,new(true,AbilityRuleMode.Growth200,true),true);
+        Assert.Throws<InvalidDataException>(()=>SettingsMigration.Runtime(source,Next));
+        Assert.Throws<InvalidDataException>(()=>SettingsMigration.Runtime(source,Next,Policy(false)));
+        Assert.Throws<InvalidDataException>(()=>SettingsMigration.Runtime(source,Next,Policy(schema:"different")));
+        var migrated=SettingsMigration.Runtime(source,Next,Policy());
+        Assert.Equal(source.Settings,migrated.Settings);Assert.Equal(Next,migrated.Build);
+        Assert.Throws<InvalidDataException>(()=>SettingsMigration.Runtime(migrated,source.Build,Policy()));
+        Assert.Equal(source,SettingsMigration.Runtime(source,source.Build));
+    }
+    [Fact]
+    public void RuleImportKeepsTargetDefaultsAndDisablesAutoApply()
+    {
+        var baseline=Baseline();var key=baseline.Defaults[0].Key;
+        var source=baseline.WithChanges([new(key,baseline.Default(key),20)]);
+        var target=baseline with{Build=Next,Defaults=baseline.Defaults.Select(v=>v.Key==key?v with{Value=12}:v).ToArray()};
+        var result=SettingsMigration.Rules(source,target,Policy());
+        Assert.Equal(12,result.Default(key));Assert.Equal(20,result.Desired(key));Assert.False(result.AutoApply);
+        Assert.Equal(10,baseline.Default(key));
+        Assert.Throws<InvalidDataException>(()=>SettingsMigration.Rules(source,target));
+        var changed=target with{Catalogs=target.Catalogs!.Select(c=>c with{Fingerprint=new string('B',64)}).ToArray(),Catalog=new string('B',64)};
+        Assert.Throws<InvalidDataException>(()=>SettingsMigration.Rules(source,changed,Policy()));
+        Assert.Throws<InvalidDataException>(()=>SettingsMigration.Rules(source with{Overrides=[new(key,999)]},target,Policy()));
+    }
+    [Fact]
+    public void GuardedImportPreservesExactOriginalBytesAndRefusesSourceOrTargetRaces()
+    {
+        string directory=Path.Combine(Path.GetTempPath(),"migration-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(directory);
+        try
+        {
+            var baseline=Baseline();var key=baseline.Defaults[0].Key;
+            string sourcePath=Path.Combine(directory,"source.json"),targetPath=Path.Combine(directory,"target.json");
+            byte[] original=JsonSerializer.SerializeToUtf8Bytes(baseline.WithChanges([new(key,10,20)]));File.WriteAllBytes(sourcePath,original);
+            var source=SettingsImportSource.Read(sourcePath);var file=new RuleProfileFile(targetPath);var kept=file.Save(baseline,"");byte[] before=File.ReadAllBytes(targetPath);
+            var imported=file.Import(source,baseline,kept.Stamp);
+            Assert.Equal(20,imported.Profile!.Desired(key));Assert.False(imported.Profile.AutoApply);Assert.Equal(original,File.ReadAllBytes(sourcePath));
+            var history=Directory.GetFiles(Path.Combine(directory,"settings-history"));
+            Assert.Contains(history,p=>File.ReadAllBytes(p).AsSpan().SequenceEqual(original));Assert.Contains(history,p=>File.ReadAllBytes(p).AsSpan().SequenceEqual(before));
+            Assert.Throws<IOException>(()=>file.Import(source,baseline,kept.Stamp));
+            Assert.Throws<InvalidDataException>(()=>file.Import(SettingsImportSource.Read(targetPath),imported.Profile,imported.Stamp));
+            File.WriteAllText(sourcePath,"{}");Assert.Throws<IOException>(()=>source.Guard());
+            File.WriteAllText(sourcePath,"{\"Writes\":[],\"Phase\":\"committed\"}");
+            Assert.Throws<InvalidDataException>(()=>SettingsImportSource.Read(sourcePath).Parse<RuntimeRulePreference>());
+            Assert.Equal(imported.Stamp,file.Read().Stamp);
+        }
+        finally{Directory.Delete(directory,true);}
+    }
+    [Fact]
+    public void RuntimeSettingsCasAndArchiveDoNotCopyProcessReceipts()
+    {
+        string directory=Path.Combine(Path.GetTempPath(),"migration-"+Guid.NewGuid().ToString("N"));
+        try
+        {
+            var file=new RuntimeRulePreferenceFile(directory);var source=new RuntimeRulePreference(1,GameBuildFacts.ExeSha256,RuntimeRuleSettings.Original,false);
+            file.Save(source);string stamp=file.Stamp();byte[] original=File.ReadAllBytes(file.PathName);
+            var next=source with{Settings=new(true,AbilityRuleMode.Cap200)};file.Save(next,true,stamp);
+            Assert.Throws<IOException>(()=>file.Save(source,true,stamp));Assert.Equal(next,file.Read());
+            Assert.Equal(original,File.ReadAllBytes(Assert.Single(Directory.GetFiles(Path.Combine(directory,"settings-history")))));
+            Assert.Single(Directory.GetFiles(directory));Assert.Empty(Directory.GetFiles(directory,"*.tmp"));
+        }
+        finally{if(Directory.Exists(directory))Directory.Delete(directory,true);}
+    }
+}

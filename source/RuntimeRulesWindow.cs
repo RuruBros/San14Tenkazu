@@ -20,6 +20,9 @@ internal sealed class RuntimeRulesWindow : W.Window
     internal readonly WC.CheckBox ConvertProgress = new() { Content = "성장 모드 변경 시 능력치와 진행률을 유지하도록 경험치 변환", IsChecked = true, Margin = new W.Thickness(0, 12, 0, 12) };
     internal readonly PlateButton Apply = new("저장 및 적용", primary: true);
     internal readonly PlateButton Restore = new("기본 규칙으로 복원");
+    internal readonly PlateButton Import = new(L.Compatibility.Import);
+    internal SettingsImportSource? ImportedSource;
+    internal string? ImportTargetStamp;
     internal readonly WC.TextBlock Status = new() { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 12, 0, 0) };
     internal RuntimeRuleSettings Selection => new(Traits.IsChecked == true, (AbilityRuleMode)Ability.SelectedIndex, TraitList.IsChecked == true);
 
@@ -47,8 +50,9 @@ internal sealed class RuntimeRulesWindow : W.Window
             Content = new WC.TextBlock { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 8, 0, 0),
             Text = $"목록 표시 설정은 장수 상세 창의 개성 표시를 바꾸지 않습니다. 개성 데이터 편집은 {L.Window.Panel} → {L.Navigation.Data} → 무장·물품 → 개성에서 할 수 있습니다.\n\n상한 변경은 기본 능력치를 올리지 않습니다. 옥새의 매력 특례는 유지됩니다.\n\n경험치 변환은 현재 능력치와 다음 단계 진행률을 유지합니다. 이전 곡선으로 편집한 100 초과 장수가 있는 저장은 성장 모드를 끈 상태에서 불러온 뒤 적용하세요.\n\n편집기를 닫아도 적용한 규칙은 게임 종료까지 유지됩니다. 기본 규칙으로 복원해도 6~9번째 개성과 성장한 능력치·경험치를 삭제하지 않습니다. 기본 게임의 이후 처리에서는 100 초과 값이 제한될 수 있습니다." } };
         panel.Children.Add(help); panel.Children.Add(pending);
-        var buttons = new WC.StackPanel { Orientation = WC.Orientation.Horizontal, Margin = new W.Thickness(0, 16, 0, 0) };
+        var buttons = new WC.WrapPanel { Margin = new W.Thickness(0, 16, 0, 0) };
         Apply.Margin = new W.Thickness(0, 0, 10, 0); buttons.Children.Add(Apply); buttons.Children.Add(Restore);
+        Import.Margin = new W.Thickness(10,0,0,0); buttons.Children.Add(Import);
         panel.Children.Add(buttons); panel.Children.Add(Status);
         Content = new WC.ScrollViewer { VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = WC.ScrollBarVisibility.Disabled, Content = panel };
         ShowSettings(current);
@@ -62,7 +66,7 @@ internal sealed class RuntimeRulesWindow : W.Window
         TraitList.IsChecked = settings?.TraitList9 ?? false;
         applied.Text = settings is null ? "확인할 수 없음" : $"개성 발동 {settings.Slots}개 · 게임 목록 {(settings.TraitList9 ? 9 : 5)}개\n" + Ability.Items[(int)settings.Abilities];
         loading = false; UpdateSelection();
-        Apply.IsEnabled = Restore.IsEnabled = settings is not null;
+        Apply.IsEnabled = Restore.IsEnabled = Import.IsEnabled = settings is not null;
         Status.Text = settings is null ? "규칙을 확인할 수 없습니다. 다른 패치와의 충돌을 확인하세요." : "현재 메모리 상태를 읽었습니다.";
     }
     internal void ShowSaved(RuntimeRulePreference preference, bool select = false)
@@ -85,8 +89,15 @@ internal sealed class RuntimeRulesWindow : W.Window
         pending.Text = current is null ? "현재 상태를 확인한 뒤 변경할 수 있습니다."
             : Selection == current ? "현재 적용 상태와 같습니다." : "아직 적용하지 않은 변경이 있습니다.";
     }
+    internal void LoadImported(RuntimeRulePreference preference, SettingsImportSource source)
+    {
+        loading = true;
+        Traits.IsChecked=preference.Settings.Traits9; TraitList.IsChecked=preference.Settings.TraitList9;
+        Ability.SelectedIndex=(int)preference.Settings.Abilities; ConvertProgress.IsChecked=preference.ConvertExperience;
+        loading=false; ImportedSource=source; UpdateSelection(); Status.Text=L.Compatibility.ImportDraft;
+    }
     internal void SetBusy(bool busy)
     {
-        Traits.IsEnabled = TraitList.IsEnabled = Ability.IsEnabled = ConvertProgress.IsEnabled = Apply.IsEnabled = Restore.IsEnabled = !busy && known;
+        Traits.IsEnabled = TraitList.IsEnabled = Ability.IsEnabled = ConvertProgress.IsEnabled = Apply.IsEnabled = Restore.IsEnabled = Import.IsEnabled = !busy && known;
     }
 }

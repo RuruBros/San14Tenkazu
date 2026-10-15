@@ -28,6 +28,7 @@ internal sealed partial class EditorWindow
                 runtimeRulesIdentity = identity;
                 window.Apply.Click += async () => await ChangeRuntimeRules(window, window.Selection);
                 window.Restore.Click += async () => await ChangeRuntimeRules(window, RuntimeRuleSettings.Original);
+                window.Import.Click += () => ImportRuntimeSettings(window, identity);
                 window.Closing += (_, e) => { if (busy) e.Cancel = true; };
                 window.Closed += (_, _) => runtimeRulesWindow = null;
                 window.Show();
@@ -46,8 +47,11 @@ internal sealed partial class EditorWindow
         runtimeRulesChanging = true; ++ruleRevision; SetBusy(true, scanning: false); window.SetBusy(true);
         try
         {
+            using var importedGuard = window.ImportedSource?.Guard();
+            window.ImportedSource?.Archive(Path.Combine(Path.GetDirectoryName(runtimeRuleFile.PathName)!, "settings-history"));
             var preference = new RuntimeRulePreference(1, identity.ExeHash, settings, convert);
-            runtimeRuleFile.Save(preference); window.ShowSaved(preference);
+            runtimeRuleFile.Save(preference,preservePrevious:window.ImportedSource is not null,expectedStamp:window.ImportedSource is not null?window.ImportTargetStamp:null);
+            window.ImportedSource=null; window.ImportTargetStamp=null; window.ShowSaved(preference);
             runtimeRuleFailure = null; runtimeRuleNotice = "";
             string receipt = runtimeRuleFile.ReceiptPath(identity);
             if (await Task.Run(() => runtimeRuleAccess.Pace(identity, layout!)) != GamePace.Paused)
