@@ -5,7 +5,7 @@ using WI = System.Windows.Input;
 namespace San14Tenkazu;
 
 // The right pane's lists, grouped by task, each with its search box, filters and
-// count over its table. EditorWindow.Lists fills it; number cells edit directly, other cells open their editor.
+// count over its table. Number cells share drafts across filters/tabs and save through the footer.
 internal sealed class ListsCard : PanePage
 {
     private readonly WC.WrapPanel tabStrip = new();
@@ -15,10 +15,26 @@ internal sealed class ListsCard : PanePage
     private readonly PlateButton resume = new(L.Navigation.Resume, icon: Icons.Details) { Visibility = W.Visibility.Collapsed };
     private readonly WC.TextBlock ancientTitle = new() { Text = L.Navigation.AncientTool, VerticalAlignment = W.VerticalAlignment.Center, Visibility = W.Visibility.Collapsed };
 
+    private readonly PlateButton apply = new(L.Card.Apply, primary: true, icon: Icons.Apply) { ToolTip = L.Lists.DraftApplyTip };
+    private readonly WC.TextBlock draftScope = new() { Text = L.Lists.DraftScope, Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap, VerticalAlignment = W.VerticalAlignment.Center };
+    private bool canApply;
+    internal TableDrafts TableDrafts { get; } = new();
+    internal int Pending => TableDrafts.Pending;
+    internal event Action? ApplyClicked;
+    internal bool ApplyEnabled { set { canApply = value; UpdateDrafts(); } }
+
+    private void UpdateDrafts()
+    {
+        apply.Badge = Pending;
+        apply.Text = Pending > 0 ? $"{L.Card.Apply} ({Pending:N0})" : L.Card.Apply;
+        apply.IsEnabled = canApply && Pending > 0;
+    }
+
     internal event Action? TabChanged, ResumeSelected;
 
     internal ListsCard()
     {
+        TableDrafts.Changed += UpdateDrafts;
         var navigation = new WC.DockPanel();
         WC.DockPanel.SetDock(resume, WC.Dock.Right);
         navigation.Children.Add(resume);
@@ -27,11 +43,26 @@ internal sealed class ListsCard : PanePage
         var top = PaneChrome.Toolbar(navigation);
         pages.Margin = new W.Thickness(12, 8, 12, 12);
         var layout = new WC.DockPanel();
+        var footer = new WC.DockPanel();
+        WC.DockPanel.SetDock(apply, WC.Dock.Right); footer.Children.Add(apply); footer.Children.Add(draftScope);
+        var bottom = PaneChrome.Footer(footer); WC.DockPanel.SetDock(bottom, WC.Dock.Bottom); layout.Children.Add(bottom);
         WC.DockPanel.SetDock(top, WC.Dock.Top);
         layout.Children.Add(top);
         layout.Children.Add(pages);
         Inner.Child = layout;
         resume.Click += () => ResumeSelected?.Invoke();
+        apply.Click += () => ApplyClicked?.Invoke();
+        UpdateDrafts();
+    }
+
+    internal void FocusInvalidInput()
+    {
+        if (TableDrafts.InvalidCell is not { } cell) return;
+        for (int i = 0; i < tabs.Count; i++)
+        {
+            int index = i;
+            if (tabs[i].Table.FocusDraft(cell.Target, cell.Field, () => { ShowTab(index); UpdateLayout(); })) return;
+        }
     }
 
     // The tab shown (the order the pages were added in).

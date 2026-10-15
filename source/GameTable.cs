@@ -51,6 +51,8 @@ internal sealed class GameTable : WC.Border
     private sealed record CellInput(RowItem Item, Row Row, int Column, NumberField Number)
     {
         internal bool Committing { get; set; }
+        internal WI.KeyEventHandler? KeyHandler { get; set; }
+        internal WI.KeyboardFocusChangedEventHandler? FocusHandler { get; set; }
     }
 
     internal GameTable(Column[] columns, double rowHeight)
@@ -84,9 +86,32 @@ internal sealed class GameTable : WC.Border
     // A click on a row, or ↑↓ (and the page keys) through them: the row's tag.
     internal event Action<object>? RowPicked;
 
-    // Enter writes exactly this cell through the window's regular validation, logging and undo path.
+    // Production lists and cards use Drafts and their footer. The callback also permits isolated table checks.
     internal Func<object, FieldDef, long, Task<bool>>? CellWriter { get; set; }
     internal Func<object, FieldDef, bool>? CanEditCell { get; set; }
+    internal Func<object, EditorTarget>? DraftTarget { get; set; }
+    private TableDrafts? drafts;
+    internal TableDrafts? Drafts
+    {
+        get => drafts;
+        set
+        {
+            CancelInput();
+            if (drafts is not null) drafts.Changed -= DraftChanged;
+            drafts = value;
+            if (drafts is not null) drafts.Changed += DraftChanged;
+            Redraw();
+        }
+    }
+
+    private NumberField? Draft(Row row, int column) => columns[column].Field is { } field && DraftTarget is { } target
+        ? drafts?.Find(target(row.Tag), field) : null;
+
+    private void DraftChanged()
+    {
+        if (input is { } edit && Draft(edit.Row, edit.Column) != edit.Number) CancelInput();
+        Redraw();
+    }
     // One batch for the eligible rows in this table, including rows outside the scroll viewport.
     internal Func<IReadOnlyList<object>, FieldDef, long, Task<bool>>? ColumnWriter
     {
@@ -115,6 +140,11 @@ internal sealed class GameTable : WC.Border
     // make the table again in its sort, keeping the scroll and the pick where they can.
     internal void SetRows(IReadOnlyList<Row> next)
     {
+        if (drafts is not null && DraftTarget is { } target)
+            foreach (Row row in next)
+                for (int column = 0; column < columns.Length; column++)
+                    if (columns[column].Field is { } field && row.Cells[column] is long value)
+                        drafts.Follow(target(row.Tag), field, value);
         if (input is { Committing: false } edit)
         {
             Row? fresh = next.FirstOrDefault(r => Equals(r.Tag, edit.Row.Tag));
@@ -154,9 +184,16 @@ internal sealed class GameTable : WC.Border
         if (targets.Count == 0) return;
         CancelInput();
         FieldDef field = columns[column].Field!;
-        var dialog = new ColumnEditDialog(field, targets.Count, rows.Count - targets.Count) { Owner = W.Window.GetWindow(this) };
+        var dialog = new ColumnEditDialog(field, targets.Count, rows.Count - targets.Count, deferred: drafts is not null) { Owner = W.Window.GetWindow(this) };
         if (dialog.ShowDialog() == true && editingEnabled && columnWriter == write)
-            await write(targets, field, dialog.Value);
+        {
+            if (drafts is not null && DraftTarget is { } target)
+            {
+                foreach (Row row in rows.Where(r => targets.Contains(r.Tag)))
+                    drafts.Get(target(row.Tag), field, (long)row.Cells[column]!).Set(dialog.Value);
+            }
+            else await write(targets, field, dialog.Value);
+        }
     }
 
     // Picks the row with this tag (false when it is not listed), without raising RowPicked.
@@ -169,6 +206,26 @@ internal sealed class GameTable : WC.Border
     }
 
     internal bool Contains(object tag) => rows.Any(r => Equals(r.Tag, tag));
+
+    internal bool FocusDraft(EditorTarget target, FieldDef field, Action showPage)
+    {
+        int column = Array.FindIndex(columns, c => c.Field == field);
+        Row? row = rows.FirstOrDefault(r => DraftTarget?.Invoke(r.Tag) == target);
+        if (row is null || column < 0 || !CanEdit(row, column)) return false;
+        showPage();
+        list.ScrollIntoView(row);
+        UpdateLayout();
+        if (list.ItemContainerGenerator.ContainerFromItem(row) is not RowItem item) return false;
+        item.BringIntoView();
+        if (!BeginInput(item, column)) return false;
+        CellInput? focused = input;
+        // List tab changes queue search focus. Validation must focus the invalid cell after that navigation.
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() =>
+        {
+            if (input == focused) focused?.Number.Box.Focus();
+        }));
+        return true;
+    }
 
     // Portraits decoded since the rows were drawn.
     internal void RefreshFaces() => Redraw();
@@ -236,14 +293,16 @@ internal sealed class GameTable : WC.Border
         if (item.Row is not { } row || !CanEdit(row, column) || input is { Committing: true }) return false;
         CancelInput();
         list.SelectedItem = row;
-        var number = new NumberField(columns[column].Field!);
+        var number = drafts is not null && DraftTarget is { } target
+            ? drafts.Get(target(row.Tag), columns[column].Field!, (long)row.Cells[column]!)
+            : new NumberField(columns[column].Field!);
         number.Box.Margin = new W.Thickness(0);
-        number.Show((long)row.Cells[column]!);
+        if (drafts is null) number.Show((long)row.Cells[column]!);
         var edit = new CellInput(item, row, column, number);
         input = edit;
         inputLayer.Children.Add(number.Box);
         PositionInput();
-        number.Box.PreviewKeyDown += (_, e) =>
+        edit.KeyHandler = (_, e) =>
         {
             if (e.Key == WI.Key.Enter)
             {
@@ -253,12 +312,16 @@ internal sealed class GameTable : WC.Border
             else if (e.Key == WI.Key.Escape)
             {
                 e.Handled = true;
+                drafts?.Revert(number);
                 CancelInput();
                 list.Focus();
             }
         };
-        // Only Enter applies. Leaving the cell (including scrolling or switching pages) cancels its input.
-        number.Box.LostKeyboardFocus += (_, _) => { if (input == edit) CancelInput(); };
+        // Card tables retain their NumberField in Drafts; removing the overlay never discards that input.
+        // Tables without a bound draft store retain their standalone callback behavior.
+        edit.FocusHandler = (_, _) => { if (input == edit) CancelInput(); };
+        number.Box.PreviewKeyDown += edit.KeyHandler;
+        number.Box.LostKeyboardFocus += edit.FocusHandler;
         number.Box.Focus();
         number.Box.SelectAll();
         return true;
@@ -279,6 +342,11 @@ internal sealed class GameTable : WC.Border
     private void CancelInput()
     {
         if (input is { Committing: true }) return;
+        if (input is { } edit)
+        {
+            edit.Number.Box.PreviewKeyDown -= edit.KeyHandler;
+            edit.Number.Box.LostKeyboardFocus -= edit.FocusHandler;
+        }
         input = null;
         inputLayer.Children.Clear();
     }
@@ -289,6 +357,12 @@ internal sealed class GameTable : WC.Border
         if (!edit.Number.TryRead(out long value, out string error))
         {
             edit.Number.Box.ToolTip = error;
+            return;
+        }
+        if (drafts is not null)
+        {
+            CancelInput();
+            list.Focus();
             return;
         }
         if (value == edit.Number.Current)
@@ -370,7 +444,13 @@ internal sealed class GameTable : WC.Border
         {
             var cell = new W.Rect(edges[i], 0, Math.Max(0, edges[i + 1] - edges[i] - pixel), height - pixel);
             dc.PushClip(new WM.RectangleGeometry(cell));
-            DrawCell(dc, columns[i], row.Cells[i], cell, dpi.PixelsPerDip);
+            if (Draft(row, i) is { IsChanged: true } draft)
+            {
+                dc.DrawRectangle(CardSkin.Pending, null, cell);
+                if (draft.IsValid) DrawCell(dc, columns[i], draft.Value, cell, dpi.PixelsPerDip);
+                else DrawLine(dc, Text(draft.Box.Text, CardSkin.FontSize, CardSkin.Poor, cell.Width - Pad * 2, dpi.PixelsPerDip), cell, right: true);
+            }
+            else DrawCell(dc, columns[i], row.Cells[i], cell, dpi.PixelsPerDip);
             dc.Pop();
             dc.DrawRectangle(CardSkin.Rule, null, new W.Rect(edges[i + 1] - pixel, 0, pixel, height));
         }
@@ -540,7 +620,7 @@ internal sealed class GameTable : WC.Border
             int column = table.ColumnAt(this, e.GetPosition(this).X);
             bool editable = Row is { } row && table.CanEdit(row, column);
             Cursor = editable ? WI.Cursors.IBeam : WI.Cursors.Hand;
-            ToolTip = editable ? L.Lists.EditCellTip : null;
+            ToolTip = editable ? table.drafts is null ? L.Lists.EditCellTip : L.Lists.DraftCellTip : null;
         }
 
         protected override void OnMouseLeftButtonUp(WI.MouseButtonEventArgs e)
@@ -584,7 +664,7 @@ internal sealed class GameTable : WC.Border
                 }
                 button.Visibility = table.columnWriter is null ? W.Visibility.Collapsed : W.Visibility.Visible;
                 button.IsEnabled = table.columnWriter is not null && table.rows.Any(row => table.CanEdit(row, column));
-                button.ToolTip = L.Lists.BulkColumnTip(field.Label);
+                button.ToolTip = table.drafts is null ? L.Lists.BulkColumnTip(field.Label) : L.Lists.DraftColumnTip(field.Label);
             }
             InvalidateMeasure();
             InvalidateArrange();

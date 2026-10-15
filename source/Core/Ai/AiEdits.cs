@@ -53,6 +53,7 @@ internal static class AiEdits
     internal static EditPlan Plan(IRecordMemory memory, AiTree[] trees, AiLiveTree[] live, string label, IReadOnlyList<(AiGuideValue Value, int Raw)> requests)
     {
         var records = new Dictionary<ulong, (RecordKind Kind, byte[] Expected, List<FieldChange> Changes)>();
+        var desiredCells = new Dictionary<ulong, int>();
         var lines = new List<string>();
         foreach ((AiGuideValue value, int raw) in requests)
         {
@@ -67,6 +68,12 @@ internal static class AiEdits
                 ulong at = tree.Nodes[slot.Node];
                 if (BinaryPrimitives.ReadUInt32LittleEndian(memory.Read(at + 8, 4)) != node.Class) return EditPlan.Refuse(L.Ai.TreeChanged);
                 if (AiMemory.Cell(memory, tree, slot.Node, slot.Param) is not { Size: 4 } cell) return EditPlan.Refuse(L.Ai.ValueNotFound(value.Label));
+                if (desiredCells.TryGetValue(cell.Address, out int previous))
+                {
+                    if (previous != raw) return EditPlan.Refuse(L.Ai.ConflictingDrafts(value.Label));
+                    continue;
+                }
+                desiredCells.Add(cell.Address, raw);
                 (RecordKind kind, ulong address, int length) = (RecordKind.AiNode, at, NodeRead);
                 if (node.Class == AiCatalog.Condition)
                 {

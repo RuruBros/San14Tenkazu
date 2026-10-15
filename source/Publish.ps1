@@ -90,6 +90,8 @@ try {
     Invoke-Check @('--military-points', (Join-Path $taskArtifacts 'publish-military-points')) 'publish-military-points.log'
     Invoke-Check @('--force-policies', (Join-Path $taskArtifacts 'publish-force-policies')) 'publish-force-policies.log'
     Invoke-Check @('--pending-inputs', (Join-Path $taskArtifacts 'publish-pending-inputs')) 'publish-pending-inputs.log'
+    Invoke-Check @('--table-drafts', (Join-Path $taskArtifacts 'publish-table-drafts')) 'publish-table-drafts.log'
+    Invoke-Check @('--unified-drafts', (Join-Path $taskArtifacts 'publish-unified-drafts')) 'publish-unified-drafts.log'
     Invoke-Check @('--unit-conditions', (Join-Path $taskArtifacts 'publish-unit-conditions')) 'publish-unit-conditions.log'
     Invoke-Check @('--officer-merit', (Join-Path $taskArtifacts 'publish-officer-merit')) 'publish-officer-merit.log'
     Invoke-Check @('--officer-revival', (Join-Path $taskArtifacts 'publish-officer-revival')) 'publish-officer-revival.log'

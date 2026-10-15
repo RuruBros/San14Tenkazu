@@ -85,7 +85,7 @@ internal sealed class ForceEditorCard : EditorCard
 
     internal override EditorTarget? Target => Force == 0 ? null : new ForceTarget(Force);
 
-    internal override int Pending => pending;
+    internal override int Pending => pending + TableDrafts.Pending;
 
     internal ForceEditorCard()
     {
@@ -311,6 +311,7 @@ internal sealed class ForceEditorCard : EditorCard
 
     internal void Open(View view)
     {
+        TableDrafts.Clear();
         filling = true;
         if (view.Force != Force) StartOver();
         Force = view.Force;

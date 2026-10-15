@@ -53,9 +53,11 @@ internal abstract class EditorCard : PanePage
     internal event Action<EditorTarget>? LinkClicked;
     internal event Action? NavigationChanged;
     internal string NavigationTitle => Title.Text;
+    internal TableDrafts TableDrafts { get; } = new();
 
     protected EditorCard()
     {
+        TableDrafts.Changed += Count;
         var header = new WC.Grid { Margin = new W.Thickness(0, 0, 0, 4) };
         foreach (W.GridLength length in new[] { W.GridLength.Auto, W.GridLength.Auto, new W.GridLength(1, W.GridUnitType.Star), W.GridLength.Auto })
             header.ColumnDefinitions.Add(new WC.ColumnDefinition { Width = length });
@@ -99,7 +101,7 @@ internal abstract class EditorCard : PanePage
         apply.Click += () => ApplyClicked?.Invoke();
         PreviewKeyDown += (_, e) =>
         {
-            if (e.Key != WI.Key.Escape) return;
+            if (e.Key != WI.Key.Escape || TableDrafts.HasKeyboardFocus) return;
             e.Handled = true;
             CloseClicked?.Invoke();
         };
@@ -129,6 +131,23 @@ internal abstract class EditorCard : PanePage
     {
         apply.Badge = Pending;
         NavigationChanged?.Invoke();
+    }
+
+    internal void FocusInvalidTableInput()
+    {
+        if (TableDrafts.InvalidCell is not { } cell) return;
+        static IEnumerable<GameTable> Tables(W.DependencyObject root)
+        {
+            if (root is GameTable table) { yield return table; yield break; }
+            for (int i = 0; i < WM.VisualTreeHelper.GetChildrenCount(root); i++)
+                foreach (var child in Tables(WM.VisualTreeHelper.GetChild(root, i))) yield return child;
+        }
+        for (int i = 0; i < tabs.Count; i++)
+        {
+            int page = i;
+            foreach (var table in Tables(tabs[i].Page))
+                if (table.FocusDraft(cell.Target, cell.Field, () => { ShowPage(page); UpdateLayout(); })) return;
+        }
     }
 
     // The card shows [위치로 가기], which sends the game's own view to what it shows.

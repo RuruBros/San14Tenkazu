@@ -119,6 +119,7 @@ internal sealed partial class EditorWindow
     private async Task ReapplyAiAsync()
     {
         aiRetry.Stop();
+        if (aiView?.Pending == true) { aiRetry.Start(); return; }
         if (game is not { Verified: true } identity || LoadAiTrees(quiet: true) is not { } trees) return;
         Dictionary<string, int> kept = aiKept.Load(aiStamp);
         try { await ReapplyAiExtensionsAsync(identity, trees); }

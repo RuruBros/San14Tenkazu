@@ -261,6 +261,7 @@ internal sealed partial class EditorWindow : W.Window
         undoButton.ToolTip = undoHistory.Count == 0 ? L.Undo.NothingTip
             : L.Undo.LastTip(undoHistory.Count, undoHistory[^1].Summary.Replace(", ", "\n"));
         foreach (EditorCard card in Editors) card.ApplyEnabled = !busy && connected;
+        lists.ApplyEnabled = !busy && connected;
         formationEditor.ApplyEnabled = !busy && connected && ruleSnapshot is not null && ruleKept?.Profile is not null;
         formationEditor.SetAvailable(!busy && connected && ruleSnapshot is not null && ruleKept?.Profile is not null);
         tacticEditor.ApplyEnabled = !busy && connected && tacticRuleSnapshot is not null && ruleKept?.Profile?.Table("tactic") is not null;

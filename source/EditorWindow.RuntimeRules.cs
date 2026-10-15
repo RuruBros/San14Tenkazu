@@ -41,7 +41,7 @@ internal sealed partial class EditorWindow
     {
         if (busy || refreshing || runtimeRulesChecking || game is not { Verified: true } identity) return;
         if (runtimeRulesIdentity != identity) { window.Status.Text = "게임 연결이 바뀌었습니다. 창을 닫고 다시 여세요."; return; }
-        if (Editors.Any(card => card.Pending > 0)) { window.Status.Text = "편집 중인 내용을 먼저 적용하거나 취소하세요."; return; }
+        if (lists.Pending > 0 || Editors.Any(card => card.Pending > 0)) { window.Status.Text = "편집 중인 내용을 먼저 적용하거나 취소하세요."; return; }
         bool convert = window.ConvertProgress.IsChecked == true;
         runtimeRulesChanging = true; ++ruleRevision; SetBusy(true, scanning: false); window.SetBusy(true);
         try
@@ -76,7 +76,7 @@ internal sealed partial class EditorWindow
             || seasonClosing || seasonDisconnecting || game is not { Verified: true } identity || layout is null) return;
         if (retry) runtimeRuleFailure = null;
         if (runtimeRuleFailure == identity) return;
-        bool Pending() => aiView?.Pending == true || Editors.Any(c => c.Pending > 0) || RulesPending || runtimeRulesWindow?.HasPendingChanges == true;
+        bool Pending() => lists.Pending > 0 || aiView?.Pending == true || Editors.Any(c => c.Pending > 0) || RulesPending || runtimeRulesWindow?.HasPendingChanges == true;
         if (Pending()) return;
         var observed = snapshot; var currentLayout = layout;
         bool Current() => !busy && !refreshing && game == identity && ReferenceEquals(snapshot, observed) && !seasonClosing && !seasonDisconnecting;

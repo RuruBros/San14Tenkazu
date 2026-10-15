@@ -139,6 +139,8 @@ internal static partial class L
         internal static string OutOfRange(object? label, object? min, object? max) => Format(T(), (nameof(label), label), (nameof(min), min), (nameof(max), max));
         internal static string NotAStep(object? label, object? step) => Format(T(), (nameof(label), label), (nameof(step), step));
         internal static string TreeChanged => T();
+        internal static string PendingDecisions => T();
+        internal static string ConflictingDrafts(object? label) => Format(T(), (nameof(label), label));
         internal static string Apply => T();
         internal static string ApplyTip => T();
         internal static string Defaults => T();

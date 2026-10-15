@@ -285,6 +285,11 @@ internal static partial class L
         internal static string EditorTab => T();
         internal static string SelectEditor => T();
         internal static string EditCellTip => T();
+        internal static string DraftCellTip => T();
+        internal static string DraftApplyNote => T();
+        internal static string DraftScope => T();
+        internal static string DraftApplyTip => T();
+        internal static string DraftColumnTip(object? field) => Format(T(), (nameof(field), field));
         internal static string BulkColumn(object? field) => Format(T(), (nameof(field), field));
         internal static string BulkColumnTip(object? field) => Format(T(), (nameof(field), field));
         internal static string BulkScope(object? count) => Format(T(), (nameof(count), count));

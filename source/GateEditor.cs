@@ -37,7 +37,7 @@ internal sealed class GateEditorCard : EditorCard
         set => officers.Faces = value;
     }
 
-    internal override int Pending => pending;
+    internal override int Pending => pending + TableDrafts.Pending;
 
     // [소속 주기] was pressed: the window gives the gate to a force.
     internal event Action? GiveClicked;
@@ -68,10 +68,10 @@ internal sealed class GateEditorCard : EditorCard
         return page;
     }
 
-    // The 소속 장수 page's tables (their fills are written by the window).
+    // The 소속 장수 page's tables share the card's pending inputs.
     internal OfficerTables Officers => officers;
 
-    // The fills write at once (after asking): only while connected and not busy.
+    // Inputs and fills are available only while connected and not busy.
     internal bool FillsEnabled
     {
         set => officers.FillsEnabled = value;
@@ -82,6 +82,7 @@ internal sealed class GateEditorCard : EditorCard
 
     internal void Open(View view)
     {
+        TableDrafts.Clear();
         if (view.Gate != Gate) StartOver();
         Gate = view.Gate;
         Title.Text = view.Name;
@@ -138,6 +139,7 @@ internal sealed class GateEditorCard : EditorCard
 
     private void Revert()
     {
+        TableDrafts.Clear();
         foreach (NumberField field in fields.Values) field.Show(field.Current);
         governor.Show(governor.Current);
         Mark();

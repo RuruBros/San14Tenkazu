@@ -22,6 +22,8 @@ internal sealed partial class EditorWindow
             GameIdentity identity = await Task.Run(GameMemory.FindGame, token);
             StartFaceLibrary(GameMemory.ExecutablePath(identity));
             if(!await DisconnectAsync(null))return;
+            lists.TableDrafts.Clear();
+            aiView?.DiscardDrafts();
             status.Text = L.Connection.FindingData;
             List<BasePointer> known = identity.Verified ? [] : builds.Pointers(identity.ExeHash);
             GameLayout found = await Task.Run(() => GameMemory.Resolve(identity,
@@ -97,6 +99,8 @@ internal sealed partial class EditorWindow
             layout = found;
             layoutRecovering = false;
             map.SetSnapshot(snapshot);
+            lists.TableDrafts.Clear();
+            aiView?.DiscardDrafts();
             FillLists();
             ReopenEditor();
             if (aiView is not null) await aiView.RereadAsync();
