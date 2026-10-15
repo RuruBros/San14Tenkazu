@@ -91,7 +91,7 @@ internal sealed partial class EditorWindow
         lists.AddPage(L.Rules.RankPage,rankTable,[rankSearch],rankCount,PaneSection.Data);
         lists.AddPage(L.Rules.DoctrinePage,doctrineTable,[doctrineSearch],doctrineCount,PaneSection.Data);
         unlockButton.Click += () => _ = UnlockAncientsAsync();
-        lists.TabChanged += FocusSearch;
+        lists.TabChanged += () => { RefreshLists(currentOnly: true); FocusSearch(); };
         lists.ApplyClicked += async () => await ApplyListDraftsAsync();
 
         foreach (GameTable table in ListTables)
@@ -117,7 +117,7 @@ internal sealed partial class EditorWindow
             box.SelectedIndex = 0;
         }
         foreach (WC.ComboBox box in new[] { cityForceBox, officerForceBox, officerStatusBox, unitForceBox, unitKindBox, ancientLockBox })
-            box.SelectionChanged += (_, _) => { if (!filling) FillLists(); };
+            box.SelectionChanged += (_, _) => { if (!filling) RefreshLists(currentOnly: true); };
         foreach (SearchBox box in new[] { forceSearch, citySearch, officerSearch, unitSearch, personalitySearch, itemSearch, ancientSearch, formationSearch, tacticSearch, policySearch, policyEffectSearch, officeSearch, rankSearch, doctrineSearch })
             box.Box.TextChanged += (_, _) => { searchTimer.Stop(); searchTimer.Start(); };
 
@@ -136,35 +136,39 @@ internal sealed partial class EditorWindow
 
     // ---- Filling the lists ---------------------------------------------------------------------------
 
-    private void FillLists()
+    private void FillLists() => RefreshLists(currentOnly: false);
+
+    private void RefreshLists(bool currentOnly)
     {
+        bool Include(ListKind kind) => !currentOnly || lists.Tab == (int)kind;
         filling = true;
         try
         {
-            FillForceChoices();
-            FillTable(forceTable, ForceRows(), forceCount, L.Lists.ForceCount);
-            FillTable(cityTable, CityRows(), cityCount, L.Lists.CityCount);
-            FillTable(officerTable, OfficerRows(), officerCount, L.Lists.OfficerCount);
-            FillTable(unitTable, UnitRows(), unitCount, L.Lists.UnitCount);
-            FillTable(personalityTable, PersonalityRows(), personalityCount, L.Lists.PersonalityCount);
-            FillTable(itemTable, ItemRows(), itemCount, L.Lists.ItemCount);
-            FillTable(formationTable, FormationRows(), formationCount, L.Rules.Count);
-            FillTable(tacticTable, TacticRows(), tacticCount, L.Rules.TacticCount);
-            FillTable(policyTable, PolicyRows("policy", policySearch), policyCount, L.Rules.PolicyCount);
-            FillTable(policyEffectTable, PolicyRows("policyeffect", policyEffectSearch), policyEffectCount, L.Rules.PolicyEffectCount);
-            FillTable(officeTable, OfficeRows(), officeCount, L.Rules.OfficeCount);
-            FillTable(doctrineTable,PlainRuleRows(doctrineRuleSnapshot,doctrineSearch),doctrineCount,L.Rules.DoctrineCount);
+            if (!currentOnly) FillForceChoices();
+            if (Include(ListKind.Forces)) FillTable(forceTable, ForceRows(), forceCount, L.Lists.ForceCount);
+            if (Include(ListKind.Cities)) FillTable(cityTable, CityRows(), cityCount, L.Lists.CityCount);
+            if (Include(ListKind.Officers)) FillTable(officerTable, OfficerRows(), officerCount, L.Lists.OfficerCount);
+            if (Include(ListKind.Units)) FillTable(unitTable, UnitRows(), unitCount, L.Lists.UnitCount);
+            if (Include(ListKind.Personalities)) FillTable(personalityTable, PersonalityRows(), personalityCount, L.Lists.PersonalityCount);
+            if (Include(ListKind.Items)) FillTable(itemTable, ItemRows(), itemCount, L.Lists.ItemCount);
+            if (Include(ListKind.Formations)) FillTable(formationTable, FormationRows(), formationCount, L.Rules.Count);
+            if (Include(ListKind.Tactics)) FillTable(tacticTable, TacticRows(), tacticCount, L.Rules.TacticCount);
+            if (Include(ListKind.Policies)) FillTable(policyTable, PolicyRows("policy", policySearch), policyCount, L.Rules.PolicyCount);
+            if (Include(ListKind.PolicyEffects)) FillTable(policyEffectTable, PolicyRows("policyeffect", policyEffectSearch), policyEffectCount, L.Rules.PolicyEffectCount);
+            if (Include(ListKind.Offices)) FillTable(officeTable, OfficeRows(), officeCount, L.Rules.OfficeCount);
+            if (Include(ListKind.Doctrines)) FillTable(doctrineTable,PlainRuleRows(doctrineRuleSnapshot,doctrineSearch),doctrineCount,L.Rules.DoctrineCount);
             if (snapshot is not null && ruleKept?.Profile?.Table("doctrine") is null) doctrineCount.Text=ruleNotice.Length>0 ? ruleNotice : L.Rules.NotReady;
-            FillTable(rankTable,PlainRuleRows(rankRuleSnapshot,rankSearch),rankCount,L.Rules.RankCount);
+            if (Include(ListKind.Ranks)) FillTable(rankTable,PlainRuleRows(rankRuleSnapshot,rankSearch),rankCount,L.Rules.RankCount);
             if (snapshot is not null && ruleKept?.Profile?.Table("rank") is null) rankCount.Text=ruleNotice.Length>0 ? ruleNotice : L.Rules.NotReady;
             if (snapshot is not null && ruleKept?.Profile is null) formationCount.Text = ruleNotice.Length > 0 ? ruleNotice : L.Rules.NotReady;
             if (snapshot is not null && ruleKept?.Profile?.Table("tactic") is null) tacticCount.Text = ruleNotice.Length > 0 ? ruleNotice : L.Rules.NotReady;
             if (snapshot is not null && ruleKept?.Profile?.Table("policy") is null) policyCount.Text = policyEffectCount.Text = ruleNotice.Length > 0 ? ruleNotice : L.Rules.NotReady;
             if (snapshot is not null && ruleKept?.Profile?.Table("office") is null) officeCount.Text = ruleNotice.Length > 0 ? ruleNotice : L.Rules.NotReady;
-            FillAncients();
+            if (Include(ListKind.Ancients)) FillAncients();
         }
         finally { filling = false; }
-        LoadOfficerIcons();
+        // Search uses the existing snapshot and decoded portrait queue; do not restart its workers.
+        if (!currentOnly) LoadOfficerIcons();
         UpdateControls();
     }
 

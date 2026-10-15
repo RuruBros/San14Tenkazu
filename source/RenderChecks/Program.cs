@@ -18,6 +18,7 @@ internal static partial class RenderChecks
             if(args.Contains("--season-prepare-timings")){CheckSeasonPreparationTimings(args);return 0;}
             if (args.Contains("--unified-drafts")) { CheckUnifiedDrafts(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--table-drafts")) { CheckTableDrafts(args.First(a => !a.StartsWith("--"))); return 0; }
+            if(args.Contains("--ui-organization")){CheckUiOrganization(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--runtime-rule-worker")){RunRuntimeRuleWorker();return 0;}
             if(args.Contains("--public-loader-offline")){CheckPublicLibraryLoader(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--runtime-trait-list-export")){ExportRuntimeTraitList(args);return 0;}

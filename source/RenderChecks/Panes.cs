@@ -61,8 +61,17 @@ internal static partial class RenderChecks
         Require(dataTab.Selected && map.Lists.Shown && map.Lists.Tab == (int)ListKind.Personalities,
             "Data task did not open its first list");
         var targets = Field<WC.WrapPanel>(map.Lists, "tabStrip").Children.OfType<PaneTab>().ToArray();
-        Require(targets.Where(t => t.Visibility == W.Visibility.Visible).Select(t => t.Content).SequenceEqual(new object[] { "Personalities", "Items", "Formations", "Tactics", "Policies", "PolicyEffects", "Offices", "Ranks", "Doctrines" }),
-            "Data task contains game or tool targets");
+        Require(targets.Where(t => t.Visibility == W.Visibility.Visible).Select(t => t.Content).SequenceEqual(new object[] { "Personalities", "Items" }),
+            "Officer/item category contains unrelated targets");
+        var categories = Field<WC.WrapPanel>(map.Lists, "categories").Children.OfType<PaneTab>().ToArray();
+        SelectTab(categories[1]);
+        Require(map.Lists.Tab == (int)ListKind.Formations && targets.Where(t => t.Visibility == W.Visibility.Visible)
+            .Select(t => t.Content).SequenceEqual(new object[] { "Formations", "Tactics" }), "Combat category is incomplete");
+        map.Lists.ShowTab((int)ListKind.Tactics);
+        SelectTab(categories[2]);
+        Require(targets.Count(t => t.Visibility == W.Visibility.Visible) == 5, "Domestic category is incomplete");
+        SelectTab(categories[1]);
+        Require(map.Lists.Tab == (int)ListKind.Tactics, "Category lost previous selection");
         map.Lists.ShowTab((int)ListKind.Items);
         SelectTab(gameTab);
         Require(map.Lists.Tab == (int)ListKind.Forces, "Game task did not restore its previous list");
@@ -248,8 +257,8 @@ internal static partial class RenderChecks
         var seasonOn = Field<WC.RadioButton>(window, "seasonOn");
         var seasonOff = Field<WC.RadioButton>(window, "seasonOff");
         var seasonStatus = Field<WC.TextBlock>(window, "seasonStatus");
-        var environmentMenu = Field<PlateButton>(window, "settingsButton");
-        Require(environmentMenu.ActualWidth > 0 && seasonStatus.ActualWidth > 0 && !IsDescendant((W.DependencyObject)window.Content,seasonOn) && !IsDescendant((W.DependencyObject)window.Content,seasonOff)
+        var settingsMenu = Field<PlateButton>(window, "settingsButton");
+        Require(settingsMenu.ActualWidth > 0 && seasonStatus.ActualWidth > 0 && !IsDescendant((W.DependencyObject)window.Content,seasonOn) && !IsDescendant((W.DependencyObject)window.Content,seasonOff)
             && seasonStatus.TranslatePoint(new W.Point(), windowContent).Y < initialMap.TranslatePoint(new W.Point(), windowContent).Y,
             "Menu layout removed or covered the environment menu or season status");
 

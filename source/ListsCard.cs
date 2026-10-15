@@ -9,12 +9,14 @@ namespace San14Tenkazu;
 internal sealed class ListsCard : PanePage
 {
     private readonly WC.WrapPanel tabStrip = new();
+    private readonly WC.WrapPanel categories = new();
+    private readonly Dictionary<string, PaneTab> categoryTabs = [];
+    private readonly Dictionary<string, int> lastCategoryTabs = [];
     private readonly WC.Grid pages = new();
     private readonly List<(PaneTab Tab, W.UIElement Page, GameTable Table, PaneSection Section)> tabs = [];
     private readonly Dictionary<PaneSection, int> lastTabs = [];
     private readonly PlateButton resume = new(L.Navigation.Resume, icon: Icons.Details) { Visibility = W.Visibility.Collapsed };
     private readonly WC.TextBlock ancientTitle = new() { Text = L.Navigation.AncientTool, VerticalAlignment = W.VerticalAlignment.Center, Visibility = W.Visibility.Collapsed };
-
     private readonly PlateButton apply = new(L.Card.Apply, primary: true, icon: Icons.Apply) { ToolTip = L.Lists.DraftApplyTip };
     private readonly WC.TextBlock draftScope = new() { Text = L.Lists.DraftScope, Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap, VerticalAlignment = W.VerticalAlignment.Center };
     private bool canApply;
@@ -40,7 +42,16 @@ internal sealed class ListsCard : PanePage
         navigation.Children.Add(resume);
         navigation.Children.Add(ancientTitle);
         navigation.Children.Add(tabStrip);
-        var top = PaneChrome.Toolbar(navigation);
+        foreach (string name in new[] { "무장·물품", "전투", "내정·세력" })
+        {
+            var category = new PaneTab(name);
+            category.Click += (_, _) => ShowTab(lastCategoryTabs.TryGetValue(name, out int previous)
+                ? previous : tabs.FindIndex(t => t.Section == PaneSection.Data && Category(tabs.IndexOf(t)) == name));
+            categories.Children.Add(category); categoryTabs.Add(name, category);
+        }
+        var navigationRows = new WC.StackPanel();
+        navigationRows.Children.Add(categories); navigationRows.Children.Add(navigation);
+        var top = PaneChrome.Toolbar(navigationRows);
         pages.Margin = new W.Thickness(12, 8, 12, 12);
         var layout = new WC.DockPanel();
         var footer = new WC.DockPanel();
@@ -105,17 +116,29 @@ internal sealed class ListsCard : PanePage
         Tab = Math.Clamp(index, 0, tabs.Count - 1);
         Section = tabs[Tab].Section;
         lastTabs[Section] = Tab;
+        string selectedCategory = Category(Tab);
+        if (Section == PaneSection.Data) lastCategoryTabs[selectedCategory] = Tab;
+        categories.Visibility = Section == PaneSection.Data ? W.Visibility.Visible : W.Visibility.Collapsed;
         tabStrip.Margin = Section == PaneSection.Data ? new W.Thickness(0, 3, 0, 0) : new W.Thickness(0);
+        foreach (var pair in categoryTabs) pair.Value.Selected = pair.Key == selectedCategory;
         for (int i = 0; i < tabs.Count; i++)
         {
             tabs[i].Tab.Selected = i == Tab;
-            tabs[i].Tab.Visibility = tabs[i].Section == Section && Section != PaneSection.Ancients ? W.Visibility.Visible : W.Visibility.Collapsed;
+            tabs[i].Tab.Visibility = tabs[i].Section == Section && Section != PaneSection.Ancients
+                && (Section != PaneSection.Data || Category(i) == selectedCategory) ? W.Visibility.Visible : W.Visibility.Collapsed;
             tabs[i].Page.Visibility = i == Tab ? W.Visibility.Visible : W.Visibility.Collapsed;
         }
         ancientTitle.Visibility = Section == PaneSection.Ancients ? W.Visibility.Visible : W.Visibility.Collapsed;
         tabStrip.Visibility = Section == PaneSection.Ancients ? W.Visibility.Collapsed : W.Visibility.Visible;
         if (Tab != before) TabChanged?.Invoke();
     }
+
+    private static string Category(int index) => (ListKind)index switch
+    {
+        ListKind.Formations or ListKind.Tactics => "전투",
+        ListKind.Policies or ListKind.PolicyEffects or ListKind.Offices or ListKind.Ranks or ListKind.Doctrines => "내정·세력",
+        _ => "무장·물품"
+    };
 
     internal void ShowSection(PaneSection section)
     {
