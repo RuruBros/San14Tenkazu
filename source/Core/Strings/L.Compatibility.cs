@@ -7,5 +7,11 @@ internal static partial class L
         private static string T([CallerMemberName] string key = "") => Get(nameof(Compatibility)+"."+key);
         internal static string Unavailable => T();
         internal static string CurveUnknown => T();
+        internal static string Import => T();
+        internal static string ImportRules => T();
+        internal static string MigrationUnsupported => T();
+        internal static string ImportDraft => T();
+        internal static string ImportSaved => T();
+        internal static string ImportConfirm => T();
     }
 }

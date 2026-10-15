@@ -30,9 +30,15 @@ internal sealed class RuntimeRulePreferenceFile(string directory)
             ?? throw new InvalidDataException("개성·능력치 저장 설정이 비어 있습니다.");
         value.Validate(); return value;
     }
-    internal void Save(RuntimeRulePreference value)
+    internal string Stamp() => File.Exists(PathName) ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(PathName))) : "";
+    internal void Save(RuntimeRulePreference value, bool preservePrevious = false, string? expectedStamp = null)
     {
         value.Validate(); Directory.CreateDirectory(directory);
+        using var guard = new FileStream(PathName+".lock",FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None,1,FileOptions.DeleteOnClose);
+        byte[]? before=File.Exists(PathName)?File.ReadAllBytes(PathName):null;
+        string stamp=before is null?"":Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(before));
+        if(expectedStamp is not null && stamp!=expectedStamp)throw new IOException(L.Rules.ProfileMoved);
+        if (preservePrevious && before is not null) SettingsHistory.Keep(Path.Combine(directory, "settings-history"), before);
         string temporary = PathName + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {

@@ -3184,3 +3184,9 @@ AutoFailed = 환경·재해 자동 적용 중단 · {error} · 새로고침으�
 [Compatibility]
 Unavailable = 이 기능에 필요한 게임 구조 또는 버전 검증이 없습니다
 CurveUnknown = 능력치 성장 곡선을 검증하지 못했습니다
+Import = 설정 가져오기
+ImportRules = 규칙 설정 가져오기
+MigrationUnsupported = 검증된 설정 이관 경로가 없습니다. 원본 설정은 유지합니다.
+ImportDraft = 설정을 입력에 가져왔습니다. 저장 및 적용을 눌러야 반영됩니다.
+ImportSaved = 규칙 설정을 저장했습니다. 자동 적용은 꺼져 있으며 게임 값은 변경하지 않았습니다.
+ImportConfirm = 현재 게임의 검증된 기준값은 유지하고 선택한 파일의 설정만 가져옵니다. 자동 적용은 끕니다. 계속할까요?
