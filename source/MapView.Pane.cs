@@ -314,7 +314,7 @@ internal sealed partial class MapView
         int pending = editor?.Pending ?? 0;
         editorLocation.Text = editor is null ? "" : L.Navigation.Location(category, name);
         string tooltip = L.Navigation.ResumeTip(category, name, pending);
-        bool canResume = editor?.Target is not null && !showingEditor;
+        bool canResume = editor?.Target is not null && pending > 0 && !showingEditor;
         Lists.SetResume(tooltip, pending, canResume && Lists.Section == editorSection);
     }
 

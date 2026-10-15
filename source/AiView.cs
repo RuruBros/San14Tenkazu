@@ -10,7 +10,7 @@ namespace San14Tenkazu;
 // The AI view in the right pane ([AI] tab). A decision picker opens the settings for that decision,
 // with the numbers that set it: the file's value and, when the editor is connected to the verified build, the game's
 // in a box to change (AiGuide): [적용] writes the boxes changed through the editor's write (the question, [되돌리기]),
-// [기본값으로] puts the decision's numbers back to the file's. The last item, 트리 그대로 보기, shows the trees themselves for checking: the four trees and a
+// [기본값으로] fills the current page's inputs; applying saves drafts from all decision pages. 트리 그대로 보기 shows the trees themselves for checking: the four trees and a
 // search, a node a line opened as far as asked, and the node picked with each of its params (Core/Ai,
 // source/Reverse/notes/ai.md).
 internal sealed partial class AiView : WC.DockPanel
@@ -52,7 +52,17 @@ internal sealed partial class AiView : WC.DockPanel
     internal event Action<bool>? ExpandedChanged;
     internal event Action? CloseClicked;
     internal bool Expanded { get; private set; }
-    internal bool Pending => boxes.Values.Any(b => b.Box.Background == CardSkin.Pending) || ExtensionPending;
+    internal bool Pending => GuidePending || ExtensionPending;
+    private bool GuidePending => boxes.Any(b => IsDraft(b.Key, b.Value));
+    internal void DiscardDrafts()
+    {
+        guide.Children.Clear();
+        boxes.Clear();
+        supplyProtection.IsChecked = extensionSaved.SupplyProtection;
+        supplyFailure.SelectedIndex = (int)extensionSaved.SupplyFailure;
+        extensionScope.SelectedIndex = (int)extensionSaved.Scope;
+        UpdateExtensionActions();
+    }
     internal Task RereadAsync() => ReadGameAsync();
 
     internal void Disconnect()
@@ -220,7 +230,6 @@ internal sealed partial class AiView : WC.DockPanel
     private void ShowGuide(AiGuidePage page)
     {
         this.page = page;
-        boxes.Clear();
         guide.Children.Clear();
         guide.Children.Add(new WC.TextBlock { Text = AiLabels.Decision(page.Decision), FontSize = CardSkin.FontSize + 3, FontWeight = W.FontWeights.Bold });
         guide.Children.Add(new WC.TextBlock { Text = page.Summary, TextWrapping = W.TextWrapping.Wrap, Foreground = CardSkin.InkMuted, Margin = new W.Thickness(0, 4, 0, 6) });
@@ -250,7 +259,7 @@ internal sealed partial class AiView : WC.DockPanel
             guide.Children.Add(grid);
         }
         guide.Children.Add(new WC.TextBlock { Text = L.AiGuide.Shared, Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 14, 0, 0) });
-        apply.IsEnabled = false;
+        UpdateExtensionActions();
         settingsActions.Visibility = boxes.Count > 0 && !Expanded ? W.Visibility.Visible : W.Visibility.Collapsed;
     }
 
@@ -258,25 +267,55 @@ internal sealed partial class AiView : WC.DockPanel
     // from what the game holds (as the cards mark a value to write).
     private void Box(WC.Grid grid, int row, AiGuideValue value, int now, int? fileRaw, bool changed)
     {
-        WC.TextBox box = CardSkin.NumberBox(72);
+        bool existing = boxes.TryGetValue(value, out var previous);
+        bool pending = existing && IsDraft(value, previous);
+        WC.TextBox box = existing ? previous.Box : CardSkin.NumberBox(72);
+        if (box.Parent is WC.Panel parent) parent.Children.Remove(box);
         box.MinHeight = 26;
         box.VerticalAlignment = W.VerticalAlignment.Center;
         string shown = AiText.Number(value.Shown(now));
-        box.Text = shown;
+        boxes[value] = (box, now, fileRaw);
+        if (!pending) box.Text = shown;
         box.FontWeight = changed ? W.FontWeights.Bold : W.FontWeights.Normal;
         if (fileRaw is int file) box.ToolTip = L.Ai.OutOfRange(value.Label, AiEdits.Range(value, file).Min, AiEdits.Range(value, file).Max);
-        box.TextChanged += (_, _) =>
+        if (!existing) box.TextChanged += (_, _) =>
         {
-            box.Background = box.Text.Trim() != shown ? CardSkin.Pending : CardSkin.Paper;
-            apply.IsEnabled = boxes.Values.Any(b => b.Box.Background == CardSkin.Pending);
+            if (!boxes.TryGetValue(value, out var current) || current.Box != box) return;
+            UpdateDraft(value);
+            UpdateExtensionActions();
         };
+        UpdateDraft(value);
         var cell = new WC.StackPanel { Orientation = WC.Orientation.Horizontal, HorizontalAlignment = W.HorizontalAlignment.Right, Margin = new W.Thickness(0, 1, 6, 1) };
         cell.Children.Add(box);
         cell.Children.Add(new WC.TextBlock { Text = value.Unit, Foreground = CardSkin.InkMuted, VerticalAlignment = W.VerticalAlignment.Center, MinWidth = 22, Margin = new W.Thickness(3, 0, 0, 0) });
         WC.Grid.SetRow(cell, row);
         WC.Grid.SetColumn(cell, 2);
         grid.Children.Add(cell);
-        boxes[value] = (box, now, fileRaw);
+    }
+
+    private static bool TryRaw(AiGuideValue value, string text, out int raw)
+    {
+        raw = 0;
+        if (!long.TryParse(text.Replace(",", "").Trim(), out long shown) || AiEdits.Raw(value, shown) is not int parsed) return false;
+        raw = parsed; return true;
+    }
+
+    private static bool IsDraft(AiGuideValue value, (WC.TextBox Box, int? Now, int? File) input) =>
+        !TryRaw(value, input.Box.Text, out int raw) || raw != input.Now;
+
+    private static bool InRange(AiGuideValue value, int raw, int file)
+    {
+        long shown = (long)raw * value.Scale + value.Shift;
+        var range = AiEdits.Range(value, file);
+        return shown >= range.Min && shown <= range.Max;
+    }
+
+    private void UpdateDraft(AiGuideValue value)
+    {
+        var input = boxes[value];
+        bool valid = TryRaw(value, input.Box.Text, out int raw) && (input.File ?? AiEdits.FileRaw(trees, value)) is int file && InRange(value, raw, file);
+        input.Box.Background = IsDraft(value, input) ? CardSkin.Pending : CardSkin.Paper;
+        input.Box.Foreground = valid ? CardSkin.Ink : CardSkin.Poor;
     }
 
     // [적용]: the boxes changed, as raw values, written through the editor (which asks first).
@@ -284,26 +323,31 @@ internal sealed partial class AiView : WC.DockPanel
     {
         if (page is null || writing) return;
         var requests = new List<(AiGuideValue Value, int Raw)>();
-        foreach ((AiGuideValue value, (WC.TextBox box, int? now, _)) in boxes)
+        foreach ((AiGuideValue value, var input) in boxes)
         {
-            if (box.Background != CardSkin.Pending) continue;
-            if (!long.TryParse(box.Text.Replace(",", "").Trim(), out long shown) || AiEdits.Raw(value, shown) is not int raw)
+            if (!IsDraft(value, input)) continue;
+            if (!TryRaw(value, input.Box.Text, out int raw) || (input.File ?? AiEdits.FileRaw(trees, value)) is not int file ||
+                !InRange(value, raw, file))
             {
                 status.Text = L.Ai.NotAStep(value.Label, value.Scale);
-                box.Focus();
+                int index = AiGuide.Pages.ToList().FindIndex(p => p.Sections.Any(s => s.Values.Contains(value)));
+                if (index >= 0) pageList.SelectedIndex = index;
+                input.Box.Focus();
                 return;
             }
-            if (raw != now) requests.Add((value, raw));
+            if (raw != input.Now) requests.Add((value, raw));
         }
         if (requests.Count > 0) await WriteAsync(requests);
     }
 
-    // [기본값으로]: the decision's numbers the game holds otherwise than its file, put back to the file's.
-    private async Task DefaultsAsync()
+    // [기본값으로] fills this decision's inputs only; the footer writes them with drafts from other pages.
+    private Task DefaultsAsync()
     {
-        if (page is null || writing) return;
-        var requests = boxes.Where(b => b.Value.File is int file && b.Value.Now != file).Select(b => (b.Key, b.Value.File!.Value)).ToList();
-        if (requests.Count > 0) await WriteAsync(requests);
+        if (page is not null && !writing)
+            foreach (var value in page.Sections.SelectMany(s => s.Values))
+                if (boxes.TryGetValue(value, out var input) && input.File is int file)
+                    input.Box.Text = AiText.Number(value.Shown(file));
+        return Task.CompletedTask;
     }
 
     private async Task WriteAsync(IReadOnlyList<(AiGuideValue Value, int Raw)> requests)
@@ -311,12 +355,24 @@ internal sealed partial class AiView : WC.DockPanel
         if (page is null) return;
         writing = true;
         pageList.IsEnabled = apply.IsEnabled = defaults.IsEnabled = reread.IsEnabled = treeButton.IsEnabled = false;
-        try { if (await write(AiLabels.Decision(page.Decision), requests)) await ReadGameAsync(); }
+        try
+        {
+            if (await write(L.Ai.PendingDecisions, requests))
+            {
+                foreach (var request in requests)
+                {
+                    var input = boxes[request.Value];
+                    boxes[request.Value] = (input.Box, request.Raw, input.File);
+                    UpdateDraft(request.Value);
+                }
+                await ReadGameAsync();
+            }
+        }
         finally
         {
             writing = false;
             pageList.IsEnabled = defaults.IsEnabled = reread.IsEnabled = treeButton.IsEnabled = true;
-            apply.IsEnabled = Pending;
+            UpdateExtensionActions();
         }
     }
 

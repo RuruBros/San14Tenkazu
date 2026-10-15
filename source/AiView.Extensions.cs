@@ -64,7 +64,16 @@ internal sealed partial class AiView
     private void UpdateExtensionActions()
     {
         supplyFailure.IsEnabled = extensionScope.IsEnabled = supplyProtection.IsChecked == true && !writing;
-        if (!extensionSelected) { apply.IsEnabled = !writing && boxes.Values.Any(b => b.Box.Background == CardSkin.Pending); return; }
+        if (!extensionSelected)
+        {
+            int count = boxes.Count(b => IsDraft(b.Key, b.Value));
+            apply.IsEnabled = !writing && GuidePending; apply.Badge = count;
+            apply.Text = count > 0 ? $"{L.Ai.Apply} ({count:N0})" : L.Ai.Apply;
+            apply.ToolTip = L.Ai.ApplyTip;
+            return;
+        }
+        apply.Text = L.Ai.Apply;
+        apply.Badge = ExtensionPending ? 1 : 0;
         apply.IsEnabled = !writing && writeExtensions is not null && game() is { Verified: true } && extensionRuntime is not null
             && (ExtensionPending || ExtensionDraft != extensionRuntime.Settings);
     }

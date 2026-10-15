@@ -92,6 +92,7 @@ internal sealed partial class EditorWindow
         lists.AddPage(L.Rules.DoctrinePage,doctrineTable,[doctrineSearch],doctrineCount,PaneSection.Data);
         unlockButton.Click += () => _ = UnlockAncientsAsync();
         lists.TabChanged += FocusSearch;
+        lists.ApplyClicked += async () => await ApplyListDraftsAsync();
 
         foreach (GameTable table in ListTables)
         {

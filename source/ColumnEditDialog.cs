@@ -12,7 +12,7 @@ internal sealed class ColumnEditDialog : W.Window
     internal PlateButton ApplyButton { get; } = new(L.Card.Apply, primary: true, icon: Icons.Apply);
     internal long Value { get; private set; }
 
-    internal ColumnEditDialog(FieldDef field, int count, int skipped)
+    internal ColumnEditDialog(FieldDef field, int count, int skipped, bool deferred = false)
     {
         Title = L.Lists.BulkColumn(field.Label);
         WindowStartupLocation = W.WindowStartupLocation.CenterOwner;
@@ -46,6 +46,8 @@ internal sealed class ColumnEditDialog : W.Window
         Content = new WC.Border { Background = CardSkin.Parchment, Padding = new W.Thickness(16), Child = new WC.StackPanel { Width = 400, Children =
         {
             new WC.TextBlock { Text = L.Lists.BulkScope(count), TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 0, 0, 8) },
+            new WC.TextBlock { Text = L.Lists.DraftApplyNote, TextWrapping = W.TextWrapping.Wrap,
+                Visibility = deferred ? W.Visibility.Visible : W.Visibility.Collapsed, Margin = new W.Thickness(0, 0, 0, 8) },
             new WC.TextBlock { Text = L.Lists.BulkSkipped(skipped), TextWrapping = W.TextWrapping.Wrap, Foreground = CardSkin.InkMuted,
                 Visibility = skipped > 0 ? W.Visibility.Visible : W.Visibility.Collapsed, Margin = new W.Thickness(0, 0, 0, 8) },
             new WC.TextBlock { Text = $"{field.Label}: {field.Min:N0}~{field.Max:N0}", Margin = new W.Thickness(0, 0, 0, 4) },

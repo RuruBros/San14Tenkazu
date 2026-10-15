@@ -8,7 +8,7 @@ namespace San14Tenkazu;
 // count, as the officers' list shows them (the portrait, the name over the 자, loyalty and the abilities with their
 // bars). Each table is as tall as its rows, so the card's page is the one thing that scrolls (a table scrolling
 // inside it read oddly); a row opens the officer's card. Where loyalty counts (군단장, 태수,
-// 일반), [충성 150] at the right of the table's name writes at once, after asking, for the officers of that table.
+// 일반), [충성 150] at the right of the table's name fills drafts for the officers of that table.
 internal sealed class OfficerTables : WC.StackPanel
 {
     internal static readonly FieldDef[] Values = [OfficerFields.Loyalty, .. OfficerFields.Abilities];
@@ -25,6 +25,7 @@ internal sealed class OfficerTables : WC.StackPanel
     internal Func<int, FieldDef, long, Task<bool>>? CellWriter { get; set; }
     internal Func<IReadOnlyList<int>, FieldDef, long, Task<bool>>? ColumnWriter { get; set; }
     internal Func<int, FieldDef, bool>? CanEditCell { get; set; }
+    internal TableDrafts? Drafts { get; set; }
 
     // empty: what the page says when there are no officers.
     internal OfficerTables(string empty) => this.empty = empty;
@@ -34,7 +35,7 @@ internal sealed class OfficerTables : WC.StackPanel
     // [충성 150] of a table: its officers and their status.
     internal event Action<IReadOnlyList<int>, string>? LoyaltyClicked;
 
-    // The fills write at once (after asking): only while connected and not busy.
+    // Inputs and fills are available only while connected and not busy.
     internal bool FillsEnabled
     {
         set
@@ -66,6 +67,7 @@ internal sealed class OfficerTables : WC.StackPanel
             for (int i = 0; i < tables.Count; i++) tables[i].SetRows(groups[i].Select(o => o.Row).ToList());
             return;
         }
+        foreach (GameTable table in tables) table.Drafts = null;
         Children.Clear();
         tables.Clear();
         fills.Clear();
@@ -83,6 +85,7 @@ internal sealed class OfficerTables : WC.StackPanel
             var table = new GameTable(Columns, RowHeight)
             {
                 Faces = face => Faces?.Invoke(face), Margin = new W.Thickness(0, 0, 0, 6), EditingEnabled = fillsEnabled,
+                DraftTarget = tag => new OfficerTarget((int)tag), Drafts = Drafts,
                 CanEditCell = (tag, field) => CanEditCell?.Invoke((int)tag, field) ?? false,
                 CellWriter = (tag, field, value) => CellWriter?.Invoke((int)tag, field, value) ?? Task.FromResult(false),
                 ColumnWriter = ColumnWriter is null ? null : (tags, field, value) => ColumnWriter(tags.Cast<int>().ToList(), field, value)

@@ -2,7 +2,6 @@ using System.Globalization;
 using W = System.Windows;
 using WC = System.Windows.Controls;
 using WD = System.Windows.Documents;
-using WI = System.Windows.Input;
 using WM = System.Windows.Media;
 
 namespace San14Tenkazu;
@@ -50,7 +49,7 @@ internal sealed class CityEditorCard : EditorCard
         set => officers.Faces = value;
     }
 
-    internal override int Pending => pending;
+    internal override int Pending => pending + TableDrafts.Pending;
 
     // [소속 주기] was pressed: the window gives the city to a force.
     internal event Action? GiveClicked;
@@ -120,8 +119,7 @@ internal sealed class CityEditorCard : EditorCard
         return page;
     }
 
-    // 일괄: a value typed under a column goes into every county's box of that column with [적용]; an empty box
-    // leaves its column alone. Like the other shortcuts it only types: [변경 적용] writes.
+    // Bulk columns are drafts collected by the footer; a blank column leaves individual county inputs alone.
     private W.UIElement BulkRow(double[] widths)
     {
         var row = new WC.Grid();
@@ -136,22 +134,21 @@ internal sealed class CityEditorCard : EditorCard
             box.Margin = new W.Thickness(0, 1, 4, 1);
             box.VerticalAlignment = W.VerticalAlignment.Center;
             box.ToolTip = L.City.BulkTip(field.Label, field.Min, field.Max);
-            box.TextChanged += (_, _) => box.Foreground = box.Text.Trim().Length == 0 || BulkValue(field, box) is not null ? CardSkin.Ink : CardSkin.Poor;
-            box.KeyDown += (_, e) =>
+            box.TextChanged += (_, _) =>
             {
-                if (e.Key != WI.Key.Enter) return;
-                e.Handled = true;
-                ApplyBulk();
+                bool typed = box.Text.Trim().Length > 0;
+                box.Foreground = !typed || BulkValue(field, box) is not null ? CardSkin.Ink : CardSkin.Poor;
+                box.Background = typed ? CardSkin.Pending : CardSkin.Paper;
+                Mark();
             };
             WC.Grid.SetColumn(box, i + 2);
             row.Children.Add(box);
             bulk.Add((field, box));
         }
-        var apply = new PlateButton(L.City.BulkApply) { ToolTip = L.City.BulkApplyTip, HorizontalAlignment = W.HorizontalAlignment.Left };
-        apply.Click += ApplyBulk;
-        WC.Grid.SetColumn(apply, widths.Length - 1);
-        row.Children.Add(apply);
-        return new WC.Border { BorderBrush = CardSkin.Rule, BorderThickness = new W.Thickness(0, 1, 0, 0), Margin = new W.Thickness(0, 4, 0, 0), Padding = new W.Thickness(0, 4, 0, 0), Child = row };
+        var note = new WC.TextBlock { Text = L.City.BulkApplyTip, Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap };
+        note.Margin = new W.Thickness(0, 6, 0, 0);
+        var content = new WC.StackPanel(); content.Children.Add(row); content.Children.Add(note);
+        return new WC.Border { BorderBrush = CardSkin.Rule, BorderThickness = new W.Thickness(0, 1, 0, 0), Margin = new W.Thickness(0, 4, 0, 0), Padding = new W.Thickness(0, 4, 0, 0), Child = content };
     }
 
     private static double CountyBoxWidth(FieldDef field) => field == CountyFields.Population ? 58 : field == CountyFields.PublicOrder ? 40 : 50;
@@ -159,30 +156,31 @@ internal sealed class CityEditorCard : EditorCard
     private static long? BulkValue(FieldDef field, WC.TextBox box) =>
         TypedNumber.TryParse(box.Text, out long value) && value >= field.Min && value <= field.Max ? value : null;
 
-    // A box that holds something not valid stops it (focused); the columns filled are emptied.
-    private void ApplyBulk()
+    private bool ReadBulk(out Dictionary<FieldDef, long> values, out string error)
     {
+        values = []; error = "";
         foreach ((FieldDef field, WC.TextBox box) in bulk)
             if (box.Text.Trim().Length > 0 && BulkValue(field, box) is null)
             {
                 box.Focus();
                 box.SelectAll();
-                return;
+                error = field.RangeMessage;
+                return false;
             }
         foreach ((FieldDef field, WC.TextBox box) in bulk)
             if (BulkValue(field, box) is { } value)
             {
-                FillCounties([field], value);
-                box.Clear();
+                values.Add(field, value);
             }
+        return true;
     }
 
     private W.UIElement OfficerPage() => officers;
 
-    // The 소속 장수 page's tables (their fills are written by the window).
+    // The 소속 장수 page's tables share the card's pending inputs.
     internal OfficerTables Officers => officers;
 
-    // The fills write at once (after asking): only while connected and not busy.
+    // Inputs and fills are available only while connected and not busy.
     internal bool FillsEnabled
     {
         set
@@ -207,10 +205,11 @@ internal sealed class CityEditorCard : EditorCard
 
     internal void Open(View view)
     {
+        TableDrafts.Clear();
+        foreach ((_, WC.TextBox box) in bulk) box.Clear();
         if (view.City != City)
         {
             StartOver();
-            foreach ((_, WC.TextBox box) in bulk) box.Clear();
         }
         City = view.City;
         Title.Text = view.Name;
@@ -314,23 +313,19 @@ internal sealed class CityEditorCard : EditorCard
 
     private void Revert()
     {
+        TableDrafts.Clear();
+        foreach ((_, WC.TextBox box) in bulk) box.Clear();
         foreach (NumberField field in fields.Values) field.Show(field.Current);
         foreach ((_, NumberField[] boxes, _) in counties)
             foreach (NumberField box in boxes) box.Show(box.Current);
         Mark();
     }
 
-    private void FillCounties(FieldDef[] which, long value)
-    {
-        foreach ((_, NumberField[] boxes, _) in counties)
-            foreach (NumberField box in boxes)
-                if (which.Contains(box.Field)) box.Set(value);
-    }
-
     // What to write, or null (with the reason in error and the box focused) when something typed is not valid.
     internal CityEdits.Request? Changes(out string error)
     {
         error = "";
+        if (!ReadBulk(out var bulkValues, out error)) return null;
         var city = new List<FieldChange>();
         foreach (NumberField field in fields.Values.Where(f => f.Box.IsEnabled && f.IsChanged))
         {
@@ -341,8 +336,14 @@ internal sealed class CityEditorCard : EditorCard
         foreach ((int index, NumberField[] boxes, _) in counties)
         {
             var changes = new List<FieldChange>();
-            foreach (NumberField box in boxes.Where(b => b.IsChanged))
+            foreach (NumberField box in boxes)
             {
+                if (bulkValues.TryGetValue(box.Field, out long filled))
+                {
+                    if (filled != box.Current) changes.Add(new FieldChange(box.Field, filled));
+                    continue;
+                }
+                if (!box.IsChanged) continue;
                 if (!box.TryRead(out long value, out error)) return null;
                 changes.Add(new FieldChange(box.Field, value));
             }
@@ -353,7 +354,7 @@ internal sealed class CityEditorCard : EditorCard
 
     private void Mark()
     {
-        int changed = fields.Values.Count(f => f.IsChanged) + (governor.Mark() ? 1 : 0);
+        int changed = fields.Values.Count(f => f.IsChanged) + (governor.Mark() ? 1 : 0) + bulk.Count(b => b.Box.Text.Trim().Length > 0);
         foreach ((_, NumberField[] boxes, WC.TextBlock level) in counties)
         {
             changed += boxes.Count(b => b.IsChanged);

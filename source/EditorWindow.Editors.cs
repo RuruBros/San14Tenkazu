@@ -24,12 +24,12 @@ internal sealed partial class EditorWindow
     {
         lists.TabChanged += RememberLists;
         map.EditorResumed += RememberEditor;
-        ConfigureMemberEditing(cityEditor.Officers);
-        ConfigureMemberEditing(gateEditor.Officers);
-        ConfigureMemberEditing(forceEditor.Members);
-        ConfigureCellEditing(forceEditor.CitiesTable, tag => new CityTarget((int)tag));
-        ConfigureCellEditing(forceEditor.GatesTable, tag => new GateTarget((int)tag));
-        ConfigureCellEditing(forceEditor.UnitsTable, tag => { var (slot, commander) = ((int, int))tag; return new UnitTarget(slot, commander); });
+        ConfigureMemberEditing(cityEditor.Officers, cityEditor);
+        ConfigureMemberEditing(gateEditor.Officers, gateEditor);
+        ConfigureMemberEditing(forceEditor.Members, forceEditor);
+        ConfigureCellEditing(forceEditor.CitiesTable, tag => new CityTarget((int)tag), forceEditor);
+        ConfigureCellEditing(forceEditor.GatesTable, tag => new GateTarget((int)tag), forceEditor);
+        ConfigureCellEditing(forceEditor.UnitsTable, tag => { var (slot, commander) = ((int, int))tag; return new UnitTarget(slot, commander); }, forceEditor);
         foreach (EditorCard card in Editors)
         {
             card.CloseClicked += () => _ = CloseEditorAsync();
@@ -675,7 +675,7 @@ internal sealed partial class EditorWindow
         }
         var military = forceEditor.MilitaryChanges(out error);
         if (military is null) { status.Text = error; return false; }
-        return await WritePlanAsync(ForceEdits.Plan(data, forceEditor.Force, forceEditor.Changes(), friendships, alliances, military));
+        return await WriteCardPlanAsync(forceEditor, ForceEdits.Plan(data, forceEditor.Force, forceEditor.Changes(), friendships, alliances, military));
     }
 
     private async Task<bool> ApplyCityAsync()
@@ -686,7 +686,7 @@ internal sealed partial class EditorWindow
             status.Text = error;
             return false;
         }
-        return await WritePlanAsync(CityEdits.Plan(data, cityEditor.City, request));
+        return await WriteCardPlanAsync(cityEditor, CityEdits.Plan(data, cityEditor.City, request));
     }
 
     private async Task<bool> ApplyGateAsync()
@@ -697,7 +697,7 @@ internal sealed partial class EditorWindow
             status.Text = error;
             return false;
         }
-        return await WritePlanAsync(GateEdits.Plan(data, gateEditor.Gate, request));
+        return await WriteCardPlanAsync(gateEditor, GateEdits.Plan(data, gateEditor.Gate, request));
     }
 
     private async Task<bool> ApplyFacilityAsync()

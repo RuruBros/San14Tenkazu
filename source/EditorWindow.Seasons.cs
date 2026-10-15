@@ -206,7 +206,7 @@ internal sealed partial class EditorWindow
         if(runtimeRulesChanging){e.Cancel=true;return;}
         if(seasonCloseApproved){registeredEditor?.AllowOwnerClose();return;}
         if(seasonClosing||seasonDisconnecting){e.Cancel=true;return;}
-        if((OpenEditor is {Pending:>0}||aiView?.Pending==true||registeredEditor?.HasPending==true)&&!Confirm(L.Window.DiscardAndClose))
+        if((HasPendingEdits||registeredEditor?.HasPending==true)&&!Confirm(L.Window.DiscardAndClose))
         {e.Cancel=true;return;}
         if(environmentChanging){e.Cancel=true;return;}
         if(seasonController is null&&environmentController is null){seasonStatusTimer?.Stop();registeredEditor?.AllowOwnerClose();return;}
