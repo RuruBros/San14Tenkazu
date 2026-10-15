@@ -26,6 +26,7 @@ internal static class Theme
     internal static readonly Color Highlight = Color.FromArgb(217, 72, 15);    // the selected city or unit, values being edited
     internal static readonly Color Pending = Color.FromArgb(255, 236, 153);    // cells waiting for [변경 적용]
     internal static readonly Color Selection = Color.FromArgb(222, 200, 160);  // selected table cell
+    internal static readonly Color CapsuleSelection = Color.FromArgb(240, 211, 151); // selected third-level navigation
     internal static readonly Color Good = Color.FromArgb(86, 150, 70), Fair = Color.FromArgb(214, 160, 50), Poor = Color.FromArgb(196, 88, 64);
 
     internal const string UiFontName = "Malgun Gothic";

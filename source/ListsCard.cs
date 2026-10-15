@@ -42,7 +42,7 @@ internal sealed class ListsCard : PanePage
     internal void AddPage(string name, GameTable table, W.UIElement[] filters, WC.TextBlock count, PaneSection section = PaneSection.Game)
     {
         int index = tabs.Count;
-        var tab = new PaneTab(name);
+        var tab = new PaneTab(name, capsule: section == PaneSection.Data);
         tab.Click += (_, _) => ShowTab(index);
         tabStrip.Children.Add(tab);
 
@@ -74,6 +74,7 @@ internal sealed class ListsCard : PanePage
         Tab = Math.Clamp(index, 0, tabs.Count - 1);
         Section = tabs[Tab].Section;
         lastTabs[Section] = Tab;
+        tabStrip.Margin = Section == PaneSection.Data ? new W.Thickness(0, 3, 0, 0) : new W.Thickness(0);
         for (int i = 0; i < tabs.Count; i++)
         {
             tabs[i].Tab.Selected = i == Tab;
