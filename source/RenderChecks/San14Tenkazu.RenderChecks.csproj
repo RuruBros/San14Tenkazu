@@ -16,5 +16,6 @@
     <Compile Include="..\Tests\PolicyFixture.cs" Link="PolicyFixture.cs" />
     <Compile Include="..\Tests\PlainRuleFixture.cs" Link="PlainRuleFixture.cs" />
     <Compile Include="..\Tests\OfficeFixture.cs" Link="OfficeFixture.cs" />
+    <EmbeddedResource Include="..\Tests\Vectors\TraitListDiagnostic.json" LogicalName="RuntimeRules.real-column-diagnostic.json" />
   </ItemGroup>
 </Project>

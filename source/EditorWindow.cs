@@ -71,12 +71,14 @@ internal sealed partial class EditorWindow : W.Window
     private (int Force, int Ruler)? lastPlayer;
     private bool demoNoticed;
 
-    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null)
+    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null)
     {
         string aiFolder = aiStorageRoot ?? Program.DataFolder;
         aiKept = new(Path.Combine(aiFolder, "ai_values.txt"));
         aiExtensionKept = new(Path.Combine(aiFolder, "ai_extensions.json"));
         ruleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "rule_profiles.json"));
+        runtimeRuleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "runtime-rules"));
+        this.runtimeRuleAccess = runtimeRuleAccess ?? RuntimeRuleGameAccess.Live;
         this.ruleAccess = ruleAccess ?? RuleGameAccess.Live;
         this.seasonStorageRoot=seasonStorageRoot ?? Path.Combine(Program.DataFolder,"seasons");
         registeredIsRunning = registeredGameRunning ?? RegisteredOfficerFile.GameIsRunning;
@@ -116,8 +118,7 @@ internal sealed partial class EditorWindow : W.Window
         // Connection tools stay left, editing/settings tools align right; status fills the space between them.
         var toolbar = new WC.DockPanel { LastChildFill = true };
         WC.StackPanel connection = Group(connectButton, reloadButton, calendarButton, cancelButton),
-            tools = Group(playButton, undoButton, panelButton, BuildEnvironmentMenu(), registeredSeparator, registeredButton);
-        environmentButton.Margin = new W.Thickness(0);
+            tools = Group(playButton, undoButton, panelButton, BuildSettingsMenu(), registeredSeparator, registeredButton);
 #if LOCAL_DEVELOPER
         log.SetDeveloperButton(BuildDeveloperMenu());
 #endif
@@ -251,6 +252,7 @@ internal sealed partial class EditorWindow : W.Window
         connectButton.IsEnabled = !busy;
         UpdateRegisteredButton();
         reloadButton.IsEnabled = !busy && connected;
+        runtimeRulesButton.IsEnabled = !busy && connected && game is { Verified: true };
         map.AiEnabled = !busy;
         // [검색 취소] only matters while the slow memory search runs.
         cancelButton.Visibility = busy && scanCancellation is not null ? W.Visibility.Visible : W.Visibility.Collapsed;

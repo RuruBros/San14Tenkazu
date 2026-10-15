@@ -203,6 +203,7 @@ internal sealed partial class EditorWindow
 
     private async void OnEditorClosing(object? sender,CancelEventArgs e)
     {
+        if(runtimeRulesChanging){e.Cancel=true;return;}
         if(seasonCloseApproved){registeredEditor?.AllowOwnerClose();return;}
         if(seasonClosing||seasonDisconnecting){e.Cancel=true;return;}
         if((OpenEditor is {Pending:>0}||aiView?.Pending==true||registeredEditor?.HasPending==true)&&!Confirm(L.Window.DiscardAndClose))

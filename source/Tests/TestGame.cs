@@ -225,8 +225,9 @@ internal sealed class TestGame
         return this;
     }
 
-    internal GameSnapshot Build() => new()
+    internal GameSnapshot Build(RuntimeRuleSettings? rules = null) => new()
     {
+        RuntimeRules = rules ?? RuntimeRuleSettings.Original,
         Cities = cities,
         Counties = [.. counties],
         Officers = [.. officers.Values],

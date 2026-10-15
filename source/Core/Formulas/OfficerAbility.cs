@@ -97,6 +97,7 @@ internal static class OfficerAbility
         }
         else cap = Objects.Decode(p.U8(0x1EC), 3, p.Index);
 
+        if (w.RuntimeRules.Expanded) cap = 200;
         return v < 1 ? 1 : Math.Min(v, cap);
     }
 

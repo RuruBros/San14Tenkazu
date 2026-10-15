@@ -15,6 +15,11 @@ internal static partial class RenderChecks
     {
         try
         {
+            if(args.Contains("--runtime-rule-worker")){RunRuntimeRuleWorker();return 0;}
+            if(args.Contains("--public-loader-offline")){CheckPublicLibraryLoader(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--runtime-trait-list-export")){ExportRuntimeTraitList(args);return 0;}
+            if(args.Contains("--runtime-rules-offline")){CheckRuntimeRulesOffline(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--runtime-rule-persistence")){CheckRuntimeRulePersistence(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--developer-menu-check")){CheckDeveloperMenu(bool.Parse(args.First(a=>!a.StartsWith("--"))));return 0;}
             if (args.Contains("--column-editing")) { CheckColumnEditing(args.First(a => !a.StartsWith("--"))); return 0; }
             if(args.Contains("--environment-menu")){CheckEnvironmentMenu(args.First(a=>!a.StartsWith("--")));return 0;}

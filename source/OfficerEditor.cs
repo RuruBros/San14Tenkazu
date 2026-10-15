@@ -32,6 +32,17 @@ internal sealed partial class OfficerEditorCard : EditorCard
 
     private readonly WC.Image portrait = new() { Width = 120, Height = 170, Stretch = WM.Stretch.UniformToFill, VerticalAlignment = W.VerticalAlignment.Top };
     private readonly AbilityChart chart = new() { MinWidth = 220, Height = 200, Margin = new W.Thickness(16, 0, 0, 0) };
+    internal RuntimeRuleSettings? RuntimeRules { get; set; } = RuntimeRuleSettings.Original;
+    internal void FollowRuntimeRules(RuntimeRuleSettings? rules)
+    {
+        RuntimeRules = rules;
+        shownPersonalities = Math.Max(rules?.Slots ?? UsualPersonalities,
+            personalities.Select((choice, index) => choice.Picked != 0 ? index + 1 : 0).Max());
+        for (int i = 0; i < personalities.Length; i++)
+            personalities[i].Box.Visibility = i < shownPersonalities ? W.Visibility.Visible : W.Visibility.Collapsed;
+        chart.Maximum = rules?.Expanded == true ? 200 : 100;
+        chart.InvalidateVisual();
+    }
     private readonly NumberField loyalty = new(OfficerFields.Loyalty, 60), birth = new(OfficerFields.Birth, 60), debut = new(OfficerFields.Debut, 60),
         death = new(OfficerFields.Death, 60), compatibility = new(OfficerFields.Compatibility, 60);
     private readonly NumberField merit = new(OfficerFields.Merit);
@@ -422,7 +433,8 @@ internal sealed partial class OfficerEditorCard : EditorCard
         Note(office.Box.IsEnabled ? "" : L.Officer.OfficeOnlyVassals);
 
         int used = OfficerFields.Personalities.Select((field, slot) => officer[field] != 0 ? slot + 1 : 0).Max();
-        shownPersonalities = Math.Max(UsualPersonalities, used);
+        shownPersonalities = Math.Max(RuntimeRules?.Slots ?? UsualPersonalities, used);
+        chart.Maximum = RuntimeRules?.Expanded == true ? 200 : 100;
         for (int slot = 0; slot < personalities.Length; slot++)
         {
             personalities[slot].Show((int)officer[OfficerFields.Personalities[slot]]);
@@ -731,6 +743,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
         private long[] values = new long[5], typed = new long[5];
 
         internal WM.Color Colour { get; set; } = WM.Colors.Gray;
+        internal int Maximum { get; set; } = 100;
 
         internal void Show(long[] game, long[] edited)
         {
@@ -745,7 +758,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
             var center = new W.Point(ActualWidth / 2, ActualHeight / 2 + 4);
             W.Point Vertex(int i, double value)
             {
-                double angle = -Math.PI / 2 + i * 2 * Math.PI / 5, length = radius * Math.Clamp(value / 100.0, 0, 1.15);
+                double angle = -Math.PI / 2 + i * 2 * Math.PI / 5, length = radius * Math.Clamp(value / Maximum, 0, 1.15);
                 return new W.Point(center.X + length * Math.Cos(angle), center.Y + length * Math.Sin(angle));
             }
             WM.Geometry Polygon(Func<int, double> value)
@@ -760,8 +773,8 @@ internal sealed partial class OfficerEditorCard : EditorCard
                 return geometry;
             }
             var grid = new WM.Pen(new WM.SolidColorBrush(WM.Color.FromArgb(70, CardSkin.Color(Theme.Wood).R, CardSkin.Color(Theme.Wood).G, CardSkin.Color(Theme.Wood).B)), 1);
-            for (int level = 20; level <= 100; level += 20) dc.DrawGeometry(null, grid, Polygon(_ => level));
-            for (int i = 0; i < 5; i++) dc.DrawLine(grid, center, Vertex(i, 100));
+            for (int level = Maximum / 5; level <= Maximum; level += Maximum / 5) dc.DrawGeometry(null, grid, Polygon(_ => level));
+            for (int i = 0; i < 5; i++) dc.DrawLine(grid, center, Vertex(i, Maximum));
             var fill = new WM.SolidColorBrush(WM.Color.FromArgb(110, Colour.R, Colour.G, Colour.B));
             dc.DrawGeometry(fill, new WM.Pen(new WM.SolidColorBrush(Colour), 2), Polygon(i => values[i]));
             bool edited = !typed.SequenceEqual(values);
@@ -769,7 +782,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
             double pixels = WM.VisualTreeHelper.GetDpi(this).PixelsPerDip;
             for (int i = 0; i < 5; i++)
             {
-                W.Point p = Vertex(i, 100);
+                W.Point p = Vertex(i, Maximum);
                 double angle = -Math.PI / 2 + i * 2 * Math.PI / 5;
                 bool changed = typed[i] != values[i];
                 var text = new WM.FormattedText($"{Names[i]} {(changed ? typed[i] : values[i])}", CultureInfo.CurrentUICulture, W.FlowDirection.LeftToRight, Face, 12,

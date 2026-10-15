@@ -26,9 +26,11 @@ internal static partial class RenderChecks
         Require((typeof(EditorWindow).Assembly.GetType("San14Tenkazu.DisasterTestWindow")!=null)==expected,"Developer window leaked into public assembly");
         Require((typeof(EnvironmentController).GetMethod("TestAsync",Hidden)!=null)==expected,"Developer controller entry point differs from package flavor");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadNoticeTypography")==expected,"Read-only typography entry leaked into public build");
+        Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadTraitListDiagnostic")==expected,"Trait diagnostic entry leaked into public build");
         Require((typeof(LogPanel).GetMethod("SetDeveloperButton",Hidden)!=null)==expected,"Developer log-header entry leaked into public build");
 #if LOCAL_DEVELOPER
         CheckNoticeTypographyReader();
+        CheckTraitListDiagnostic();
         CheckDeveloperEntry();
         var fixture=new DeveloperFixture();var controller=new EnvironmentController(fixture,Console.WriteLine);
         try {
@@ -39,13 +41,14 @@ internal static partial class RenderChecks
         }finally{controller.DisposeAsync().AsTask().GetAwaiter().GetResult();}
         Require(fixture.Stopped,"Developer controller must restore native ownership on disposal");
         var window=new DisasterTestWindow();window.SetCities(new TestGame().Build());window.SetAvailable(true,true);
-        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==1&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"},"Developer tools must expose the existing disaster actions in one visible tab");
+        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==2&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
+            && window.Tabs.Items[1] is WC.TabItem{Header:"개성 목록 진단"},"Developer tabs must separate disaster actions and read-only trait diagnostics");
         try {
             window.Show();window.UpdateLayout();
             Require(window.Kind.Items.Count==5&&window.Cities.Items.Count>0,"Disaster/city choices missing");
             Require(window.Preview.IsEnabled&&window.Damage.IsEnabled&&window.Stop.IsEnabled&&window.ReadText.IsEnabled,"Separate test actions missing");
-            window.Cities.SelectedItem=null;Require(window.ReadText.IsEnabled&&!window.Preview.IsEnabled,"Read-only typography must not require a damage target");window.Cities.SelectedIndex=0;
-            window.SetAvailable(false,true);Require(!window.Preview.IsEnabled&&!window.Damage.IsEnabled&&window.Stop.IsEnabled,"Busy state must retain cancellation");
+            window.Cities.SelectedItem=null;Require(window.ReadText.IsEnabled&&window.ReadTraits.IsEnabled&&!window.Preview.IsEnabled,"Read-only diagnostics must not require a damage target");window.Cities.SelectedIndex=0;
+            window.SetAvailable(false,true);Require(!window.Preview.IsEnabled&&!window.Damage.IsEnabled&&!window.ReadTraits.IsEnabled&&window.Stop.IsEnabled,"Busy state must retain cancellation");
             var receipt=new EnvironmentProtocol.Reply{Date=192|(7u<<16)|(11u<<24),Weather=new byte[46],RecentDates=new uint[230],TestState=2,TestCity=1,TestKind=1};
             var overlay=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.None,EnvironmentEffects.None,false,receipt));
             Require(overlay is not null&&overlay.IsPreview(1,4)&&overlay.Recent(1,4)==receipt.Date&&receipt.RecentDates.All(d=>d==0),"Preview must be distinct from real history");
@@ -63,6 +66,9 @@ internal static partial class RenderChecks
             Require(window.ReadText.ActualWidth>0&&window.ReadText.ActualHeight>0&&
                 window.ReadText.ActualWidth+window.ReadText.Margin.Left+window.ReadText.Margin.Right+1>=window.ReadText.DesiredSize.Width,
                 "Read-only typography action must fit its measured text");
+            window.Tabs.SelectedIndex=1;window.UpdateLayout();
+            Require(window.ReadTraits.ActualWidth>0&&window.ReadTraits.ActualHeight>0&&window.TraitLog.ActualHeight>100,
+                "Trait diagnostic action and result log must fit the second tab");
             Console.WriteLine("PASS local developer WPF choices, distinct actions, cancellation, receipt, typography and preview provenance");
         }finally{window.Close();}
 #endif
@@ -86,7 +92,7 @@ internal static partial class RenderChecks
             var bounds=button.TransformToAncestor(log).TransformBounds(new W.Rect(0,0,button.ActualWidth,button.ActualHeight));
             Require(bounds.Right>log.ActualWidth-24&&bounds.Top>=0&&bounds.Bottom<=log.ActualHeight,"Developer entry must sit at the right edge of the log header");
             Click(button);Pump();var first=Field<DisasterTestWindow>(editor,"developerMenu");
-            Require(first.IsVisible&&first.Tabs.Items.Count==1&&!log.Open,"One click must open the tabbed window without expanding the log");
+            Require(first.IsVisible&&first.Tabs.Items.Count==2&&!log.Open,"One click must open the tabbed window without expanding the log");
             Click(button);Pump();Require(ReferenceEquals(first,Field<DisasterTestWindow>(editor,"developerMenu")),"Repeated click must reuse the same tools window");
             first.Close();Pump();
             var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(log.ActualWidth),(int)Math.Ceiling(log.ActualHeight),96,96,System.Windows.Media.PixelFormats.Pbgra32);

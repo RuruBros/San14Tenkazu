@@ -77,7 +77,7 @@ internal static class GameChecks
             new[] { CountyFields.Commerce, CountyFields.Agriculture, CountyFields.Barracks }.All(f => c[f] <= 1000)));
 
         // 장수: abilities are what the experience reached; years in order.
-        Add(Abilities, L.Checks.AbilityExperience, active.Select(o => OfficerFields.Abilities.All(a => OfficerFields.FitsExperience(o.Data, a))), 0.95);
+        Add(Abilities, L.Checks.AbilityExperience, active.Select(o => data.RuntimeRules is not null && OfficerFields.Abilities.All(a => OfficerFields.FitsExperience(o.Data, a, data.RuntimeRules.Growth))), 0.95);
         Add(Years, L.Checks.YearOrder, named.Select(o => o[OfficerFields.Birth] is >= 100 and <= 400 &&
             o[OfficerFields.Death] > o[OfficerFields.Birth] && o[OfficerFields.Debut] >= o[OfficerFields.Birth]), 0.95);
 

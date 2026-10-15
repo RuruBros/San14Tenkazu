@@ -43,4 +43,20 @@ public sealed class AiExtensionTests
         Assert.Equal(input.GetProperty("hex").GetString(), Convert.ToHexString(AiExtensionStub.Build(input.GetProperty("exe").GetUInt64(), input.GetProperty("data").GetUInt64())));
         Assert.Equal(input.GetProperty("installer").GetString(), Convert.ToHexString(AiExtensionStub.Install(input.GetProperty("data").GetUInt64())));
     }
+    [Fact]
+    public void EveryEmbeddedModuleAndAllocationAddressFollowsItsNewBase()
+    {
+        const ulong original = 0x140000000, relocated = 0x7ff737fe0000, data = 0x20000000000, movedData = 0x30000000000;
+        byte[] expected = AiExtensionStub.Build(original, data);
+        int replacements = 0;
+        for (int i = 0; i + 8 <= expected.Length; i++)
+        {
+            ulong value = BitConverter.ToUInt64(expected, i);
+            if (value >= original && value - original < 0x3000000)
+            { BitConverter.GetBytes(relocated + value - original).CopyTo(expected, i); replacements++; i += 7; }
+            else if (value == data) { BitConverter.GetBytes(movedData).CopyTo(expected, i); replacements++; i += 7; }
+        }
+        Assert.True(replacements > 10);
+        Assert.Equal(expected, AiExtensionStub.Build(relocated, movedData));
+    }
 }

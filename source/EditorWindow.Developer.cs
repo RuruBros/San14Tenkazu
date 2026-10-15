@@ -25,6 +25,7 @@ internal sealed partial class EditorWindow
         window.Damage.Click+=async()=>await RunDeveloperTest(2);
         window.Stop.Click+=async()=>await CancelDeveloperTest();
         window.ReadText.Click+=async()=>await ReadDeveloperNoticeText();
+        window.ReadTraits.Click+=async()=>await ReadDeveloperTraitList();
         bool closeAllowed=false,closePending=false;
         window.Closing+=async(_,e)=>{
             if(closeAllowed)return;e.Cancel=true;if(developerChanging||closePending)return;closePending=true;

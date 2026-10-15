@@ -48,6 +48,7 @@ internal sealed class World(IReadOnlyDictionary<int, Rec[]> tables, Rec settings
     int[] byId, Rec worldState, Dictionary<string, int> flags)
 {
     // The commands under way (CCmdAction objects): each its kind (vtable +0x98) and the IDs of the officers on it.
+    internal RuntimeRuleSettings RuntimeRules { get; set; } = RuntimeRuleSettings.Original;
     internal List<(int Kind, List<int> Officers)> CmdActions { get; set; } = [];
 
     internal Rec[] Table(int raw) => tables[raw];

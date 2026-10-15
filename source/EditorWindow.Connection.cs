@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using W = System.Windows;
 using WC = System.Windows.Controls;
 using WI = System.Windows.Input;
@@ -78,6 +78,7 @@ internal sealed partial class EditorWindow
         }
         // The game builds its AI trees anew from its file when it starts: the numbers kept go in again.
         if (game is not null) await ReapplyAiAsync();
+        if (game is not null) await ReapplyRuntimeRulesAsync(retry: true);
         if (game is not null) { ruleTimer.Start(); await PollRulesAsync(); }
     }
 
@@ -108,6 +109,7 @@ internal sealed partial class EditorWindow
             ReportError(ex);
         }
         finally { SetBusy(false, scanning: false); }
+        if (game == identity) await ReapplyRuntimeRulesAsync(retry: true);
     }
 
     // Keeps the map and the current values live while the game runs.
@@ -146,6 +148,7 @@ internal sealed partial class EditorWindow
             }
         }
         finally { refreshing = false; }
+        if (game == identity) await ReapplyRuntimeRulesAsync();
     }
 
     private async Task<bool> DisconnectAsync(string? message)
