@@ -16,7 +16,7 @@ internal sealed record GameClasses(
     private static InvalidOperationException Unsupported(string diagnosis) => new($"{L.Errors.ExeUnsupported} {diagnosis}");
 
     // The vtables in the running game (the module loaded at moduleBase), found in the exe file's bytes.
-    internal static GameClasses Find(byte[] exe, ulong moduleBase)
+    internal static GameClasses Find(byte[] exe, ulong moduleBase, bool requireAll = true)
     {
         var image = new PeImage(exe);
         Dictionary<uint, List<uint>> locators = image.Locators();
@@ -31,16 +31,21 @@ internal sealed record GameClasses(
         var wanted = new Dictionary<ulong, string>();
         foreach (string name in names)
         {
-            uint descriptor = image.TypeDescriptor(name);
-            if (!locators.TryGetValue(descriptor, out List<uint>? found) || found.Count != 1)
-                throw Unsupported(L.Errors.ExeTypeInfo(name));
-            wanted[image.ImageBase + found[0]] = name;
+            try
+            {
+                uint descriptor = image.TypeDescriptor(name);
+                if (!locators.TryGetValue(descriptor, out List<uint>? found) || found.Count != 1)
+                    throw Unsupported(L.Errors.ExeTypeInfo(name));
+                wanted[image.ImageBase + found[0]] = name;
+            }
+            catch (InvalidOperationException) when (!requireAll) { } // Missing/ambiguous optional types remain zero; no guessed vtable.
         }
         foreach ((string name, uint rva) in image.SlotsPointingAt(wanted))
             vtables[name] = moduleBase + rva + 8;
-        string[] missing = names.Where(n => !vtables.ContainsKey(n)).ToArray();
+        string[] required = requireAll ? names : names[..7];
+        string[] missing = required.Where(n => !vtables.ContainsKey(n)).ToArray();
         if (missing.Length > 0) throw Unsupported(L.Errors.ExeVtables(string.Join(", ", missing)));
-        ulong[] v = names.Select(n => vtables[n]).ToArray();
+        ulong[] v = names.Select(n => vtables.GetValueOrDefault(n)).ToArray();
         return new GameClasses(v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17], v[18], v[19], v[20]);
     }
 

@@ -52,6 +52,7 @@ internal sealed class SeasonNativeProcess:IDisposable
     {
         if(!identity.Verified||!GameMemory.IsSameGame(identity))throw new InvalidDataException("Verified native season process required");
         var profile=GameBuildProfiles.Require(identity);
+        GameCapabilities.Require(identity,environment?GameFeature.Environment:GameFeature.Seasons);
         this.environment=environment;targets=(environment?profile.EnvironmentTargets:profile.SeasonTargets).ToArray();
         game=identity;log=journal;dll=Path.GetFullPath(Path.Combine(buildDirectory,environment?"EnvironmentBridge.dll":"SeasonBridge.dll"));
         using var manifest=JsonDocument.Parse(File.ReadAllText(Path.Combine(buildDirectory,"build.json")));

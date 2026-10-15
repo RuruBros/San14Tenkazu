@@ -4,18 +4,21 @@ internal static partial class GameMemory
 {
     internal static PlainRuleSnapshot ReadDoctrines(GameIdentity identity)
     {
+        GameCapabilities.Require(identity, GameFeature.Doctrines);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle=OpenRead(identity.ProcessId);
         try { return PlainRuleMemory.Read(new ProcessMemory(handle),identity,DoctrineRules.Spec); } finally { CloseHandle(handle); }
     }
     internal static PlainRuleSnapshot ReadRanks(GameIdentity identity)
     {
+        GameCapabilities.Require(identity, GameFeature.Ranks);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle=OpenRead(identity.ProcessId);
         try { return PlainRuleMemory.Read(new ProcessMemory(handle),identity,RankRules.Spec); } finally { CloseHandle(handle); }
     }
     internal static PlainRuleSnapshot ApplyPlainRules(GameIdentity identity,PlainRuleSnapshot expected,IReadOnlyList<RuleChange> changes)
     {
+        GameCapabilities.Require(identity, expected.Spec.Table switch { "doctrine" => GameFeature.Doctrines, "rank" => GameFeature.Ranks, _ => throw new InvalidDataException(L.Rules.Incompatible) });
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         IntPtr handle=OpenProcess(ProcessQueryInformation|ProcessVmRead|ProcessVmWrite|ProcessVmOperation,false,identity.ProcessId);
         if (handle==IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
@@ -23,6 +26,7 @@ internal static partial class GameMemory
     }
     internal static OfficeSnapshot ReadOffices(GameIdentity identity)
     {
+        GameCapabilities.Require(identity, GameFeature.Offices);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle = OpenRead(identity.ProcessId);
         try { return OfficeMemory.Read(new ProcessMemory(handle), identity); }
@@ -30,6 +34,7 @@ internal static partial class GameMemory
     }
     internal static OfficeSnapshot ApplyOffices(GameIdentity identity, OfficeSnapshot expected, IReadOnlyList<RuleChange> changes)
     {
+        GameCapabilities.Require(identity, GameFeature.Offices);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
@@ -38,6 +43,7 @@ internal static partial class GameMemory
     }
     internal static PolicySnapshot ReadPolicies(GameIdentity identity)
     {
+        GameCapabilities.Require(identity, GameFeature.Policies);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle = OpenRead(identity.ProcessId);
         try { return PolicyMemory.Read(new ProcessMemory(handle), identity); }
@@ -45,6 +51,7 @@ internal static partial class GameMemory
     }
     internal static PolicySnapshot ApplyPolicies(GameIdentity identity, PolicySnapshot expected, IReadOnlyList<RuleChange> changes)
     {
+        GameCapabilities.Require(identity, GameFeature.Policies);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
@@ -68,6 +75,7 @@ internal static partial class GameMemory
 
     internal static FormationSnapshot ReadFormations(GameIdentity identity)
     {
+        GameCapabilities.Require(identity, GameFeature.RuleTables);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle = OpenRead(identity.ProcessId);
         try { return FormationMemory.Read(new ProcessMemory(handle), identity); }
@@ -76,6 +84,7 @@ internal static partial class GameMemory
 
     internal static FormationSnapshot ApplyFormations(GameIdentity identity, FormationSnapshot expected, IReadOnlyList<RuleChange> changes)
     {
+        GameCapabilities.Require(identity, GameFeature.RuleTables);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
@@ -85,6 +94,7 @@ internal static partial class GameMemory
 
     internal static TacticSnapshot ReadTactics(GameIdentity identity)
     {
+        GameCapabilities.Require(identity, GameFeature.Tactics);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle = OpenRead(identity.ProcessId);
         try { return TacticMemory.Read(new ProcessMemory(handle), identity); }
@@ -93,6 +103,7 @@ internal static partial class GameMemory
 
     internal static TacticSnapshot ApplyTactics(GameIdentity identity, TacticSnapshot expected, IReadOnlyList<RuleChange> changes)
     {
+        GameCapabilities.Require(identity, GameFeature.Tactics);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);

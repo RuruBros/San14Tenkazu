@@ -15,10 +15,10 @@ internal static class GameChecks
     // One fact over the records it applies to: how many fit it, and the share that must. A couple of records may
     // always miss (some of a living game are caught between two states, or were left odd by the game itself, like
     // 32 whose 배우자 800 is married to no one); a value read from the wrong place misses nearly everywhere.
-    internal sealed record Check(string Group, string What, int Fit, int Total, double Needed, bool Tie = false)
+    internal sealed record Check(string Group, string What, int Fit, int Total, double Needed, bool Tie = false, bool EvidenceKnown = true)
     {
         private const int Odd = 2;
-        internal bool Passed => Total - Fit <= Math.Max(Odd, Total * (1 - Needed));
+        internal bool Passed => EvidenceKnown && Total - Fit <= Math.Max(Odd, Total * (1 - Needed));
         internal int Misses => Total - Fit;
         public override string ToString() => $"{What} {Fit:N0}/{Total:N0}";
     }
@@ -77,7 +77,9 @@ internal static class GameChecks
             new[] { CountyFields.Commerce, CountyFields.Agriculture, CountyFields.Barracks }.All(f => c[f] <= 1000)));
 
         // 장수: abilities are what the experience reached; years in order.
-        Add(Abilities, L.Checks.AbilityExperience, active.Select(o => data.RuntimeRules is not null && OfficerFields.Abilities.All(a => OfficerFields.FitsExperience(o.Data, a, data.RuntimeRules.Growth))), 0.95);
+        if (data.RuntimeRules is null)
+            checks.Add(new(Abilities, L.Compatibility.CurveUnknown, 0, active.Length, 1, EvidenceKnown: false));
+        else Add(Abilities, L.Checks.AbilityExperience, active.Select(o => OfficerFields.Abilities.All(a => OfficerFields.FitsExperience(o.Data, a, data.RuntimeRules.Growth))), 0.95);
         Add(Years, L.Checks.YearOrder, named.Select(o => o[OfficerFields.Birth] is >= 100 and <= 400 &&
             o[OfficerFields.Death] > o[OfficerFields.Birth] && o[OfficerFields.Debut] >= o[OfficerFields.Birth]), 0.95);
 
@@ -172,9 +174,11 @@ internal static class GameChecks
     // is read-only until the user allows writing to it, and then takes only the groups that passed.
     internal static string? WriteBlock(bool verified, bool allowed, IReadOnlyList<Check> checks, IEnumerable<string> groups)
     {
+        var requested = groups.Distinct().ToArray();
+        if (checks.Any(c => !c.EvidenceKnown && requested.Contains(c.Group))) return L.Compatibility.CurveUnknown;
         if (verified) return null;
         if (!allowed) return L.Checks.ReadOnly;
-        string[] failed = groups.Distinct().Where(g => checks.Any(c => c.Group == g && !c.Passed)).ToArray();
+        string[] failed = requested.Where(g => !checks.Any(c => c.Group == g) || checks.Any(c => c.Group == g && !c.Passed)).ToArray();
         return failed.Length == 0 ? null : L.Checks.Failed(string.Join(", ", failed));
     }
 }

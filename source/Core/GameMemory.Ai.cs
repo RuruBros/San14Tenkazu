@@ -19,6 +19,7 @@ internal static partial class GameMemory
     internal static T ReadAi<T>(GameIdentity identity, Func<IRecordMemory, T> read)
     {
         if (!identity.Verified) throw new InvalidOperationException(L.Ai.Unverified);
+        GameCapabilities.Require(identity, GameFeature.AiTrees);
         IntPtr handle = OpenRead(identity.ProcessId);
         try { return read(new ProcessMemory(handle)); }
         finally { CloseHandle(handle); }
