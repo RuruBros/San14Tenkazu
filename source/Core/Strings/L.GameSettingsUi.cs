@@ -20,6 +20,8 @@ internal static partial class L
         internal static string UnknownRulesDeferred => T();
         internal static string WaitingForPause => T();
         internal static string Reapplied(string p0) => Format(T(), (nameof(p0), p0));
+        internal static string AbilitiesRestored(string p0) => Format(T(), (nameof(p0), p0));
+        internal static string TraitsRestored(string p0, string p1) => Format(T(), (nameof(p0), p0), (nameof(p1), p1));
         internal static string AutomaticApplyFailed => T() + " ";
         internal static string RetryAfterRefresh => " " + T();
         internal static string TraitsNine => T();

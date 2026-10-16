@@ -47,6 +47,7 @@ internal static partial class L
         internal static string PreferenceEmpty => T();
         internal static string NineTraitsRequired => T();
         internal static string ExperienceOutOfRange => T();
+        internal static string SaveFormat(string p0) => Format(T(), (nameof(p0), p0));
         internal static string ExperienceCurveMismatch(string p0, string p1) => Format(T(), (nameof(p0), p0), (nameof(p1), p1));
         internal static string TraitImageRangeInvalid => T();
         internal static string TraitRelocationInvalid => T();
