@@ -140,6 +140,12 @@ public sealed class RuntimeRuleTests
     {
         Assert.DoesNotContain(RuntimeRulePatches.All, p => new uint[] { 0x2253FA, 0x22544F, 0x2293F6, 0x229469, 0x23AAA8, 0x23AB06, 0x230098 }.Contains(p.Rva));
         Assert.Equal(2, RuntimeRulePatches.All.Count(p => p.Rva is 0x230126 or 0x23016A));
+        var normalization = Assert.Single(RuntimeRulePatches.All, p => p.Rva == 0x22591C);
+        Assert.Equal("ff5048", normalization.Before);
+        Assert.Equal("b0c890", normalization.Cap);
+        Assert.Equal(normalization.Cap, normalization.Growth);
+        Assert.Equal(0x225380U, normalization.CodeStart);
+        Assert.Equal(0x225F30U, normalization.CodeEnd);
         foreach (var p in RuntimeRulePatches.All)
         {
             Assert.Equal(p.Before.Length, p.Cap.Length); Assert.Equal(p.Before.Length, p.Growth.Length); Assert.Equal(p.Before.Length, p.Traits.Length);
@@ -151,7 +157,7 @@ public sealed class RuntimeRuleTests
     [InlineData(false)] [InlineData(true)]
     public void ConversionKeepsLevelAndProgress(bool charm)
     {
-        for (int level = 101; level < 200; level++)
+        for (int level = 100; level < 200; level++)
             foreach (int percent in new[] { 0, 1, 50, 99 })
             {
                 long start = AbilityProgress.Threshold(level, charm, false), end = AbilityProgress.Threshold(level + 1, charm, false);

@@ -11,7 +11,7 @@ internal sealed record RuntimeRuleSettings(bool Traits9 = false, AbilityRuleMode
     internal void Validate()
     {
         if (!Enum.IsDefined(Abilities)) throw new ArgumentOutOfRangeException(nameof(Abilities));
-        if (TraitList9 && !Traits9) throw new InvalidOperationException("목록 9개 표시는 개성 9개 발동과 함께 사용하세요.");
+        if (TraitList9 && !Traits9) throw new InvalidOperationException(L.RuntimeErrors.NineTraitsRequired);
     }
 }
 
@@ -19,7 +19,7 @@ internal static class AbilityProgress
 {
     internal static int ReapplyExperience(int level, int experience, bool charm, bool growth)
     {
-        if (level is < 0 or > 200 || experience < 0) throw new InvalidDataException("능력치·경험치가 지원 범위를 벗어났습니다.");
+        if (level is < 0 or > 200 || experience < 0) throw new InvalidDataException(L.RuntimeErrors.ExperienceOutOfRange);
         // A save may already contain the desired curve while a restarted process has original code.
         // Preserve an already valid value, including overlapping intervals; do not convert it twice.
         long start = Threshold(level, charm, growth), end = Threshold(level + 1, charm, growth);
@@ -36,7 +36,7 @@ internal static class AbilityProgress
     // A record fitting neither curve needs an explicit edit rather than an invented baseline.
     internal static int ConvertExperience(int level, int experience, bool charm, bool fromGrowth, bool toGrowth)
     {
-        if (level is < 0 or > 200 || experience < 0) throw new InvalidDataException("능력치·경험치가 지원 범위를 벗어났습니다.");
+        if (level is < 0 or > 200 || experience < 0) throw new InvalidDataException(L.RuntimeErrors.ExperienceOutOfRange);
         long target = Threshold(level, charm, toGrowth), end = Threshold(level + 1, charm, toGrowth);
         long start = Threshold(level, charm, fromGrowth), next = Threshold(level + 1, charm, fromGrowth);
         if (fromGrowth == toGrowth && experience >= target && (level == 200 || experience < end)) return experience;
@@ -44,7 +44,7 @@ internal static class AbilityProgress
         if (experience < start || experience >= next)
         {
             if (experience >= target && (level == 200 || experience < end)) return experience;
-            throw new InvalidDataException($"능력치 {level}의 경험치 {experience:N0}가 성장 곡선과 맞지 않습니다.");
+            throw new InvalidDataException(L.RuntimeErrors.ExperienceCurveMismatch($"{level}", $"{experience:N0}"));
         }
         return checked((int)(target + (experience - start) * (end - target) / (next - start)));
     }

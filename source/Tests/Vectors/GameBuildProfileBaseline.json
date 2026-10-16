@@ -247,7 +247,7 @@
     }
   },
   "resources": {
-    "RuntimeRules.patches.json": "bc7886e8fa077ae28d0187b2cfae6705d7f758acd57fab185a421c7622b72a3e",
+    "RuntimeRules.patches.json": "05b5a612e395627c636b1dd270d3d33e55e27a9d9d81096a308a07ca2c5e24f4",
     "RuntimeRules.trait-list.json": "664166ac94b2223456ddb0916c1d702bc14fbaccac65964e90fc4b41d48d7036"
   },
   "abi": {

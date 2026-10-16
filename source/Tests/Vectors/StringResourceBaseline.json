@@ -1,0 +1,2769 @@
+[
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 9,
+    "section": "DeveloperUi",
+    "key": "Flood",
+    "parts": [
+      "홍수"
+    ],
+    "arguments": [],
+    "source": "\"홍수\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 9,
+    "section": "DeveloperUi",
+    "key": "Wildfire",
+    "parts": [
+      "산불"
+    ],
+    "arguments": [],
+    "source": "\"산불\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 9,
+    "section": "DeveloperUi",
+    "key": "Drought",
+    "parts": [
+      "가뭄"
+    ],
+    "arguments": [],
+    "source": "\"가뭄\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 9,
+    "section": "DeveloperUi",
+    "key": "Blizzard",
+    "parts": [
+      "폭설"
+    ],
+    "arguments": [],
+    "source": "\"폭설\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 9,
+    "section": "DeveloperUi",
+    "key": "Heatwave",
+    "parts": [
+      "폭염"
+    ],
+    "arguments": [],
+    "source": "\"폭염\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 10,
+    "section": "DeveloperUi",
+    "key": "FloodSound",
+    "parts": [
+      "홍수(FLOOD_WATER)"
+    ],
+    "arguments": [],
+    "source": "\"홍수(FLOOD_WATER)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 10,
+    "section": "DeveloperUi",
+    "key": "FireSound",
+    "parts": [
+      "불(FIRE)"
+    ],
+    "arguments": [],
+    "source": "\"불(FIRE)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 10,
+    "section": "DeveloperUi",
+    "key": "WindSound",
+    "parts": [
+      "바람(WIND_STRONG)"
+    ],
+    "arguments": [],
+    "source": "\"바람(WIND_STRONG)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 10,
+    "section": "DeveloperUi",
+    "key": "ColdWindSound",
+    "parts": [
+      "찬바람(WIND_COLD)"
+    ],
+    "arguments": [],
+    "source": "\"찬바람(WIND_COLD)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 10,
+    "section": "DeveloperUi",
+    "key": "InsectSound",
+    "parts": [
+      "곤충(INSECT)"
+    ],
+    "arguments": [],
+    "source": "\"곤충(INSECT)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 10,
+    "section": "DeveloperUi",
+    "key": "UnknownSound",
+    "parts": [
+      "미확인 음원"
+    ],
+    "arguments": [],
+    "source": "\"미확인 음원\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 14,
+    "section": "DeveloperUi",
+    "key": "Preview",
+    "parts": [
+      "표시 전용"
+    ],
+    "arguments": [],
+    "source": "\"표시 전용\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 14,
+    "section": "DeveloperUi",
+    "key": "PreviewTip",
+    "parts": [
+      "선택한 재난의 원본 효과음을 한 번 재생합니다. 최대 6초이며 알림 닫기·취소·연결 해제 시 중단합니다. 원본 음량과 비활성 창 음소거를 사용합니다."
+    ],
+    "arguments": [],
+    "source": "\"선택한 재난의 원본 효과음을 한 번 재생합니다. 최대 6초이며 알림 닫기·취소·연결 해제 시 중단합니다. 원본 음량과 비활성 창 음소거를 사용합니다.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 14,
+    "section": "DeveloperUi",
+    "key": "ScheduleDamage",
+    "parts": [
+      "실제 피해 예약"
+    ],
+    "arguments": [],
+    "source": "\"실제 피해 예약\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 14,
+    "section": "DeveloperUi",
+    "key": "CancelTest",
+    "parts": [
+      "예약 취소 · 표시 종료"
+    ],
+    "arguments": [],
+    "source": "\"예약 취소 · 표시 종료\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 14,
+    "section": "DeveloperUi",
+    "key": "RefreshCities",
+    "parts": [
+      "도시 목록 새로 읽기"
+    ],
+    "arguments": [],
+    "source": "\"도시 목록 새로 읽기\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 15,
+    "section": "DeveloperUi",
+    "key": "ReadNotice",
+    "parts": [
+      "현재 알림 글자 상태 읽기"
+    ],
+    "arguments": [],
+    "source": "\"현재 알림 글자 상태 읽기\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 15,
+    "section": "DeveloperUi",
+    "key": "ReadNoticeTip",
+    "parts": [
+      "현재 열린 게임 알림의 텍스트 영역·글꼴 데이터만 읽어 로그에 저장합니다."
+    ],
+    "arguments": [],
+    "source": "\"현재 열린 게임 알림의 텍스트 영역·글꼴 데이터만 읽어 로그에 저장합니다.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 18,
+    "section": "DeveloperUi",
+    "key": "ReadTraits",
+    "parts": [
+      "9개성 표시 진단"
+    ],
+    "arguments": [],
+    "source": "\"9개성 표시 진단\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 21,
+    "section": "DeveloperUi",
+    "key": "ReadCompatibility",
+    "parts": [
+      "호환성 읽기 전용 진단"
+    ],
+    "arguments": [],
+    "source": "\"호환성 읽기 전용 진단\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 21,
+    "section": "DeveloperUi",
+    "key": "CancelDiagnostic",
+    "parts": [
+      "진단 취소"
+    ],
+    "arguments": [],
+    "source": "\"진단 취소\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 26,
+    "section": "DeveloperUi",
+    "key": "WindowTitle",
+    "parts": [
+      "개발자 도구 (로컬 빌드)"
+    ],
+    "arguments": [],
+    "source": "\"개발자 도구 (로컬 빌드)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 29,
+    "section": "DeveloperUi",
+    "key": "DisasterTab",
+    "parts": [
+      "재난 테스트"
+    ],
+    "arguments": [],
+    "source": "\"재난 테스트\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 30,
+    "section": "DeveloperUi",
+    "key": "DisasterTab",
+    "parts": [
+      "재난 테스트"
+    ],
+    "arguments": [],
+    "source": "\"재난 테스트\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 31,
+    "section": "DeveloperUi",
+    "key": "CityHeading",
+    "parts": [
+      "대상 도시 · 소유 세력"
+    ],
+    "arguments": [],
+    "source": "\"대상 도시 · 소유 세력\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 32,
+    "section": "DeveloperUi",
+    "key": "DisasterKind",
+    "parts": [
+      "재난"
+    ],
+    "arguments": [],
+    "source": "\"재난\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 33,
+    "section": "DeveloperUi",
+    "key": "DisasterInstructions",
+    "parts": [
+      "표시 전용: 게임을 일시정지하고 게임 창을 선택하면 원본 알림·그림·효과음과 지도 표식을 확인합니다. 피해는 없습니다.\n실제 피해: 다음 정상 1/11/21일에 한 번 적용합니다. 발생 확률·기상만 지정하며 지형 조건과 현재 피해 수치를 사용합니다. 모든 세력을 선택할 수 있습니다.\n날짜 점프·되돌림·불러오기 감지 시 취소합니다. 적용된 피해는 자동으로 되돌리지 않습니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 전용: 게임을 일시정지하고 게임 창을 선택하면 원본 알림·그림·효과음과 지도 표식을 확인합니다. 피해는 없습니다.\\n실제 피해: 다음 정상 1/11/21일에 한 번 적용합니다. 발생 확률·기상만 지정하며 지형 조건과 현재 피해 수치를 사용합니다. 모든 세력을 선택할 수 있습니다.\\n날짜 점프·되돌림·불러오기 감지 시 취소합니다. 적용된 피해는 자동으로 되돌리지 않습니다.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 38,
+    "section": "DeveloperUi",
+    "key": "TraitInstructions",
+    "parts": [
+      "게임을 일시정지한 뒤 실행하세요. 개성 목록의 열 정의를 두 번 읽어 기준 데이터와 비교합니다.\n게임 메모리·저장 파일을 변경하지 않으며, 한 번 읽고 종료합니다. 서로 다르게 읽히면 미확정 결과로 기록합니다."
+    ],
+    "arguments": [],
+    "source": "\"게임을 일시정지한 뒤 실행하세요. 개성 목록의 열 정의를 두 번 읽어 기준 데이터와 비교합니다.\\n게임 메모리·저장 파일을 변경하지 않으며, 한 번 읽고 종료합니다. 서로 다르게 읽히면 미확정 결과로 기록합니다.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 41,
+    "section": "DeveloperUi",
+    "key": "TraitTab",
+    "parts": [
+      "개성 목록 진단"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 진단\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 44,
+    "section": "DeveloperUi",
+    "key": "CompatibilityInstructions",
+    "parts": [
+      "게임을 일시정지한 뒤 실행하세요. EXE·클래스·테이블·기능별 검사와 Native 원본 코드·권한을 두 번 읽어 JSON에 기록합니다. 게임 메모리·날짜·설정 원본을 변경하지 않습니다. DLL 주입·Hook·원격 호출은 없습니다. 연결 변경·값 변화·취소 시 미확정으로 중단합니다. Native 실행 가능 여부는 이 진단만으로 확정하지 않습니다."
+    ],
+    "arguments": [],
+    "source": "\"게임을 일시정지한 뒤 실행하세요. EXE·클래스·테이블·기능별 검사와 Native 원본 코드·권한을 두 번 읽어 JSON에 기록합니다. 게임 메모리·날짜·설정 원본을 변경하지 않습니다. DLL 주입·Hook·원격 호출은 없습니다. 연결 변경·값 변화·취소 시 미확정으로 중단합니다. Native 실행 가능 여부는 이 진단만으로 확정하지 않습니다.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 47,
+    "section": "DeveloperUi",
+    "key": "CompatibilityTab",
+    "parts": [
+      "호환성 진단"
+    ],
+    "arguments": [],
+    "source": "\"호환성 진단\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 59,
+    "section": "DeveloperUi",
+    "key": "ExecutionRecoveryFailed",
+    "parts": [
+      "실행/복구 실패: "
+    ],
+    "arguments": [],
+    "source": "\"실행/복구 실패: \""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 60,
+    "section": "DeveloperUi",
+    "key": "ChooseCityAndDisaster",
+    "parts": [
+      "게임 연결 후 도시와 재난을 선택하세요."
+    ],
+    "arguments": [],
+    "source": "\"게임 연결 후 도시와 재난을 선택하세요.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 61,
+    "section": "DeveloperUi",
+    "key": "WaitingForPausedForeground",
+    "parts": [
+      "게임 전경·일시정지 대기"
+    ],
+    "arguments": [],
+    "source": "\"게임 전경·일시정지 대기\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 61,
+    "section": "DeveloperUi",
+    "key": "PreviewNoDamage",
+    "parts": [
+      "표시 전용 테스트 중 · 피해 없음"
+    ],
+    "arguments": [],
+    "source": "\"표시 전용 테스트 중 · 피해 없음\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 61,
+    "section": "DeveloperUi",
+    "key": "WaitingForDateBoundary",
+    "parts": [
+      "다음 정상 1/11/21일 경계 대기"
+    ],
+    "arguments": [],
+    "source": "\"다음 정상 1/11/21일 경계 대기\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 61,
+    "section": "DeveloperUi",
+    "key": "DamageCompleted",
+    "parts": [
+      "실제 피해 처리 완료 (조건에 따라 피해 0 가능)"
+    ],
+    "arguments": [],
+    "source": "\"실제 피해 처리 완료 (조건에 따라 피해 0 가능)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 61,
+    "section": "DeveloperUi",
+    "key": "PreviewStopped",
+    "parts": [
+      "취소·표시 종료"
+    ],
+    "arguments": [],
+    "source": "\"취소·표시 종료\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 61,
+    "section": "DeveloperUi",
+    "key": "TestRejected",
+    "parts": [
+      "실행 거부"
+    ],
+    "arguments": [],
+    "source": "\"실행 거부\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 61,
+    "section": "DeveloperUi",
+    "key": "TestWaiting",
+    "parts": [
+      "테스트 대기"
+    ],
+    "arguments": [],
+    "source": "\"테스트 대기\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 62,
+    "section": "DeveloperUi",
+    "key": "TestReceipt",
+    "parts": [
+      "",
+      "\n게임 날짜: ",
+      " · 피해 기록: ",
+      " · 알림 대기: ",
+      ""
+    ],
+    "arguments": [
+      "{stage}",
+      "{EnvironmentProtocol.Date(r.Date)}",
+      "{r.LastEvent}",
+      "{r.NoticesPending}"
+    ],
+    "source": "$\"{stage}\\n게임 날짜: {EnvironmentProtocol.Date(r.Date)} · 피해 기록: {r.LastEvent} · 알림 대기: {r.NoticesPending}\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 63,
+    "section": "DeveloperUi",
+    "key": "TestErrorCode",
+    "parts": [
+      "\n종료 사유 코드: ",
+      ""
+    ],
+    "arguments": [
+      "{r.TestError}"
+    ],
+    "source": "$\"\\n종료 사유 코드: {r.TestError}\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 64,
+    "section": "DeveloperUi",
+    "key": "TestSoundReceipt",
+    "parts": [
+      "\n효과음: ",
+      " · ID=",
+      " · channel=",
+      "\n",
+      " · 실제 청취는 직접 확인해야 합니다."
+    ],
+    "arguments": [
+      "{SoundName(r.DiagnosticSoundId)}",
+      "{r.DiagnosticSoundId}",
+      "{r.DiagnosticSoundChannel}",
+      "{SoundState(r.DiagnosticSoundState)}"
+    ],
+    "source": "$\"\\n효과음: {SoundName(r.DiagnosticSoundId)} · ID={r.DiagnosticSoundId} · channel={r.DiagnosticSoundChannel}\\n{SoundState(r.DiagnosticSoundState)} · 실제 청취는 직접 확인해야 합니다.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 64,
+    "section": "DeveloperUi",
+    "key": "SoundNotPlayed",
+    "parts": [
+      "\n원본 음향 객체가 없어 재생하지 않았습니다."
+    ],
+    "arguments": [],
+    "source": "\"\\n원본 음향 객체가 없어 재생하지 않았습니다.\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundOwned",
+    "parts": [
+      "재생 소유 확인(최대 6초)"
+    ],
+    "arguments": [],
+    "source": "\"재생 소유 확인(최대 6초)\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundStopped",
+    "parts": [
+      "해당 재생 중단 확인"
+    ],
+    "arguments": [],
+    "source": "\"해당 재생 중단 확인\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundOwnerChanged",
+    "parts": [
+      "재생 소유 변경 · 다른 소리는 중단하지 않음"
+    ],
+    "arguments": [],
+    "source": "\"재생 소유 변경 · 다른 소리는 중단하지 않음\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundRejected",
+    "parts": [
+      "원본 재생 요청 거부"
+    ],
+    "arguments": [],
+    "source": "\"원본 재생 요청 거부\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundMissing",
+    "parts": [
+      "원본 음향 객체 없음"
+    ],
+    "arguments": [],
+    "source": "\"원본 음향 객체 없음\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundHandleUnconfirmed",
+    "parts": [
+      "channel 반환 · 재생 handle 소유 미확인"
+    ],
+    "arguments": [],
+    "source": "\"channel 반환 · 재생 handle 소유 미확인\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundStopPending",
+    "parts": [
+      "중단 확인 대기"
+    ],
+    "arguments": [],
+    "source": "\"중단 확인 대기\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 66,
+    "section": "DeveloperUi",
+    "key": "SoundUnknown",
+    "parts": [
+      "재생 상태 미확인"
+    ],
+    "arguments": [],
+    "source": "\"재생 상태 미확인\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 68,
+    "section": "DeveloperUi",
+    "key": "FloodLosses",
+    "parts": [
+      "병력 ",
+      "% · 사기 ",
+      " · 병량 ",
+      "%"
+    ],
+    "arguments": [
+      "{v.FloodTroopsPercent}",
+      "{v.FloodMoraleLoss}",
+      "{v.FloodFoodPercent}"
+    ],
+    "source": "$\"병력 {v.FloodTroopsPercent}% · 사기 {v.FloodMoraleLoss} · 병량 {v.FloodFoodPercent}%\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 69,
+    "section": "DeveloperUi",
+    "key": "FloodLosses",
+    "parts": [
+      "병력 ",
+      "% · 사기 ",
+      " · 병량 ",
+      "%"
+    ],
+    "arguments": [
+      "{v.WildfireTroopsPercent}",
+      "{v.WildfireMoraleLoss}",
+      "{v.WildfireFoodPercent}"
+    ],
+    "source": "$\"병력 {v.WildfireTroopsPercent}% · 사기 {v.WildfireMoraleLoss} · 병량 {v.WildfireFoodPercent}%\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 70,
+    "section": "DeveloperUi",
+    "key": "DroughtLosses",
+    "parts": [
+      "병량 ",
+      "%"
+    ],
+    "arguments": [
+      "{v.DroughtFoodPercent}"
+    ],
+    "source": "$\"병량 {v.DroughtFoodPercent}%\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 70,
+    "section": "DeveloperUi",
+    "key": "FloodLosses",
+    "parts": [
+      "병력 ",
+      "% · 사기 ",
+      " · 병량 ",
+      "%"
+    ],
+    "arguments": [
+      "{v.BlizzardTroopsPercent}",
+      "{v.BlizzardMoraleLoss}",
+      "{v.BlizzardFoodPercent}"
+    ],
+    "source": "$\"병력 {v.BlizzardTroopsPercent}% · 사기 {v.BlizzardMoraleLoss} · 병량 {v.BlizzardFoodPercent}%\""
+  },
+  {
+    "file": "source/DisasterTestWindow.cs",
+    "line": 71,
+    "section": "DeveloperUi",
+    "key": "FloodLosses",
+    "parts": [
+      "병력 ",
+      "% · 사기 ",
+      " · 병량 ",
+      "%"
+    ],
+    "arguments": [
+      "{v.HeatwaveTroopsPercent}",
+      "{v.HeatwaveMoraleLoss}",
+      "{v.HeatwaveFoodPercent}"
+    ],
+    "source": "$\"병력 {v.HeatwaveTroopsPercent}% · 사기 {v.HeatwaveMoraleLoss} · 병량 {v.HeatwaveFoodPercent}%\""
+  },
+  {
+    "file": "source/EditorWindow.CompatibilityDiagnostic.cs",
+    "line": 26,
+    "section": "DeveloperUi",
+    "key": "CompatibilityConnectionChanged",
+    "parts": [
+      "연결 변경 또는 취소: 미확정 결과입니다."
+    ],
+    "arguments": [],
+    "source": "\"연결 변경 또는 취소: 미확정 결과입니다.\""
+  },
+  {
+    "file": "source/EditorWindow.CompatibilityDiagnostic.cs",
+    "line": 28,
+    "section": "DeveloperUi",
+    "key": "CompatibilityCancelled",
+    "parts": [
+      "취소: 미확정 결과입니다."
+    ],
+    "arguments": [],
+    "source": "\"취소: 미확정 결과입니다.\""
+  },
+  {
+    "file": "source/EditorWindow.CompatibilityDiagnostic.cs",
+    "line": 53,
+    "section": "DeveloperUi",
+    "key": "CompatibilityStable",
+    "parts": [
+      "두 번 읽기 일치"
+    ],
+    "arguments": [],
+    "source": "\"두 번 읽기 일치\""
+  },
+  {
+    "file": "source/EditorWindow.CompatibilityDiagnostic.cs",
+    "line": 53,
+    "section": "DeveloperUi",
+    "key": "CompatibilityInconclusive",
+    "parts": [
+      "미확정: "
+    ],
+    "arguments": [],
+    "source": "\"미확정: \""
+  },
+  {
+    "file": "source/EditorWindow.CompatibilityDiagnostic.cs",
+    "line": 54,
+    "section": "DeveloperUi",
+    "key": "ScratchMigrationFailed",
+    "parts": [
+      "임시 복사본 설정 이관 실패: "
+    ],
+    "arguments": [],
+    "source": "\"임시 복사본 설정 이관 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.CompatibilityDiagnostic.cs",
+    "line": 56,
+    "section": "DeveloperUi",
+    "key": "DiagnosticLogFailed",
+    "parts": [
+      "진단 로그 저장 실패: "
+    ],
+    "arguments": [],
+    "source": "\"진단 로그 저장 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 15,
+    "section": "DeveloperUi",
+    "key": "Menu",
+    "parts": [
+      "개발자"
+    ],
+    "arguments": [],
+    "source": "\"개발자\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 15,
+    "section": "DeveloperUi",
+    "key": "MenuTip",
+    "parts": [
+      "개발자 테스트 창 열기 · 로컬 빌드"
+    ],
+    "arguments": [],
+    "source": "\"개발자 테스트 창 열기 · 로컬 빌드\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 53,
+    "section": "DeveloperUi",
+    "key": "ConnectionRequired",
+    "parts": [
+      "게임 연결이 필요합니다."
+    ],
+    "arguments": [],
+    "source": "\"게임 연결이 필요합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 63,
+    "section": "DeveloperUi",
+    "key": "ReadyConnectionRequired",
+    "parts": [
+      "게임 연결과 작업 완료가 필요합니다."
+    ],
+    "arguments": [],
+    "source": "\"게임 연결과 작업 완료가 필요합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 70,
+    "section": "DeveloperUi",
+    "key": "FontScale",
+    "parts": [
+      "글꼴 배율 X=",
+      ", Y=",
+      ""
+    ],
+    "arguments": [
+      "{x:G5}",
+      "{y:G5}"
+    ],
+    "source": "$\"글꼴 배율 X={x:G5}, Y={y:G5}\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 70,
+    "section": "DeveloperUi",
+    "key": "RawFontEvidence",
+    "parts": [
+      "글꼴 getter의 원시 데이터를 저장했습니다. 배율 해석은 추가 확인이 필요합니다."
+    ],
+    "arguments": [],
+    "source": "\"글꼴 getter의 원시 데이터를 저장했습니다. 배율 해석은 추가 확인이 필요합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 71,
+    "section": "DeveloperUi",
+    "key": "NoticeEvidence",
+    "parts": [
+      "알림 글자 상태 읽기: PID=",
+      ", 텍스트 영역=",
+      "×",
+      ", ",
+      ", file=",
+      ""
+    ],
+    "arguments": [
+      "{identity.ProcessId}",
+      "{evidence.TextAreaWidth}",
+      "{evidence.TextAreaHeight}",
+      "{scale}",
+      "{path}"
+    ],
+    "source": "$\"알림 글자 상태 읽기: PID={identity.ProcessId}, 텍스트 영역={evidence.TextAreaWidth}×{evidence.TextAreaHeight}, {scale}, file={path}\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 74,
+    "section": "DeveloperUi",
+    "key": "RenderTextEvidence",
+    "parts": [
+      "렌더 객체 글꼴 배율 X=",
+      ", Y=",
+      " · 영역 ",
+      "×",
+      " · 측정 ",
+      "×",
+      " · ",
+      "줄"
+    ],
+    "arguments": [
+      "{renderX:G5}",
+      "{renderY:G5}",
+      "{rendered.Width}",
+      "{rendered.Height}",
+      "{details.MeasuredWidth}",
+      "{details.MeasuredHeight}",
+      "{details.MeasuredLines}"
+    ],
+    "source": "$\"렌더 객체 글꼴 배율 X={renderX:G5}, Y={renderY:G5} · 영역 {rendered.Width}×{rendered.Height} · 측정 {details.MeasuredWidth}×{details.MeasuredHeight} · {details.MeasuredLines}줄\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 80,
+    "section": "DeveloperUi",
+    "key": "ReadOnlyEvidenceSaved",
+    "parts": [
+      "읽기 전용 진단 저장: "
+    ],
+    "arguments": [],
+    "source": "\"읽기 전용 진단 저장: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 83,
+    "section": "DeveloperUi",
+    "key": "NoticeReadFailed",
+    "parts": [
+      "글자 상태 읽기 실패: "
+    ],
+    "arguments": [],
+    "source": "\"글자 상태 읽기 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 89,
+    "section": "DeveloperUi",
+    "key": "UnconfirmedEvidenceSaved",
+    "parts": [
+      "불일치 원시 기록 저장 (확정 결과 아님): "
+    ],
+    "arguments": [],
+    "source": "\"불일치 원시 기록 저장 (확정 결과 아님): \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 90,
+    "section": "DeveloperUi",
+    "key": "NoticeRaceEvidence",
+    "parts": [
+      "알림 글자 불일치 원시 기록: stage="
+    ],
+    "arguments": [],
+    "source": "\"알림 글자 불일치 원시 기록: stage=\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 91,
+    "section": "DeveloperUi",
+    "key": "UnconfirmedSaveFailed",
+    "parts": [
+      "불일치 원시 기록 저장 실패: "
+    ],
+    "arguments": [],
+    "source": "\"불일치 원시 기록 저장 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 92,
+    "section": "DeveloperUi",
+    "key": "NoticeReadFailure",
+    "parts": [
+      "알림 글자 상태 읽기 실패: "
+    ],
+    "arguments": [],
+    "source": "\"알림 글자 상태 읽기 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 93,
+    "section": "DeveloperUi",
+    "key": "NoticeReadFailure",
+    "parts": [
+      "알림 글자 상태 읽기 실패: "
+    ],
+    "arguments": [],
+    "source": "\"알림 글자 상태 읽기 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 93,
+    "section": "DeveloperUi",
+    "key": "FailureLogError",
+    "parts": [
+      " · 실패 로그 저장 오류: "
+    ],
+    "arguments": [],
+    "source": "\" · 실패 로그 저장 오류: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 101,
+    "section": "DeveloperUi",
+    "key": "ReadyConnectionRequired",
+    "parts": [
+      "게임 연결과 작업 완료가 필요합니다."
+    ],
+    "arguments": [],
+    "source": "\"게임 연결과 작업 완료가 필요합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 102,
+    "section": "DeveloperUi",
+    "key": "ChooseTargetCity",
+    "parts": [
+      "대상 도시를 선택하세요."
+    ],
+    "arguments": [],
+    "source": "\"대상 도시를 선택하세요.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 105,
+    "section": "DeveloperUi",
+    "key": "CityOwnerChanged",
+    "parts": [
+      "도시 소유 세력이 바뀌었습니다. 도시 목록을 새로 읽으세요."
+    ],
+    "arguments": [],
+    "source": "\"도시 소유 세력이 바뀌었습니다. 도시 목록을 새로 읽으세요.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 106,
+    "section": "DeveloperUi",
+    "key": "PauseRequired",
+    "parts": [
+      "게임을 일시정지한 뒤 실행하세요."
+    ],
+    "arguments": [],
+    "source": "\"게임을 일시정지한 뒤 실행하세요.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 109,
+    "section": "DeveloperUi",
+    "key": "DamageConfirmation",
+    "parts": [
+      "",
+      " · ",
+      "\n",
+      "\n\n다음 정상 1/11/21일 경계에 한 번 적용합니다.\n실제 병력·사기·병량이 변경되며 자동 복구하지 않습니다.\n지형·대상 조건에 따라 피해가 없을 수 있습니다. 예약할까요?"
+    ],
+    "arguments": [
+      "{target.Label}",
+      "{DisasterTestWindow.Names[kind]}",
+      "{details}"
+    ],
+    "source": "$\"{target.Label} · {DisasterTestWindow.Names[kind]}\\n{details}\\n\\n다음 정상 1/11/21일 경계에 한 번 적용합니다.\\n실제 병력·사기·병량이 변경되며 자동 복구하지 않습니다.\\n지형·대상 조건에 따라 피해가 없을 수 있습니다. 예약할까요?\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 109,
+    "section": "DeveloperUi",
+    "key": "DamageConfirmationTitle",
+    "parts": [
+      "실제 피해 테스트"
+    ],
+    "arguments": [],
+    "source": "\"실제 피해 테스트\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 120,
+    "section": "DeveloperUi",
+    "key": "GameFrameRejected",
+    "parts": [
+      "게임 프레임에서 요청을 취소하거나 거부했습니다. 개발자 상태 로그를 확인하세요."
+    ],
+    "arguments": [],
+    "source": "\"게임 프레임에서 요청을 취소하거나 거부했습니다. 개발자 상태 로그를 확인하세요.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 121,
+    "section": "DeveloperUi",
+    "key": "DisasterTestEvidence",
+    "parts": [
+      "개발자 재난 테스트: PID=",
+      ", 도시=",
+      ", 재난=",
+      ", 모드=",
+      ", ",
+      ""
+    ],
+    "arguments": [
+      "{identity.ProcessId}",
+      "{target.Label}",
+      "{DisasterTestWindow.Names[kind]}",
+      "{mode}",
+      "{details}"
+    ],
+    "source": "$\"개발자 재난 테스트: PID={identity.ProcessId}, 도시={target.Label}, 재난={DisasterTestWindow.Names[kind]}, 모드={mode}, {details}\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 122,
+    "section": "DeveloperUi",
+    "key": "PreviewScheduled",
+    "parts": [
+      "게임 창을 선택하고 일시정지를 유지하세요. 전경·시간 정지를 확인한 뒤 한 번 표시합니다. 2분 후 자동 종료합니다."
+    ],
+    "arguments": [],
+    "source": "\"게임 창을 선택하고 일시정지를 유지하세요. 전경·시간 정지를 확인한 뒤 한 번 표시합니다. 2분 후 자동 종료합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 122,
+    "section": "DeveloperUi",
+    "key": "DamageScheduled",
+    "parts": [
+      "예약되었습니다. 게임에서 정상적으로 날짜를 진행하세요. 기존 환경 설정의 다른 효과는 그대로 적용됩니다."
+    ],
+    "arguments": [],
+    "source": "\"예약되었습니다. 게임에서 정상적으로 날짜를 진행하세요. 기존 환경 설정의 다른 효과는 그대로 적용됩니다.\""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 124,
+    "section": "DeveloperUi",
+    "key": "ExecutionFailed",
+    "parts": [
+      "실행 실패: "
+    ],
+    "arguments": [],
+    "source": "\"실행 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.Developer.cs",
+    "line": 135,
+    "section": "DeveloperUi",
+    "key": "RecoveryUnconfirmed",
+    "parts": [
+      "종료/복구 확인 실패: "
+    ],
+    "arguments": [],
+    "source": "\"종료/복구 확인 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.Menus.cs",
+    "line": 10,
+    "section": "GameSettingsUi",
+    "key": "Menu",
+    "parts": [
+      "게임 설정 ▾"
+    ],
+    "arguments": [],
+    "source": "\"게임 설정 ▾\""
+  },
+  {
+    "file": "source/EditorWindow.Menus.cs",
+    "line": 10,
+    "section": "GameSettingsUi",
+    "key": "MenuTip",
+    "parts": [
+      "개성·능력치 규칙과 환경 설정"
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치 규칙과 환경 설정\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 5,
+    "section": "GameSettingsUi",
+    "key": "RuntimeMenu",
+    "parts": [
+      "개성·능력치"
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 5,
+    "section": "GameSettingsUi",
+    "key": "RuntimeMenuTip",
+    "parts": [
+      "9개성 발동 · 능력치 상한과 성장 규칙"
+    ],
+    "arguments": [],
+    "source": "\"9개성 발동 · 능력치 상한과 성장 규칙\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 44,
+    "section": "GameSettingsUi",
+    "key": "ConnectionChanged",
+    "parts": [
+      "게임 연결이 바뀌었습니다. 창을 닫고 다시 여세요."
+    ],
+    "arguments": [],
+    "source": "\"게임 연결이 바뀌었습니다. 창을 닫고 다시 여세요.\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 45,
+    "section": "GameSettingsUi",
+    "key": "PendingEdits",
+    "parts": [
+      "편집 중인 내용을 먼저 적용하거나 취소하세요."
+    ],
+    "arguments": [],
+    "source": "\"편집 중인 내용을 먼저 적용하거나 취소하세요.\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 58,
+    "section": "GameSettingsUi",
+    "key": "SavedWaitingForPause",
+    "parts": [
+      "설정 저장 완료 · 일시정지 후 다음 갱신에서 자동 적용합니다."
+    ],
+    "arguments": [],
+    "source": "\"설정 저장 완료 · 일시정지 후 다음 갱신에서 자동 적용합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 62,
+    "section": "GameSettingsUi",
+    "key": "SavedAndApplied",
+    "parts": [
+      "설정 저장·적용 완료 · 경험치 ",
+      "개 변환. 변경 기록: ",
+      ""
+    ],
+    "arguments": [
+      "{result.Converted}",
+      "{receipt}"
+    ],
+    "source": "$\"설정 저장·적용 완료 · 경험치 {result.Converted}개 변환. 변경 기록: {receipt}\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 63,
+    "section": "GameSettingsUi",
+    "key": "AppliedLog",
+    "parts": [
+      "개성·능력치 규칙 저장·적용: 개성 ",
+      "개 / 목록 ",
+      "개 / ",
+      " · 경험치 ",
+      "개 변환"
+    ],
+    "arguments": [
+      "{settings.Slots}",
+      "{(settings.TraitList9 ? 9 : 5)}",
+      "{settings.Abilities}",
+      "{result.Converted}"
+    ],
+    "source": "$\"개성·능력치 규칙 저장·적용: 개성 {settings.Slots}개 / 목록 {(settings.TraitList9 ? 9 : 5)}개 / {settings.Abilities} · 경험치 {result.Converted}개 변환\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 103,
+    "section": "GameSettingsUi",
+    "key": "AdoptedCurrentRules",
+    "parts": [
+      "개성·능력치: 현재 적용한 기록을 자동 재적용 설정으로 저장했습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치: 현재 적용한 기록을 자동 재적용 설정으로 저장했습니다.\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 106,
+    "section": "GameSettingsUi",
+    "key": "UnknownRulesDeferred",
+    "parts": [
+      "개성·능력치 자동 적용 보류 · 현재 규칙을 확인할 수 없습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치 자동 적용 보류 · 현재 규칙을 확인할 수 없습니다.\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 117,
+    "section": "GameSettingsUi",
+    "key": "WaitingForPause",
+    "parts": [
+      "개성·능력치 저장 설정 대기 · 일시정지 후 자동 적용합니다."
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치 저장 설정 대기 · 일시정지 후 자동 적용합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 124,
+    "section": "GameSettingsUi",
+    "key": "Reapplied",
+    "parts": [
+      "개성·능력치 저장 설정 자동 적용 완료 · 경험치 ",
+      "개 변환"
+    ],
+    "arguments": [
+      "{result.Converted}"
+    ],
+    "source": "$\"개성·능력치 저장 설정 자동 적용 완료 · 경험치 {result.Converted}개 변환\""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 129,
+    "section": "GameSettingsUi",
+    "key": "AutomaticApplyFailed",
+    "parts": [
+      "개성·능력치 자동 적용 중단 · "
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치 자동 적용 중단 · \""
+  },
+  {
+    "file": "source/EditorWindow.RuntimeRules.cs",
+    "line": 129,
+    "section": "GameSettingsUi",
+    "key": "RetryAfterRefresh",
+    "parts": [
+      " · 원인을 확인한 뒤 새로고침으로 재시도하세요."
+    ],
+    "arguments": [],
+    "source": "\" · 원인을 확인한 뒤 새로고침으로 재시도하세요.\""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 15,
+    "section": "DeveloperUi",
+    "key": "TraitReadStarted",
+    "parts": [
+      "개성 열 정의 읽기 시작 · 메모리 쓰기 없음"
+    ],
+    "arguments": [],
+    "source": "\"개성 열 정의 읽기 시작 · 메모리 쓰기 없음\""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 21,
+    "section": "DeveloperUi",
+    "key": "VerifiedConnectionRequired",
+    "parts": [
+      "검증된 게임 연결이 필요합니다."
+    ],
+    "arguments": [],
+    "source": "\"검증된 게임 연결이 필요합니다.\""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 34,
+    "section": "DeveloperUi",
+    "key": "TraitComparison",
+    "parts": [
+      "열 ",
+      "개 비교 완료 · 다른 8바이트 필드 ",
+      "개"
+    ],
+    "arguments": [
+      "{evidence.ColumnCount}",
+      "{evidence.Differences.Length}"
+    ],
+    "source": "$\"열 {evidence.ColumnCount}개 비교 완료 · 다른 8바이트 필드 {evidence.Differences.Length}개\""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 35,
+    "section": "DeveloperUi",
+    "key": "UnconfirmedTraitEvidence",
+    "parts": [
+      "확정 결과 아님 · "
+    ],
+    "arguments": [],
+    "source": "\"확정 결과 아님 · \""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 39,
+    "section": "DeveloperUi",
+    "key": "TraitDifference",
+    "parts": [
+      "열 인덱스 ",
+      ", 레코드 +",
+      ", RVA ",
+      ": 기준 ",
+      " / 실제 ",
+      ""
+    ],
+    "arguments": [
+      "{diff.ColumnIndex}",
+      "{diff.RecordOffset}",
+      "{diff.Rva}",
+      "{diff.ExpectedHex}",
+      "{diff.ActualHex}"
+    ],
+    "source": "$\"열 인덱스 {diff.ColumnIndex}, 레코드 +{diff.RecordOffset}, RVA {diff.Rva}: 기준 {diff.ExpectedHex} / 실제 {diff.ActualHex}\""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 40,
+    "section": "DeveloperUi",
+    "key": "RemainingDifferencesSaved",
+    "parts": [
+      "나머지 차이는 JSON 파일에 모두 기록했습니다."
+    ],
+    "arguments": [],
+    "source": "\"나머지 차이는 JSON 파일에 모두 기록했습니다.\""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 41,
+    "section": "DeveloperUi",
+    "key": "DiagnosticFile",
+    "parts": [
+      "진단 파일: "
+    ],
+    "arguments": [],
+    "source": "\"진단 파일: \""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 42,
+    "section": "DeveloperUi",
+    "key": "TraitDiagnostic",
+    "parts": [
+      "9개성 표시 진단: "
+    ],
+    "arguments": [],
+    "source": "\"9개성 표시 진단: \""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 45,
+    "section": "DeveloperUi",
+    "key": "DiagnosticSaveFailed",
+    "parts": [
+      "진단 기록 저장 실패: "
+    ],
+    "arguments": [],
+    "source": "\"진단 기록 저장 실패: \""
+  },
+  {
+    "file": "source/EditorWindow.TraitListDiagnostic.cs",
+    "line": 45,
+    "section": "DeveloperUi",
+    "key": "TraitSaveFailed",
+    "parts": [
+      "9개성 표시 진단 저장 실패: "
+    ],
+    "arguments": [],
+    "source": "\"9개성 표시 진단 저장 실패: \""
+  },
+  {
+    "file": "source/ListsCard.cs",
+    "line": 45,
+    "section": "DataUi",
+    "key": "OfficerAndItems",
+    "parts": [
+      "무장·물품"
+    ],
+    "arguments": [],
+    "source": "\"무장·물품\""
+  },
+  {
+    "file": "source/ListsCard.cs",
+    "line": 45,
+    "section": "DataUi",
+    "key": "Combat",
+    "parts": [
+      "전투"
+    ],
+    "arguments": [],
+    "source": "\"전투\""
+  },
+  {
+    "file": "source/ListsCard.cs",
+    "line": 45,
+    "section": "DataUi",
+    "key": "Domestic",
+    "parts": [
+      "내정·세력"
+    ],
+    "arguments": [],
+    "source": "\"내정·세력\""
+  },
+  {
+    "file": "source/ListsCard.cs",
+    "line": 138,
+    "section": "DataUi",
+    "key": "Combat",
+    "parts": [
+      "전투"
+    ],
+    "arguments": [],
+    "source": "\"전투\""
+  },
+  {
+    "file": "source/ListsCard.cs",
+    "line": 139,
+    "section": "DataUi",
+    "key": "Domestic",
+    "parts": [
+      "내정·세력"
+    ],
+    "arguments": [],
+    "source": "\"내정·세력\""
+  },
+  {
+    "file": "source/ListsCard.cs",
+    "line": 140,
+    "section": "DataUi",
+    "key": "OfficerAndItems",
+    "parts": [
+      "무장·물품"
+    ],
+    "arguments": [],
+    "source": "\"무장·물품\""
+  },
+  {
+    "file": "source/MapSurface.Environment.cs",
+    "line": 47,
+    "section": "DataUi",
+    "key": "PreviewBadge",
+    "parts": [
+      "테스트"
+    ],
+    "arguments": [],
+    "source": "\"테스트\""
+  },
+  {
+    "file": "source/MapSurface.Environment.cs",
+    "line": 65,
+    "section": "DataUi",
+    "key": "PreviewTooltip",
+    "parts": [
+      "표시 전용 테스트 · 피해 없음"
+    ],
+    "arguments": [],
+    "source": "\"표시 전용 테스트 · 피해 없음\""
+  },
+  {
+    "file": "source/MapView.Environment.cs",
+    "line": 13,
+    "section": "DataUi",
+    "key": "PreviewLegend",
+    "parts": [
+      "[표시 전용 테스트 · 피해 없음]"
+    ],
+    "arguments": [],
+    "source": "\"[표시 전용 테스트 · 피해 없음]\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 17,
+    "section": "GameSettingsUi",
+    "key": "TraitsNine",
+    "parts": [
+      "개성 9개 발동"
+    ],
+    "arguments": [],
+    "source": "\"개성 9개 발동\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 18,
+    "section": "GameSettingsUi",
+    "key": "TraitListNine",
+    "parts": [
+      "게임 무장 목록에 개성 9개 표시"
+    ],
+    "arguments": [],
+    "source": "\"게임 무장 목록에 개성 9개 표시\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 19,
+    "section": "GameSettingsUi",
+    "key": "AbilityOriginal",
+    "parts": [
+      "기본 상한 · 100 성장"
+    ],
+    "arguments": [],
+    "source": "\"기본 상한 · 100 성장\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 19,
+    "section": "GameSettingsUi",
+    "key": "AbilityCapTwoHundred",
+    "parts": [
+      "능력치 상한 200 · 100 성장"
+    ],
+    "arguments": [],
+    "source": "\"능력치 상한 200 · 100 성장\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 19,
+    "section": "GameSettingsUi",
+    "key": "AbilityGrowthTwoHundred",
+    "parts": [
+      "능력치 상한 200 · 200 성장"
+    ],
+    "arguments": [],
+    "source": "\"능력치 상한 200 · 200 성장\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 20,
+    "section": "GameSettingsUi",
+    "key": "ConvertProgress",
+    "parts": [
+      "성장 모드 변경 시 능력치와 진행률을 유지하도록 경험치 변환"
+    ],
+    "arguments": [],
+    "source": "\"성장 모드 변경 시 능력치와 진행률을 유지하도록 경험치 변환\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 21,
+    "section": "GameSettingsUi",
+    "key": "Apply",
+    "parts": [
+      "저장 및 적용"
+    ],
+    "arguments": [],
+    "source": "\"저장 및 적용\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 22,
+    "section": "GameSettingsUi",
+    "key": "Restore",
+    "parts": [
+      "기본 규칙으로 복원"
+    ],
+    "arguments": [],
+    "source": "\"기본 규칙으로 복원\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 31,
+    "section": "GameSettingsUi",
+    "key": "RuntimeWindowTitle",
+    "parts": [
+      "게임 설정 · 개성·능력치"
+    ],
+    "arguments": [],
+    "source": "\"게임 설정 · 개성·능력치\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 37,
+    "section": "GameSettingsUi",
+    "key": "AppliedHeading",
+    "parts": [
+      "현재 적용 상태"
+    ],
+    "arguments": [],
+    "source": "\"현재 적용 상태\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 40,
+    "section": "GameSettingsUi",
+    "key": "SelectionHeading",
+    "parts": [
+      "변경할 설정"
+    ],
+    "arguments": [],
+    "source": "\"변경할 설정\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 48,
+    "section": "GameSettingsUi",
+    "key": "PersistenceHelp",
+    "parts": [
+      "설정을 저장하면 게임 연결·새로고침 때 적용 상태를 확인합니다. 이미 같은 상태면 유지하고, 다르면 일시정지 후 자동 적용합니다. 목록 표시를 변경하면 게임의 무장 목록·선택 창을 닫고 다시 여세요."
+    ],
+    "arguments": [],
+    "source": "\"설정을 저장하면 게임 연결·새로고침 때 적용 상태를 확인합니다. 이미 같은 상태면 유지하고, 다르면 일시정지 후 자동 적용합니다. 목록 표시를 변경하면 게임의 무장 목록·선택 창을 닫고 다시 여세요.\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 49,
+    "section": "GameSettingsUi",
+    "key": "DetailedHelpHeading",
+    "parts": [
+      "적용 범위·경험치 변환·복원 안내"
+    ],
+    "arguments": [],
+    "source": "\"적용 범위·경험치 변환·복원 안내\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 51,
+    "section": "GameSettingsUi",
+    "key": "DetailedHelp",
+    "parts": [
+      "목록 표시 설정은 장수 상세 창의 개성 표시를 바꾸지 않습니다. 개성 데이터 편집은 ",
+      " → ",
+      " → 무장·물품 → 개성에서 할 수 있습니다.\n\n상한 변경은 기본 능력치를 올리지 않습니다. 옥새의 매력 특례는 유지됩니다.\n\n경험치 변환은 현재 능력치와 다음 단계 진행률을 유지합니다. 이전 곡선의 저장을 불러왔다면 일시정지 상태에서 천하도를 연결하거나 새로고침해 경험치를 확인·보정하세요. 게임 재시작 후에는 게임 설정의 실행·로드 준비를 먼저 완료해야 합니다.\n\n편집기를 닫아도 적용한 규칙은 게임 종료까지 유지됩니다. 기본 규칙으로 복원해도 6~9번째 개성과 성장한 능력치·경험치를 삭제하지 않습니다. 기본 게임의 이후 처리에서는 100 초과 값이 제한될 수 있습니다."
+    ],
+    "arguments": [
+      "{L.Window.Panel}",
+      "{L.Navigation.Data}"
+    ],
+    "source": "$\"목록 표시 설정은 장수 상세 창의 개성 표시를 바꾸지 않습니다. 개성 데이터 편집은 {L.Window.Panel} → {L.Navigation.Data} → 무장·물품 → 개성에서 할 수 있습니다.\\n\\n상한 변경은 기본 능력치를 올리지 않습니다. 옥새의 매력 특례는 유지됩니다.\\n\\n경험치 변환은 현재 능력치와 다음 단계 진행률을 유지합니다. 이전 곡선의 저장을 불러왔다면 일시정지 상태에서 천하도를 연결하거나 새로고침해 경험치를 확인·보정하세요. 게임 재시작 후에는 게임 설정의 실행·로드 준비를 먼저 완료해야 합니다.\\n\\n편집기를 닫아도 적용한 규칙은 게임 종료까지 유지됩니다. 기본 규칙으로 복원해도 6~9번째 개성과 성장한 능력치·경험치를 삭제하지 않습니다. 기본 게임의 이후 처리에서는 100 초과 값이 제한될 수 있습니다.\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 67,
+    "section": "GameSettingsUi",
+    "key": "StateUnknown",
+    "parts": [
+      "확인할 수 없음"
+    ],
+    "arguments": [],
+    "source": "\"확인할 수 없음\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 67,
+    "section": "GameSettingsUi",
+    "key": "AppliedSummary",
+    "parts": [
+      "개성 발동 ",
+      "개 · 게임 목록 ",
+      "개\n"
+    ],
+    "arguments": [
+      "{settings.Slots}",
+      "{(settings.TraitList9 ? 9 : 5)}"
+    ],
+    "source": "$\"개성 발동 {settings.Slots}개 · 게임 목록 {(settings.TraitList9 ? 9 : 5)}개\\n\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 70,
+    "section": "GameSettingsUi",
+    "key": "UnknownRules",
+    "parts": [
+      "규칙을 확인할 수 없습니다. 다른 패치와의 충돌을 확인하세요."
+    ],
+    "arguments": [],
+    "source": "\"규칙을 확인할 수 없습니다. 다른 패치와의 충돌을 확인하세요.\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 70,
+    "section": "GameSettingsUi",
+    "key": "CurrentStateRead",
+    "parts": [
+      "현재 메모리 상태를 읽었습니다."
+    ],
+    "arguments": [],
+    "source": "\"현재 메모리 상태를 읽었습니다.\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 75,
+    "section": "GameSettingsUi",
+    "key": "SavedSummary",
+    "parts": [
+      "저장됨 · 연결·새로고침 때 자동 확인\n개성 ",
+      "개 · 목록 ",
+      "개 · ",
+      ""
+    ],
+    "arguments": [
+      "{preference.Settings.Slots}",
+      "{(preference.Settings.TraitList9 ? 9 : 5)}",
+      "{Ability.Items[(int)preference.Settings.Abilities]}"
+    ],
+    "source": "$\"저장됨 · 연결·새로고침 때 자동 확인\\n개성 {preference.Settings.Slots}개 · 목록 {(preference.Settings.TraitList9 ? 9 : 5)}개 · {Ability.Items[(int)preference.Settings.Abilities]}\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 89,
+    "section": "GameSettingsUi",
+    "key": "SelectionUnknown",
+    "parts": [
+      "현재 상태를 확인한 뒤 변경할 수 있습니다."
+    ],
+    "arguments": [],
+    "source": "\"현재 상태를 확인한 뒤 변경할 수 있습니다.\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 90,
+    "section": "GameSettingsUi",
+    "key": "SelectionMatches",
+    "parts": [
+      "현재 적용 상태와 같습니다."
+    ],
+    "arguments": [],
+    "source": "\"현재 적용 상태와 같습니다.\""
+  },
+  {
+    "file": "source/RuntimeRulesWindow.cs",
+    "line": 90,
+    "section": "GameSettingsUi",
+    "key": "SelectionPending",
+    "parts": [
+      "아직 적용하지 않은 변경이 있습니다."
+    ],
+    "arguments": [],
+    "source": "\"아직 적용하지 않은 변경이 있습니다.\""
+  },
+  {
+    "file": "source/Core/Fields.cs",
+    "line": 177,
+    "section": "RuntimeErrors",
+    "key": "ExperienceGrowthHint",
+    "parts": [
+      "200 성장 모드에서는 능력치를 200까지 입력할 수 있습니다."
+    ],
+    "arguments": [],
+    "source": "\"200 성장 모드에서는 능력치를 200까지 입력할 수 있습니다.\""
+  },
+  {
+    "file": "source/Core/Fills.cs",
+    "line": 20,
+    "section": "RuntimeErrors",
+    "key": "GrowthUnknown",
+    "parts": [
+      "성장 규칙을 확인할 수 없습니다."
+    ],
+    "arguments": [],
+    "source": "\"성장 규칙을 확인할 수 없습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.CompatibilityDiagnostic.cs",
+    "line": 28,
+    "section": "DeveloperErrors",
+    "key": "PauseRequired",
+    "parts": [
+      "게임을 일시정지한 뒤 실행하세요."
+    ],
+    "arguments": [],
+    "source": "\"게임을 일시정지한 뒤 실행하세요.\""
+  },
+  {
+    "file": "source/Core/GameMemory.CompatibilityDiagnostic.cs",
+    "line": 35,
+    "section": "DeveloperErrors",
+    "key": "CompatibilityChanged",
+    "parts": [
+      "두 번 읽는 동안 연결·저장소·값·코드·권한이 바뀌었습니다. 미확정 결과입니다."
+    ],
+    "arguments": [],
+    "source": "\"두 번 읽는 동안 연결·저장소·값·코드·권한이 바뀌었습니다. 미확정 결과입니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.CompatibilityDiagnostic.cs",
+    "line": 56,
+    "section": "DeveloperErrors",
+    "key": "CompatibilityCancelled",
+    "parts": [
+      "취소되었습니다. 미확정 결과입니다."
+    ],
+    "arguments": [],
+    "source": "\"취소되었습니다. 미확정 결과입니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.CompatibilityDiagnostic.cs",
+    "line": 72,
+    "section": "DeveloperErrors",
+    "key": "PauseRequired",
+    "parts": [
+      "게임을 일시정지한 뒤 실행하세요."
+    ],
+    "arguments": [],
+    "source": "\"게임을 일시정지한 뒤 실행하세요.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 9,
+    "section": "DeveloperErrors",
+    "key": "NoticeReadChanged",
+    "parts": [
+      "알림 데이터가 읽는 동안 바뀌었습니다: "
+    ],
+    "arguments": [],
+    "source": "\"알림 데이터가 읽는 동안 바뀌었습니다: \""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 9,
+    "section": "DeveloperErrors",
+    "key": "NoticeReadUnconfirmed",
+    "parts": [
+      ". 일치한 결과로 사용하지 않았습니다."
+    ],
+    "arguments": [],
+    "source": "\". 일치한 결과로 사용하지 않았습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 44,
+    "section": "DeveloperErrors",
+    "key": "NoticePointerMissing",
+    "parts": [
+      "알림 데이터 포인터가 없습니다."
+    ],
+    "arguments": [],
+    "source": "\"알림 데이터 포인터가 없습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 44,
+    "section": "DeveloperErrors",
+    "key": "NoticeReadIncomplete",
+    "parts": [
+      "알림 데이터 읽기가 끝나지 않았습니다."
+    ],
+    "arguments": [],
+    "source": "\"알림 데이터 읽기가 끝나지 않았습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 54,
+    "section": "DeveloperErrors",
+    "key": "NoticeCodeChanged",
+    "parts": [
+      "원본 알림 텍스트 처리 코드가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 알림 텍스트 처리 코드가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 57,
+    "section": "DeveloperErrors",
+    "key": "NoticeCountInvalid",
+    "parts": [
+      "원본 알림 상태 개수가 범위를 벗어났습니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 알림 상태 개수가 범위를 벗어났습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 59,
+    "section": "DeveloperErrors",
+    "key": "MultipleNotices",
+    "parts": [
+      "재난 알림이 여러 개입니다."
+    ],
+    "arguments": [],
+    "source": "\"재난 알림이 여러 개입니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 60,
+    "section": "DeveloperErrors",
+    "key": "NoOpenNotice",
+    "parts": [
+      "현재 열린 원본 재난 알림창이 없습니다. 새 알림은 표시하지 않았습니다."
+    ],
+    "arguments": [],
+    "source": "\"현재 열린 원본 재난 알림창이 없습니다. 새 알림은 표시하지 않았습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 61,
+    "section": "DeveloperErrors",
+    "key": "NoticeClassChanged",
+    "parts": [
+      "원본 재난 알림창 클래스가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 재난 알림창 클래스가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 64,
+    "section": "DeveloperErrors",
+    "key": "NoticeTextChanged",
+    "parts": [
+      "원본 알림의 텍스트 항목이 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 알림의 텍스트 항목이 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 66,
+    "section": "DeveloperErrors",
+    "key": "TextWidgetChanged",
+    "parts": [
+      "원본 알림의 텍스트 위젯 형식이 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 알림의 텍스트 위젯 형식이 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 68,
+    "section": "DeveloperErrors",
+    "key": "TextVtableChanged",
+    "parts": [
+      "원본 텍스트 vtable 범위가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 텍스트 vtable 범위가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 71,
+    "section": "DeveloperErrors",
+    "key": "FontGetterRangeChanged",
+    "parts": [
+      "원본 글꼴 getter 코드 범위가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 글꼴 getter 코드 범위가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 89,
+    "section": "DeveloperErrors",
+    "key": "StringStorageChanged",
+    "parts": [
+      "표시 문자열 저장소 클래스가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 문자열 저장소 클래스가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 92,
+    "section": "DeveloperErrors",
+    "key": "StringGetterChanged",
+    "parts": [
+      "표시 문자열 인덱스 getter 코드가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 문자열 인덱스 getter 코드가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 96,
+    "section": "DeveloperErrors",
+    "key": "StringIndexInvalid",
+    "parts": [
+      "표시 문자열 인덱스가 저장소 범위를 벗어났습니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 문자열 인덱스가 저장소 범위를 벗어났습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 99,
+    "section": "DeveloperErrors",
+    "key": "StringEntryChanged",
+    "parts": [
+      "표시 문자열 항목 클래스가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 문자열 항목 클래스가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 112,
+    "section": "DeveloperErrors",
+    "key": "FontScaleInvalid",
+    "parts": [
+      "글꼴 배율이 유효한 실수가 아닙니다."
+    ],
+    "arguments": [],
+    "source": "\"글꼴 배율이 유효한 실수가 아닙니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 115,
+    "section": "DeveloperErrors",
+    "key": "FontFieldsUnverified",
+    "parts": [
+      "getter의 필드 해석이 아직 인증되지 않았습니다. 원시 위젯·getter 코드를 저장했습니다."
+    ],
+    "arguments": [],
+    "source": "\"getter의 필드 해석이 아직 인증되지 않았습니다. 원시 위젯·getter 코드를 저장했습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 124,
+    "section": "DeveloperErrors",
+    "key": "StringBoundaryChanged",
+    "parts": [
+      "표시 문자열의 UTF-16 경계가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 문자열의 UTF-16 경계가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 129,
+    "section": "DeveloperErrors",
+    "key": "StringUnterminated",
+    "parts": [
+      "표시 문자열이 1024자 안에서 끝나지 않았습니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 문자열이 1024자 안에서 끝나지 않았습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 131,
+    "section": "DeveloperErrors",
+    "key": "StringMissing",
+    "parts": [
+      "현재 문자열 인덱스에 표시 텍스트가 없습니다."
+    ],
+    "arguments": [],
+    "source": "\"현재 문자열 인덱스에 표시 텍스트가 없습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 131,
+    "section": "DeveloperErrors",
+    "key": "StringFieldsUnverified",
+    "parts": [
+      "표시 문자열 getter의 필드 해석이 아직 인증되지 않았습니다."
+    ],
+    "arguments": [],
+    "source": "\"표시 문자열 getter의 필드 해석이 아직 인증되지 않았습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 142,
+    "section": "DeveloperErrors",
+    "key": "RenderClassChanged",
+    "parts": [
+      "원본 글자 렌더 객체 클래스가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"원본 글자 렌더 객체 클래스가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 147,
+    "section": "DeveloperErrors",
+    "key": "RenderScaleInvalid",
+    "parts": [
+      "렌더 객체 글꼴 배율이 유효한 실수가 아닙니다."
+    ],
+    "arguments": [],
+    "source": "\"렌더 객체 글꼴 배율이 유효한 실수가 아닙니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 149,
+    "section": "DeveloperErrors",
+    "key": "RenderObjectMissing",
+    "parts": [
+      "현재 위젯의 글자 렌더 객체가 없습니다."
+    ],
+    "arguments": [],
+    "source": "\"현재 위젯의 글자 렌더 객체가 없습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.NoticeTypography.cs",
+    "line": 153,
+    "section": "DeveloperErrors",
+    "key": "WidgetScaleInvalid",
+    "parts": [
+      "위젯 글자 배율이 유효한 실수가 아닙니다."
+    ],
+    "arguments": [],
+    "source": "\"위젯 글자 배율이 유효한 실수가 아닙니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 35,
+    "section": "RuntimeErrors",
+    "key": "PauseRequired",
+    "parts": [
+      "게임을 일시 정지한 뒤 적용하세요."
+    ],
+    "arguments": [],
+    "source": "\"게임을 일시 정지한 뒤 적용하세요.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 54,
+    "section": "RuntimeErrors",
+    "key": "TraitOwnershipChanged",
+    "parts": [
+      "개성 목록 메모리의 소유 기록이 일치하지 않습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 메모리의 소유 기록이 일치하지 않습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 63,
+    "section": "RuntimeErrors",
+    "key": "Loading",
+    "parts": [
+      "로드 중에는 규칙을 변경할 수 없습니다."
+    ],
+    "arguments": [],
+    "source": "\"로드 중에는 규칙을 변경할 수 없습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 64,
+    "section": "RuntimeErrors",
+    "key": "PaceChanged",
+    "parts": [
+      "게임 진행 상태가 바뀌었습니다. 일시정지 후 다시 적용하세요."
+    ],
+    "arguments": [],
+    "source": "\"게임 진행 상태가 바뀌었습니다. 일시정지 후 다시 적용하세요.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 77,
+    "section": "RuntimeErrors",
+    "key": "OfficerTableChanged",
+    "parts": [
+      "무장 테이블이 변경됐습니다."
+    ],
+    "arguments": [],
+    "source": "\"무장 테이블이 변경됐습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 89,
+    "section": "RuntimeErrors",
+    "key": "OfficerConversionError",
+    "parts": [
+      "무장 ID ",
+      " · ",
+      ": ",
+      ""
+    ],
+    "arguments": [
+      "{BitConverter.ToUInt16(record, OfficerFields.IdOffset)}",
+      "{OfficerFields.Abilities[ability].Label}",
+      "{error.Message}"
+    ],
+    "source": "$\"무장 ID {BitConverter.ToUInt16(record, OfficerFields.IdOffset)} · {OfficerFields.Abilities[ability].Label}: {error.Message}\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 92,
+    "section": "RuntimeErrors",
+    "key": "ConversionRequired",
+    "parts": [
+      "200 성장 곡선에 맞춘 경험치 변환을 선택하세요."
+    ],
+    "arguments": [],
+    "source": "\"200 성장 곡선에 맞춘 경험치 변환을 선택하세요.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 135,
+    "section": "RuntimeErrors",
+    "key": "UnusedAllocationReleaseFailed",
+    "parts": [
+      "사용하지 않은 개성 목록 메모리 해제 실패"
+    ],
+    "arguments": [],
+    "source": "\"사용하지 않은 개성 목록 메모리 해제 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 145,
+    "section": "RuntimeErrors",
+    "key": "AllocationFailed",
+    "parts": [
+      "개성 목록 메모리 할당 실패"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 메모리 할당 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 154,
+    "section": "RuntimeErrors",
+    "key": "AllocationProtectionFailed",
+    "parts": [
+      "개성 목록 메모리 보호/캐시 갱신 실패"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 메모리 보호/캐시 갱신 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 161,
+    "section": "RuntimeErrors",
+    "key": "InitializationReleaseFailed",
+    "parts": [
+      "개성 목록 초기화 실패 후 메모리 해제 실패"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 초기화 실패 후 메모리 해제 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 175,
+    "section": "RuntimeErrors",
+    "key": "AllocationOwnershipChanged",
+    "parts": [
+      "개성 목록 할당 범위/소유권이 변경됐습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 할당 범위/소유권이 변경됐습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 183,
+    "section": "RuntimeErrors",
+    "key": "PageProtectionFailed",
+    "parts": [
+      "개성 목록 페이지 보호 설정 실패"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 페이지 보호 설정 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 186,
+    "section": "RuntimeErrors",
+    "key": "PageProtectionUnconfirmed",
+    "parts": [
+      "개성 목록 페이지 보호 확인 실패"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 페이지 보호 확인 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 202,
+    "section": "RuntimeErrors",
+    "key": "MemoryProtectionFailed",
+    "parts": [
+      "규칙 메모리 보호 변경 실패"
+    ],
+    "arguments": [],
+    "source": "\"규칙 메모리 보호 변경 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 207,
+    "section": "RuntimeErrors",
+    "key": "InstructionCacheFailed",
+    "parts": [
+      "규칙 명령 캐시 갱신 실패"
+    ],
+    "arguments": [],
+    "source": "\"규칙 명령 캐시 갱신 실패\""
+  },
+  {
+    "file": "source/Core/GameMemory.RuntimeRules.cs",
+    "line": 219,
+    "section": "RuntimeErrors",
+    "key": "ProtectionRestoreFailed",
+    "parts": [
+      "규칙 메모리 보호 복원 실패: 0x",
+      ""
+    ],
+    "arguments": [
+      "{page:X}"
+    ],
+    "source": "$\"규칙 메모리 보호 복원 실패: 0x{page:X}\""
+  },
+  {
+    "file": "source/Core/GameMemory.TraitListDiagnostic.cs",
+    "line": 21,
+    "section": "DeveloperErrors",
+    "key": "PauseForTraits",
+    "parts": [
+      "게임을 일시정지한 뒤 진단하세요. 게임 상태는 변경하지 않았습니다."
+    ],
+    "arguments": [],
+    "source": "\"게임을 일시정지한 뒤 진단하세요. 게임 상태는 변경하지 않았습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.TraitListDiagnostic.cs",
+    "line": 29,
+    "section": "DeveloperErrors",
+    "key": "TraitReadChanged",
+    "parts": [
+      "읽는 동안 게임 연결 또는 일시정지 상태가 바뀌었습니다. 원시 기록이며 확정 결과가 아닙니다."
+    ],
+    "arguments": [],
+    "source": "\"읽는 동안 게임 연결 또는 일시정지 상태가 바뀌었습니다. 원시 기록이며 확정 결과가 아닙니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.TraitListDiagnostic.cs",
+    "line": 32,
+    "section": "DeveloperErrors",
+    "key": "TraitFinalCheckFailed",
+    "parts": [
+      "읽기 후 상태 확인 실패: "
+    ],
+    "arguments": [],
+    "source": "\"읽기 후 상태 확인 실패: \""
+  },
+  {
+    "file": "source/Core/GameMemory.TraitListDiagnostic.cs",
+    "line": 46,
+    "section": "DeveloperErrors",
+    "key": "TraitReadIncomplete",
+    "parts": [
+      "개성 열 정의를 전부 읽지 못했습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 열 정의를 전부 읽지 못했습니다.\""
+  },
+  {
+    "file": "source/Core/GameMemory.TraitListDiagnostic.cs",
+    "line": 58,
+    "section": "DeveloperErrors",
+    "key": "TraitReadsDiffer",
+    "parts": [
+      "두 번 읽은 열 정의가 다릅니다. 원시 기록이며 확정 결과가 아닙니다."
+    ],
+    "arguments": [],
+    "source": "\"두 번 읽은 열 정의가 다릅니다. 원시 기록이며 확정 결과가 아닙니다.\""
+  },
+  {
+    "file": "source/Core/OfficerEdits.cs",
+    "line": 75,
+    "section": "RuntimeErrors",
+    "key": "RuntimeStateUnknown",
+    "parts": [
+      "개성·성장 규칙을 확인할 수 없습니다. 다른 패치와의 충돌을 확인하세요."
+    ],
+    "arguments": [],
+    "source": "\"개성·성장 규칙을 확인할 수 없습니다. 다른 패치와의 충돌을 확인하세요.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeProcessFreeze.cs",
+    "line": 19,
+    "section": "RuntimeErrors",
+    "key": "SuspendFailed",
+    "parts": [
+      "프로세스 일시 정지 실패: 0x",
+      ""
+    ],
+    "arguments": [
+      "{status:X8}"
+    ],
+    "source": "$\"프로세스 일시 정지 실패: 0x{status:X8}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeProcessFreeze.cs",
+    "line": 25,
+    "section": "RuntimeErrors",
+    "key": "ThreadsChanged",
+    "parts": [
+      "스레드 구성이 바뀌었습니다. 다시 적용하세요."
+    ],
+    "arguments": [],
+    "source": "\"스레드 구성이 바뀌었습니다. 다시 적용하세요.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeProcessFreeze.cs",
+    "line": 51,
+    "section": "RuntimeErrors",
+    "key": "FunctionExecuting",
+    "parts": [
+      "규칙 함수 실행 중입니다. 잠시 후 다시 적용하세요."
+    ],
+    "arguments": [],
+    "source": "\"규칙 함수 실행 중입니다. 잠시 후 다시 적용하세요.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeProcessFreeze.cs",
+    "line": 54,
+    "section": "RuntimeErrors",
+    "key": "ThreadQueryFailed",
+    "parts": [
+      "스레드 정보 읽기 실패: 0x",
+      ""
+    ],
+    "arguments": [
+      "{status:X8}"
+    ],
+    "source": "$\"스레드 정보 읽기 실패: 0x{status:X8}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeProcessFreeze.cs",
+    "line": 59,
+    "section": "RuntimeErrors",
+    "key": "StackRangeUnknown",
+    "parts": [
+      "스레드 스택 범위를 검증할 수 없습니다."
+    ],
+    "arguments": [],
+    "source": "\"스레드 스택 범위를 검증할 수 없습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeProcessFreeze.cs",
+    "line": 63,
+    "section": "RuntimeErrors",
+    "key": "ReturnAddressExecuting",
+    "parts": [
+      "규칙 함수의 복귀 대기 중입니다. 잠시 후 다시 적용하세요."
+    ],
+    "arguments": [],
+    "source": "\"규칙 함수의 복귀 대기 중입니다. 잠시 후 다시 적용하세요.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeProcessFreeze.cs",
+    "line": 81,
+    "section": "RuntimeErrors",
+    "key": "ResumeFailed",
+    "parts": [
+      "프로세스 재개 실패: 0x",
+      ""
+    ],
+    "arguments": [
+      "{status:X8}"
+    ],
+    "source": "$\"프로세스 재개 실패: 0x{status:X8}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRuleJournal.cs",
+    "line": 14,
+    "section": "RuntimeErrors",
+    "key": "RecoveryIncomplete",
+    "parts": [
+      "이전 규칙 변경이 완료되지 않았습니다. 복구 기록을 확인한 뒤 다시 적용하세요."
+    ],
+    "arguments": [],
+    "source": "\"이전 규칙 변경이 완료되지 않았습니다. 복구 기록을 확인한 뒤 다시 적용하세요.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRuleJournal.cs",
+    "line": 22,
+    "section": "RuntimeErrors",
+    "key": "EmptyRecoveryRecord",
+    "parts": [
+      "규칙 복구 기록이 비어 있습니다."
+    ],
+    "arguments": [],
+    "source": "\"규칙 복구 기록이 비어 있습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePatches.cs",
+    "line": 21,
+    "section": "RuntimeErrors",
+    "key": "TraitRuleStateChanged",
+    "parts": [
+      "개성 목록 표시 규칙이 예상 상태와 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 표시 규칙이 예상 상태와 다릅니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePatches.cs",
+    "line": 63,
+    "section": "RuntimeErrors",
+    "key": "PatchConflict",
+    "parts": [
+      "규칙 메모리 충돌: RVA 0x",
+      ". 원본 또는 천하도 소유 상태와 다릅니다."
+    ],
+    "arguments": [
+      "{site.Rva:X}"
+    ],
+    "source": "$\"규칙 메모리 충돌: RVA 0x{site.Rva:X}. 원본 또는 천하도 소유 상태와 다릅니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePatches.cs",
+    "line": 90,
+    "section": "RuntimeErrors",
+    "key": "ApplyAndRestoreFailed",
+    "parts": [
+      "규칙 적용 실패 및 복원 실패. 복구 기록을 확인하세요."
+    ],
+    "arguments": [],
+    "source": "\"규칙 적용 실패 및 복원 실패. 복구 기록을 확인하세요.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePatches.cs",
+    "line": 99,
+    "section": "RuntimeErrors",
+    "key": "MemoryChangedBeforeApply",
+    "parts": [
+      "적용 전 메모리 변경: 0x",
+      ""
+    ],
+    "arguments": [
+      "{change.Address:X}"
+    ],
+    "source": "$\"적용 전 메모리 변경: 0x{change.Address:X}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePatches.cs",
+    "line": 109,
+    "section": "RuntimeErrors",
+    "key": "WriteReadbackFailed",
+    "parts": [
+      "메모리 적용 검증 실패: 0x",
+      ""
+    ],
+    "arguments": [
+      "{change.Address:X}"
+    ],
+    "source": "$\"메모리 적용 검증 실패: 0x{change.Address:X}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePatches.cs",
+    "line": 122,
+    "section": "RuntimeErrors",
+    "key": "RestoreReadbackFailed",
+    "parts": [
+      "메모리 복원 검증 실패: 0x",
+      ""
+    ],
+    "arguments": [
+      "{change.Address:X}"
+    ],
+    "source": "$\"메모리 복원 검증 실패: 0x{change.Address:X}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePreference.cs",
+    "line": 11,
+    "section": "RuntimeErrors",
+    "key": "PreferenceInvalid",
+    "parts": [
+      "개성·능력치 저장 설정 형식이 잘못됐습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치 저장 설정 형식이 잘못됐습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePreference.cs",
+    "line": 18,
+    "section": "RuntimeErrors",
+    "key": "PreferenceBuildChanged",
+    "parts": [
+      "개성·능력치 설정을 저장한 게임 빌드와 현재 빌드가 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치 설정을 저장한 게임 빌드와 현재 빌드가 다릅니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRulePreference.cs",
+    "line": 30,
+    "section": "RuntimeErrors",
+    "key": "PreferenceEmpty",
+    "parts": [
+      "개성·능력치 저장 설정이 비어 있습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성·능력치 저장 설정이 비어 있습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRuleSettings.cs",
+    "line": 14,
+    "section": "RuntimeErrors",
+    "key": "NineTraitsRequired",
+    "parts": [
+      "목록 9개 표시는 개성 9개 발동과 함께 사용하세요."
+    ],
+    "arguments": [],
+    "source": "\"목록 9개 표시는 개성 9개 발동과 함께 사용하세요.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRuleSettings.cs",
+    "line": 22,
+    "section": "RuntimeErrors",
+    "key": "ExperienceOutOfRange",
+    "parts": [
+      "능력치·경험치가 지원 범위를 벗어났습니다."
+    ],
+    "arguments": [],
+    "source": "\"능력치·경험치가 지원 범위를 벗어났습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRuleSettings.cs",
+    "line": 39,
+    "section": "RuntimeErrors",
+    "key": "ExperienceOutOfRange",
+    "parts": [
+      "능력치·경험치가 지원 범위를 벗어났습니다."
+    ],
+    "arguments": [],
+    "source": "\"능력치·경험치가 지원 범위를 벗어났습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeRuleSettings.cs",
+    "line": 47,
+    "section": "RuntimeErrors",
+    "key": "ExperienceCurveMismatch",
+    "parts": [
+      "능력치 ",
+      "의 경험치 ",
+      "가 성장 곡선과 맞지 않습니다."
+    ],
+    "arguments": [
+      "{level}",
+      "{experience:N0}"
+    ],
+    "source": "$\"능력치 {level}의 경험치 {experience:N0}가 성장 곡선과 맞지 않습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 38,
+    "section": "RuntimeErrors",
+    "key": "TraitImageRangeInvalid",
+    "parts": [
+      "개성 목록 기준 이미지 범위가 잘못됐습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 기준 이미지 범위가 잘못됐습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 44,
+    "section": "RuntimeErrors",
+    "key": "TraitRelocationInvalid",
+    "parts": [
+      "개성 목록 기준 데이터 범위/재배치 중복 오류"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 기준 데이터 범위/재배치 중복 오류\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 48,
+    "section": "RuntimeErrors",
+    "key": "TraitPointerInvalid",
+    "parts": [
+      "개성 목록 재배치 대상이 이미지 포인터가 아닙니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 재배치 대상이 이미지 포인터가 아닙니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 53,
+    "section": "RuntimeErrors",
+    "key": "TraitRelocationMissing",
+    "parts": [
+      "개성 목록 주소 재배치 누락: RVA 0x",
+      ""
+    ],
+    "arguments": [
+      "{block.Rva + at:X}"
+    ],
+    "source": "$\"개성 목록 주소 재배치 누락: RVA 0x{block.Rva + at:X}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 72,
+    "section": "RuntimeErrors",
+    "key": "TraitOriginalConflict",
+    "parts": [
+      "개성 목록 원본과 충돌: RVA 0x",
+      ""
+    ],
+    "arguments": [
+      "{block.Rva:X}"
+    ],
+    "source": "$\"개성 목록 원본과 충돌: RVA 0x{block.Rva:X}\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 81,
+    "section": "RuntimeErrors",
+    "key": "TraitCodeChanged",
+    "parts": [
+      "개성 목록 코드가 원본 또는 천하도 상태와 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 코드가 원본 또는 천하도 상태와 다릅니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 90,
+    "section": "RuntimeErrors",
+    "key": "TraitAllocationChanged",
+    "parts": [
+      "개성 목록 확장 메모리가 천하도 소유 내용과 다릅니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 확장 메모리가 천하도 소유 내용과 다릅니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 99,
+    "section": "RuntimeErrors",
+    "key": "TraitColumnsChanged",
+    "parts": [
+      "개성 열 정의가 변경됐습니다."
+    ],
+    "arguments": [],
+    "source": "\"개성 열 정의가 변경됐습니다.\""
+  },
+  {
+    "file": "source/Core/RuntimeRules/RuntimeTraitList.cs",
+    "line": 167,
+    "section": "RuntimeErrors",
+    "key": "TraitExpansionTooLarge",
+    "parts": [
+      "개성 목록 확장 크기 초과"
+    ],
+    "arguments": [],
+    "source": "\"개성 목록 확장 크기 초과\""
+  }
+]

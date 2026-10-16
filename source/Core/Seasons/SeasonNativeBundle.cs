@@ -9,8 +9,8 @@ namespace San14Tenkazu.Seasons;
 // A matching resident DLL uses its real path; the native path guard stays intact.
 internal static class SeasonNativeBundle
 {
-    internal const string DllHash="3648134e0448ce366edf39afdb9b5cf2c6b58a2121e2624904bb405562c0832c";
-    private const string ManifestHash="961022452f45c718e0aa0eff16e6e9d18d70b686c20e00170419f41141b5e07b";
+    internal const string DllHash="375811da8a8bc163758f85cb56eef8128f781b06389df09ca9889da33b90ba8a";
+    private const string ManifestHash="88e05ec4c4833cc33ed8157bd58298552dc8a01e29d4d263ea8353658d37e098";
     private static readonly string[] SourceNames=["SeasonBridge.cpp","SeasonBridgeProtocol.h","SeasonBridgeChecks.cpp",
         "FrameSignatures.h","PrepareSignature.h","RuntimeGuard.h","SeasonTreeColorGpu.h","SeasonTreeColorSource.hlsl","BuildSeasonBridge.ps1",
         "SeasonSceneChecks.cpp","SeasonSceneGpu.h","SeasonWeatherCapture.h","SeasonWorldGpu.h","SeasonShaderTranslation.h","SeasonShaderProfiles.h","SeasonShaderAdmission.h","SeasonGroundSourceGpu.h","SeasonTreeCatalog.h",

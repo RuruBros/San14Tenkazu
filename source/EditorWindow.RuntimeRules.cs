@@ -2,7 +2,7 @@ namespace San14Tenkazu;
 
 internal sealed partial class EditorWindow
 {
-    private readonly PlateButton runtimeRulesButton = new("개성·능력치") { ToolTip = "9개성 발동 · 능력치 상한과 성장 규칙" };
+    private readonly PlateButton runtimeRulesButton = new(L.GameSettingsUi.RuntimeMenu) { ToolTip = L.GameSettingsUi.RuntimeMenuTip };
     private RuntimeRulesWindow? runtimeRulesWindow;
     private bool runtimeRulesChanging;
     private bool runtimeRulesChecking;
@@ -41,8 +41,8 @@ internal sealed partial class EditorWindow
     private async Task ChangeRuntimeRules(RuntimeRulesWindow window, RuntimeRuleSettings settings)
     {
         if (busy || refreshing || runtimeRulesChecking || game is not { Verified: true } identity) return;
-        if (runtimeRulesIdentity != identity) { window.Status.Text = "게임 연결이 바뀌었습니다. 창을 닫고 다시 여세요."; return; }
-        if (lists.Pending > 0 || Editors.Any(card => card.Pending > 0)) { window.Status.Text = "편집 중인 내용을 먼저 적용하거나 취소하세요."; return; }
+        if (runtimeRulesIdentity != identity) { window.Status.Text = L.GameSettingsUi.ConnectionChanged; return; }
+        if (lists.Pending > 0 || Editors.Any(card => card.Pending > 0)) { window.Status.Text = L.GameSettingsUi.PendingEdits; return; }
         bool convert = window.ConvertProgress.IsChecked == true;
         runtimeRulesChanging = true; ++ruleRevision; SetBusy(true, scanning: false); window.SetBusy(true);
         try
@@ -55,12 +55,12 @@ internal sealed partial class EditorWindow
             runtimeRuleFailure = null; runtimeRuleNotice = "";
             string receipt = runtimeRuleFile.ReceiptPath(identity);
             if (await Task.Run(() => runtimeRuleAccess.Pace(identity, layout!)) != GamePace.Paused)
-            { window.Status.Text = "설정 저장 완료 · 일시정지 후 다음 갱신에서 자동 적용합니다."; AddLog(window.Status.Text); return; }
+            { window.Status.Text = L.GameSettingsUi.SavedWaitingForPause; AddLog(window.Status.Text); return; }
             var result = await Task.Run(() => runtimeRuleAccess.Apply(identity, settings, receipt, convert, false));
             FollowRuntimeRuleResult(result);
             window.ShowSettings(result.Snapshot.RuntimeRules);
-            window.Status.Text = $"설정 저장·적용 완료 · 경험치 {result.Converted}개 변환. 변경 기록: {receipt}";
-            AddLog($"개성·능력치 규칙 저장·적용: 개성 {settings.Slots}개 / 목록 {(settings.TraitList9 ? 9 : 5)}개 / {settings.Abilities} · 경험치 {result.Converted}개 변환");
+            window.Status.Text = L.GameSettingsUi.SavedAndApplied($"{result.Converted}", $"{receipt}");
+            AddLog(L.GameSettingsUi.AppliedLog($"{settings.Slots}", $"{(settings.TraitList9 ? 9 : 5)}", $"{settings.Abilities}", $"{result.Converted}"));
         }
         catch (Exception error) { runtimeRuleFailure = identity; window.Status.Text = error.Message; ReportError(error); }
         finally { runtimeRulesChanging = false; SetBusy(false, scanning: false); window.SetBusy(false); }
@@ -100,33 +100,36 @@ internal sealed partial class EditorWindow
             {
                 preference = runtimeRuleFile.AdoptCommitted(identity, current);
                 if (preference is null) return;
-                Notice("개성·능력치: 현재 적용한 기록을 자동 재적용 설정으로 저장했습니다.");
+                Notice(L.GameSettingsUi.AdoptedCurrentRules);
             }
             preference.CheckBuild(identity.ExeHash);
-            if (current is null) { Notice("개성·능력치 자동 적용 보류 · 현재 규칙을 확인할 수 없습니다."); return; }
-            if (current == preference.Settings)
+            if (current is null) { Notice(L.GameSettingsUi.UnknownRulesDeferred); return; }
+            var pace = await Task.Run(() => runtimeRuleAccess.Pace(identity, currentLayout));
+            if (!Current() || Pending()) return;
+            if (runtimeRuleFile.Read() != preference) return;
+            if (pace != GamePace.Paused) { Notice(L.GameSettingsUi.WaitingForPause); return; }
+            bool experienceChanged = current == preference.Settings && preference.Settings.Growth
+                && await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings) ?? false);
+            if (!Current() || Pending() || runtimeRuleFile.Read() != preference) return;
+            if (current == preference.Settings && !experienceChanged)
             {
                 if (runtimeRulesWindow is { } same && runtimeRulesIdentity == identity)
                 { same.ShowSettings(current); same.ShowSaved(preference); }
                 runtimeRuleNotice = "";
                 return;
             }
-            var pace = await Task.Run(() => runtimeRuleAccess.Pace(identity, currentLayout));
-            if (!Current() || Pending()) return;
-            if (runtimeRuleFile.Read() != preference) return;
-            if (pace != GamePace.Paused) { Notice("개성·능력치 저장 설정 대기 · 일시정지 후 자동 적용합니다."); return; }
             writing = true; runtimeRulesChanging = true; ++ruleRevision; SetBusy(true, scanning: false); runtimeRulesWindow?.SetBusy(true);
             var result = await Task.Run(() => runtimeRuleAccess.Apply(identity, preference.Settings, runtimeRuleFile.ReceiptPath(identity), preference.ConvertExperience, true));
             if (game != identity) return;
             FollowRuntimeRuleResult(result);
             if (runtimeRulesWindow is { } applied && runtimeRulesIdentity == identity)
             { applied.ShowSettings(result.Snapshot.RuntimeRules); applied.ShowSaved(preference); }
-            Notice($"개성·능력치 저장 설정 자동 적용 완료 · 경험치 {result.Converted}개 변환");
+            Notice(L.GameSettingsUi.Reapplied($"{result.Converted}"));
         }
         catch (Exception error)
         {
             runtimeRuleFailure = identity;
-            Notice("개성·능력치 자동 적용 중단 · " + error.Message + " · 원인을 확인한 뒤 새로고침으로 재시도하세요.");
+            Notice(L.GameSettingsUi.AutomaticApplyFailed + error.Message + L.GameSettingsUi.RetryAfterRefresh);
         }
         finally
         {

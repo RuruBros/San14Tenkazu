@@ -205,6 +205,7 @@ internal sealed partial class EditorWindow
 
     private async void OnEditorClosing(object? sender,CancelEventArgs e)
     {
+        if (gamePreparationCancellation is { } preparation) { preparation.Cancel(); e.Cancel = true; return; }
 #if LOCAL_DEVELOPER
         if(compatibilityCancellation is {} diagnostic){diagnostic.Cancel();e.Cancel=true;return;}
 #endif

@@ -72,6 +72,7 @@ try {
     Invoke-Check @('--public-loader-offline', (Join-Path $taskArtifacts 'publish-public-loader')) 'publish-public-loader.log'
     Invoke-Check @('--runtime-rules-offline', (Join-Path $taskArtifacts 'publish-runtime-rules')) 'publish-runtime-rules.log'
     Invoke-Check @('--runtime-rule-persistence', (Join-Path $taskArtifacts 'publish-runtime-rule-persistence')) 'publish-runtime-rule-persistence.log'
+    Invoke-Check @('--game-preparation-offline', (Join-Path $taskArtifacts 'publish-game-preparation')) 'publish-game-preparation.log'
     Invoke-Check @('--season-bundle-check', (Join-Path $taskSource 'Seasons')) 'publish-season-bundle.log'
     Invoke-Check @('--environment-bundle-check', (Join-Path $taskSource 'Environment')) 'publish-environment-bundle.log'
     Invoke-Check @('--environment-menu', (Join-Path $taskArtifacts ('publish-environment-menu-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-environment-menu.log'

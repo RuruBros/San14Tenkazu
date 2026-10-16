@@ -174,7 +174,7 @@ internal static class OfficerFields
     {
         FieldDef experience = Experience[Array.IndexOf(Abilities, ability)];
         bool charm = ability == Charm;
-        if (growth && value > 200) throw new ArgumentOutOfRangeException(nameof(value), "200 성장 모드에서는 능력치를 200까지 입력할 수 있습니다.");
+        if (growth && value > 200) throw new ArgumentOutOfRangeException(nameof(value), L.RuntimeErrors.ExperienceGrowthHint);
         long gained = Math.Max(0, experience.Read(record) - ExperienceAt(ability.Read(record), charm, growth));
         long room = ExperienceAt(value + 1, charm, growth) - ExperienceAt(value, charm, growth) - 1;
         return new FieldChange(experience, ExperienceAt(value, charm, growth) + Math.Min(gained, room));

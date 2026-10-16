@@ -35,22 +35,22 @@ internal static class RuntimeTraitList
     {
         if (definition.OriginalBase == 0 || definition.ImageSize is 0 or > 0x40000000
             || definition.OriginalBase > ulong.MaxValue - definition.ImageSize)
-            throw new InvalidDataException("개성 목록 기준 이미지 범위가 잘못됐습니다.");
+            throw new InvalidDataException(L.RuntimeErrors.TraitImageRangeInvalid);
         foreach (var block in new[] { definition.Columns }.Concat(definition.Tables).Concat(definition.Guards))
         {
             byte[] bytes = Convert.FromHexString(block.Bytes);
             var fixups = block.Fixups.ToHashSet();
             if ((ulong)block.Rva + (uint)bytes.Length > definition.ImageSize || fixups.Count != block.Fixups.Length)
-                throw new InvalidDataException("개성 목록 기준 데이터 범위/재배치 중복 오류");
+                throw new InvalidDataException(L.RuntimeErrors.TraitRelocationInvalid);
             bool ImagePointer(ulong value) => value >= definition.OriginalBase && value - definition.OriginalBase < definition.ImageSize;
             foreach (int at in fixups)
                 if (at < 0 || at > bytes.Length - 8 || !ImagePointer(BitConverter.ToUInt64(bytes, at)))
-                    throw new InvalidDataException("개성 목록 재배치 대상이 이미지 포인터가 아닙니다.");
+                    throw new InvalidDataException(L.RuntimeErrors.TraitPointerInvalid);
             // Inspect unaligned immediates too. A captured absolute pointer must never
             // silently survive because the PE lacks a relocation for a CRT-filled field.
             for (int at = 0; at + 8 <= bytes.Length; at++)
                 if (ImagePointer(BitConverter.ToUInt64(bytes, at)) && !fixups.Contains(at))
-                    throw new InvalidDataException($"개성 목록 주소 재배치 누락: RVA 0x{block.Rva + at:X}");
+                    throw new InvalidDataException(L.RuntimeErrors.TraitRelocationMissing($"{block.Rva + at:X}"));
         }
     }
     internal static byte[] Rebase(Block block, ulong module)
@@ -69,7 +69,7 @@ internal static class RuntimeTraitList
             if (active != 0 && block.Rva <= Site && Site < block.Rva + expected.Length)
                 Jump(active).CopyTo(expected, (int)(Site - block.Rva));
             if (!Matches(read(module + block.Rva, expected.Length), expected, block.Rva == Definition.Columns.Rva ? 0 : -1))
-                throw new InvalidDataException($"개성 목록 원본과 충돌: RVA 0x{block.Rva:X}");
+                throw new InvalidDataException(L.RuntimeErrors.TraitOriginalConflict($"{block.Rva:X}"));
         }
     }
     internal static ulong Detect(Func<ulong, int, byte[]> read, ulong module)
@@ -78,7 +78,7 @@ internal static class RuntimeTraitList
         if (site.SequenceEqual(Original)) return 0;
         ulong address = BitConverter.ToUInt64(site, 6);
         if (address == 0 || (address & 4095) != 0 || !site.SequenceEqual(Jump(address)))
-            throw new InvalidDataException("개성 목록 코드가 원본 또는 천하도 상태와 다릅니다.");
+            throw new InvalidDataException(L.RuntimeErrors.TraitCodeChanged);
         VerifyAllocation(read, module, address);
         VerifyOriginalTables(read, module, address);
         return address;
@@ -87,7 +87,7 @@ internal static class RuntimeTraitList
     {
         if (address == 0 || (address & 4095) != 0 || address > 0x00007FFFFFFF0000UL - Size
             || !Matches(read(address, Size), Build(module, address), ColumnsOffset))
-            throw new InvalidDataException("개성 목록 확장 메모리가 천하도 소유 내용과 다릅니다.");
+            throw new InvalidDataException(L.RuntimeErrors.TraitAllocationChanged);
     }
     internal static byte[] Build(ulong module, ulong address, byte[]? currentColumns = null)
     {
@@ -96,7 +96,7 @@ internal static class RuntimeTraitList
         if (currentColumns is not null)
         {
             if (!Matches(currentColumns, Rebase(Definition.Columns, module), 0))
-                throw new InvalidDataException("개성 열 정의가 변경됐습니다.");
+                throw new InvalidDataException(L.RuntimeErrors.TraitColumnsChanged);
             foreach (int column in MutableColumns)
                 currentColumns.AsSpan(column * RecordSize + 0x5C, 4).CopyTo(result.AsSpan(ColumnsOffset + column * RecordSize + 0x5C, 4));
         }
@@ -164,7 +164,7 @@ internal static class RuntimeTraitList
             int[] fields = [0x18, 0x30, 0x38];
             for (int i = 0; i < 3; i++) BitConverter.TryWriteBytes(result.AsSpan(offset + fields[i]), address + (uint)functions[i]);
         }
-        if (c.Count > CodeSize || list + 88 > Size) throw new InvalidDataException("개성 목록 확장 크기 초과");
+        if (c.Count > CodeSize || list + 88 > Size) throw new InvalidDataException(L.RuntimeErrors.TraitExpansionTooLarge);
         c.Bytes.CopyTo(result); return result;
     }
     private sealed class Code

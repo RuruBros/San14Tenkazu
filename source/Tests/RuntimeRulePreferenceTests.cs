@@ -47,7 +47,7 @@ public sealed class RuntimeRulePreferenceTests
     public void ReconnectPreservesMatchingExperienceAndConversionIsIdempotent(bool charm)
     {
         foreach (bool growth in new[] { false, true })
-            for (int level = 101; level <= 200; level++)
+            for (int level = 100; level <= 200; level++)
             {
                 int start = (int)AbilityProgress.Threshold(level, charm, growth), end = (int)AbilityProgress.Threshold(level + 1, charm, growth);
                 int experience = start + (end - start) / 2;

@@ -8,14 +8,14 @@ internal sealed record RuntimeRulePreference(int Version, string Build, RuntimeR
     internal void Validate()
     {
         if (Version != 1 || string.IsNullOrWhiteSpace(Build) || Settings is null)
-            throw new InvalidDataException("개성·능력치 저장 설정 형식이 잘못됐습니다.");
+            throw new InvalidDataException(L.RuntimeErrors.PreferenceInvalid);
         Settings.Validate();
     }
     internal void CheckBuild(string build)
     {
         Validate();
         if (!Build.Equals(build, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("개성·능력치 설정을 저장한 게임 빌드와 현재 빌드가 다릅니다.");
+            throw new InvalidDataException(L.RuntimeErrors.PreferenceBuildChanged);
     }
 }
 
@@ -27,7 +27,7 @@ internal sealed class RuntimeRulePreferenceFile(string directory)
     {
         if (!File.Exists(PathName)) return null;
         var value = JsonSerializer.Deserialize<RuntimeRulePreference>(File.ReadAllText(PathName))
-            ?? throw new InvalidDataException("개성·능력치 저장 설정이 비어 있습니다.");
+            ?? throw new InvalidDataException(L.RuntimeErrors.PreferenceEmpty);
         value.Validate(); return value;
     }
     internal string Stamp() => File.Exists(PathName) ? Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(PathName))) : "";

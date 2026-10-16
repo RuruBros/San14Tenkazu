@@ -18,7 +18,7 @@ internal static partial class GameMemory
             throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         GameLayout layout = ReadCurrentLayout(identity);
         if (ReadPace(identity, layout) != GamePace.Paused)
-            throw new InvalidOperationException("게임을 일시정지한 뒤 진단하세요. 게임 상태는 변경하지 않았습니다.");
+            throw new InvalidOperationException(L.DeveloperErrors.PauseForTraits);
         IntPtr handle = OpenRead(identity.ProcessId);
         try
         {
@@ -26,10 +26,10 @@ internal static partial class GameMemory
             try
             {
                 if (!IsSameGame(identity) || ReadPace(identity, layout) != GamePace.Paused)
-                    return evidence with { Consistent = false, Error = "읽는 동안 게임 연결 또는 일시정지 상태가 바뀌었습니다. 원시 기록이며 확정 결과가 아닙니다." };
+                    return evidence with { Consistent = false, Error = L.DeveloperErrors.TraitReadChanged };
             }
             catch (Exception error)
-            { return evidence with { Consistent = false, Error = "읽기 후 상태 확인 실패: " + error.Message }; }
+            { return evidence with { Consistent = false, Error = L.DeveloperErrors.TraitFinalCheckFailed + error.Message }; }
             return evidence;
         }
         finally { CloseHandle(handle); }
@@ -43,7 +43,7 @@ internal static partial class GameMemory
         byte[] first = read(module + block.Rva, expected.Length).ToArray();
         byte[] second = read(module + block.Rva, expected.Length).ToArray();
         if (first.Length != expected.Length || second.Length != expected.Length)
-            throw new IOException("개성 열 정의를 전부 읽지 못했습니다.");
+            throw new IOException(L.DeveloperErrors.TraitReadIncomplete);
         var differences = new List<TraitColumnDifference>();
         for (int at = 0; at < expected.Length; at += 8)
         {
@@ -55,7 +55,7 @@ internal static partial class GameMemory
         }
         bool consistent = first.AsSpan().SequenceEqual(second);
         return new($"0x{module:X}", $"0x{block.Rva:X}", RuntimeTraitList.RecordSize, expected.Length / RuntimeTraitList.RecordSize,
-            consistent, consistent ? null : "두 번 읽은 열 정의가 다릅니다. 원시 기록이며 확정 결과가 아닙니다.",
+            consistent, consistent ? null : L.DeveloperErrors.TraitReadsDiffer,
             Convert.ToHexString(SHA256.HashData(expected)), Convert.ToHexString(SHA256.HashData(first)),
             Convert.ToHexString(expected), Convert.ToHexString(first), Convert.ToHexString(second), differences.ToArray());
     }

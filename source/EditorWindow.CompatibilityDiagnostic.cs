@@ -23,9 +23,9 @@ internal sealed partial class EditorWindow
             // The worker only reads. The UI's connection is compared again after it completes.
             report=await Task.Run(()=>GameMemory.ReadCompatibilityDiagnostic(identity,()=>true,cancellation.Token));
             if(game!=connected||cancellation.IsCancellationRequested)
-                report=report with{Consistent=false,Error="연결 변경 또는 취소: 미확정 결과입니다.",Capabilities=[]};
+                report=report with{Consistent=false,Error=L.DeveloperUi.CompatibilityConnectionChanged,Capabilities=[]};
         }
-        catch(Exception error){report=new(false,error is OperationCanceledException?"취소: 미확정 결과입니다.":error.Message,null,null,[]);}
+        catch(Exception error){report=new(false,error is OperationCanceledException?L.DeveloperUi.CompatibilityCancelled:error.Message,null,null,[]);}
         try
         {
             compatibilityResult=report;
@@ -50,10 +50,10 @@ internal sealed partial class EditorWindow
                     nativeExecutionTested=false,settingsMigration=new{scope="new scratch files only",attempted=report.Consistent,error=migrationError},
                     report.Consistent,report.Error,first=Evidence(report.First),second=Evidence(report.Second),report.Capabilities},json);
             compatibilityLogPath=path;
-            window.AppendCompatibility((report.Consistent?"두 번 읽기 일치":"미확정: "+report.Error)+" · "+path);
-            if(migrationError is not null)window.AppendCompatibility("임시 복사본 설정 이관 실패: "+migrationError);
+            window.AppendCompatibility((report.Consistent?L.DeveloperUi.CompatibilityStable:L.DeveloperUi.CompatibilityInconclusive+report.Error)+" · "+path);
+            if(migrationError is not null)window.AppendCompatibility(L.DeveloperUi.ScratchMigrationFailed+migrationError);
         }
-        catch(Exception error){window.AppendCompatibility("진단 로그 저장 실패: "+error.Message);}
+        catch(Exception error){window.AppendCompatibility(L.DeveloperUi.DiagnosticLogFailed+error.Message);}
         finally{compatibilityCancellation=null;developerChanging=false;SetBusy(false,false);UpdateDeveloperControls();}
     }
     private static object? Evidence(CompatibilityRead? read)=>read is null?null:new{

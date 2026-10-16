@@ -71,7 +71,7 @@ internal sealed partial class EditorWindow : W.Window
     private (int Force, int Ruler)? lastPlayer;
     private bool demoNoticed;
 
-    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null)
+    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null)
     {
         string aiFolder = aiStorageRoot ?? Program.DataFolder;
         aiKept = new(Path.Combine(aiFolder, "ai_values.txt"));
@@ -79,6 +79,7 @@ internal sealed partial class EditorWindow : W.Window
         ruleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "rule_profiles.json"));
         runtimeRuleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "runtime-rules"));
         this.runtimeRuleAccess = runtimeRuleAccess ?? RuntimeRuleGameAccess.Live;
+        this.gamePreparationAccess = gamePreparationAccess ?? GamePreparationAccess.Live;
         this.ruleAccess = ruleAccess ?? RuleGameAccess.Live;
         this.seasonStorageRoot=seasonStorageRoot ?? Path.Combine(Program.DataFolder,"seasons");
         registeredIsRunning = registeredGameRunning ?? RegisteredOfficerFile.GameIsRunning;

@@ -229,5 +229,16 @@
     "Growth": "4180fdc8",
     "CodeStart": 2858320,
     "CodeEnd": 2859152
+  },
+  {
+    "Rva": 2251036,
+    "Before": "ff5048",
+    "GuardRva": 2251020,
+    "Guard": "0fb6ca41b0030fb697ed010000488bcfff5048440fb6c00fb61380fa017304b101eb0d",
+    "Traits": "ff5048",
+    "Cap": "b0c890",
+    "Growth": "b0c890",
+    "CodeStart": 2249600,
+    "CodeEnd": 2252592
   }
 ]
