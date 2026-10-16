@@ -11,12 +11,13 @@ internal static class RuntimeRuleExperience
     {
         if (!wanted.Growth && !previous.Growth) return [];
         var writes = new List<RuntimeRuleWrite>();
-        for (int ability = 0; ability < 5; ability++)
+        for (int ability = 0; ability < OfficerFields.Abilities.Length; ability++)
         {
-            int level = record[0xEC + ability], offset = 0x104 + ability * 4;
+            FieldDef abilityField = OfficerFields.Abilities[ability], experienceField = OfficerFields.ExperienceOf(abilityField);
+            int level = (int)abilityField.Read(record), offset = experienceField.Offset;
             if (level < 100) continue;
-            int experience = BitConverter.ToInt32(record, offset);
-            bool fromGrowth = previous.Growth && OfficerFields.FitsExperience(record, OfficerFields.Abilities[ability], true);
+            int experience = (int)experienceField.Read(record);
+            bool fromGrowth = previous.Growth && OfficerFields.FitsExperience(record, abilityField, true);
             int adjusted;
             try
             {
@@ -36,7 +37,7 @@ internal static class RuntimeRuleExperience
             // Growth mode: a level below what its experience reached was clamped by the original loader
             // (0x2258A7 keeps the experience). Restore the level the game itself would reach on the next gain.
             if (wanted.Growth && AbilityProgress.LevelFor(adjusted, ability == 4, true, level) is int reached && reached > level)
-                writes.Add(new(address + (uint)(0xEC + ability), [(byte)level], [(byte)reached], false));
+                writes.Add(new(address + (uint)abilityField.Offset, [(byte)level], [(byte)reached], false));
         }
         return writes.ToArray();
     }
@@ -46,11 +47,12 @@ internal static class RuntimeRuleExperience
     internal static bool NeedsReapply(byte[] record, RuntimeRuleSettings settings)
     {
         if (!settings.Growth) return false;
-        for (int ability = 0; ability < 5; ability++)
+        for (int ability = 0; ability < OfficerFields.Abilities.Length; ability++)
         {
-            int level = record[0xEC + ability];
+            FieldDef abilityField = OfficerFields.Abilities[ability];
+            int level = (int)abilityField.Read(record);
             if (level < 100) continue;
-            int experience = BitConverter.ToInt32(record, 0x104 + ability * 4);
+            int experience = (int)OfficerFields.ExperienceOf(abilityField).Read(record);
             int adjusted = AbilityProgress.ReapplyExperience(level, experience, ability == 4, true);
             if (adjusted != experience || AbilityProgress.LevelFor(adjusted, ability == 4, true, level) > level) return true;
         }

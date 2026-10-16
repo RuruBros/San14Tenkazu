@@ -52,13 +52,13 @@ internal static partial class GameMemory
         byte[] currentTextCode=Bytes(module+0x863c70,129);
         if(Convert.ToHexString(SHA256.HashData(currentTextCode)).ToLowerInvariant()!=NoticeCurrentTextHash)
             throw new InvalidDataException(L.DeveloperErrors.NoticeCodeChanged);
-        ulong manager=module+0x1b620b0;byte[] managerHeader=Bytes(manager+0x10,24);
+        ulong manager=module+NoticeStateManagerRva;byte[] managerHeader=Bytes(manager+0x10,24);
         ulong count=BinaryPrimitives.ReadUInt64LittleEndian(managerHeader),items=BinaryPrimitives.ReadUInt64LittleEndian(managerHeader.AsSpan(16));
         if(count>128)throw new InvalidDataException(L.DeveloperErrors.NoticeCountInvalid);
         byte[] states=count==0?[]:Bytes(items,checked((int)count*8));ulong state=0;
-        for(int i=0;i<(int)count;i++){ulong candidate=BinaryPrimitives.ReadUInt64LittleEndian(states.AsSpan(i*8));if(candidate!=0&&Q(candidate)==module+0x13acdb8){if(state!=0)throw new InvalidDataException(L.DeveloperErrors.MultipleNotices);state=candidate;}}
+        for(int i=0;i<(int)count;i++){ulong candidate=BinaryPrimitives.ReadUInt64LittleEndian(states.AsSpan(i*8));if(candidate!=0&&Q(candidate)==module+NoticeStateClassRva){if(state!=0)throw new InvalidDataException(L.DeveloperErrors.MultipleNotices);state=candidate;}}
         if(state==0)throw new InvalidOperationException(L.DeveloperErrors.NoOpenNotice);
-        ulong dialog=Q(state+0x470);if(Q(dialog)!=module+0x146e2c0)throw new InvalidDataException(L.DeveloperErrors.NoticeClassChanged);
+        ulong dialog=Q(state+0x470);if(Q(dialog)!=module+NoticeDialogClassRva)throw new InvalidDataException(L.DeveloperErrors.NoticeClassChanged);
         byte[] controls=Bytes(dialog+0x130,20);ulong descriptors=BinaryPrimitives.ReadUInt64LittleEndian(controls),widgets=BinaryPrimitives.ReadUInt64LittleEndian(controls.AsSpan(8));
         int controlsCount=BinaryPrimitives.ReadInt32LittleEndian(controls.AsSpan(16));
         if(controlsCount is <5 or >4096||I(descriptors+4*48)!=2)throw new InvalidDataException(L.DeveloperErrors.NoticeTextChanged);
@@ -162,8 +162,8 @@ internal static partial class GameMemory
         void MatchGetter(int slot,NoticeGetterEvidence expected){var actual=Getter(slot);if(actual!=expected)
             throw new NoticeReadRaceException($"widget.getter+0x{slot:x}",table+(ulong)slot,System.Text.Json.JsonSerializer.Serialize(expected),System.Text.Json.JsonSerializer.Serialize(actual),evidence);}
         Match(manager+0x10,managerHeader,"state.manager");if(count>0)Match(items,states,"state.items");
-        Match(state,BitConverter.GetBytes(module+0x13acdb8),"state.class");Match(state+0x470,BitConverter.GetBytes(dialog),"state.dialog");
-        Match(dialog,BitConverter.GetBytes(module+0x146e2c0),"dialog.class");Match(dialog+0x130,controls,"dialog.controls");
+        Match(state,BitConverter.GetBytes(module+NoticeStateClassRva),"state.class");Match(state+0x470,BitConverter.GetBytes(dialog),"state.dialog");
+        Match(dialog,BitConverter.GetBytes(module+NoticeDialogClassRva),"dialog.class");Match(dialog+0x130,controls,"dialog.controls");
         Match(widgets+4*8,BitConverter.GetBytes(widget),"dialog.text.widget");Match(widget,header,"widget.header");
         MatchGetter(0x80,fontGetter);MatchGetter(0x170,textGetter);
         if(fontRaw is not null)Match(fontGetter.Data,Convert.FromHexString(fontRaw),"widget.font");

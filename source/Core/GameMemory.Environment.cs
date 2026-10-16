@@ -23,14 +23,20 @@ internal static partial class GameMemory
             if(!EnvironmentRestoreResult(worker,out uint result)||result!=0)throw new IOException("Environment dispatch restoration rejected: "+result);
         }finally{if(worker!=IntPtr.Zero)CloseHandle(worker);if(completed||worker==IntPtr.Zero)VirtualFreeEx(handle,args,UIntPtr.Zero,MemRelease);}
     }
+    // The game's state manager (its states' count at +0x10 and their pointers at +0x20), the notice state's class and
+    // the notice dialog's class, read on the verified build (notes/environment). These belong with the other facts
+    // of GameBuildFacts; they wait there because the generated header is pinned into both native bundles.
+    internal const ulong NoticeStateManagerRva=0x1b620b0,NoticeStateClassRva=0x13acdb8,NoticeDialogClassRva=0x146e2c0;
     internal static (int Count,ulong DialogClass,string Text) ReadEnvironmentNotification(GameIdentity identity)
     {
+        GameBuildProfiles.Require(identity);
+        if(!IsSameGame(identity))throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle=OpenProcess(ProcessQueryInformation|ProcessVmRead,false,identity.ProcessId);if(handle==IntPtr.Zero)throw AccessError(L.Errors.NoWriteAccess);
         try{
-            ulong manager=identity.ModuleBase+0x1b620b0,count=BitConverter.ToUInt64(ReadBytes(handle,manager+0x10,8)),items=BitConverter.ToUInt64(ReadBytes(handle,manager+0x20,8));
+            ulong manager=identity.ModuleBase+NoticeStateManagerRva,count=BitConverter.ToUInt64(ReadBytes(handle,manager+0x10,8)),items=BitConverter.ToUInt64(ReadBytes(handle,manager+0x20,8));
             if(count>128)throw new InvalidDataException("Native state count differs");int notices=0;ulong dialogClass=0;string text="";
             for(ulong i=0;i<count;i++){
-                ulong state=BitConverter.ToUInt64(ReadBytes(handle,items+i*8,8));if(state==0||BitConverter.ToUInt64(ReadBytes(handle,state,8))!=identity.ModuleBase+0x13acdb8)continue;
+                ulong state=BitConverter.ToUInt64(ReadBytes(handle,items+i*8,8));if(state==0||BitConverter.ToUInt64(ReadBytes(handle,state,8))!=identity.ModuleBase+NoticeStateClassRva)continue;
                 notices++;byte[] tail=new byte[32];if(!TryRead(handle,state+0x470,tail))continue;
                 ulong dialog=BitConverter.ToUInt64(tail),head=BitConverter.ToUInt64(tail,8),length=BitConverter.ToUInt64(tail,16);byte[] pointer=new byte[8];
                 if(dialog!=0&&TryRead(handle,dialog,pointer))dialogClass=BitConverter.ToUInt64(pointer)-identity.ModuleBase;
