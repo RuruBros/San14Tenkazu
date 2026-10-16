@@ -42,6 +42,7 @@ internal sealed partial class EditorWindow : W.Window
     private readonly WC.ProgressBar progress = new() { IsIndeterminate = true, Height = 3, Visibility = W.Visibility.Collapsed, Margin = new W.Thickness(0, 2, 0, 0) };
     private readonly WC.TextBlock status = new() { Foreground = CardSkin.InkOnDark, TextTrimming = W.TextTrimming.CharacterEllipsis, VerticalAlignment = W.VerticalAlignment.Center };
     private readonly LogPanel log = new();
+    private readonly EditorLogFile logFile;
     // The editor cards in the right pane; one is open at a time.
     private readonly ForceEditorCard forceEditor;
     private readonly CityEditorCard cityEditor;
@@ -78,6 +79,7 @@ internal sealed partial class EditorWindow : W.Window
         aiExtensionKept = new(Path.Combine(aiFolder, "ai_extensions.json"));
         ruleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "rule_profiles.json"));
         runtimeRuleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "runtime-rules"));
+        logFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "logs"));
         this.runtimeRuleAccess = runtimeRuleAccess ?? RuntimeRuleGameAccess.Live;
         this.gamePreparationAccess = gamePreparationAccess ?? GamePreparationAccess.Live;
         this.automaticGameAccess = automaticGameAccess ?? AutomaticGameAccess.Live;
@@ -301,7 +303,11 @@ internal sealed partial class EditorWindow : W.Window
         return true;
     }
 
-    private void AddLog(string message) => log.Append($"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
+    private void AddLog(string message)
+    {
+        string line = $"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}";
+        log.Append(line); logFile.Append(line);
+    }
 
     // The system's message boxes, owned by the window: a question answered yes or no, or a note.
     private bool Confirm(string text, W.MessageBoxImage icon = W.MessageBoxImage.Question, bool defaultNo = false, string? title = null) =>
