@@ -8,7 +8,7 @@ internal sealed partial class EditorWindow
     private readonly CancellationTokenSource automaticGameCancellation = new();
     private readonly AutomaticGameAccess automaticGameAccess;
     private readonly AutomaticGameSettings automaticGameSettings;
-    private bool automaticGameChecking, automaticGameConnecting;
+    private bool automaticGameChecking, automaticGameConnecting, automaticGameCloseRequested;
     private GameIdentity? automaticGameFailure;
     private RuntimeRulePreference? automaticFailedPreference;
     private string automaticNotice = "";
@@ -49,7 +49,15 @@ internal sealed partial class EditorWindow
                 case AutomaticGamePhase.RulesApplied:
                     AutomaticNotice(L.AutomaticSettings.RulesApplied); break;
                 case AutomaticGamePhase.Unsupported:
-                    AutomaticNotice(L.Preparation.Unsupported); automaticGameFailure = candidate; automaticFailedPreference = preference; break;
+                    // No rules can be prepared for an unknown build, but the editor still connects to it once (read-only
+                    // until its self-checks pass), as it did at startup before the automatic settings existed.
+                    AutomaticNotice(L.Preparation.Unsupported);
+                    automaticGameFailure = candidate; automaticFailedPreference = preference;
+                    if (HasPendingEdits || registeredEditor?.HasPending == true) break;
+                    automaticGameConnecting = true;
+                    try { await ConnectAsync(); }
+                    finally { automaticGameConnecting = false; }
+                    break;
                 case AutomaticGamePhase.Connect:
                     if (HasPendingEdits || registeredEditor?.HasPending == true) { AutomaticNotice(L.AutomaticSettings.PendingEdits); break; }
                     automaticGameConnecting = true;
@@ -68,6 +76,11 @@ internal sealed partial class EditorWindow
             automaticFailedPreference = preference;
             AutomaticNotice(L.AutomaticSettings.Failed + " " + error.Message);
         }
-        finally { automaticGameChecking = false; UpdateControls(); }
+        finally
+        {
+            automaticGameChecking = false; UpdateControls();
+            // The window close that arrived during this poll (OnEditorClosing) goes through now.
+            if (automaticGameCloseRequested) { automaticGameCloseRequested = false; Close(); }
+        }
     }
 }

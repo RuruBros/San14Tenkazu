@@ -11,6 +11,9 @@ internal sealed partial class EditorWindow
     private GameIdentity? runtimeRuleFailure;
     private string runtimeRuleNotice = "";
     private GameIdentity? runtimeRulesIdentity;
+    // The officer-data check of the saved rules (experience curve, clamped levels, traits removed at load) for one
+    // loaded world: its need arises at load time, so one scan per storage/settings serves until a write or a reload.
+    private (GameLayout Layout, RuntimeRuleSettings Settings, bool Result)? runtimeReapplyCheck;
     private PlateButton BuildRuntimeRulesMenu()
     {
         runtimeRulesButton.Click += async () =>
@@ -89,7 +92,7 @@ internal sealed partial class EditorWindow
 
     private void FollowRuntimeRuleResult(RuntimeRuleApplyResult result)
     {
-        layout = result.Layout; snapshot = result.Snapshot;
+        layout = result.Layout; snapshot = result.Snapshot; runtimeReapplyCheck = null;
         // Earlier ability/experience Undo belongs to a different growth curve.
         undoHistory.RemoveAll(h => h.Edits.Any(e => e.Changes.Any(c => OfficerFields.Abilities.Contains(c.Field) || OfficerFields.IsExperience(c.Field))));
         map.SetSnapshot(snapshot); FillLists(); ReopenEditor();
@@ -99,7 +102,7 @@ internal sealed partial class EditorWindow
     {
         if (busy || refreshing || runtimeRulesChecking || runtimeRulesChanging || layoutRecovering
             || seasonClosing || seasonDisconnecting || game is not { Verified: true } identity || layout is null) return;
-        if (retry) runtimeRuleFailure = null;
+        if (retry) { runtimeRuleFailure = null; runtimeReapplyCheck = null; }
         if (runtimeRuleFailure == identity) return;
         bool Pending() => lists.Pending > 0 || aiView?.Pending == true || Editors.Any(c => c.Pending > 0) || RulesPending || runtimeRulesWindow?.HasPendingChanges == true;
         if (Pending()) return;
@@ -125,20 +128,36 @@ internal sealed partial class EditorWindow
             }
             preference.CheckBuild(identity.ExeHash);
             if (current is null) { Notice(L.GameSettingsUi.UnknownRulesDeferred); return; }
+            // The steady state (rules already applied, officer data already right) is decided without watching the
+            // clock: ReadPace waits up to 0.8 s while the game is paused, and this runs after every live refresh.
+            if (current == preference.Settings)
+            {
+                bool experienceChanged = false;
+                if (preference.Settings.Growth || preference.Settings.Traits9 || preference.Settings.Expanded)
+                {
+                    if (runtimeReapplyCheck is { } known && known.Settings == preference.Settings && known.Layout.SameStorage(currentLayout))
+                        experienceChanged = known.Result;
+                    else
+                    {
+                        experienceChanged = await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings) ?? false);
+                        if (!Current() || Pending() || runtimeRuleFile.Read() != preference) return;
+                        runtimeReapplyCheck = (currentLayout, preference.Settings, experienceChanged);
+                    }
+                }
+                if (!experienceChanged)
+                {
+                    if (runtimeRulesWindow is { } same && runtimeRulesIdentity == identity)
+                    { same.ShowSettings(current); same.ShowSaved(preference); }
+                    runtimeRuleNotice = "";
+                    return;
+                }
+            }
+            // Something is left to write: the paused transaction needs the clock confirmed still.
             var pace = await Task.Run(() => runtimeRuleAccess.Pace(identity, currentLayout));
             if (!Current() || Pending()) return;
             if (runtimeRuleFile.Read() != preference) return;
             if (pace != GamePace.Paused) { Notice(L.GameSettingsUi.WaitingForPause); return; }
-            bool experienceChanged = current == preference.Settings && (preference.Settings.Growth || preference.Settings.Traits9 || preference.Settings.Expanded)
-                && await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings) ?? false);
-            if (!Current() || Pending() || runtimeRuleFile.Read() != preference) return;
-            if (current == preference.Settings && !experienceChanged)
-            {
-                if (runtimeRulesWindow is { } same && runtimeRulesIdentity == identity)
-                { same.ShowSettings(current); same.ShowSaved(preference); }
-                runtimeRuleNotice = "";
-                return;
-            }
+            runtimeReapplyCheck = null;
             writing = true; runtimeRulesChanging = true; ++ruleRevision; SetBusy(true, scanning: false); runtimeRulesWindow?.SetBusy(true);
             var result = await Task.Run(() => runtimeRuleAccess.Apply(identity, preference.Settings, runtimeRuleFile.ReceiptPath(identity), preference.ConvertExperience, true));
             if (game != identity) return;
