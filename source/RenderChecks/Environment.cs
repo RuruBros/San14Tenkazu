@@ -250,10 +250,10 @@ internal static partial class RenderChecks
             var applied=session.ApplyAsync(EnvironmentSettings.New() with{Effects=EnvironmentEffects.RainVisual},CancellationToken.None).AsTask().GetAwaiter().GetResult();Log(JsonSerializer.Serialize(new{identity.ProcessId,applied.Thread,applied.Frames,calendar}));
             ((IEnvironmentNotificationSession)session).CheckNotificationAsync(text,CancellationToken.None).AsTask().GetAwaiter().GetResult();
             (int Count,ulong DialogClass,string Text) observed=default;var timer=Stopwatch.StartNew();
-            do{var receipt=session.QueryAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();observed=GameMemory.ReadEnvironmentNotification(identity);Log(JsonSerializer.Serialize(new{receipt.Thread,receipt.Frames,receipt.Reserved,observed.Count,observed.DialogClass,observed.Text}));if(observed.Count==1&&observed.DialogClass==0x146e2c0)break;Thread.Sleep(30);}while(timer.ElapsedMilliseconds<5000);
+            do{var receipt=session.QueryAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();observed=GameMemory.ReadEnvironmentNotification(identity);Log(JsonSerializer.Serialize(new{receipt.Thread,receipt.Frames,receipt.Reserved,observed.Count,observed.DialogClass,observed.Text}));if(observed.Count==1&&observed.DialogClass==GameMemory.NoticeDialogClassRva)break;Thread.Sleep(30);}while(timer.ElapsedMilliseconds<5000);
             // The original constructor consumes its input list. An empty post-construction list
             // cannot prove the visible widget's text; record that limitation instead of failing a valid dialog.
-            Log(JsonSerializer.Serialize(new{observed.Count,observed.DialogClass,observed.Text,submittedText=text,visibleTextVerified=false}));Require(observed is{Count:1,DialogClass:0x146e2c0},"Original disaster dialog class was not observed");
+            Log(JsonSerializer.Serialize(new{observed.Count,observed.DialogClass,observed.Text,submittedText=text,visibleTextVerified=false}));Require(observed is{Count:1,DialogClass:GameMemory.NoticeDialogClassRva},"Original disaster dialog class was not observed");
             session.StopAsync().AsTask().GetAwaiter().GetResult();var after=GameMemory.ReadSnapshot(identity,layout);
             Require(GameMemory.ReadCalendar(identity,layout)==calendar,"Original recovery/calendar changed");
             bool sameUnits=before.Units.Select(u=>(u.Slot,u[UnitFields.Troops],u[UnitFields.Morale])).SequenceEqual(after.Units.Select(u=>(u.Slot,u[UnitFields.Troops],u[UnitFields.Morale])));

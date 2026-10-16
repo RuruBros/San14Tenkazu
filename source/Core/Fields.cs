@@ -166,6 +166,9 @@ internal static class OfficerFields
     private static readonly FieldDef[] Experience = Abilities
         .Select((ability, index) => new FieldDef(L.Fields.Experience(ability.Label), RecordKind.Officer, 0x104 + index * 4, FieldKind.Int32, 0, int.MaxValue)).ToArray();
 
+    // The experience field behind an ability (the runtime rules rewrite both when the curve changes).
+    internal static FieldDef ExperienceOf(FieldDef ability) => Experience[Array.IndexOf(Abilities, ability)];
+
     private static long ExperienceAt(long value, bool charm, bool growth = false) => AbilityProgress.Threshold(value, charm, growth);
 
     // The experience to write with an ability's new value: that value's own, plus what the officer had

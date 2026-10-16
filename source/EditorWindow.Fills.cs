@@ -24,38 +24,37 @@ internal sealed partial class EditorWindow
         return ConfirmWrite(L.Fills.WritesTo(what, edits.Count, names));
     }
 
+    // The fill rules (whom, and to what) stay in Fills: its edits are staged as drafts instead of written.
     private void StageLoyalty(EditorCard card, IEnumerable<int> officers)
     {
         if (busy || snapshot is not { } data) return;
-        foreach (int id in officers)
-            if (data.OfficerById.TryGetValue(id, out var officer) && OfficerFields.IsVassal(officer.Status))
-            {
-                var number = card.TableDrafts.Get(new OfficerTarget(id), OfficerFields.Loyalty, officer[OfficerFields.Loyalty]);
-                if (number.IsValid && number.Value < 150) number.Set(150);
-            }
+        var ids = officers.ToList();
+        Dictionary<ulong, OfficerRecord> byAddress = ids.Select(id => data.OfficerById.GetValueOrDefault(id)).OfType<OfficerRecord>()
+            .ToDictionary(o => o.Address);
+        foreach (RecordEdit edit in Fills.RaiseOfficers(data, ids, [OfficerFields.Loyalty]))
+            Stage(card, new OfficerTarget(byAddress[edit.Address].Id), byAddress[edit.Address].Data, edit, raiseOnly: true);
     }
 
     private void StageUnits(IEnumerable<(int Slot, int Commander)> units, bool heal)
     {
         if (busy || snapshot is not { } data) return;
-        foreach (var id in units)
+        var ids = units.ToList();
+        var byAddress = ids.Select(id => (Id: id, Unit: data.Unit(id.Slot, id.Commander))).Where(p => p.Unit is not null)
+            .ToDictionary(p => p.Unit!.Address, p => p);
+        foreach (RecordEdit edit in heal ? Fills.HealUnits(data, ids) : Fills.RaiseMorale(data, ids))
         {
-            if (data.Unit(id.Slot, id.Commander) is not { } unit) continue;
-            var target = new UnitTarget(id.Slot, id.Commander);
-            NumberField Number(FieldDef field) => forceEditor.TableDrafts.Get(target, field, unit[field]);
-            if (heal)
-            {
-                var troops = Number(UnitFields.Troops);
-                var wounded = Number(UnitFields.Wounded);
-                if (!troops.IsValid || !wounded.IsValid || wounded.Value == 0) continue;
-                troops.Set(Math.Min(UnitFields.Troops.Max, troops.Value + wounded.Value));
-                wounded.Set(0);
-            }
-            else
-            {
-                var morale = Number(UnitFields.Morale);
-                if (morale.IsValid && morale.Value < UnitFields.MoraleCap) morale.Set(UnitFields.MoraleCap);
-            }
+            var (id, unit) = byAddress[edit.Address];
+            Stage(forceEditor, new UnitTarget(id.Slot, id.Commander), unit!.Data, edit, raiseOnly: !heal);
         }
+    }
+
+    // One record's fill into the card's drafts: a draft the user typed higher than a raise keeps its value, and a
+    // draft that does not read as a number is left for the footer to report.
+    private static void Stage(EditorCard card, EditorTarget target, byte[] record, RecordEdit edit, bool raiseOnly)
+    {
+        var numbers = edit.Changes.Select(change => (change, Number: card.TableDrafts.Get(target, change.Field, change.Field.Read(record)))).ToList();
+        if (numbers.Any(n => !n.Number.IsValid)) return;
+        foreach ((FieldChange change, NumberField number) in numbers)
+            if (!raiseOnly || number.Value < change.Value) number.Set(change.Value);
     }
 }

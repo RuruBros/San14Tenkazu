@@ -74,7 +74,7 @@ internal static partial class RenderChecks
                 var receipt=environment.QueryAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();
                 renderer?.HeartbeatAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();
                 if(renderer is not null)final=renderer.ReadSceneStatusAsync(CancellationToken.None).AsTask().GetAwaiter().GetResult();
-                var observed=GameMemory.ReadEnvironmentNotification(game);dialogSeen|=observed is{Count:1,DialogClass:0x146e2c0};artSeen|=final is{} draw&&draw.Selection[11]>artBefore;
+                var observed=GameMemory.ReadEnvironmentNotification(game);dialogSeen|=observed is{Count:1,DialogClass:GameMemory.NoticeDialogClassRva};artSeen|=final is{} draw&&draw.Selection[11]>artBefore;
                 Log(JsonSerializer.Serialize(new{elapsedMs=timer.ElapsedMilliseconds,receipt.Thread,receipt.Frames,receipt.Reserved,receipt.DiagnosticSoundAttempted,receipt.DiagnosticAudioMissing,receipt.DiagnosticSoundId,receipt.DiagnosticSoundChannel,receipt.DiagnosticSoundState,receipt.Flags,receipt.LastEvent,
                     observed.Count,observed.DialogClass,artDraws=final?.Selection[11],selection=final?.Selection,swaps=final?.Swaps,restores=final?.Restores,gpuBytes=final?.GpuBytes,originalOnly}));
                 Require(GameMemory.ReadCalendar(game,layout)==calendar,"Calendar changed during notification check");
