@@ -1,5 +1,7 @@
 <Project>
   <PropertyGroup>
+    <!-- One version for the editor, its core engine and the package name. -->
+    <Version>1.2.0</Version>
     <LocalDeveloperPackage Condition="'$(LocalDeveloperPackage)' == ''">false</LocalDeveloperPackage>
     <DefineConstants Condition="'$(LocalDeveloperPackage)' == 'true'">$(DefineConstants);LOCAL_DEVELOPER</DefineConstants>
   </PropertyGroup>
