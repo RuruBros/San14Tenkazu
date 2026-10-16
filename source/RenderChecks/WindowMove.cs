@@ -129,7 +129,7 @@ internal static partial class RenderChecks
         try { Pump(.5); Move(empty, "empty-window", null); }
         finally { empty.Close(); }
 
-        var editor = new EditorWindow();
+        var editor = OfflineEditor();
         var root = (W.FrameworkElement)editor.Content;
         var map = Field<MapView>(editor, "map");
         var surface = Field<MapSurface>(map, "surface");

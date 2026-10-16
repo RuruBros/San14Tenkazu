@@ -33,7 +33,7 @@ internal static partial class RenderChecks
             g => OfficeMemory.Read(m,g),(g,s,c) => OfficeMemory.Apply(m,g,s,c),g => PlainRuleMemory.Read(m,g,RankRules.Spec),(g,s,c) => PlainRuleMemory.Apply(m,g,s,c),
             g => PlainRuleMemory.Read(m,g,DoctrineRules.Spec),(g,s,c) => PlainRuleMemory.Apply(m,g,s,c));
         string storage=Path.Combine(output,"storage-"+Guid.NewGuid().ToString("N"));
-        var window=new EditorWindow(() => false,Path.Combine(storage,"seasons"),Path.Combine(storage,"ai"),storage,access); var map=Field<MapView>(window,"map");
+        var window=OfflineEditor(() => false,Path.Combine(storage,"seasons"),Path.Combine(storage,"ai"),storage,access); var map=Field<MapView>(window,"map");
         try {
             var file=Field<RuleProfileFile>(window,"ruleFile"); var original=m.Ranks!.Profile(); var kept=file.Save(original,"");
             Set(window,"game",m.Identity); Set(window,"snapshot",new TestGame().Build());

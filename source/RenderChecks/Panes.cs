@@ -153,7 +153,7 @@ internal static partial class RenderChecks
         Require(pane.Visibility == W.Visibility.Collapsed, "Closing AI left an empty pane");
 
         // The single toolbar button opens the pane; AI initializes only through its tab.
-        var window = new EditorWindow(aiStorageRoot: Path.GetFullPath(Path.Combine("source/RenderChecks/artifacts", "menu-ai-fixture-" + Guid.NewGuid().ToString("N"))));
+        var window = OfflineEditor(aiStorageRoot: Path.GetFullPath(Path.Combine("source/RenderChecks/artifacts", "menu-ai-fixture-" + Guid.NewGuid().ToString("N"))));
         var initialMap = Field<MapView>(window, "map");
         FieldInfo treesField = typeof(EditorWindow).GetField("aiTrees", Hidden)!;
         treesField.SetValue(window, trees); // No game-file dependency or live writes in this check.

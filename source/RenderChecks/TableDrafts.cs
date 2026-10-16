@@ -48,7 +48,7 @@ internal static partial class RenderChecks
             .Officer(11, "장수", 1, 1, 4).With(11, OfficerFields.Leadership, 65)
             .With(11, OfficerFields.Strength, 60).Leading(11);
         GameSnapshot data = builder.Build();
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, data);
         var card = Field<CityEditorCard>(window, "cityEditor");
         var host = new W.Window { Width = 740, Height = 640, Opacity = 0, ShowActivated = false, ShowInTaskbar = false };

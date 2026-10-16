@@ -61,14 +61,16 @@ internal static partial class GameMemory
     // Re-resolve only the verified root. During a load, unavailable tables wait for the next refresh;
     // do not start a whole-process fallback scan over objects being destroyed/reconstructed.
     internal static GameLayout ReadCurrentLayout(GameIdentity identity)
+        => TryReadCurrentLayout(identity) ?? throw new InvalidOperationException(L.Rules.NotReady);
+
+    internal static GameLayout? TryReadCurrentLayout(GameIdentity identity)
     {
         if (!identity.Verified || !IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle = OpenRead(identity.ProcessId);
         try
         {
             ulong root = ReadPointers(handle, identity.ModuleBase + BasePointerRva, 1)[0];
-            return root == 0 ? throw new InvalidOperationException(L.Rules.NotReady)
-                : TryBuildLayout(handle, identity, VerifiedTables(root + BaseAdjust)) ?? throw new InvalidOperationException(L.Rules.NotReady);
+            return root == 0 ? null : TryBuildLayout(handle, identity, VerifiedTables(root + BaseAdjust));
         }
         finally { CloseHandle(handle); }
     }

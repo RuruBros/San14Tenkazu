@@ -88,7 +88,7 @@ internal static partial class RenderChecks
         static void Click(PlateButton button)=>((Action)typeof(PlateButton).GetField("Click",Hidden)!.GetValue(button)!).Invoke();
         static void Pump(){var frame=new System.Windows.Threading.DispatcherFrame();System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,new Action(()=>frame.Continue=false));System.Windows.Threading.Dispatcher.PushFrame(frame);}
         string directory=Path.Combine(Path.GetTempPath(),"San14Tenkazu-developer-header-"+Guid.NewGuid().ToString("N"));
-        var editor=new EditorWindow(()=>false,directory,directory,directory);
+        var editor=OfflineEditor(()=>false,directory,directory,directory);
         new System.Windows.Interop.WindowInteropHelper(editor).EnsureHandle();
         var root=(W.FrameworkElement)editor.Content;editor.Content=null;
         var host=new W.Window{Content=root,Width=1100,Height=750,ShowActivated=false,ShowInTaskbar=false,Title="Developer header WPF check"};

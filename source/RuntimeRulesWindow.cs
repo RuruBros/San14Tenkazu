@@ -6,14 +6,15 @@ namespace San14Tenkazu;
 internal sealed class RuntimeRulesWindow : W.Window
 {
     private bool known;
+    private bool offline;
     private readonly WC.TextBlock applied = new() { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 6, 0, 14) };
     private readonly WC.TextBlock pending = new() { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 8, 0, 0) };
     private RuntimeRuleSettings? current;
     private bool loading;
     private RuntimeRulePreference? saved;
     private readonly WC.TextBlock savedStatus = new() { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 0, 0, 12) };
-    internal bool HasPendingChanges => (saved is not null || current is not null)
-        && (Selection != (saved?.Settings ?? current) || ConvertProgress.IsChecked != (saved?.ConvertExperience ?? true));
+    internal bool HasPendingChanges => (offline || saved is not null || current is not null)
+        && (Selection != (saved?.Settings ?? current ?? RuntimeRuleSettings.Original) || ConvertProgress.IsChecked != (saved?.ConvertExperience ?? true));
     internal readonly WC.CheckBox Traits = new() { Content = L.GameSettingsUi.TraitsNine, Margin = new W.Thickness(0, 12, 0, 12) };
     internal readonly WC.CheckBox TraitList = new() { Content = L.GameSettingsUi.TraitListNine, Margin = new W.Thickness(0, 0, 0, 12) };
     internal readonly WC.ComboBox Ability = new() { ItemsSource = new[] { L.GameSettingsUi.AbilityOriginal, L.GameSettingsUi.AbilityCapTwoHundred, L.GameSettingsUi.AbilityGrowthTwoHundred }, MinWidth = 320 };
@@ -26,8 +27,9 @@ internal sealed class RuntimeRulesWindow : W.Window
     internal readonly WC.TextBlock Status = new() { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 12, 0, 0) };
     internal RuntimeRuleSettings Selection => new(Traits.IsChecked == true, (AbilityRuleMode)Ability.SelectedIndex, TraitList.IsChecked == true);
 
-    internal RuntimeRulesWindow(RuntimeRuleSettings? current)
+    internal RuntimeRulesWindow(RuntimeRuleSettings? current, bool offline = false)
     {
+        this.offline = offline;
         Title = L.GameSettingsUi.RuntimeWindowTitle; Width = 560; MinWidth = 500; SizeToContent = W.SizeToContent.Height;
         MaxHeight = W.SystemParameters.WorkArea.Height;
         WindowStartupLocation = W.WindowStartupLocation.CenterOwner; ResizeMode = W.ResizeMode.CanResize;
@@ -45,9 +47,9 @@ internal sealed class RuntimeRulesWindow : W.Window
         TraitList.Checked += (_, _) => UpdateSelection(); TraitList.Unchecked += (_, _) => UpdateSelection();
         Ability.SelectionChanged += (_, _) => UpdateSelection();
         panel.Children.Add(new WC.TextBlock { TextWrapping = W.TextWrapping.Wrap,
-            Text = L.GameSettingsUi.PersistenceHelp });
+            Text = L.AutomaticSettings.Help });
         panel.Children.Add(new WC.TextBlock { TextWrapping = W.TextWrapping.Wrap,
-            Margin = new W.Thickness(0, 12, 0, 0), Text = L.Preparation.Help });
+            Margin = new W.Thickness(0, 12, 0, 0), Text = L.AutomaticSettings.LoadTiming });
         var help = new WC.Expander { Header = L.GameSettingsUi.DetailedHelpHeading, Margin = new W.Thickness(0, 12, 0, 0),
             Content = new WC.TextBlock { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 8, 0, 0),
             Text = L.GameSettingsUi.DetailedHelp($"{L.Window.Panel}", $"{L.Navigation.Data}") } };
@@ -60,16 +62,19 @@ internal sealed class RuntimeRulesWindow : W.Window
         ShowSettings(current);
     }
 
-    internal void ShowSettings(RuntimeRuleSettings? settings)
+    internal void ShowSettings(RuntimeRuleSettings? settings, bool preserveSelection = false)
     {
         loading = true; current = settings;
         known = settings is not null;
-        Traits.IsChecked = settings?.Traits9 ?? false; Ability.SelectedIndex = (int)(settings?.Abilities ?? AbilityRuleMode.Original);
-        TraitList.IsChecked = settings?.TraitList9 ?? false;
-        applied.Text = settings is null ? L.GameSettingsUi.StateUnknown : L.GameSettingsUi.AppliedSummary($"{settings.Slots}", $"{(settings.TraitList9 ? 9 : 5)}") + Ability.Items[(int)settings.Abilities];
+        if (!preserveSelection)
+        {
+            Traits.IsChecked = settings?.Traits9 ?? false; Ability.SelectedIndex = (int)(settings?.Abilities ?? AbilityRuleMode.Original);
+            TraitList.IsChecked = settings?.TraitList9 ?? false;
+        }
+        applied.Text = settings is null ? (offline ? L.AutomaticSettings.Waiting : L.GameSettingsUi.StateUnknown) : L.GameSettingsUi.AppliedSummary($"{settings.Slots}", $"{(settings.TraitList9 ? 9 : 5)}") + Ability.Items[(int)settings.Abilities];
         loading = false; UpdateSelection();
-        Apply.IsEnabled = Restore.IsEnabled = Import.IsEnabled = settings is not null;
-        Status.Text = settings is null ? L.GameSettingsUi.UnknownRules : L.GameSettingsUi.CurrentStateRead;
+        SetBusy(false);
+        Status.Text = settings is null ? (offline ? L.AutomaticSettings.Saved : L.GameSettingsUi.UnknownRules) : L.GameSettingsUi.CurrentStateRead;
     }
     internal void ShowSaved(RuntimeRulePreference preference, bool select = false)
     {
@@ -100,6 +105,8 @@ internal sealed class RuntimeRulesWindow : W.Window
     }
     internal void SetBusy(bool busy)
     {
-        Traits.IsEnabled = TraitList.IsEnabled = Ability.IsEnabled = ConvertProgress.IsEnabled = Apply.IsEnabled = Restore.IsEnabled = Import.IsEnabled = !busy && known;
+        Traits.IsEnabled = TraitList.IsEnabled = Ability.IsEnabled = ConvertProgress.IsEnabled = Apply.IsEnabled = Restore.IsEnabled = !busy && (known || offline);
+        Import.IsEnabled = !busy && known && !offline;
     }
+    internal void SetOffline(bool value) => offline = value;
 }

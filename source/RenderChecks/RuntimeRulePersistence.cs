@@ -48,7 +48,7 @@ internal static partial class RenderChecks
                 experienceChanged = false;
                 return new(layout, new TestGame().Build(target), 0);
             }, (_, _, _) => experienceChanged);
-        var editor = new EditorWindow(() => false, storage, storage, storage, runtimeRuleAccess: access);
+        var editor = OfflineEditor(() => false, storage, storage, storage, runtimeRuleAccess: access);
         void Setup(GameIdentity id) { Set(editor, "game", id); Set(editor, "layout", layout); Set(editor, "snapshot", new TestGame().Build(actual)); }
         void Poll(bool retry = false) => Await((Task)Call(editor, "ReapplyRuntimeRulesAsync", retry)!);
         RuntimeRulesWindow? window = null;

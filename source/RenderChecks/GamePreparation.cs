@@ -47,7 +47,7 @@ internal static partial class RenderChecks
             });
         try
         {
-            editor = new EditorWindow(() => false, storage, storage, storage, gamePreparationAccess: access);
+            editor = OfflineEditor(() => false, storage, storage, storage, gamePreparationAccess: access);
             window = new GamePreparationWindow(null);
             window.TraitList.IsChecked = true;
             Check(window.Traits.IsChecked == true, "nine-columns-requires-nine-traits");

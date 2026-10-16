@@ -37,7 +37,7 @@ internal static partial class RenderChecks
         Require(!cancelled.Consistent&&cancelled.First is not null&&cancelled.Second is null,"Mid-read cancel retains only unconfirmed evidence");
         Require(!CompatibilityDiagnostic.Read(()=>throw new IOException("fixture read failure"),()=>true,CancellationToken.None).Consistent,"Read failure must remain inconclusive");
         string directory=Path.Combine(Path.GetTempPath(),"compatibility-close-"+Guid.NewGuid().ToString("N"));
-        var editor=new EditorWindow(()=>false,directory,directory,directory);
+        var editor=OfflineEditor(()=>false,directory,directory,directory);
         using var closing=new CancellationTokenSource();
         try
         {
@@ -59,7 +59,7 @@ internal static partial class RenderChecks
         static T Field<T>(object o,string n)=>(T)o.GetType().GetField(n,Hidden)!.GetValue(o)!;
         static void Click(PlateButton b)=>((Action)typeof(PlateButton).GetField("Click",Hidden)!.GetValue(b)!).Invoke();
         static void Pump(){var frame=new WT.DispatcherFrame();WT.Dispatcher.CurrentDispatcher.BeginInvoke(WT.DispatcherPriority.Background,new Action(()=>frame.Continue=false));WT.Dispatcher.PushFrame(frame);}
-        var editor=new EditorWindow(()=>false,directory,directory,directory);new System.Windows.Interop.WindowInteropHelper(editor).EnsureHandle();
+        var editor=OfflineEditor(()=>false,directory,directory,directory);new System.Windows.Interop.WindowInteropHelper(editor).EnsureHandle();
         var root=(W.FrameworkElement)editor.Content;editor.Content=null;
         var host=new W.Window{Content=root,Width=1100,Height=750,ShowActivated=false,ShowInTaskbar=false,Title="Approved read-only compatibility diagnostic"};
         try

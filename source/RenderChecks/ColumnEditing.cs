@@ -47,7 +47,7 @@ internal static partial class RenderChecks
         game.Leading(11).Leading(12);
         GameSnapshot data = game.Build();
         foreach (UnitRecord unit in data.Units) UnitFields.Morale.Encode(50).CopyTo(unit.Data, UnitFields.Morale.Offset);
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, data);
         Call(window, "FillLists");
         try

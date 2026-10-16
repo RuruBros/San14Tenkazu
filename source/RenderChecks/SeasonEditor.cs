@@ -69,7 +69,7 @@ internal static partial class RenderChecks
             var drain=new WT.DispatcherFrame();WT.Dispatcher.CurrentDispatcher.BeginInvoke(WT.DispatcherPriority.Background,new Action(()=>drain.Continue=false));WT.Dispatcher.PushFrame(drain);
         }
         static void Await(Task task){PumpUntil(()=>task.IsCompleted,35000);task.GetAwaiter().GetResult();}
-        var window=new EditorWindow(()=>false,Path.Combine(output,"product-storage"));
+        var window=OfflineEditor(()=>false,Path.Combine(output,"product-storage"));
         var root=(W.FrameworkElement)window.Content;window.Content=null;
         var host=new W.Window{Content=root,Width=1100,Height=760,ShowActivated=false,ShowInTaskbar=false,
             FontFamily=window.FontFamily,FontSize=window.FontSize,UseLayoutRounding=true,Title="Season native WPF check"};

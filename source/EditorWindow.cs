@@ -71,7 +71,7 @@ internal sealed partial class EditorWindow : W.Window
     private (int Force, int Ruler)? lastPlayer;
     private bool demoNoticed;
 
-    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null)
+    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null, AutomaticGameAccess? automaticGameAccess = null)
     {
         string aiFolder = aiStorageRoot ?? Program.DataFolder;
         aiKept = new(Path.Combine(aiFolder, "ai_values.txt"));
@@ -80,6 +80,8 @@ internal sealed partial class EditorWindow : W.Window
         runtimeRuleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "runtime-rules"));
         this.runtimeRuleAccess = runtimeRuleAccess ?? RuntimeRuleGameAccess.Live;
         this.gamePreparationAccess = gamePreparationAccess ?? GamePreparationAccess.Live;
+        this.automaticGameAccess = automaticGameAccess ?? AutomaticGameAccess.Live;
+        automaticGameSettings = new(this.automaticGameAccess);
         this.ruleAccess = ruleAccess ?? RuleGameAccess.Live;
         this.seasonStorageRoot=seasonStorageRoot ?? Path.Combine(Program.DataFolder,"seasons");
         registeredIsRunning = registeredGameRunning ?? RegisteredOfficerFile.GameIsRunning;
@@ -140,7 +142,7 @@ internal sealed partial class EditorWindow : W.Window
         var bar = new WC.Border { Background = CardSkin.DarkWood, BorderBrush = CardSkin.Gold, BorderThickness = new W.Thickness(0, 0, 0, 2), Padding = new W.Thickness(8), Child = toolbar };
         WC.ToolTipService.SetShowOnDisabled(undoButton, true);
         WC.ToolTipService.SetShowOnDisabled(playButton, true);
-        connectButton.Click += async () => await ConnectAsync();
+        connectButton.Click += async () => { automaticGameFailure = null; await ConnectAsync(); };
         reloadButton.Click += async () => await ReloadAsync();
         calendarButton.Click += async () => await ChangeCalendarAsync();
         cancelButton.Click += () => scanCancellation?.Cancel();
@@ -187,12 +189,14 @@ internal sealed partial class EditorWindow : W.Window
         liveTimer.Tick += async (_, _) => { if (!map.IsMoving) await LiveRefreshAsync(); };
         searchTimer.Tick += (_, _) => { searchTimer.Stop(); RefreshLists(currentOnly: true); };
         iconTimer.Tick += (_, _) => ApplyDecodedIcons();
+        automaticGameTimer.Tick += async (_, _) => await PollAutomaticGameAsync();
         ContentRendered += async (_, _) =>
         {
             StartFaceLibrary(null);
-            if (GameMemory.IsRunning()) await ConnectAsync();
-            else status.Text = L.Window.StartGame;
+            automaticGameTimer.Start();
+            await PollAutomaticGameAsync();
         };
+        Closed += (_, _) => { automaticGameTimer.Stop(); automaticGameCancellation.Cancel(); };
         Closing += OnEditorClosing;
 
         FillLists();
@@ -250,10 +254,10 @@ internal sealed partial class EditorWindow : W.Window
         UpdateSeasonControls();
         bool connected = snapshot is not null && !layoutRecovering;
         UpdateCalendarControls(connected);
-        connectButton.IsEnabled = !busy;
+        connectButton.IsEnabled = !busy && !automaticGameChecking;
         UpdateRegisteredButton();
         reloadButton.IsEnabled = !busy && connected;
-        runtimeRulesButton.IsEnabled = !busy && connected && game is { Verified: true };
+        runtimeRulesButton.IsEnabled = !busy && !automaticGameChecking;
         if(rulesImportButton is {} import)import.IsEnabled=!busy&&connected&&!RulesPending&&ruleKept?.Profile is not null&&game is {Verified:true};
         map.AiEnabled = !busy;
         // [검색 취소] only matters while the slow memory search runs.

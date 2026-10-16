@@ -16,19 +16,20 @@ internal sealed partial class EditorWindow
         runtimeRulesButton.Click += async () =>
         {
             if (runtimeRulesWindow is { } existing) { existing.Activate(); return; }
-            if (busy || game is not { Verified: true } identity) return;
+            if (busy || automaticGameChecking) return;
             try
             {
-                var state = await Task.Run(() => runtimeRuleAccess.Read(identity));
+                var identity = game;
+                var state = identity is { Verified: true } connected ? await Task.Run(() => runtimeRuleAccess.Read(connected)) : null;
                 if (game != identity || busy) return;
-                var window = new RuntimeRulesWindow(state) { Owner = this };
+                var window = new RuntimeRulesWindow(state, offline: identity is null) { Owner = this };
                 var preference = runtimeRuleFile.Read();
-                if (preference is not null) { preference.CheckBuild(identity.ExeHash); window.ShowSaved(preference, select: true); }
+                if (preference is not null) { preference.CheckBuild(identity?.ExeHash ?? GameBuildProfiles.Current.ExeSha256); window.ShowSaved(preference, select: true); }
                 runtimeRulesWindow = window;
                 runtimeRulesIdentity = identity;
                 window.Apply.Click += async () => await ChangeRuntimeRules(window, window.Selection);
                 window.Restore.Click += async () => await ChangeRuntimeRules(window, RuntimeRuleSettings.Original);
-                window.Import.Click += () => ImportRuntimeSettings(window, identity);
+                window.Import.Click += () => { if (game is { Verified: true } current) ImportRuntimeSettings(window, current); };
                 window.Closing += (_, e) => { if (busy) e.Cancel = true; };
                 window.Closed += (_, _) => runtimeRulesWindow = null;
                 window.Show();
@@ -40,7 +41,20 @@ internal sealed partial class EditorWindow
 
     private async Task ChangeRuntimeRules(RuntimeRulesWindow window, RuntimeRuleSettings settings)
     {
-        if (busy || refreshing || runtimeRulesChecking || game is not { Verified: true } identity) return;
+        if (busy || refreshing || runtimeRulesChecking || automaticGameChecking) return;
+        if (game is null && runtimeRulesIdentity is null)
+        {
+            try
+            {
+                var saved = new RuntimeRulePreference(1, GameBuildProfiles.Current.ExeSha256, settings, window.ConvertProgress.IsChecked == true);
+                runtimeRuleFile.Save(saved); window.ShowSaved(saved, select: true);
+                automaticGameFailure = null;
+                window.Status.Text = L.AutomaticSettings.Saved; AddLog(window.Status.Text);
+            }
+            catch (Exception error) { window.Status.Text = error.Message; ReportError(error); }
+            return;
+        }
+        if (game is not { Verified: true } identity) return;
         if (runtimeRulesIdentity != identity) { window.Status.Text = L.GameSettingsUi.ConnectionChanged; return; }
         if (lists.Pending > 0 || Editors.Any(card => card.Pending > 0)) { window.Status.Text = L.GameSettingsUi.PendingEdits; return; }
         bool convert = window.ConvertProgress.IsChecked == true;

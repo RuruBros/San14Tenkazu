@@ -171,7 +171,7 @@ public sealed class RuntimeRuleTests
                 Assert.InRange(restored, start, end - 1);
                 Assert.InRange(Math.Abs((restored - start) / (double)(end - start) - (old - start) / (double)(end - start)), 0, 0.0002);
             }
-        Assert.Throws<InvalidDataException>(() => AbilityProgress.ConvertExperience(150, 1, charm, false, true));
+        Assert.Throws<InvalidDataException>(() => AbilityProgress.ConvertExperience(150, -1, charm, false, true));
         int atMaximum = checked((int)AbilityProgress.Threshold(200, charm, false) + 10000);
         int convertedMaximum = AbilityProgress.ConvertExperience(200, atMaximum, charm, false, true);
         Assert.Equal(AbilityProgress.Threshold(200, charm, true) + 10000, convertedMaximum);

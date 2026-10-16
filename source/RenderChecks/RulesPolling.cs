@@ -46,7 +46,7 @@ internal static partial class RenderChecks
             return FormationMemory.Apply(fixture, game, expected, changes);
         });
         string storage = Path.Combine(output, "polling-storage-" + Guid.NewGuid().ToString("N"));
-        var window = new EditorWindow(() => false, Path.Combine(storage, "seasons"), Path.Combine(storage, "ai"), storage, access);
+        var window = OfflineEditor(() => false, Path.Combine(storage, "seasons"), Path.Combine(storage, "ai"), storage, access);
         try
         {
             FormationSnapshot initial = fixture.Snapshot();
