@@ -244,7 +244,14 @@ internal sealed class EnvironmentController(IEnvironmentBackend backend,Action<s
     }
     public async ValueTask DisposeAsync()
     {
-        if(disposed)return;await StopAsync().ConfigureAwait(false);lifetime.Cancel();
-        if(monitor is not null)await monitor.ConfigureAwait(false);disposed=true;lifetime.Dispose();gate.Dispose();
+        if(disposed)return;
+        // A failed stop still ends the monitor: a session that could not be recovered must not keep polling forever.
+        try{await StopAsync().ConfigureAwait(false);}
+        finally
+        {
+            lifetime.Cancel();
+            if(monitor is not null)try{await monitor.ConfigureAwait(false);}catch(OperationCanceledException){}
+            disposed=true;lifetime.Dispose();gate.Dispose();
+        }
     }
 }

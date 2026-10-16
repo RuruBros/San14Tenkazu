@@ -11,15 +11,17 @@ internal sealed partial class MapSurface
     private EnvironmentOverlay? environment;
     private EnvironmentLayer environmentLayer=null!;
     private int environmentVersion;
-    private string environmentKey="";
+    private EnvironmentOverlay? environmentShown;
     private GameSnapshot? environmentSnapshot;
     private readonly List<(W.Rect Area,int City,string Text)> environmentHits=[];
     private sealed class EnvironmentLayer(MapSurface map):LabelLayer(map){protected override void Draw(MapSurface map,IMapCanvas dc)=>map.DrawEnvironment(dc);}
     internal void SetEnvironment(EnvironmentOverlay? value)
     {
-        environment=value;string key=value is null?"":$"{value.Date}/{value.Flags}/{value.Values}/{value.PreviewCity}/{value.PreviewKind}/{Convert.ToHexString(value.Weather)}/{string.Join(',',value.RecentDates)}";
+        environment=value;
+        // Called on every control refresh: compare the overlay in place rather than formatting it into a key.
+        bool sameOverlay=value is null?environmentShown is null:environmentShown is {} shown&&value.SameAs(shown);
         bool sameRegions=ReferenceEquals(snapshot,environmentSnapshot)||(snapshot is {} current&&environmentSnapshot is {} previous&&current.TileCounties.AsSpan().SequenceEqual(previous.TileCounties)&&current.Counties.Select(c=>(c.Index,c.HomeCity)).SequenceEqual(previous.Counties.Select(c=>(c.Index,c.HomeCity))));
-        if(key==environmentKey&&sameRegions)return;environmentKey=key;environmentSnapshot=snapshot;int version=++environmentVersion;environmentHits.Clear();
+        if(sameOverlay&&sameRegions)return;environmentShown=value;environmentSnapshot=snapshot;int version=++environmentVersion;environmentHits.Clear();
         if(value is null){environmentFill.Source=null;environmentLayer?.Redraw();RequestFrame();RefreshEnvironmentHover();return;}
         if(snapshot is not {} data){RefreshEnvironmentHover();return;}
         Task.Run(()=>MapView.RenderEnvironment(data,value)).ContinueWith(task=>Dispatcher.InvokeAsync(()=>

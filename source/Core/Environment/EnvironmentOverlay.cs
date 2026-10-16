@@ -13,6 +13,9 @@ internal sealed record EnvironmentOverlay(uint Date,EnvironmentEffects Flags,Env
         return flags==EnvironmentEffects.None?null:new(receipt.Date,flags,receipt.Values,receipt.Weather.ToArray(),dates){PreviewCity=preview?(int)receipt.TestCity:0,PreviewKind=(int)receipt.TestKind+3};
     }
     internal bool IsPreview(int city,int kind)=>PreviewCity==city&&PreviewKind==kind;
+    // The same picture to draw: the record's own equality would compare its arrays by reference.
+    internal bool SameAs(EnvironmentOverlay other)=>Date==other.Date&&Flags==other.Flags&&Values==other.Values&&PreviewCity==other.PreviewCity&&PreviewKind==other.PreviewKind
+        &&Weather.AsSpan().SequenceEqual(other.Weather)&&RecentDates.AsSpan().SequenceEqual(other.RecentDates);
     internal int WeatherKind(int city)
     {
         if(city is <1 or >46||Weather.Length!=46)return 0;int w=Weather[city-1];
