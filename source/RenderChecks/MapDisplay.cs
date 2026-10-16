@@ -14,7 +14,7 @@ internal static partial class RenderChecks
     {
         // Real WPF composition and a read-only snapshot of the running game. No editor/game writes.
         Environment.SetEnvironmentVariable("SAN14_RENDER_LOG", Path.GetFullPath("source/RenderChecks/artifacts/map-display.csv"));
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         var root = (W.FrameworkElement)window.Content;
         var map = (MapView)typeof(EditorWindow).GetField("map", Hidden)!.GetValue(window)!;
         window.Content = null;

@@ -35,7 +35,7 @@ internal static partial class RenderChecks
             Forces = made.Forces, ForceRecords = made.ForceRecords, CorpsForce = made.CorpsForce,
             OfficerById = made.OfficerById, Units = [], Facilities = made.Facilities
         };
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         Set(window, "snapshot", data);
         var map = Field<MapView>(window, "map");
         map.SetSnapshot(data);

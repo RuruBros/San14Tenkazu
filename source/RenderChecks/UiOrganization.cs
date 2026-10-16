@@ -35,7 +35,7 @@ internal static partial class RenderChecks
         }
         var app = new W.Application { ShutdownMode = W.ShutdownMode.OnExplicitShutdown };
         string storage = Path.GetFullPath(Path.Combine(output, "storage"));
-        var editor = new EditorWindow(() => false, storage, storage, storage);
+        var editor = OfflineEditor(() => false, storage, storage, storage);
         // Never show EditorWindow: its ContentRendered handler connects to a real game.
         var root = (W.FrameworkElement)editor.Content;
         var fixture = new TestGame().Force(1, 1, 1).City(1, 1);
@@ -90,7 +90,7 @@ internal static partial class RenderChecks
             Check("settings-popup-opens", popup.IsOpen && popup.Child is WC.Border);
             var popupRoot = (W.FrameworkElement)popup.Child;
             Layout(popupRoot, 260, 105); Capture(popupRoot, "settings-menu");
-            Check("disconnected-rules-remain-disabled", !Field<PlateButton>(editor, "runtimeRulesButton").IsEnabled);
+            Check("disconnected-rules-allow-saved-settings", Field<PlateButton>(editor, "runtimeRulesButton").IsEnabled);
             ((Action)typeof(PlateButton).GetField("Click", Hidden)!.GetValue(button)!).Invoke();
             Check("settings-popup-toggles-closed", !popup.IsOpen);
         }

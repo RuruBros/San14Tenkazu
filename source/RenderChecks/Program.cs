@@ -25,6 +25,7 @@ internal static partial class RenderChecks
             if(args.Contains("--runtime-rules-offline")){CheckRuntimeRulesOffline(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--runtime-rule-persistence")){CheckRuntimeRulePersistence(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--game-preparation-offline")){CheckGamePreparation(args.First(a=>!a.StartsWith("--")));return 0;}
+            if(args.Contains("--automatic-settings-offline")){CheckAutomaticSettings(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--settings-import-offline")){CheckSettingsImportOffline(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--developer-menu-check")){CheckDeveloperMenu(bool.Parse(args.First(a=>!a.StartsWith("--"))));return 0;}
 #if LOCAL_DEVELOPER

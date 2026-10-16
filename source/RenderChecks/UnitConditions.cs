@@ -32,7 +32,7 @@ internal static partial class RenderChecks
         var unit = data.Units.Single() with { Terrain = new(data.Units.Single().Tile, 7, 0) };
         data.Units[0] = unit; unit.Data[0x26] = 74;
         foreach (var ailment in UnitFields.Ailments) ailment.Encode(20).CopyTo(unit.Data, ailment.Offset);
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, data);
         typeof(EditorWindow).GetMethod("Show", Hidden)!.Invoke(window, [new UnitTarget(unit.Slot, unit.Commander)]);
         var card = (UnitEditorCard)typeof(EditorWindow).GetProperty("OpenEditor", Hidden)!.GetValue(window)!;

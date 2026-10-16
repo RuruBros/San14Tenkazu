@@ -56,6 +56,6 @@ public sealed class RuntimeRulePreferenceTests
                 int converted = AbilityProgress.ReapplyExperience(level, other, charm, growth);
                 Assert.Equal(converted, AbilityProgress.ReapplyExperience(level, converted, charm, growth));
             }
-        Assert.Throws<InvalidDataException>(() => AbilityProgress.ReapplyExperience(150, 1, charm, true));
+        Assert.Throws<InvalidDataException>(() => AbilityProgress.ReapplyExperience(150, -1, charm, true));
     }
 }

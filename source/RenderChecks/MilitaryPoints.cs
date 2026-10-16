@@ -43,7 +43,7 @@ internal static partial class RenderChecks
             .Officer(35, "원소", 4, 6, 1).Officer(199, "장수", 7, 6, 1).Officer(521, "마등", 9, 22, 1)
             .MilitaryPoints(4, 4, 1, 35, 1907, 4).MilitaryPoints(7, 4, 2, 199, 504, 4)
             .MilitaryPoints(9, 9, 1, 521, 2179).Build();
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         window.GetType().GetField("snapshot", Hidden)!.SetValue(window, data);
         var map = Field<MapView>(window, "map"); var card = map.ForceEditor;
         card.SetNames([], GameCatalog.Empty with { Ranks = Enumerable.Range(1, 12).Select(i => new GameName(i, $"작위{i}", "")).ToArray() });

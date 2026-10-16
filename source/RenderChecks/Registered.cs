@@ -272,7 +272,7 @@ internal static partial class RenderChecks
         window.AllowOwnerClose(); window.Close();
         Record("registered-state-timer-stops-when-window-closes", !gameTimer.IsEnabled);
         bool toolbarRunning = false;
-        var editor = new EditorWindow(() => toolbarRunning);
+        var editor = OfflineEditor(() => toolbarRunning);
         var button = Field<PlateButton>(editor, "registeredButton");
         Record("toolbar-button-available-without-game-connection", button.IsEnabled && button.ToolTip?.ToString() == L.Registered.Tip);
         Record("toolbar-button-click-wired", typeof(PlateButton).GetField("Click", Hidden)!.GetValue(button) is Action);

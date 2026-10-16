@@ -46,7 +46,7 @@ internal static partial class RenderChecks
         static void Click(PlateButton button){Require(button.IsEnabled,"Button disabled");((Action)typeof(PlateButton).GetField("Click",Hidden)!.GetValue(button)!).Invoke();}
         static bool HasCombo(W.DependencyObject node){if(node is WC.ComboBox)return true;foreach(object child in W.LogicalTreeHelper.GetChildren(node))if(child is W.DependencyObject value&&HasCombo(value))return true;return false;}
         var context=SynchronizationContext.Current;SynchronizationContext.SetSynchronizationContext(new WT.DispatcherSynchronizationContext(WT.Dispatcher.CurrentDispatcher));
-        var editor=new EditorWindow(()=>false,Path.Combine(output,"storage"));
+        var editor=OfflineEditor(()=>false,Path.Combine(output,"storage"));
         Set(editor,"environmentReadPace",new Func<GameIdentity,GameLayout,GamePace>((_,_)=>GamePace.Paused));new System.Windows.Interop.WindowInteropHelper(editor).EnsureHandle();
         var root=(W.FrameworkElement)editor.Content;editor.Content=null;var host=new W.Window{Content=root,Width=1100,Height=750,ShowActivated=false,ShowInTaskbar=false};
         EnvironmentSettingsWindow? menu=null;var session=new MenuEnvironmentSession();var controller=new EnvironmentController(new MenuEnvironmentBackend(session),_=>{});

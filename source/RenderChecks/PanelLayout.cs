@@ -54,7 +54,7 @@ internal static partial class RenderChecks
             .With(2, OfficerFields.Strength, 30).With(2, OfficerFields.Politics, 95).With(2, OfficerFields.Charm, 92)
             .With(2, OfficerFields.Birth, 163).With(2, OfficerFields.Debut, 183).With(2, OfficerFields.Death, 212).Play(0);
         GameSnapshot data = game.Build();
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, data);
         var doctrineFixture=new PlainRuleFixture(DoctrineRules.Spec); var rankFixture=doctrineFixture.Ranks!; var officeFixture = rankFixture.Offices; var policyFixture = officeFixture.Policies; var tacticFixture = policyFixture.Tactics;
         var formationFixture = tacticFixture.Formations;

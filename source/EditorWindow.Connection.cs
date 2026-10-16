@@ -11,7 +11,7 @@ internal sealed partial class EditorWindow
 {
     private async Task ConnectAsync()
     {
-        if (busy) return;
+        if (busy || automaticGameChecking && !automaticGameConnecting) return;
         if (!ConfirmDiscard()) return;
         scanCancellation = new CancellationTokenSource();
         CancellationToken token = scanCancellation.Token;
@@ -48,6 +48,13 @@ internal sealed partial class EditorWindow
             game = identity;
             layout = found;
             snapshot = data;
+            if (runtimeRulesWindow is { } rulesWindow)
+            {
+                bool preserve = rulesWindow.HasPendingChanges;
+                runtimeRulesIdentity = identity; rulesWindow.SetOffline(false);
+                rulesWindow.ShowSettings(data.RuntimeRules, preserve);
+                if (!preserve && runtimeRuleFile.Read() is { } savedRules) rulesWindow.ShowSaved(savedRules, select: true);
+            }
             layoutRecovering = false;
             AttachSeasons(identity);
             map.SetSnapshot(data);
@@ -70,7 +77,8 @@ internal sealed partial class EditorWindow
         catch (Exception ex)
         {
             await DisconnectAsync(null);
-            ReportError(ex);
+            if (automaticGameConnecting) AutomaticNotice(L.AutomaticSettings.Failed + " " + ex.Message);
+            else ReportError(ex);
         }
         finally
         {
@@ -175,6 +183,11 @@ internal sealed partial class EditorWindow
             history.Clear();
             historyAt = -1;
             game = null;
+            if (runtimeRulesWindow is { } rulesWindow)
+            {
+                runtimeRulesIdentity = null; rulesWindow.SetOffline(true);
+                rulesWindow.ShowSettings(null, preserveSelection: true);
+            }
             layout = null;
             snapshot = null;
             layoutRecovering = false;

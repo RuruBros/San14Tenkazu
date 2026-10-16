@@ -81,7 +81,7 @@ internal static partial class RenderChecks
         var snapshot = GameMemory.ReadSnapshot(game, layout);
         var catalog = GameMemory.ReadCatalog(game, layout);
         var countries = GameMemory.ReadCountryNames(game, layout);
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         var map = (MapView)typeof(EditorWindow).GetField("map", Hidden)!.GetValue(window)!;
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, snapshot);
         typeof(EditorWindow).GetField("catalog", Hidden)!.SetValue(window, catalog);

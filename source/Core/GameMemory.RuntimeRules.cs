@@ -44,7 +44,10 @@ internal static partial class GameMemory
     internal static void PrepareRuntimeRules(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath)
         => ApplyRuntimeRulesCore(identity, wanted, journalPath, false, false, beforeLoad: true);
 
-    private static int ApplyRuntimeRulesCore(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath, bool convertExperience, bool reapply, bool beforeLoad)
+    internal static bool TryPrepareRuntimeRulesAutomatically(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath)
+        => ApplyRuntimeRulesCore(identity, wanted, journalPath, false, false, beforeLoad: true, requireNoData: true) >= 0;
+
+    private static int ApplyRuntimeRulesCore(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath, bool convertExperience, bool reapply, bool beforeLoad, bool requireNoData = false)
     {
         wanted.Validate();
         if (!identity.Verified || !IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
@@ -76,6 +79,9 @@ internal static partial class GameMemory
                 using var freeze = RuntimeProcessFreeze.Acquire(handle, identity.ProcessId,
                     ranges.ToArray());
                 if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
+                // Recheck under the same freeze as the write. If loading completed since
+                // observation, defer to the connected transaction so XP is not bypassed.
+                if (requireNoData && TryReadCurrentLayout(identity) is not null) return -1;
                 using var memory = new RuntimeProcessMemory(handle);
                 RuntimeRulePatches.VerifyFull(memory.Read, identity.ModuleBase, previous);
                 ulong activeList = RuntimeTraitList.Detect(memory.Read, identity.ModuleBase);

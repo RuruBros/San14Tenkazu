@@ -42,7 +42,7 @@ internal static partial class RenderChecks
         string rulesSource=Path.GetFullPath(Path.Combine(output,"rules-source.json"));File.WriteAllText(rulesSource,JsonSerializer.Serialize(baseline.WithChanges([new(key,10,20)])));
         int reads=0,writes=0;
         var access=new RuleGameAccess(_=>{++reads;return formation;},(_,_)=>GamePace.Paused,(_,_,_)=>{++writes;throw new InvalidOperationException("Unexpected game write");});
-        var editor=new EditorWindow(()=>false,storage,storage,storage,access);
+        var editor=OfflineEditor(()=>false,storage,storage,storage,access);
         try
         {
             Set(editor,"game",identity);Set(editor,"snapshot",new TestGame().Build());Set(editor,"ruleSnapshot",formation);Set(editor,"ruleKept",kept);

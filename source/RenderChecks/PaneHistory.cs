@@ -26,7 +26,7 @@ internal static partial class RenderChecks
         var access = new RuleGameAccess(g => FormationMemory.Read(fixture, g), (_, _) => GamePace.Paused,
             (g, s, c) => FormationMemory.Apply(fixture, g, s, c), g => TacticMemory.Read(fixture, g),
             (g, s, c) => TacticMemory.Apply(fixture, g, s, c));
-        var window = new EditorWindow(() => false, Path.Combine(storage, "seasons"), Path.Combine(storage, "ai"), storage, access);
+        var window = OfflineEditor(() => false, Path.Combine(storage, "seasons"), Path.Combine(storage, "ai"), storage, access);
         var map = Field<MapView>(window, "map");
         try
         {

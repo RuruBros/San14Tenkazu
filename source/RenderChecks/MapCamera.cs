@@ -23,7 +23,7 @@ internal static partial class RenderChecks
         static void Call(MapSurface owner, string name, params object[] args) => typeof(MapSurface).GetMethod(name, Hidden)!.Invoke(owner, args);
         var previous = SynchronizationContext.Current;
         SynchronizationContext.SetSynchronizationContext(new WT.DispatcherSynchronizationContext(WT.Dispatcher.CurrentDispatcher));
-        var window = new EditorWindow(() => true, Path.Combine(output, "season-storage"), Path.Combine(output, "ai-storage"));
+        var window = OfflineEditor(() => true, Path.Combine(output, "season-storage"), Path.Combine(output, "ai-storage"));
         var map = Field<MapView>(window, "map");
         var surface = Field<MapSurface>(map, "surface");
         try

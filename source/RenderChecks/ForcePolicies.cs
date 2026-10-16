@@ -41,7 +41,7 @@ internal static partial class RenderChecks
             var time = ForceFields.PolicyDays(field, slot); time.Encode(days).CopyTo(bytes, time.Offset);
         }
         Set(data, 0, 1, 715); Set(data, 0, 2, 236); Set(data, 3, 1, 82);
-        var window = new EditorWindow { Opacity = 0, ShowActivated = false, ShowInTaskbar = false };
+        var window = new EditorWindow(automaticGameAccess: OfflineGameAccess) { Opacity = 0, ShowActivated = false, ShowInTaskbar = false };
         var map = Field<MapView>(window, "map"); var card = map.ForceEditor;
         void Snapshot(GameSnapshot snapshot) => window.GetType().GetField("snapshot", Hidden)!.SetValue(window, snapshot);
         void Open(GameSnapshot snapshot) { Snapshot(snapshot); Call(window, "Show", new ForceTarget(4)); }

@@ -43,7 +43,7 @@ internal static partial class RenderChecks
         var fixture = new TestGame().Force(1, 1, 1).City(1, 1).Gate(52, 1).Gate(53, 1)
             .Officer(1, "군주", 1, 1, 1).Officer(11, "장수", 1, 1, 4).With(11, OfficerFields.Leadership, 65).Leading(11);
         GameSnapshot data = fixture.Build();
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, data);
         Call(window, "FillLists");
         var map = Field<MapView>(window, "map"); var lists = map.Lists;

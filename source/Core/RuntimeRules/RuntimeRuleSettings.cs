@@ -33,12 +33,15 @@ internal static class AbilityProgress
     }
 
     // Preserve the fraction of the current level, never grant or remove an ability point.
-    // A record fitting neither curve needs an explicit edit rather than an invented baseline.
+    // Native growth only raises levels: an existing ability may have XP below its baseline.
     internal static int ConvertExperience(int level, int experience, bool charm, bool fromGrowth, bool toGrowth)
     {
         if (level is < 0 or > 200 || experience < 0) throw new InvalidDataException(L.RuntimeErrors.ExperienceOutOfRange);
         long target = Threshold(level, charm, toGrowth), end = Threshold(level + 1, charm, toGrowth);
         long start = Threshold(level, charm, fromGrowth), next = Threshold(level + 1, charm, fromGrowth);
+        // No current-level progress exists on either curve. Preserve raw XP rather than
+        // granting a threshold or rejecting valid zero/low-XP officers (Native 0x2B9D50).
+        if (experience < Math.Min(start, target)) return experience;
         if (fromGrowth == toGrowth && experience >= target && (level == 200 || experience < end)) return experience;
         if (level == 200 && experience >= start) return checked((int)(target + experience - start));
         if (experience < start || experience >= next)

@@ -53,7 +53,7 @@ internal static partial class RenderChecks
         static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
         var fixture = new FormationFixture(); FormationSnapshot snapshot = fixture.Snapshot();
         RuleProfile profile = snapshot.Baseline(fixture.Identity.ExeHash);
-        var window = new EditorWindow(() => false, Path.Combine(output, "seasons"), Path.Combine(output, "ai"), output);
+        var window = OfflineEditor(() => false, Path.Combine(output, "seasons"), Path.Combine(output, "ai"), output);
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, new TestGame().Build());
         typeof(EditorWindow).GetField("ruleSnapshot", Hidden)!.SetValue(window, snapshot);
         typeof(EditorWindow).GetField("ruleKept", Hidden)!.SetValue(window, new RuleProfileRead(profile, "fixture"));

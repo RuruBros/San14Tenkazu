@@ -39,7 +39,7 @@ internal static partial class RenderChecks
             g => TacticMemory.Read(fixture,g),(g,s,c) => TacticMemory.Apply(fixture,g,s,c),g => PolicyMemory.Read(fixture,g),(g,s,c) => PolicyMemory.Apply(fixture,g,s,c),
             g => OfficeMemory.Read(fixture,g),(g,s,c) => OfficeMemory.Apply(fixture,g,s,c));
         string storage=Path.Combine(output,"storage-"+Guid.NewGuid().ToString("N"));
-        var window=new EditorWindow(() => false,Path.Combine(storage,"seasons"),Path.Combine(storage,"ai"),storage,access);
+        var window=OfflineEditor(() => false,Path.Combine(storage,"seasons"),Path.Combine(storage,"ai"),storage,access);
         var map=Field<MapView>(window,"map");
         try {
             var file=Field<RuleProfileFile>(window,"ruleFile"); var original=policies.Profile(); var kept=file.Save(original,"");

@@ -87,7 +87,7 @@ internal static partial class RenderChecks
         }
 
         // Measure the real toolbar without showing the editor (ContentRendered auto-connects to a live game).
-        var editor = new EditorWindow(() => false, Path.Combine(output, "seasons"), Path.Combine(output, "ai"), Path.Combine(output, "rules"));
+        var editor = OfflineEditor(() => false, Path.Combine(output, "seasons"), Path.Combine(output, "ai"), Path.Combine(output, "rules"));
         try
         {
             void Set(string name, object? value) => typeof(EditorWindow).GetField(name, Hidden)!.SetValue(editor, value);

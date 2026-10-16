@@ -40,7 +40,7 @@ internal static partial class RenderChecks
             (g, s, c) => FormationMemory.Apply(fixture, g, s, c), g => TacticMemory.Read(fixture, g),
             (g, s, c) => TacticMemory.Apply(fixture, g, s, c));
         string storage = Path.Combine(output, "tactic-storage-" + Guid.NewGuid().ToString("N"));
-        var window = new EditorWindow(() => false, Path.Combine(storage, "seasons"), Path.Combine(storage, "ai"), storage, access);
+        var window = OfflineEditor(() => false, Path.Combine(storage, "seasons"), Path.Combine(storage, "ai"), storage, access);
         try
         {
             RuleProfile original = fixture.Formations.Snapshot().Baseline(fixture.Identity.ExeHash);

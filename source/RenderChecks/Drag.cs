@@ -19,7 +19,7 @@ internal static partial class RenderChecks
         static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, Hidden)!.GetValue(obj)!;
         static void Set(object obj, string name, object value) => obj.GetType().GetField(name, Hidden)!.SetValue(obj, value);
         static object? Call(object obj, string name, params object?[] args) => obj.GetType().GetMethod(name, Hidden)!.Invoke(obj, args);
-        var window = new EditorWindow();
+        var window = OfflineEditor();
         var root = (W.FrameworkElement)window.Content;
         var map = Field<MapView>(window, "map");
         var surface = Field<MapSurface>(map, "surface");
