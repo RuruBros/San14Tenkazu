@@ -75,9 +75,16 @@ internal sealed partial class EditorWindow
             window.ShowSettings(result.Snapshot.RuntimeRules);
             window.Status.Text = L.GameSettingsUi.SavedAndApplied($"{result.Converted}", $"{receipt}");
             AddLog(L.GameSettingsUi.AppliedLog($"{settings.Slots}", $"{(settings.TraitList9 ? 9 : 5)}", $"{settings.Abilities}", $"{result.Converted}"));
+            foreach (string line in RestoreNotices(result)) { window.Status.Text += " " + line; AddLog(line); }
         }
         catch (Exception error) { runtimeRuleFailure = identity; window.Status.Text = error.Message; ReportError(error); }
         finally { runtimeRulesChanging = false; SetBusy(false, scanning: false); window.SetBusy(false); }
+    }
+
+    private static IEnumerable<string> RestoreNotices(RuntimeRuleApplyResult result)
+    {
+        if (result.Restored > 0) yield return L.GameSettingsUi.AbilitiesRestored($"{result.Restored}");
+        if (result.TraitsRestored > 0) yield return L.GameSettingsUi.TraitsRestored($"{result.SaveName}", $"{result.TraitsRestored}");
     }
 
     private void FollowRuntimeRuleResult(RuntimeRuleApplyResult result)
@@ -122,7 +129,7 @@ internal sealed partial class EditorWindow
             if (!Current() || Pending()) return;
             if (runtimeRuleFile.Read() != preference) return;
             if (pace != GamePace.Paused) { Notice(L.GameSettingsUi.WaitingForPause); return; }
-            bool experienceChanged = current == preference.Settings && preference.Settings.Growth
+            bool experienceChanged = current == preference.Settings && (preference.Settings.Growth || preference.Settings.Traits9 || preference.Settings.Expanded)
                 && await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings) ?? false);
             if (!Current() || Pending() || runtimeRuleFile.Read() != preference) return;
             if (current == preference.Settings && !experienceChanged)
@@ -138,7 +145,7 @@ internal sealed partial class EditorWindow
             FollowRuntimeRuleResult(result);
             if (runtimeRulesWindow is { } applied && runtimeRulesIdentity == identity)
             { applied.ShowSettings(result.Snapshot.RuntimeRules); applied.ShowSaved(preference); }
-            Notice(L.GameSettingsUi.Reapplied($"{result.Converted}"));
+            Notice(string.Join(" ", new[] { L.GameSettingsUi.Reapplied($"{result.Converted}") }.Concat(RestoreNotices(result))));
         }
         catch (Exception error)
         {

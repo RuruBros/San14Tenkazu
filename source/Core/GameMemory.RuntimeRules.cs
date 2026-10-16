@@ -15,29 +15,51 @@ internal static partial class GameMemory
         finally { CloseHandle(handle); }
     }
 
-    internal static bool RuntimeExperienceNeedsReapply(GameIdentity identity, GameLayout layout, RuntimeRuleSettings settings)
+    // Whether the connected game still needs the officer-data side of the saved rules: experience on the
+    // wrong curve, levels clamped below their experience, or abilities/traits the original loader removed
+    // that the located save still holds.
+    internal static bool RuntimeRulesNeedReapply(GameIdentity identity, GameLayout layout, RuntimeRuleSettings settings)
     {
-        if (!settings.Growth) return false;
+        if (!settings.Growth && !settings.Traits9 && !settings.Expanded) return false;
         GameCapabilities.Require(identity, GameFeature.RuntimeAbilities);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
+        var current = ReadCurrentLayout(identity);
+        if (!layout.SameStorage(current)) throw new InvalidOperationException(L.RuntimeErrors.Loading);
+        byte[]?[] records = ReadOfficerRecords(identity, current);
+        var save = settings.Traits9 || settings.Expanded ? GameSaveLocator.FindLoaded(records)?.Save : null;
+        for (int slot = 1; slot < records.Length; slot++)
+        {
+            byte[] record = records[slot]!;
+            if (settings.Growth && RuntimeRuleExperience.NeedsReapply(record, settings)) return true;
+            if (save is not null && SaveRestore.Plan(record, 0, save.Officers[slot], settings).Length != 0) return true;
+        }
+        return false;
+    }
+
+    private static byte[]?[] ReadOfficerRecords(GameIdentity identity, GameLayout layout)
+    {
         IntPtr handle = OpenRead(identity.ProcessId);
         try
         {
-            var current = ReadCurrentLayout(identity);
-            if (!layout.SameStorage(current)) throw new InvalidOperationException(L.RuntimeErrors.Loading);
-            for (int slot = 1; slot < current.OfficerCount; slot++)
+            byte[] all = ReadBytes(handle, layout.OfficerArray, layout.OfficerCount * OfficerStride);
+            var records = new byte[]?[layout.OfficerCount];
+            for (int slot = 1; slot < layout.OfficerCount; slot++)
             {
-                byte[] record = ReadBytes(handle, current.OfficerArray + (ulong)(slot * OfficerStride), OfficerStride);
+                byte[] record = all.AsSpan(slot * OfficerStride, OfficerStride).ToArray();
                 if (BitConverter.ToUInt64(record) != identity.Classes.Officer) throw new InvalidDataException(L.RuntimeErrors.OfficerTableChanged);
-                if (RuntimeRuleExperience.NeedsReapply(record, settings)) return true;
+                records[slot] = record;
             }
-            return false;
+            return records;
         }
         finally { CloseHandle(handle); }
     }
 
-    internal static int ApplyRuntimeRules(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath, bool convertExperience, bool reapply = false)
-        => ApplyRuntimeRulesCore(identity, wanted, journalPath, convertExperience, reapply, beforeLoad: false);
+    // The Steam save the running game was loaded from, by its officer records; null when none matches.
+    internal static GameSaveOfficers? FindLoadedSave(GameIdentity identity, GameLayout layout)
+        => GameSaveLocator.FindLoaded(ReadOfficerRecords(identity, layout))?.Save;
+
+    internal static RuntimeRuleApplyCounts ApplyRuntimeRules(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath, bool convertExperience, bool reapply = false)
+        => ApplyRuntimeRulesCore(identity, wanted, journalPath, convertExperience, reapply, beforeLoad: false)!;
 
     // Called only by the explicit fresh-process preparation flow, before the user loads a save.
     // This transaction changes rules, never officer data or installation files.
@@ -45,9 +67,10 @@ internal static partial class GameMemory
         => ApplyRuntimeRulesCore(identity, wanted, journalPath, false, false, beforeLoad: true);
 
     internal static bool TryPrepareRuntimeRulesAutomatically(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath)
-        => ApplyRuntimeRulesCore(identity, wanted, journalPath, false, false, beforeLoad: true, requireNoData: true) >= 0;
+        => ApplyRuntimeRulesCore(identity, wanted, journalPath, false, false, beforeLoad: true, requireNoData: true) is not null;
 
-    private static int ApplyRuntimeRulesCore(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath, bool convertExperience, bool reapply, bool beforeLoad, bool requireNoData = false)
+    // Null only with requireNoData, when game data appeared before the write: the caller defers to the connected transaction.
+    private static RuntimeRuleApplyCounts? ApplyRuntimeRulesCore(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath, bool convertExperience, bool reapply, bool beforeLoad, bool requireNoData = false)
     {
         wanted.Validate();
         if (!identity.Verified || !IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
@@ -65,6 +88,8 @@ internal static partial class GameMemory
             // Both explicit changes and saved-preference reconciliation use the same paused transaction.
             GameLayout? layout = beforeLoad ? null : ReadCurrentLayout(identity);
             if (!beforeLoad && ReadPace(identity, layout!) != GamePace.Paused) throw new InvalidOperationException(L.RuntimeErrors.PauseRequired);
+            // Located before the freeze (file reads); every record is matched again under it before any write.
+            GameSaveOfficers? save = !beforeLoad && (wanted.Traits9 || wanted.Expanded) ? FindLoadedSave(identity, layout!) : null;
             IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation | 0x0800, false, identity.ProcessId);
             if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
             bool newListAllocation = false, retainListAllocation = false;
@@ -81,7 +106,7 @@ internal static partial class GameMemory
                 if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
                 // Recheck under the same freeze as the write. If loading completed since
                 // observation, defer to the connected transaction so XP is not bypassed.
-                if (requireNoData && TryReadCurrentLayout(identity) is not null) return -1;
+                if (requireNoData && TryReadCurrentLayout(identity) is not null) return null;
                 using var memory = new RuntimeProcessMemory(handle);
                 RuntimeRulePatches.VerifyFull(memory.Read, identity.ModuleBase, previous);
                 ulong activeList = RuntimeTraitList.Detect(memory.Read, identity.ModuleBase);
@@ -105,8 +130,9 @@ internal static partial class GameMemory
                 var writes = RuntimeRulePatches.All.Select(p => new RuntimeRuleWrite(identity.ModuleBase + p.Rva,
                     p.Bytes(previous), p.Bytes(wanted), p.Rva < GameBuildFacts.Runtime.ExecutableLimit))
                     .Where(p => !p.Before.SequenceEqual(p.After)).ToList();
-                int conversions = 0;
-                if (!beforeLoad && (wanted.Growth || previous.Growth))
+                int conversions = 0, restorations = 0, traitRestorations = 0;
+                if (save is not null && save.Officers.Length != current!.OfficerCount) save = null;
+                if (!beforeLoad && (wanted.Growth || previous.Growth || save is not null))
                 {
                     // Include every actual officer record, including unnamed/not-yet-appeared ones.
                     for (int slot = 1; slot < current!.OfficerCount; slot++)
@@ -114,8 +140,13 @@ internal static partial class GameMemory
                         ulong address = current.OfficerArray + (ulong)(slot * OfficerStride);
                         byte[] record = memory.Read(address, OfficerStride);
                         if (BitConverter.ToUInt64(record) != identity.Classes.Officer) throw new InvalidDataException(L.RuntimeErrors.OfficerTableChanged);
-                        var converted = RuntimeRuleExperience.Plan(record, address, previous, wanted, reapply, convertExperience);
-                        writes.AddRange(converted); conversions += converted.Length;
+                        var fromSave = save is null ? [] : SaveRestore.Plan(record, address, save.Officers[slot], wanted);
+                        var converted = RuntimeRuleExperience.Plan(record, address, previous, wanted, reapply, convertExperience)
+                            .Where(w => !fromSave.Any(s => s.Address == w.Address)).ToArray();
+                        writes.AddRange(converted); writes.AddRange(fromSave);
+                        int levels = converted.Count(RuntimeRuleExperience.IsLevelRestore) + fromSave.Count(w => !SaveRestore.IsTraitRestore(w));
+                        restorations += levels; conversions += converted.Length - converted.Count(RuntimeRuleExperience.IsLevelRestore);
+                        traitRestorations += fromSave.Count(SaveRestore.IsTraitRestore);
                     }
                 }
                 if (wanted.TraitList9 && listAllocation == 0)
@@ -145,7 +176,7 @@ internal static partial class GameMemory
                     retainListAllocation = true;
                     throw;
                 }
-                return conversions;
+                return new(conversions, restorations, traitRestorations, restorations + traitRestorations > 0 && save is not null && writes.Any(w => SaveRestore.IsTraitRestore(w) || w.Before.Length == 1) ? save.Name : null);
             }
             finally
             {

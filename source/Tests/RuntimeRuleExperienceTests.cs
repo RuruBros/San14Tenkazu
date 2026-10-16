@@ -86,12 +86,59 @@ public sealed class RuntimeRuleExperienceTests
         Assert.False(RuntimeRuleExperience.NeedsReapply(record, Growth));
         Assert.Empty(RuntimeRuleExperience.Plan(record, 0x1000, Growth, Growth, true, true));
     }
-    [Theory] [InlineData(-1)] [InlineData(4_000_000)] [InlineData(int.MaxValue)]
+    [Theory] [InlineData(-1)] [InlineData(4_000_000)]
     public void InvalidExperienceIsRejectedWithoutInventingAValue(int experience)
     {
         var record = new byte[0x1F0]; record[0xEC] = 150;
         BitConverter.GetBytes(experience).CopyTo(record, 0x104);
         Assert.Throws<InvalidDataException>(() => RuntimeRuleExperience.NeedsReapply(record, Growth));
         Assert.Throws<InvalidDataException>(() => RuntimeRuleExperience.Plan(record, 0, Growth, Growth, true, true));
+    }
+
+    // The original loader clamps 150 to 100 but keeps the 150 XP (0x2258A7 limit loop, XP untouched).
+    // Such a record must not block the whole rule transaction: keep the XP, write nothing.
+    [Theory] [InlineData(100, 150)] [InlineData(100, 200)] [InlineData(120, 150)] [InlineData(150, int.MaxValue)]
+    public void StaleLevelWithExperienceBeyondBothCurvesIsPreservedUnchanged(int level, int source)
+    {
+        var record = new byte[0x1F0];
+        for (int ability = 0; ability < 5; ability++)
+        {
+            record[0xEC + ability] = (byte)level;
+            int experience = source == int.MaxValue ? int.MaxValue : checked((int)AbilityProgress.Threshold(source, ability == 4, true));
+            BitConverter.GetBytes(experience).CopyTo(record, 0x104 + ability * 4);
+            Assert.True(experience >= AbilityProgress.Threshold(level + 1, ability == 4, true));
+            Assert.True(experience >= AbilityProgress.Threshold(level + 1, ability == 4, false));
+            Assert.Equal(experience, AbilityProgress.ReapplyExperience(level, experience, ability == 4, true));
+            Assert.Equal(experience, AbilityProgress.ReapplyExperience(level, experience, ability == 4, false));
+            Assert.Equal(experience, AbilityProgress.ConvertExperience(level, experience, ability == 4, false, true));
+            Assert.Equal(experience, AbilityProgress.ConvertExperience(level, experience, ability == 4, true, false));
+        }
+        // Leaving growth mode never touches the level; entering or re-applying it restores the clamped level
+        // from the experience without converting any experience (so the conversion option is not required).
+        Assert.Empty(RuntimeRuleExperience.Plan(record, 0, Growth, RuntimeRuleSettings.Original, false, false));
+        Assert.True(RuntimeRuleExperience.NeedsReapply(record, Growth));
+        int expected = source == int.MaxValue ? 200 : source;
+        foreach (var writes in new[] { RuntimeRuleExperience.Plan(record, 0x1000, Growth, Growth, true, true),
+            RuntimeRuleExperience.Plan(record, 0x1000, RuntimeRuleSettings.Original, Growth, false, false) })
+        {
+            Assert.Equal(5, writes.Length);
+            Assert.All(writes, w => { Assert.True(RuntimeRuleExperience.IsLevelRestore(w)); Assert.False(w.Executable); Assert.Equal(level, w.Before[0]); Assert.Equal(expected, w.After[0]); });
+            Assert.Equal(Enumerable.Range(0, 5).Select(i => 0x1000UL + 0xEC + (ulong)i), writes.Select(w => w.Address));
+        }
+        var restored = (byte[])record.Clone();
+        foreach (var write in RuntimeRuleExperience.Plan(record, 0x1000, Growth, Growth, true, true)) write.After.CopyTo(restored, checked((int)(write.Address - 0x1000)));
+        Assert.False(RuntimeRuleExperience.NeedsReapply(restored, Growth));
+        Assert.Empty(RuntimeRuleExperience.Plan(restored, 0x1000, Growth, Growth, true, true));
+    }
+
+    [Fact]
+    public void LevelForFollowsTheGrowthCurveAndNeverLowersAStoredLevel()
+    {
+        Assert.Equal(100, AbilityProgress.LevelFor((int)AbilityProgress.Threshold(101, false, true) - 1, false, true, 100));
+        Assert.Equal(101, AbilityProgress.LevelFor((int)AbilityProgress.Threshold(101, false, true), false, true, 100));
+        Assert.Equal(150, AbilityProgress.LevelFor((int)AbilityProgress.Threshold(151, true, true) - 1, true, true, 100));
+        Assert.Equal(200, AbilityProgress.LevelFor(int.MaxValue, false, true, 100));
+        Assert.Equal(120, AbilityProgress.LevelFor(0, false, true, 120));
+        Assert.Throws<InvalidDataException>(() => AbilityProgress.LevelFor(-1, false, true, 100));
     }
 }

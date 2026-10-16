@@ -1,5 +1,9 @@
 namespace San14Tenkazu;
 
+// Experience values rescaled to the wanted curve, ability levels raised back (from experience or the located
+// save), officers whose nine traits came back from that save, and the save's file name when one was used.
+internal sealed record RuntimeRuleApplyCounts(int Converted, int Restored, int TraitsRestored = 0, string? SaveName = null);
+
 internal static class RuntimeRuleExperience
 {
     internal static RuntimeRuleWrite[] Plan(byte[] record, ulong address, RuntimeRuleSettings previous,
@@ -24,12 +28,20 @@ internal static class RuntimeRuleExperience
                 throw new InvalidDataException(L.RuntimeErrors.OfficerConversionError($"{BitConverter.ToUInt16(record, OfficerFields.IdOffset)}",
                     $"{OfficerFields.Abilities[ability].Label}", $"{error.Message}"), error);
             }
-            if (adjusted == experience) continue;
-            if (!convertExperience) throw new InvalidOperationException(L.RuntimeErrors.ConversionRequired);
-            writes.Add(new(address + (uint)offset, BitConverter.GetBytes(experience), BitConverter.GetBytes(adjusted), false));
+            if (adjusted != experience)
+            {
+                if (!convertExperience) throw new InvalidOperationException(L.RuntimeErrors.ConversionRequired);
+                writes.Add(new(address + (uint)offset, BitConverter.GetBytes(experience), BitConverter.GetBytes(adjusted), false));
+            }
+            // Growth mode: a level below what its experience reached was clamped by the original loader
+            // (0x2258A7 keeps the experience). Restore the level the game itself would reach on the next gain.
+            if (wanted.Growth && AbilityProgress.LevelFor(adjusted, ability == 4, true, level) is int reached && reached > level)
+                writes.Add(new(address + (uint)(0xEC + ability), [(byte)level], [(byte)reached], false));
         }
         return writes.ToArray();
     }
+
+    internal static bool IsLevelRestore(RuntimeRuleWrite write) => write.Before.Length == 1;
 
     internal static bool NeedsReapply(byte[] record, RuntimeRuleSettings settings)
     {
@@ -39,7 +51,8 @@ internal static class RuntimeRuleExperience
             int level = record[0xEC + ability];
             if (level < 100) continue;
             int experience = BitConverter.ToInt32(record, 0x104 + ability * 4);
-            if (AbilityProgress.ReapplyExperience(level, experience, ability == 4, true) != experience) return true;
+            int adjusted = AbilityProgress.ReapplyExperience(level, experience, ability == 4, true);
+            if (adjusted != experience || AbilityProgress.LevelFor(adjusted, ability == 4, true, level) > level) return true;
         }
         return false;
     }
