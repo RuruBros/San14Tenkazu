@@ -979,7 +979,10 @@ internal static partial class GameMemory
 
             return new GameSnapshot
             {
-                RuntimeRules = identity.Verified ? RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase) : null,
+                // Runtime patches exist only on the verified build: an unknown build runs the original rules, and its
+                // ability curve is still checked by GameChecks before any write is allowed. Null means the verified
+                // build's code was found in a state no setting explains.
+                RuntimeRules = identity.Verified ? RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase) : RuntimeRuleSettings.Original,
                 Cities = cities,
                 Counties = counties.ToArray(),
                 Officers = officers.ToArray(),
@@ -1142,8 +1145,10 @@ internal static partial class GameMemory
         try
         {
             ValidateForceAgreementCalls(handle, identity, edits);
-            foreach (var expected in edits.Select(e => e.ExpectedRuntimeRules).OfType<RuntimeRuleSettings>().Distinct())
-                RuntimeRulePatches.VerifyFull((address, length) => ReadBytes(handle, address, length), identity.ModuleBase, expected);
+            // The patch sites are the verified build's; an unknown build has no patches to confirm.
+            if (identity.Verified)
+                foreach (var expected in edits.Select(e => e.ExpectedRuntimeRules).OfType<RuntimeRuleSettings>().Distinct())
+                    RuntimeRulePatches.VerifyFull((address, length) => ReadBytes(handle, address, length), identity.ModuleBase, expected);
             return Apply(new ProcessMemory(handle), identity.Classes, edits);
         }
         finally { CloseHandle(handle); }

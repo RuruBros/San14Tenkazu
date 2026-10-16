@@ -205,7 +205,8 @@ internal sealed partial class EditorWindow
 
     private async void OnEditorClosing(object? sender,CancelEventArgs e)
     {
-        if (automaticGameChecking) { e.Cancel = true; return; }
+        // A poll in flight (it may be connecting) finishes first; its end closes the window again (PollAutomaticGameAsync).
+        if (automaticGameChecking) { automaticGameCloseRequested = true; e.Cancel = true; return; }
         if (gamePreparationCancellation is { } preparation) { preparation.Cancel(); e.Cancel = true; return; }
 #if LOCAL_DEVELOPER
         if(compatibilityCancellation is {} diagnostic){diagnostic.Cancel();e.Cancel=true;return;}
