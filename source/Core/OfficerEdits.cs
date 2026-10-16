@@ -72,7 +72,7 @@ internal static class OfficerEdits
             edits.Add(new RecordEdit(RecordKind.Item, item.Address, item.Data, L.Edits.ItemLabel(item.Name), moves));
         }
         if (data.RuntimeRules is null && request.Own.Any(c => OfficerFields.Abilities.Contains(c.Field) || OfficerFields.Personalities.Contains(c.Field)))
-            return EditPlan.Refuse("개성·성장 규칙을 확인할 수 없습니다. 다른 패치와의 충돌을 확인하세요.");
+            return EditPlan.Refuse(L.RuntimeErrors.RuntimeStateUnknown);
         return new EditPlan(WithExperience(edits, data.RuntimeRules?.Growth ?? false)
             .Select(e => e with { ExpectedRuntimeRules = e.Changes.Any(c => OfficerFields.Abilities.Contains(c.Field)
                 || OfficerFields.Personalities.Contains(c.Field)) ? data.RuntimeRules : null }).ToList(), self.Name);

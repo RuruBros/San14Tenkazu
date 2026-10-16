@@ -649,7 +649,7 @@
     {
       "path": "Core/RuntimeRules/patches.json",
       "name": "RuntimeRules.patches.json",
-      "sha256": "bc7886e8fa077ae28d0187b2cfae6705d7f758acd57fab185a421c7622b72a3e"
+      "sha256": "05b5a612e395627c636b1dd270d3d33e55e27a9d9d81096a308a07ca2c5e24f4"
     },
     {
       "path": "Core/RuntimeRules/trait-list.json",

@@ -10,7 +10,7 @@ internal sealed partial class MapView
     private void AddEnvironmentPreviewLegend()
     {
         if(environment is not {} value)return;
-        if(value.PreviewCity>0)legend.Children.Add(new System.Windows.Controls.TextBlock{Text="[표시 전용 테스트 · 피해 없음]",Foreground=CardSkin.Ink});
+        if(value.PreviewCity>0)legend.Children.Add(new System.Windows.Controls.TextBlock{Text=L.DataUi.PreviewLegend,Foreground=CardSkin.Ink});
     }
     internal static Color EnvironmentColor(int kind)=>kind switch{1=>Color.FromArgb(92,176,232),2=>Color.FromArgb(222,242,255),3=>Color.FromArgb(65,150,245),4=>Color.FromArgb(247,135,64),6=>Color.FromArgb(113,210,240),7=>Color.FromArgb(243,91,80),_=>Color.FromArgb(224,187,69)};
     internal static WMI.BitmapSource RenderEnvironment(GameSnapshot data,EnvironmentOverlay value)

@@ -36,7 +36,7 @@ internal static partial class RenderChecks
         var layout = new GameLayout(new(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),0,0,0,0,0,0,0,0,[],[],0,0,0x1000);
         var wanted = new RuntimeRuleSettings(true, AbilityRuleMode.Growth200, true);
         RuntimeRuleSettings? actual = RuntimeRuleSettings.Original;
-        GamePace pace = GamePace.Running; int writes = 0, reads = 0; bool fail = false;
+        GamePace pace = GamePace.Running; int writes = 0, reads = 0; bool fail = false, experienceChanged = false;
         Action? onRead = null, onPace = null;
         var access = new RuntimeRuleGameAccess(_ => { Interlocked.Increment(ref reads); onRead?.Invoke(); return actual; }, (_, _) => { onPace?.Invoke(); return pace; },
             (id, target, path, convert, reapply) =>
@@ -45,8 +45,9 @@ internal static partial class RenderChecks
                 Check(reapply && convert, "auto-apply-preserves-saved-conversion-policy");
                 Check(path == file.ReceiptPath(id), "uses-current-process-receipt-path");
                 actual = target;
+                experienceChanged = false;
                 return new(layout, new TestGame().Build(target), 0);
-            });
+            }, (_, _, _) => experienceChanged);
         var editor = new EditorWindow(() => false, storage, storage, storage, runtimeRuleAccess: access);
         void Setup(GameIdentity id) { Set(editor, "game", id); Set(editor, "layout", layout); Set(editor, "snapshot", new TestGame().Build(actual)); }
         void Poll(bool retry = false) => Await((Task)Call(editor, "ReapplyRuntimeRulesAsync", retry)!);
@@ -97,6 +98,12 @@ internal static partial class RenderChecks
             int beforeChangedFile = writes; Poll(); onPace = null;
             Check(writes == beforeChangedFile, "settings-changed-during-pause-read-cancel-stale-intent");
             Check(reads > 5, "actual-state-is-reread-before-deciding");
+            actual = wanted; Setup(changed); file.Save(new(1, identity.ExeHash, wanted, true));
+            experienceChanged = true; int beforeLoad = writes;
+            pace = GamePace.Running; Poll(); Check(writes == beforeLoad, "loaded-experience-waits-for-pause");
+            pace = GamePace.Paused; Poll();
+            Check(writes == beforeLoad + 1 && !experienceChanged, "same-patches-after-load-still-reconcile-experience");
+            Poll(); Check(writes == beforeLoad + 1, "matching-loaded-experience-is-not-converted-twice");
             File.WriteAllText(Path.Combine(output, "checks.json"), JsonSerializer.Serialize(new { gameAccess = false, checks }, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"PASS {checks.Count} runtime preference/reconnect/pause/race checks; gameAccess=false");
         }

@@ -50,7 +50,9 @@ Never use another checkout's app binaries to deploy this workspace.
 `Tests/Vectors/GameBuildProfileBaseline.json` was captured from the pre-refactor
 definitions. It is an independent regression reference, not a generator output.
 The tests compare 131 storage facts, eight Native ABI declarations, nine exact
-engine guards, and unchanged patch/relocation resources. They reject unknown EXE
+engine guards, and pinned patch/relocation resources. The save/load fix intentionally
+updates the patch resource baseline for the cap decoder at `0x22591C`; the storage,
+ABI, engine guards and relocation resource remain unchanged. They reject unknown EXE
 hashes, unverified identities, changed resources, mismatched Native metadata,
 changed compiled identity exports, and missing exports without loading a library.
 

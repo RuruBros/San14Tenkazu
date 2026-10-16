@@ -17,7 +17,7 @@ internal static class Fills
                 .Where(change => officer[change.Field] < change.Value).ToList();
             if (changes.Count > 0) edits.Add(new RecordEdit(RecordKind.Officer, officer.Address, officer.Data, officer.Name, changes));
         }
-        if (!loyalty && data.RuntimeRules is null) throw new InvalidOperationException("성장 규칙을 확인할 수 없습니다.");
+        if (!loyalty && data.RuntimeRules is null) throw new InvalidOperationException(L.RuntimeErrors.GrowthUnknown);
         return OfficerEdits.WithExperience(edits, data.RuntimeRules?.Growth ?? false)
             .Select(e => e with { ExpectedRuntimeRules = loyalty ? null : data.RuntimeRules }).ToList();
     }

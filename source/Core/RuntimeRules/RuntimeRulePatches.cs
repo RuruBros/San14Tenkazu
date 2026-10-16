@@ -3,8 +3,8 @@ using System.Text.Json;
 namespace San14Tenkazu;
 
 // Addresses and instruction bytes are facts extracted from the verified Native build.
-// Unlike the supplied mod: cap seeds and the seal special case are NOT changed. Two pure
-// decode calls in GetAbility return 200 instead; existing and newly loaded caps stay intact.
+// Unlike the supplied mod: cap seeds and the seal special case are NOT changed. Pure
+// decode calls in GetAbility and the load normalizer return 200 instead; encoded caps stay intact.
 internal sealed record RuntimePatch(uint Rva, string Before, uint GuardRva, string Guard,
     string Traits, string Cap, string Growth, uint CodeStart, uint CodeEnd)
 {
@@ -18,7 +18,7 @@ internal static class RuntimeRulePatches
     {
         Verify(read, module, settings);
         if ((RuntimeTraitList.Detect(read, module) != 0) != settings.TraitList9)
-            throw new InvalidDataException("개성 목록 표시 규칙이 예상 상태와 다릅니다.");
+            throw new InvalidDataException(L.RuntimeErrors.TraitRuleStateChanged);
     }
     internal static RuntimeRuleSettings? DetectFull(Func<ulong, int, byte[]> read, ulong module)
     {
@@ -60,7 +60,7 @@ internal static class RuntimeRulePatches
         {
             byte[] expected = Guard(site, settings);
             if (!read(module + site.GuardRva, expected.Length).SequenceEqual(expected))
-                throw new InvalidDataException($"규칙 메모리 충돌: RVA 0x{site.Rva:X}. 원본 또는 천하도 소유 상태와 다릅니다.");
+                throw new InvalidDataException(L.RuntimeErrors.PatchConflict($"{site.Rva:X}"));
         }
     }
 
@@ -87,7 +87,7 @@ internal interface IRuntimeRuleMemory
 }
 
 internal sealed class RuntimeRuleRecoveryException(IEnumerable<Exception> errors)
-    : AggregateException("규칙 적용 실패 및 복원 실패. 복구 기록을 확인하세요.", errors);
+    : AggregateException(L.RuntimeErrors.ApplyAndRestoreFailed, errors);
 
 internal static class RuntimeRuleTransaction
 {
@@ -96,7 +96,7 @@ internal static class RuntimeRuleTransaction
     {
         foreach (var change in writes)
             if (!memory.Read(change.Address, change.Before.Length).SequenceEqual(change.Before))
-                throw new InvalidDataException($"적용 전 메모리 변경: 0x{change.Address:X}");
+                throw new InvalidDataException(L.RuntimeErrors.MemoryChangedBeforeApply($"{change.Address:X}"));
         prepare();
         var attempted = new List<RuntimeRuleWrite>();
         try
@@ -106,7 +106,7 @@ internal static class RuntimeRuleTransaction
                 attempted.Add(change); // Include a partial/failed WriteProcessMemory in rollback.
                 memory.Write(change, change.After);
                 if (!memory.Read(change.Address, change.After.Length).SequenceEqual(change.After))
-                    throw new IOException($"메모리 적용 검증 실패: 0x{change.Address:X}");
+                    throw new IOException(L.RuntimeErrors.WriteReadbackFailed($"{change.Address:X}"));
             }
             commit();
         }
@@ -119,7 +119,7 @@ internal static class RuntimeRuleTransaction
                 {
                     memory.Write(change, change.Before);
                     if (!memory.Read(change.Address, change.Before.Length).SequenceEqual(change.Before))
-                        throw new IOException($"메모리 복원 검증 실패: 0x{change.Address:X}");
+                        throw new IOException(L.RuntimeErrors.RestoreReadbackFailed($"{change.Address:X}"));
                 }
                 catch (Exception error) { failures.Add(error); }
             }

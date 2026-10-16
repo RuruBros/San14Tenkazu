@@ -44,7 +44,7 @@ internal sealed partial class MapSurface
                 var mark=marks[i];var color=MapView.EnvironmentColor(mark.Kind);var ink=Solid(color);var edge=Line(ink,1.3);
                 var box=new W.Rect(left+i*34,top,30,36);dc.DrawRoundedRectangle(HudBack,edge,box,4,4);
                 DrawEnvironmentSymbol(dc,mark.Kind,new W.Point(box.X+15,box.Y+12),ink);
-                string tag=value.IsPreview(city,mark.Kind)?"테스트":mark.Kind<3?L.Environment.Current:EnvironmentProtocol.Date(mark.Date).Month+"/"+EnvironmentProtocol.Date(mark.Date).Day;
+                string tag=value.IsPreview(city,mark.Kind)?L.DataUi.PreviewBadge:mark.Kind<3?L.Environment.Current:EnvironmentProtocol.Date(mark.Date).Month+"/"+EnvironmentProtocol.Date(mark.Date).Day;
                 var label=Mark(tag,9,HudInk,dpi);dc.DrawText(label,new W.Point(box.X+(30-label.Width)/2,box.Y+22));
                 if(DescribeEnvironment(city,mark.Kind) is {} tip)environmentHits.Add((box,city,tip));
             }
@@ -62,7 +62,7 @@ internal sealed partial class MapSurface
         {
             lines.Add(mark.Kind switch{1=>L.Environment.RainVisual,2=>L.Environment.SnowVisual,3=>L.Environment.Flood,4=>L.Environment.Wildfire,6=>L.Environment.Blizzard,7=>L.Environment.Heatwave,_=>L.Environment.Drought});
             var date=EnvironmentProtocol.Date(mark.Kind<3?value.Date:mark.Date);string dated=$"{date.Year}/{date.Month}/{date.Day}";
-            lines.Add(value.IsPreview(city,mark.Kind)?"표시 전용 테스트 · 피해 없음":mark.Kind<3?L.Environment.CurrentWeather(dated):L.Environment.RecentDamage(dated));
+            lines.Add(value.IsPreview(city,mark.Kind)?L.DataUi.PreviewTooltip:mark.Kind<3?L.Environment.CurrentWeather(dated):L.Environment.RecentDamage(dated));
         }
         int movement=EnvironmentPolicy.MovementPercent(value.Weather[city-1],value.Flags,value.Values);
         lines.Add(L.Environment.OverlayValues(100-movement,(value.Flags&EnvironmentEffects.WeatherMorale)!=0&&value.Weather[city-1]!=0?value.Values.WeatherMoraleLoss:0));

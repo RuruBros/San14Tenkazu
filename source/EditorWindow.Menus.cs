@@ -7,7 +7,7 @@ namespace San14Tenkazu;
 
 internal sealed partial class EditorWindow
 {
-    private readonly PlateButton settingsButton = new("게임 설정 ▾") { ToolTip = "개성·능력치 규칙과 환경 설정" };
+    private readonly PlateButton settingsButton = new(L.GameSettingsUi.Menu) { ToolTip = L.GameSettingsUi.MenuTip };
     private WP.Popup? settingsPopup;
     private PlateButton BuildSettingsMenu()
     {
@@ -24,7 +24,7 @@ internal sealed partial class EditorWindow
             Child = new WC.Border { Background = CardSkin.Parchment, BorderBrush = CardSkin.Gold,
                 BorderThickness = new W.Thickness(1), Padding = new W.Thickness(10), Child = options }
         };
-        foreach (PlateButton option in new[] { BuildRuntimeRulesMenu(), BuildEnvironmentMenu(), BuildRulesImportMenu() })
+        foreach (PlateButton option in new[] { BuildGamePreparationMenu(), BuildRuntimeRulesMenu(), BuildEnvironmentMenu(), BuildRulesImportMenu() })
         {
             option.Margin = new W.Thickness(0, 3, 0, 3);
             options.Children.Add(option);

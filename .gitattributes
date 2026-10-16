@@ -54,3 +54,5 @@ source/BuildProfiles/** -text whitespace=cr-at-eol
 source/Core/BuildProfiles/GameBuildFacts.g.cs -text whitespace=cr-at-eol
 source/Seasons/Native/GameBuildFacts.g.h -text whitespace=cr-at-eol
 source/Environment/Native/GameBuildFacts.g.h -text whitespace=cr-at-eol
+source/Core/RuntimeRules/patches.json -text whitespace=cr-at-eol
+source/Core/RuntimeRules/trait-list.json -text whitespace=cr-at-eol

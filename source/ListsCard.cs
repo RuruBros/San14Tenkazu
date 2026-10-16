@@ -42,7 +42,7 @@ internal sealed class ListsCard : PanePage
         navigation.Children.Add(resume);
         navigation.Children.Add(ancientTitle);
         navigation.Children.Add(tabStrip);
-        foreach (string name in new[] { "무장·물품", "전투", "내정·세력" })
+        foreach (string name in new[] { L.DataUi.OfficerAndItems, L.DataUi.Combat, L.DataUi.Domestic })
         {
             var category = new PaneTab(name);
             category.Click += (_, _) => ShowTab(lastCategoryTabs.TryGetValue(name, out int previous)
@@ -135,9 +135,9 @@ internal sealed class ListsCard : PanePage
 
     private static string Category(int index) => (ListKind)index switch
     {
-        ListKind.Formations or ListKind.Tactics => "전투",
-        ListKind.Policies or ListKind.PolicyEffects or ListKind.Offices or ListKind.Ranks or ListKind.Doctrines => "내정·세력",
-        _ => "무장·물품"
+        ListKind.Formations or ListKind.Tactics => L.DataUi.Combat,
+        ListKind.Policies or ListKind.PolicyEffects or ListKind.Offices or ListKind.Ranks or ListKind.Doctrines => L.DataUi.Domestic,
+        _ => L.DataUi.OfficerAndItems
     };
 
     internal void ShowSection(PaneSection section)

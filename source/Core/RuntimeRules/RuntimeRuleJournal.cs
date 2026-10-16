@@ -11,7 +11,7 @@ internal sealed record RuntimeRuleReceipt(int ProcessId, DateTime StartTimeUtc, 
     {
         "committed" => After,
         "rolled-back" => Before,
-        _ => throw new InvalidOperationException("이전 규칙 변경이 완료되지 않았습니다. 복구 기록을 확인한 뒤 다시 적용하세요.")
+        _ => throw new InvalidOperationException(L.RuntimeErrors.RecoveryIncomplete)
     };
 }
 
@@ -19,7 +19,7 @@ internal sealed class RuntimeRuleJournal(string path)
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
     internal RuntimeRuleReceipt? Read() => File.Exists(path)
-        ? JsonSerializer.Deserialize<RuntimeRuleReceipt>(File.ReadAllText(path), Json) ?? throw new InvalidDataException("규칙 복구 기록이 비어 있습니다.") : null;
+        ? JsonSerializer.Deserialize<RuntimeRuleReceipt>(File.ReadAllText(path), Json) ?? throw new InvalidDataException(L.RuntimeErrors.EmptyRecoveryRecord) : null;
     internal void Save(RuntimeRuleReceipt receipt)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);

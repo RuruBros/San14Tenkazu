@@ -25,14 +25,14 @@ internal static class CompatibilityDiagnostic
         {
             token.ThrowIfCancellationRequested();
             first = capture(); token.ThrowIfCancellationRequested();
-            if (first.Pace != GamePace.Paused) throw new InvalidOperationException("게임을 일시정지한 뒤 실행하세요.");
+            if (first.Pace != GamePace.Paused) throw new InvalidOperationException(L.DeveloperErrors.PauseRequired);
             second = capture(); token.ThrowIfCancellationRequested();
             if (!connectionCurrent() || first.Identity != second.Identity || !first.Layout.SameStorage(second.Layout)
                 || second.Pace != GamePace.Paused || first.Date != second.Date || first.Hour != second.Hour
                 || first.SnapshotSha256 != second.SnapshotSha256 || first.CatalogSha256 != second.CatalogSha256
                 || first.GrowthKnown != second.GrowthKnown || !first.Engine.SequenceEqual(second.Engine)
                 || !first.Tables.SequenceEqual(second.Tables) || !first.Checks.SequenceEqual(second.Checks))
-                throw new InvalidOperationException("두 번 읽는 동안 연결·저장소·값·코드·권한이 바뀌었습니다. 미확정 결과입니다.");
+                throw new InvalidOperationException(L.DeveloperErrors.CompatibilityChanged);
             var capabilities = GameCapabilities.Inspect(first.Identity).Select(c =>
             {
                 var evidence = new List<CapabilityEvidence> { new("storage", true, "two stable read-only captures") };
@@ -53,7 +53,7 @@ internal static class CompatibilityDiagnostic
         }
         catch (Exception error)
         {
-            return new(false, error is OperationCanceledException ? "취소되었습니다. 미확정 결과입니다." : error.Message,
+            return new(false, error is OperationCanceledException ? L.DeveloperErrors.CompatibilityCancelled : error.Message,
                 first, second, []);
         }
     }
@@ -69,7 +69,7 @@ internal static partial class GameMemory
         token.ThrowIfCancellationRequested();
         if (FindGame() != identity) throw new InvalidOperationException(L.Errors.ProcessChanged);
         var found = identity.Verified ? ReadCurrentLayout(identity) : Resolve(identity, null, token);
-        if (ReadPace(identity, found) != GamePace.Paused) throw new InvalidOperationException("게임을 일시정지한 뒤 실행하세요.");
+        if (ReadPace(identity, found) != GamePace.Paused) throw new InvalidOperationException(L.DeveloperErrors.PauseRequired);
         var data = ReadSnapshot(identity, found); var catalog = ReadCatalog(identity, found);
         string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));
         string JsonHash(object value) => Hash(JsonSerializer.SerializeToUtf8Bytes(value));

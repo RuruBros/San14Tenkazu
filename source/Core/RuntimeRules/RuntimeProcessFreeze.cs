@@ -16,13 +16,13 @@ internal sealed class RuntimeProcessFreeze : IDisposable
     {
         var lease = new RuntimeProcessFreeze(process);
         int status = NtSuspendProcess(process);
-        if (status < 0) throw new Win32Exception($"프로세스 일시 정지 실패: 0x{status:X8}");
+        if (status < 0) throw new Win32Exception(L.RuntimeErrors.SuspendFailed($"{status:X8}"));
         lease.suspended = true;
         try
         {
             int[] ids = Threads(pid);
             foreach (int id in ids) lease.CheckThread(id, ranges);
-            if (!ids.SequenceEqual(Threads(pid))) throw new InvalidOperationException("스레드 구성이 바뀌었습니다. 다시 적용하세요.");
+            if (!ids.SequenceEqual(Threads(pid))) throw new InvalidOperationException(L.RuntimeErrors.ThreadsChanged);
             return lease;
         }
         catch { lease.Dispose(); throw; }
@@ -48,19 +48,19 @@ internal sealed class RuntimeProcessFreeze : IDisposable
             ulong rip = unchecked((ulong)Marshal.ReadInt64(aligned, 248));
             ulong rsp = unchecked((ulong)Marshal.ReadInt64(aligned, 152));
             bool Affected(ulong value) => ranges.Any(r => value >= r.Start && value < r.End);
-            if (Affected(rip)) throw new InvalidOperationException("규칙 함수 실행 중입니다. 잠시 후 다시 적용하세요.");
+            if (Affected(rip)) throw new InvalidOperationException(L.RuntimeErrors.FunctionExecuting);
             byte[] basic = new byte[48];
             int status = NtQueryInformationThread(thread, 0, basic, basic.Length, out _);
-            if (status < 0) throw new Win32Exception($"스레드 정보 읽기 실패: 0x{status:X8}");
+            if (status < 0) throw new Win32Exception(L.RuntimeErrors.ThreadQueryFailed($"{status:X8}"));
             ulong teb = BitConverter.ToUInt64(basic, 8);
             byte[] bounds = Read(teb + 8, 16);
             ulong top = BitConverter.ToUInt64(bounds), bottom = BitConverter.ToUInt64(bounds, 8);
             if (rsp < bottom || rsp > top || top - rsp > 4 * 1024 * 1024)
-                throw new InvalidOperationException("스레드 스택 범위를 검증할 수 없습니다.");
+                throw new InvalidOperationException(L.RuntimeErrors.StackRangeUnknown);
             byte[] stack = Read(rsp, checked((int)(top - rsp)));
             for (int offset = 0; offset + 8 <= stack.Length; offset += 8)
                 if (Affected(BitConverter.ToUInt64(stack, offset)))
-                    throw new InvalidOperationException("규칙 함수의 복귀 대기 중입니다. 잠시 후 다시 적용하세요.");
+                    throw new InvalidOperationException(L.RuntimeErrors.ReturnAddressExecuting);
         }
         finally { Marshal.FreeHGlobal(buffer); CloseHandle(thread); }
     }
@@ -78,7 +78,7 @@ internal sealed class RuntimeProcessFreeze : IDisposable
     {
         if (!suspended) return;
         int status = NtResumeProcess(process);
-        if (status < 0) throw new Win32Exception($"프로세스 재개 실패: 0x{status:X8}");
+        if (status < 0) throw new Win32Exception(L.RuntimeErrors.ResumeFailed($"{status:X8}"));
         suspended = false;
     }
 

@@ -4,7 +4,7 @@ namespace San14Tenkazu;
 internal static class GameBuildFacts
 {
     internal const string Id = "san14ce-ko-87ed4e46590e";
-    internal const string Sha256 = "9b4e54ec91a191d32b926598afc9f1931118ab127da851eec2da5996b85b19b9";
+    internal const string Sha256 = "675ea95ea6842d38e18e07fd923f926095dfb95cce210db18b64eeb2fded057f";
     internal const string ExeSha256 = "87ED4E46590E0939C9EFCAEF14FA0F892917604DFDA86E0A4BE319FCCFFA2D6A";
     internal const string ProcessName = "SAN14CE_KO";
     internal const string LayoutId = "san14ce-ko-layout-v1";
@@ -210,7 +210,7 @@ internal static class GameBuildFacts
     internal static System.Collections.Generic.IReadOnlyDictionary<string, string> Resources() =>
         new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new System.Collections.Generic.Dictionary<string, string>
         {
-            ["RuntimeRules.patches.json"] = "bc7886e8fa077ae28d0187b2cfae6705d7f758acd57fab185a421c7622b72a3e",
+            ["RuntimeRules.patches.json"] = "05b5a612e395627c636b1dd270d3d33e55e27a9d9d81096a308a07ca2c5e24f4",
             ["RuntimeRules.trait-list.json"] = "664166ac94b2223456ddb0916c1d702bc14fbaccac65964e90fc4b41d48d7036",
         });
 }
