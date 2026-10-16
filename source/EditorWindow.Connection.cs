@@ -133,13 +133,15 @@ internal sealed partial class EditorWindow
         refreshing = true;
         GameIdentity identity = game.Value;
         GameLayout found = layout;
+        bool replaced = false; // a load swapped the world: retry rules/environment that failed or self-stopped meanwhile
         try
         {
             if (identity.Verified) found = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
             GameSnapshot? before = snapshot;
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found, before));
             if (busy || game != identity) return;
-            if (!layout.SameStorage(found)) undoHistory.RemoveAll(h => h.Rule is null);
+            replaced = !layout.SameStorage(found);
+            if (replaced) undoHistory.RemoveAll(h => h.Rule is null);
             layout = found;
             layoutRecovering = false;
             snapshot = data;
@@ -162,8 +164,9 @@ internal sealed partial class EditorWindow
             }
         }
         finally { refreshing = false; }
-        if (game == identity) await ReapplyRuntimeRulesAsync();
-        if (game == identity) await ReapplyEnvironmentAsync();
+        if (replaced) AddLog(L.Connection.WorldReplaced);
+        if (game == identity) await ReapplyRuntimeRulesAsync(retry: replaced);
+        if (game == identity) await ReapplyEnvironmentAsync(retry: replaced);
     }
 
     private async Task<bool> DisconnectAsync(string? message)
