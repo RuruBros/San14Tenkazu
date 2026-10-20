@@ -79,6 +79,15 @@ internal static partial class L
         internal static string Error(object? message) => Format(T(), (nameof(message), message));
     }
 
+    internal static class OperationProgress
+    {
+        private static string T([CallerMemberName] string key = "") => Get(nameof(OperationProgress) + "." + key);
+        internal static string Working => T();
+        internal static string Checking => T();
+        internal static string Synchronizing => T();
+        internal static string Reading => T();
+    }
+
     // 게임 연결
     internal static class Connection
     {
@@ -171,6 +180,23 @@ internal static partial class L
         internal static string Button => T();
         internal static string ButtonTip => T();
         internal static string PickTarget(object? force) => Format(T(), (nameof(force), force));
+        internal static string BatchButton => T();
+        internal static string BatchButtonTip => T();
+        internal static string TargetLabel => T();
+        internal static string SourcesLabel => T();
+        internal static string SourceChoice(object? force, object? ruler, object? cities) => Format(T(), (nameof(force), force), (nameof(ruler), ruler), (nameof(cities), cities));
+        internal static string SelectedCount(object? count) => Format(T(), (nameof(count), count));
+        internal static string SelectAll => T();
+        internal static string ClearSelection => T();
+        internal static string NoSources => T();
+        internal static string Changed => T();
+        internal static string BatchConfirm(object? count, object? from, object? to) => Format(T(), (nameof(count), count), (nameof(from), from), (nameof(to), to));
+        internal static string BatchDone(object? count, object? to) => Format(T(), (nameof(count), count), (nameof(to), to));
+        internal static string BatchStopped(object? done, object? total, object? why) => Format(T(), (nameof(done), done), (nameof(total), total), (nameof(why), why));
+        internal static string Checking(object? total) => Format(T(), (nameof(total), total));
+        internal static string Progress(object? done, object? total, object? from, object? to) => Format(T(), (nameof(done), done), (nameof(total), total), (nameof(from), from), (nameof(to), to));
+        internal static string Completed(object? done, object? total) => Format(T(), (nameof(done), done), (nameof(total), total));
+        internal static string Refreshing(object? done, object? total) => Format(T(), (nameof(done), done), (nameof(total), total));
         internal static string Confirm(object? from, object? to) => Format(T(), (nameof(from), from), (nameof(to), to));
         internal static string Request(object? from, object? to) => Format(T(), (nameof(from), from), (nameof(to), to));
         internal static string Done(object? from, object? to) => Format(T(), (nameof(from), from), (nameof(to), to));
@@ -570,8 +596,8 @@ internal static partial class L
         internal static string TacticCount(object? learned, object? max) => Format(T(), (nameof(learned), learned), (nameof(max), max));
         internal static string AddTieTip(object? tie, object? max) => Format(T(), (nameof(tie), tie), (nameof(max), max));
         internal static string NewTie(object? tie) => Format(T(), (nameof(tie), tie));
-        internal static string Loyalty150 => T();
-        internal static string Loyalty150Tip(object? status) => Format(T(), (nameof(status), status));
+        internal static string LoyaltyFill(object? value) => Format(T(), (nameof(value), value));
+        internal static string LoyaltyFillTip(object? status, object? value) => Format(T(), (nameof(status), status), (nameof(value), value));
         internal static string GroupCount(object? group, object? count) => Format(T(), (nameof(group), group), (nameof(count), count));
     }
 

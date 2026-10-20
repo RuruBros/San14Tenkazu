@@ -39,6 +39,7 @@ internal sealed partial class EditorWindow
             }
             AddLog(L.Connection.Connected(identity.ProcessId, found.Tables.City, found.CountyCount, found.OfficerCount));
             if (found.UnitCount == 0) AddLog(L.Connection.NoUnits);
+            SetOperationProgress(L.OperationProgress.Reading);
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found), token);
             countryNames = await Task.Run(() => GameMemory.ReadCountryNames(identity, found), token);
             catalog = await Task.Run(() => GameMemory.ReadCatalog(identity, found), token);
@@ -100,6 +101,7 @@ internal sealed partial class EditorWindow
         GameIdentity identity = game.Value;
         GameLayout found = layout;
         SetBusy(true, scanning: false);
+        SetOperationProgress(L.OperationProgress.Reading);
         try
         {
             if (identity.Verified) found = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));

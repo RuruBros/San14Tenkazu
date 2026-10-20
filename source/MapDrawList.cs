@@ -42,6 +42,20 @@ internal sealed class MapDrawList(int capacity = 2048) : IGpuMapCanvas
             copy.commands.Add(captured);
         }
     }
+    // Append a retained layer without clearing the frame's ground/border commands or palette.
+    internal void AppendTo(MapDrawList frame)
+    {
+        foreach (var command in commands)
+        {
+            var captured = command;
+            if (captured.Palette is not null)
+            {
+                palette.CopyTo(frame.palette, 0);
+                captured.Palette = frame.palette;
+            }
+            frame.commands.Add(captured);
+        }
+    }
     internal string CompareCommands(MapDrawList other)
     {
         if (commands.Count != other.commands.Count) return $"count {commands.Count}/{other.commands.Count}";

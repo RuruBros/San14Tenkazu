@@ -5,9 +5,9 @@ internal sealed partial class EditorWindow
 {
     private void WireFills()
     {
-        cityEditor.Officers.LoyaltyClicked += (officers, _) => StageLoyalty(cityEditor, officers);
-        gateEditor.Officers.LoyaltyClicked += (officers, _) => StageLoyalty(gateEditor, officers);
-        forceEditor.Members.LoyaltyClicked += (officers, _) => StageLoyalty(forceEditor, officers);
+        cityEditor.Officers.LoyaltyClicked += (officers, value) => StageLoyalty(cityEditor, officers, value);
+        gateEditor.Officers.LoyaltyClicked += (officers, value) => StageLoyalty(gateEditor, officers, value);
+        forceEditor.Members.LoyaltyClicked += (officers, value) => StageLoyalty(forceEditor, officers, value);
         forceEditor.HealClicked += units => StageUnits(units, heal: true);
         forceEditor.MoraleClicked += units => StageUnits(units, heal: false);
     }
@@ -25,13 +25,13 @@ internal sealed partial class EditorWindow
     }
 
     // The fill rules (whom, and to what) stay in Fills: its edits are staged as drafts instead of written.
-    private void StageLoyalty(EditorCard card, IEnumerable<int> officers)
+    private void StageLoyalty(EditorCard card, IEnumerable<int> officers, int value)
     {
         if (busy || snapshot is not { } data) return;
         var ids = officers.ToList();
         Dictionary<ulong, OfficerRecord> byAddress = ids.Select(id => data.OfficerById.GetValueOrDefault(id)).OfType<OfficerRecord>()
             .ToDictionary(o => o.Address);
-        foreach (RecordEdit edit in Fills.RaiseOfficers(data, ids, [OfficerFields.Loyalty]))
+        foreach (RecordEdit edit in Fills.RaiseOfficers(data, ids, [OfficerFields.Loyalty], value))
             Stage(card, new OfficerTarget(byAddress[edit.Address].Id), byAddress[edit.Address].Data, edit, raiseOnly: true);
     }
 

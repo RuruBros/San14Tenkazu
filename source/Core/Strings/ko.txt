@@ -93,6 +93,12 @@ Unhandled = 처리하지 못한 오류가 났습니다. 편집기는 계속 쓸 
 LeaveCard = 편집 창에 적용하지 않은 값이 {count}개 있습니다.\n\n예: 게임에 쓰고 넘어가기\n아니요: 버리고 넘어가기\n취소: 이 창에 머무르기
 Error = 오류: {message}
 
+[OperationProgress]
+Working = 작업 처리 중...
+Checking = 적용할 값과 게임 상태를 확인 중...
+Synchronizing = 게임에 변경 사항을 반영 중...
+Reading = 게임 데이터를 다시 읽는 중...
+
 # 게임 연결
 [Connection]
 SearchAfterQuick = 빠른 연결에 실패해 메모리에서 게임 데이터 위치를 찾습니다...
@@ -166,12 +172,29 @@ WhyCameraHeld = 게임의 지도 카메라가 지금 움직이지 않게 잡혀 
 Button = 항복시키기
 ButtonTip = 이 세력을 다른 세력에 항복시킵니다.
 PickTarget = {force:을} 어느 세력에 항복시킬지 고르세요.
+BatchButton = 일괄 항복시키기
+BatchButtonTip = 여러 군주를 선택하여 한 세력에 순서대로 항복시킵니다.
+TargetLabel = 항복을 받을 세력
+SourcesLabel = 항복시킬 군주를 선택하세요. 플레이어 세력과 항복을 받을 세력은 제외됩니다.\n받을 세력을 바꾸면 선택이 모두 해제됩니다.
+SourceChoice = {force} · 군주 {ruler} · 도시 {cities}개
+SelectedCount = 선택한 군주 {count}명
+SelectAll = 전체 선택
+ClearSelection = 선택 해제
+NoSources = 항복시킬 군주가 없습니다.
+Changed = 선택한 세력이나 군주가 달라졌습니다. 다시 읽은 뒤 선택해 주세요.
+BatchConfirm = 선택한 군주 {count}명을 {to}에 순서대로 항복시킵니다.\n\n{from}\n\n각 세력의 도시·장수·부대가 모두 넘어가며, 편집기로 되돌릴 수 없습니다. 중간에 실패하면 남은 항복은 중단되며, 이미 처리된 항복은 유지됩니다.\n먼저 게임에서 다른 칸에 세이브해 두세요. 항복시킬까요?
+BatchDone = 군주 {count}명이 {to}에 항복했습니다.
+BatchStopped = 일괄 항복을 중단했습니다. 완료 {done}/{total}건. 이미 처리된 항복은 유지됩니다.\n진단: {why}
+Checking = 항복 대상 {total}건의 현재 상태를 확인 중...
+Progress = 완료 {done}/{total}건 · {from} → {to} 항복 처리 중...
+Completed = 항복 완료 {done}/{total}건
+Refreshing = 항복 완료 {done}/{total}건 · 결과를 다시 읽는 중...
 Confirm = {from:이} {to}에 항복합니다. 도시·장수·부대가 모두 {to}에 넘어가며, 편집기로 되돌릴 수 없습니다.\n\n먼저 게임에서 다른 칸에 세이브해 두세요. 항복시킬까요?
 Request = 항복 요청: {from} → {to}
 Done = {from:이} {to}에 항복했습니다.
 NoTarget = 항복을 받을 세력이 없습니다.
 PlayerForce = 플레이어 세력은 항복시킬 수 없습니다.
-PauseFirst = 게임이 진행 중입니다. 게임을 [정지]한 뒤에 항복시키세요.
+PauseFirst = 게임이 정지한 상태인지 확인하지 못했습니다. 게임을 [정지]한 뒤에 항복시키세요.
 Refused = 게임이 이 항복을 받지 않았습니다(군주가 없거나, 같은 세력이거나, 플레이어 세력).
 NotRun = 게임 함수를 부르지 못해 항복시키지 않았습니다. 진단: {why}
 Unconfirmed = 게임이 항복을 처리했다고 했지만 세력이 그대로 있습니다. [다시 읽기]로 확인하세요.
@@ -541,8 +564,8 @@ KeptTacticTip = 일반 전법 밖에서 익힌 전법입니다. 누르면 잊습
 TacticCount = 습득 전법 {learned}/{max}칸 (눌러서 익히기·잊기)
 AddTieTip = {tie} 장수를 추가합니다. 이름을 입력해 찾습니다(최대 {max}명).
 NewTie = 새 {tie}
-Loyalty150 = 충성 150
-Loyalty150Tip = 이 표의 {status} 장수 충성을 150으로 채웁니다(150 이상은 그대로).\n아래 [변경 적용]을 눌러야 게임에 씁니다.
+LoyaltyFill = 충성 {value}
+LoyaltyFillTip = 이 표의 {status} 장수 충성을 {value}으로 채웁니다({value} 이상은 그대로).\n아래 [변경 적용]을 눌러야 게임에 씁니다.
 GroupCount = {group} {count}명
 
 # 장수 옮기기·등용·내보내기

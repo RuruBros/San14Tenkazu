@@ -8,7 +8,7 @@ namespace San14Tenkazu;
 // count, as the officers' list shows them (the portrait, the name over the 자, loyalty and the abilities with their
 // bars). Each table is as tall as its rows, so the card's page is the one thing that scrolls (a table scrolling
 // inside it read oddly); a row opens the officer's card. Where loyalty counts (군단장, 태수,
-// 일반), [충성 150] at the right of the table's name fills drafts for the officers of that table.
+// 일반), the loyalty buttons at the right of the table's name fill drafts for the officers of that table.
 internal sealed class OfficerTables : WC.StackPanel
 {
     internal static readonly FieldDef[] Values = [OfficerFields.Loyalty, .. OfficerFields.Abilities];
@@ -32,8 +32,8 @@ internal sealed class OfficerTables : WC.StackPanel
 
     internal event Action<int>? OfficerPicked;
 
-    // [충성 150] of a table: its officers and their status.
-    internal event Action<IReadOnlyList<int>, string>? LoyaltyClicked;
+    // The table's officers and the chosen loyalty floor.
+    internal event Action<IReadOnlyList<int>, int>? LoyaltyClicked;
 
     // Inputs and fills are available only while connected and not busy.
     internal bool FillsEnabled
@@ -78,8 +78,9 @@ internal sealed class OfficerTables : WC.StackPanel
             List<int> ids = group.Select(o => (int)o.Row.Tag).ToList();
             string status = group.Key;
             if (Vassals.Contains(status))
-                AddFill(title, L.Officer.Loyalty150, L.Officer.Loyalty150Tip(status),
-                    () => LoyaltyClicked?.Invoke(ids, status));
+                foreach (int value in new[] { 150, 100 })
+                    AddFill(title, L.Officer.LoyaltyFill(value), L.Officer.LoyaltyFillTip(status, value),
+                        () => LoyaltyClicked?.Invoke(ids, value));
             title.Children.Add(new WC.TextBlock { Text = L.Officer.GroupCount(group.Key, group.Count()), Foreground = CardSkin.InkMuted, VerticalAlignment = W.VerticalAlignment.Bottom });
             Children.Add(title);
             var table = new GameTable(Columns, RowHeight)

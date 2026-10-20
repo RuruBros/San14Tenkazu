@@ -61,6 +61,7 @@ internal sealed class ForceEditorCard : EditorCard
     private readonly GameTable gates = new(GateColumns, 28) { Margin = new W.Thickness(0, 10, 0, 0) };
     private readonly OfficerTables members = new(L.Force.NoOfficers);
     private readonly GameTable units = new(UnitColumns, 46);
+    private PlateButton surrenderButton = null!;
     internal GameTable CitiesTable => cities;
     internal GameTable GatesTable => gates;
     internal GameTable UnitsTable => units;
@@ -149,7 +150,8 @@ internal sealed class ForceEditorCard : EditorCard
             Text = L.Force.RelationsNote,
             Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 6, 0, 0)
         });
-        PlateButton surrender = Shortcut(L.Surrender.Button, L.Surrender.ButtonTip, () => SurrenderClicked?.Invoke(), Icons.Force);
+        PlateButton surrender = surrenderButton = Shortcut(L.Surrender.Button, L.Surrender.ButtonTip, () => SurrenderClicked?.Invoke(), Icons.Force);
+        surrender.IsEnabled = false;
         surrender.HorizontalAlignment = W.HorizontalAlignment.Left;
         surrender.Margin = new W.Thickness(0, 12, 0, 0);
         page.Children.Add(surrender);
@@ -264,6 +266,7 @@ internal sealed class ForceEditorCard : EditorCard
             members.FillsEnabled = value;
             cities.EditingEnabled = gates.EditingEnabled = units.EditingEnabled = value;
             heal.IsEnabled = morale.IsEnabled = value;
+            surrenderButton.IsEnabled = value;
         }
     }
 

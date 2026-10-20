@@ -343,7 +343,7 @@ internal sealed partial class MapSurface : WC.Grid
         else if (canvas is D2DCanvas direct) direct.ImageMode = WM.BitmapScalingMode.HighQuality;
         double worldMs = start == 0 ? 0 : Stopwatch.GetElapsedTime(start).TotalMilliseconds;
         long citiesAt = start == 0 ? 0 : Stopwatch.GetTimestamp();
-        DrawCities(canvas);
+        DrawCitiesCached(canvas);
         double citiesMs = citiesAt == 0 ? 0 : Stopwatch.GetElapsedTime(citiesAt).TotalMilliseconds;
         long unitsAt = start == 0 ? 0 : Stopwatch.GetTimestamp();
         DrawUnits(canvas);
@@ -697,6 +697,7 @@ internal sealed partial class MapSurface : WC.Grid
     // shaders take the colours every frame).
     internal void RedrawColors()
     {
+        InvalidateCityCommands();
         layoutSteady = false;
         tiles.Invalidate();
         RequestFrame();
@@ -800,6 +801,7 @@ internal sealed partial class MapSurface : WC.Grid
     private abstract class LabelLayer : W.FrameworkElement
     {
         private readonly MapSurface map;
+        protected MapSurface Map => map;
         private readonly WM.TranslateTransform shift = new();
         private W.Point drawnCenter;
         private double drawnScale = double.NaN;
@@ -821,7 +823,7 @@ internal sealed partial class MapSurface : WC.Grid
         }
 
         // Draw again: on the GPU the next frame draws every layer.
-        internal void Redraw()
+        internal virtual void Redraw()
         {
             if (map.Gpu) map.RequestFrame();
             else InvalidateVisual();

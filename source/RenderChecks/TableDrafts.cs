@@ -155,7 +155,12 @@ internal static partial class RenderChecks
             var header = Field<WC.Canvas>(tableUnderTest, "header");
             Click(header.Children.OfType<PlateButton>().Single(b => b.Text == L.Lists.BulkColumn(OfficerFields.Leadership.Label)));
             Check("header-fill-stages-without-game-write", writes == 0 && card.TableDrafts.Find(new OfficerTarget(11), OfficerFields.Leadership)?.Value == 99);
-            Call(window, "StageLoyalty", card, new[] { 11 });
+            Call(window, "StageLoyalty", card, new[] { 11 }, 100);
+            Check("loyalty-100-stages-without-clearing-other-drafts", card.Pending == 4 && card.TableDrafts.Find(new OfficerTarget(11), OfficerFields.Loyalty)?.Value == 100);
+            card.TableDrafts.Get(new OfficerTarget(11), OfficerFields.Loyalty, 90).Set(120);
+            Call(window, "StageLoyalty", card, new[] { 11 }, 100);
+            Check("loyalty-100-preserves-higher-draft", card.TableDrafts.Find(new OfficerTarget(11), OfficerFields.Loyalty)?.Value == 120);
+            Call(window, "StageLoyalty", card, new[] { 11 }, 150);
             Check("loyalty-shortcut-stages-without-clearing-other-drafts", card.Pending == 4 && card.TableDrafts.Find(new OfficerTarget(11), OfficerFields.Loyalty)?.Value == 150);
             // The direct button event used by the screenshot must dispatch the card apply path.
             bool footerClicked = false; card.ApplyClicked += () => footerClicked = true;

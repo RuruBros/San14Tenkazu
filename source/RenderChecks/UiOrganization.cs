@@ -44,7 +44,8 @@ internal static partial class RenderChecks
         Call(editor, "FillLists");
         var lists = Field<ListsCard>(editor, "lists");
         var map = Field<MapView>(editor, "map");
-        map.ShowLists(true); lists.ShowTab((int)ListKind.Officers);
+        // Materialize the city tab before hiding it; unopened tabs are now intentionally deferred.
+        map.ShowLists(true); lists.ShowTab((int)ListKind.Cities); lists.ShowTab((int)ListKind.Officers);
         var tables = (GameTable[])typeof(EditorWindow).GetProperty("ListTables", Hidden)!.GetValue(editor)!;
         var before = tables.Select(t => t.Rows).ToArray();
         Field<SearchBox>(editor, "citySearch").Text = "존재하지 않는 도시";

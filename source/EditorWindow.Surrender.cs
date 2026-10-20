@@ -2,68 +2,111 @@ using W = System.Windows;
 
 namespace San14Tenkazu;
 
-// The force card's [항복시키기]: the game's own 세력 항복 (GameMemory.SurrenderForce) for the force on the card, to a
-// force the user picks, the player's by default. The game moves the cities, officers and units itself, so it is not
-// undone as the editor's writes are.
+// Each native surrender transfers the whole force and cannot be rolled back by restoring editor bytes.
 internal sealed partial class EditorWindow
 {
-    private void WireSurrender() => forceEditor.SurrenderClicked += () => _ = SurrenderAsync(forceEditor.Force);
-
-    private async Task SurrenderAsync(int from)
+    private void WireSurrender()
     {
-        if (busy || game is not { } identity || layout is not { } found || snapshot is not { } data || from == 0) return;
-        if (WriteBlock([GameChecks.World]) is { } blocked)
-        {
-            ReportError(new InvalidOperationException(blocked));
-            return;
-        }
-        if (from == data.PlayerForce)
-        {
-            Tell(L.Surrender.PlayerForce);
-            return;
-        }
-        if (await Task.Run(() => GameMemory.ReadPace(identity, found)) == GamePace.Running)
-        {
-            ReportError(new InvalidOperationException(L.Surrender.PauseFirst));
-            return;
-        }
-        if (ChooseSurrenderTarget(data, from) is not int to) return;
-        string fromName = data.ForceName(from), toName = data.ForceName(to);
-        if (!ConfirmDiscard() || !Confirm(L.Surrender.Confirm(fromName, toName), W.MessageBoxImage.Warning, defaultNo: true, title: L.Surrender.Button)) return;
-        SetBusy(true, scanning: false);
-        try
-        {
-            AddLog(L.Surrender.Request(fromName, toName));
-            await Task.Run(() => GameMemory.SurrenderForce(identity, found, from, to));
-            status.Text = L.Surrender.Done(fromName, toName);
-            AddLog(status.Text);
-            snapshot = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
-            map.SetSnapshot(snapshot);
-            FillLists();
-            // The card of the force that surrendered shows the one that took it in.
-            if (!Show(new ForceTarget(to))) map.HideEditors();
-        }
-        catch (Exception ex) { ReportError(ex); }
-        finally { SetBusy(false, scanning: false); }
+        forceEditor.SurrenderClicked += () => _ = SurrenderAsync(forceEditor.Force);
+        batchSurrenderButton.Click += () => _ = SurrenderAsync(0, batch: true);
     }
 
-    // The forces that can take the force in (with a ruler, not tribes), biggest first; the player's is picked.
+    private async Task SurrenderAsync(int from, bool batch = false)
+    {
+        if (busy || game is not { } identity || layout is not { } found || snapshot is not { } data || !batch && from == 0) return;
+        SetBusy(true, scanning: false);
+        bool called = false;
+        int completed = 0, total = 0, to = 0;
+        try
+        {
+            if (WriteBlock([GameChecks.World]) is { } blocked) throw new InvalidOperationException(blocked);
+            if (!batch && from == data.PlayerForce) { Tell(L.Surrender.PlayerForce); return; }
+            if (await Task.Run(() => GameMemory.ReadPace(identity, found)) != GamePace.Paused)
+                throw new InvalidOperationException(L.Surrender.PauseFirst);
+            int[] sources;
+            if (batch)
+            {
+                if (BaseGrants.Takers(data).Count(c => c.Force >= 1) < 2) { Tell(L.Surrender.NoSources); return; }
+                var dialog = new SurrenderDialog(data) { Owner = this };
+                if (dialog.ShowDialog() != true) return;
+                sources = dialog.Sources; to = dialog.Target;
+            }
+            else
+            {
+                if (ChooseSurrenderTarget(data, from) is not int target) return;
+                sources = [from]; to = target;
+            }
+            List<ForceSurrenders.Request> requests = ForceSurrenders.Prepare(data, sources, to);
+            total = requests.Count;
+            string toName = data.ForceName(to);
+            string confirmation = batch ? L.Surrender.BatchConfirm(total, string.Join("\n", sources.Select(data.ForceName)), toName)
+                : L.Surrender.Confirm(data.ForceName(from), toName);
+            if (!ConfirmDiscard() || !Confirm(confirmation, W.MessageBoxImage.Warning, defaultNo: true,
+                title: batch ? L.Surrender.BatchButton : L.Surrender.Button)) return;
+            // Validate the entire selection before the first call, then recheck each remaining ruler before dispatch.
+            SetOperationProgress(L.Surrender.Checking(total), completed, total);
+            GameSnapshot fresh = await ReadSurrenderSnapshotAsync(identity, found);
+            foreach (var request in requests) ForceSurrenders.Validate(fresh, request);
+            foreach (var request in requests)
+            {
+                SetOperationProgress(L.Surrender.Progress(completed, total, data.ForceName(request.From), toName), completed, total);
+                if (completed > 0) fresh = await ReadSurrenderSnapshotAsync(identity, found);
+                ForceSurrenders.Validate(fresh, request);
+                AddLog(L.Surrender.Request(data.ForceName(request.From), toName));
+                called = true;
+                await Task.Run(() => GameMemory.SurrenderForce(identity, found, request));
+                completed++;
+                SetOperationProgress(L.Surrender.Completed(completed, total), completed, total);
+                AddLog(L.Surrender.Done(data.ForceName(request.From), toName));
+            }
+            status.Text = batch ? L.Surrender.BatchDone(completed, toName) : L.Surrender.Done(data.ForceName(from), toName);
+            if (batch) AddLog(status.Text);
+        }
+        catch (Exception ex)
+        {
+            ReportError(batch && called ? new InvalidOperationException(L.Surrender.BatchStopped(completed, total, ex.Message), ex) : ex);
+        }
+        finally
+        {
+            if (called)
+            {
+                undoHistory.RemoveAll(h => h.Rule is null);
+                // Even the failed native call may have changed the world. Refresh without retrying or rolling back.
+                try
+                {
+                    SetOperationProgress(L.Surrender.Refreshing(completed, total));
+                    layout = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
+                    snapshot = await Task.Run(() => GameMemory.ReadSnapshot(identity, layout));
+                    map.SetSnapshot(snapshot);
+                    lists.TableDrafts.Clear(); aiView?.DiscardDrafts();
+                    FillLists();
+                    if (!Show(new ForceTarget(to))) map.HideEditors();
+                }
+                catch (Exception readError) { ReportError(readError); }
+            }
+            SetBusy(false, scanning: false);
+        }
+    }
+
+    private static async Task<GameSnapshot> ReadSurrenderSnapshotAsync(GameIdentity identity, GameLayout expected)
+    {
+        GameLayout current = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
+        if (!expected.SameStorage(current)) throw new InvalidOperationException(L.Surrender.Changed);
+        return await Task.Run(() => GameMemory.ReadSnapshot(identity, current));
+    }
+
     private int? ChooseSurrenderTarget(GameSnapshot data, int from)
     {
-        var choices = data.Forces.Values
-            .Where(f => f.Id != from && f.Id <= GameMemory.MaxPlayerForce && f.RulerId is not (0 or 0xFFFF))
-            .Select(f => (Force: f, Cities: data.CitiesOf(f.Id).Count()))
-            .OrderByDescending(c => c.Cities).ThenBy(c => c.Force.Id)
-            .ToList();
+        var choices = BaseGrants.Takers(data).Where(c => c.Force >= 1 && c.Force != from).ToList();
         if (choices.Count == 0)
         {
             Tell(L.Surrender.NoTarget);
             return null;
         }
-        List<string> items = choices.Select(c => L.Auto.Choice(data.ForceName(c.Force.Id), c.Cities) +
-            (c.Force.Id == data.PlayerForce ? " " + L.Auto.CurrentPlayer : "")).ToList();
-        int player = choices.FindIndex(c => c.Force.Id == data.PlayerForce);
+        List<string> items = choices.Select(c => L.Auto.Choice(data.ForceName(c.Force), c.Cities) +
+            (c.Force == data.PlayerForce ? " " + L.Auto.CurrentPlayer : "")).ToList();
+        int player = choices.FindIndex(c => c.Force == data.PlayerForce);
         return PickFromList(L.Surrender.Button, L.Surrender.PickTarget(data.ForceName(from)), L.Surrender.Button, items, Math.Max(player, 0))
-            is int picked ? choices[picked].Force.Id : null;
+            is int picked ? choices[picked].Force : null;
     }
 }

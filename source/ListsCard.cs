@@ -33,6 +33,7 @@ internal sealed class ListsCard : PanePage
     }
 
     internal event Action? TabChanged, ResumeSelected;
+    internal event Action<int>? PreparingTab;
 
     internal ListsCard()
     {
@@ -69,6 +70,13 @@ internal sealed class ListsCard : PanePage
     internal void FocusInvalidInput()
     {
         if (TableDrafts.InvalidCell is not { } cell) return;
+        // Materialize a deferred tab before FocusDraft searches its rows.
+        ListKind? kind = cell.Target switch
+        {
+            CityTarget => ListKind.Cities, OfficerTarget => ListKind.Officers,
+            UnitTarget => ListKind.Units, PersonalityTarget => ListKind.Personalities, _ => null
+        };
+        if (kind is { } targetList) ShowTab((int)targetList);
         for (int i = 0; i < tabs.Count; i++)
         {
             int index = i;
@@ -114,6 +122,7 @@ internal sealed class ListsCard : PanePage
         if (tabs.Count == 0) return;
         int before = Tab;
         Tab = Math.Clamp(index, 0, tabs.Count - 1);
+        PreparingTab?.Invoke(Tab);
         Section = tabs[Tab].Section;
         lastTabs[Section] = Tab;
         string selectedCategory = Category(Tab);

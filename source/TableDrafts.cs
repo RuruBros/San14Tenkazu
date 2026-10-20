@@ -36,6 +36,21 @@ internal sealed class TableDrafts
         if (changed != number.IsChanged) Changed?.Invoke();
     }
 
+    // Updating live values is independent of materializing table rows. Missing targets keep their
+    // input so normal apply validation can reject the complete batch without losing the draft.
+    internal void Follow(Func<EditorTarget, FieldDef, long?> read)
+    {
+        bool changed = false;
+        foreach (var (key, number) in numbers)
+            if (read(key.Target, key.Field) is { } current && current != number.Current)
+            {
+                bool before = number.IsChanged;
+                number.Follow(current);
+                changed |= before != number.IsChanged;
+            }
+        if (changed) Changed?.Invoke();
+    }
+
     internal void Clear()
     {
         InvalidCell = null;
