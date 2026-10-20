@@ -55,7 +55,8 @@ internal sealed partial class MapSurface : WC.Grid
     internal double LastPrepareMs { get; private set; }
     private double lastGpuFrame = -1;
     private double gpuDpi = 96;
-    private readonly MapRenderLog? renderLog = MapRenderLog.Open();
+    private MapRenderLog? renderLog = MapRenderLog.Open();
+    private Task? renderLogCompletion;
     private (double World, double Cities, double Units) framePhases;
     private (double Zoom, bool Moving, W.Point Center, double At) submittedView, presentedView;
     private WM.Matrix submittedTransform, presentedTransform;
@@ -173,6 +174,7 @@ internal sealed partial class MapSurface : WC.Grid
         SizeChanged += (_, _) => ApplyView();
         Loaded += (_, _) =>
         {
+            renderLog ??= MapRenderLog.Open(renderLogCompletion);
             if (gpu is null) StartGpu();
             StartGlides(Now);
             units.Redraw();
@@ -189,7 +191,12 @@ internal sealed partial class MapSurface : WC.Grid
             gpu?.Dispose(); gpu = null;
             gpuFrame.Reset(); cityCommands.Reset(); InvalidateCityCommands();
             tiles.Enabled = ground.Enabled = false;
-            renderLog?.Dispose();
+            if (renderLog is { } log)
+            {
+                log.Dispose();
+                renderLogCompletion = log.Completion;
+                renderLog = null;
+            }
         };
         StartGpu();
         tiles.Changed += RequestFrame;
