@@ -44,9 +44,9 @@ internal sealed class MapShaders : IDisposable
     // Something made on a worker is ready (raised on that worker): the map draws a frame.
     internal event Action? Ready;
 
-    internal static MapShaders? TryCreate(ID3D11Device device)
+    internal static MapShaders? TryCreate(ID3D11Device device, Action<IDisposable>? resourceAcquired = null)
     {
-        try { return new MapShaders(device); }
+        try { return new MapShaders(device, resourceAcquired); }
         catch (Exception ex)
         {
             // Without the shaders the map's tiles draw the ground and the borders, as before.
@@ -55,33 +55,35 @@ internal sealed class MapShaders : IDisposable
         }
     }
 
-    private MapShaders(ID3D11Device d3d)
+    private MapShaders(ID3D11Device d3d, Action<IDisposable>? resourceAcquired)
     {
-        device = d3d.QueryInterface<ID3D11Device>();
+        using var resources = new ResourceScope(resourceAcquired);
+        device = resources.Own(d3d.QueryInterface<ID3D11Device>());
         var watch = Stopwatch.StartNew();
-        areaShader = Shader("AreaVS", "vs_4_0", code => device.CreateVertexShader(code));
-        treeShader = Shader("TreeVS", "vs_4_0", code => device.CreateVertexShader(code));
-        groundShader = Shader("GroundPS", "ps_4_0", code => device.CreatePixelShader(code));
-        treePixels = Shader("TreePS", "ps_4_0", code => device.CreatePixelShader(code));
-        borderShader = Shader("BordersPS", "ps_4_0", code => device.CreatePixelShader(code));
+        areaShader = resources.Own(Shader("AreaVS", "vs_4_0", code => device.CreateVertexShader(code)));
+        treeShader = resources.Own(Shader("TreeVS", "vs_4_0", code => device.CreateVertexShader(code)));
+        groundShader = resources.Own(Shader("GroundPS", "ps_4_0", code => device.CreatePixelShader(code)));
+        treePixels = resources.Own(Shader("TreePS", "ps_4_0", code => device.CreatePixelShader(code)));
+        borderShader = resources.Own(Shader("BordersPS", "ps_4_0", code => device.CreatePixelShader(code)));
         Debug.WriteLine($"Map shaders made in {watch.ElapsedMilliseconds} ms");
-        frameConstants = Constants(Marshal.SizeOf<FrameData>());
-        treeConstants = Constants(16 * 3);
-        lineConstants = Constants(16 * (2 + 256));
-        blend = device.CreateBlendState(BlendDescription.AlphaBlend);      // premultiplied, as Direct2D draws
-        rasterizer = device.CreateRasterizerState(RasterizerDescription.CullNone);
-        repeat = device.CreateSamplerState(new SamplerDescription
+        frameConstants = resources.Own(Constants(Marshal.SizeOf<FrameData>()));
+        treeConstants = resources.Own(Constants(16 * 3));
+        lineConstants = resources.Own(Constants(16 * (2 + 256)));
+        blend = resources.Own(device.CreateBlendState(BlendDescription.AlphaBlend));      // premultiplied, as Direct2D draws
+        rasterizer = resources.Own(device.CreateRasterizerState(RasterizerDescription.CullNone));
+        repeat = resources.Own(device.CreateSamplerState(new SamplerDescription
         {
             Filter = Filter.MinMagMipLinear, AddressU = TextureAddressMode.Wrap, AddressV = TextureAddressMode.Wrap, AddressW = TextureAddressMode.Wrap,
             MaxAnisotropy = 1, ComparisonFunc = ComparisonFunction.Never, MinLOD = 0, MaxLOD = MaxLayerMip
-        });
-        clear = device.CreateSamplerState(new SamplerDescription
+        }));
+        clear = resources.Own(device.CreateSamplerState(new SamplerDescription
         {
             Filter = Filter.MinMagMipLinear, AddressU = TextureAddressMode.Border, AddressV = TextureAddressMode.Border, AddressW = TextureAddressMode.Border,
             BorderColor = new Color4(0, 0, 0, 0), MaxAnisotropy = 1, ComparisonFunc = ComparisonFunction.Never, MinLOD = 0, MaxLOD = float.MaxValue
-        });
-        hexTexture = device.CreateTexture2D(new Texture2DDescription(Format.R32_UInt, MapTerrain.Columns, MapTerrain.Rows, 1, 1));
-        hexView = device.CreateShaderResourceView(hexTexture);
+        }));
+        hexTexture = resources.Own(device.CreateTexture2D(new Texture2DDescription(Format.R32_UInt, MapTerrain.Columns, MapTerrain.Rows, 1, 1)));
+        hexView = resources.Own(device.CreateShaderResourceView(hexTexture));
+        resources.Commit();
     }
 
     private ID3D11Buffer Constants(int bytes) => device.CreateBuffer((uint)bytes, BindFlags.ConstantBuffer);
