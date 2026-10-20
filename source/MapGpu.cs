@@ -94,9 +94,9 @@ internal sealed class GpuMap : IDisposable
     // The device was lost (a driver update, the GPU reset): the map makes a new GpuMap.
     internal bool Lost { get; private set; }
 
-    internal static GpuMap? TryCreate()
+    internal static GpuMap? TryCreate(Action<IDisposable>? resourceAcquired = null)
     {
-        try { return new GpuMap(); }
+        try { return new GpuMap(resourceAcquired); }
         catch (Exception ex)
         {
             Debug.WriteLine("GPU map unavailable: " + ex.Message);
@@ -104,27 +104,30 @@ internal sealed class GpuMap : IDisposable
         }
     }
 
-    private GpuMap()
+    private GpuMap(Action<IDisposable>? resourceAcquired)
     {
+        using var resources = new ResourceScope(resourceAcquired);
+        resources.Own(renderWake);
         FeatureLevel[] levels = [FeatureLevel.Level_11_1, FeatureLevel.Level_11_0, FeatureLevel.Level_10_1, FeatureLevel.Level_10_0];
-        d3d = D3D11.D3D11CreateDevice(DriverType.Hardware, DeviceCreationFlags.BgraSupport, levels);
-        immediate = d3d.ImmediateContext;
-        finished = d3d.CreateQuery(QueryType.Event);
-        factory = D2D1.D2D1CreateFactory<ID2D1Factory1>(FactoryType.MultiThreaded);
-        using (IDXGIDevice dxgi = d3d.QueryInterface<IDXGIDevice>()) device = factory.CreateDevice(dxgi);
-        context = device.CreateDeviceContext(DeviceContextOptions.None);
-        d3d9 = D9.D3D9.Direct3DCreate9Ex();
+        d3d = resources.Own(D3D11.D3D11CreateDevice(DriverType.Hardware, DeviceCreationFlags.BgraSupport, levels));
+        immediate = resources.Own(d3d.ImmediateContext);
+        finished = resources.Own(d3d.CreateQuery(QueryType.Event));
+        factory = resources.Own(D2D1.D2D1CreateFactory<ID2D1Factory1>(FactoryType.MultiThreaded));
+        using (IDXGIDevice dxgi = d3d.QueryInterface<IDXGIDevice>()) device = resources.Own(factory.CreateDevice(dxgi));
+        context = resources.Own(device.CreateDeviceContext(DeviceContextOptions.None));
+        d3d9 = resources.Own(D9.D3D9.Direct3DCreate9Ex());
         IntPtr window = GetDesktopWindow();
         var present = new D9.PresentParameters
         {
             Windowed = true, SwapEffect = D9.SwapEffect.Discard, DeviceWindowHandle = window, PresentationInterval = D9.PresentInterval.Immediate,
             BackBufferWidth = 1, BackBufferHeight = 1, BackBufferFormat = D9.Format.Unknown
         };
-        device9 = d3d9.CreateDeviceEx(0, D9.DeviceType.Hardware, window,
-            D9.CreateFlags.HardwareVertexProcessing | D9.CreateFlags.Multithreaded | D9.CreateFlags.FpuPreserve, present);
-        Canvas = new D2DCanvas(factory, context, device.CreateDeviceContext(DeviceContextOptions.None),
-            device.CreateDeviceContext(DeviceContextOptions.None), DW.DWrite.DWriteCreateFactory<DW.IDWriteFactory>(DW.FactoryType.Shared));
+        device9 = resources.Own(d3d9.CreateDeviceEx(0, D9.DeviceType.Hardware, window,
+            D9.CreateFlags.HardwareVertexProcessing | D9.CreateFlags.Multithreaded | D9.CreateFlags.FpuPreserve, present));
+        Canvas = resources.Own(D2DCanvas.Create(factory, context, device, resourceAcquired));
         Shaders = MapShaders.TryCreate(d3d);
+        if (Shaders is not null) resources.Own(Shaders);
+        resources.Commit();
     }
 
     // The texture for a map of this many device pixels (made again when the size or the DPI changes).
@@ -429,6 +432,17 @@ internal sealed class D2DCanvas : IGpuMapCanvas, IDisposable
         this.mipContext = mipContext;
         this.spriteContext = spriteContext;
         this.write = write;
+    }
+
+    internal static D2DCanvas Create(ID2D1Factory1 factory, ID2D1DeviceContext context, ID2D1Device device, Action<IDisposable>? acquired)
+    {
+        using var resources = new ResourceScope(acquired);
+        var mips = resources.Own(device.CreateDeviceContext(DeviceContextOptions.None));
+        var sprites = resources.Own(device.CreateDeviceContext(DeviceContextOptions.None));
+        var text = resources.Own(DW.DWrite.DWriteCreateFactory<DW.IDWriteFactory>(DW.FactoryType.Shared));
+        var canvas = new D2DCanvas(factory, context, mips, sprites, text);
+        resources.Commit();
+        return canvas;
     }
 
     // How bitmaps drawn through IMapCanvas.DrawImage are scaled (the labels' layers ask for high quality).
