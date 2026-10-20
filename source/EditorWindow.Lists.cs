@@ -55,9 +55,12 @@ internal sealed partial class EditorWindow
         personalitySearch = new(L.Lists.SearchPersonalities), itemSearch = new(L.Lists.SearchItems), ancientSearch = new(L.Lists.SearchAncients);
     private readonly WC.ComboBox cityForceBox = FilterBox(), officerForceBox = FilterBox(), officerStatusBox = FilterBox(), unitForceBox = FilterBox(), unitKindBox = FilterBox(), ancientLockBox = FilterBox();
     private readonly WC.TextBlock forceCount = new(), cityCount = new(), officerCount = new(), unitCount = new(), personalityCount = new(), itemCount = new(), ancientCount = new();
+    private readonly PlateButton batchSurrenderButton = new(L.Surrender.BatchButton, icon: Icons.Force)
+    { IsEnabled = false, ToolTip = L.Surrender.BatchButtonTip };
     // The forces the filters offer (index 0 is "모든 세력"), refreshed with the lists.
     private List<int> forceChoices = [];
     private bool filling;
+    private readonly bool[] listDirty = new bool[Enum.GetValues<ListKind>().Length];
     private GameTable[] ListTables => [forceTable, cityTable, officerTable, unitTable, personalityTable, itemTable, ancientTable, formationTable, tacticTable, policyTable, policyEffectTable, officeTable, rankTable, doctrineTable];
 
     // Portraits for the lists and the officer card, read from the installed game.
@@ -76,7 +79,7 @@ internal sealed partial class EditorWindow
     // The pages of the lists, their filters and what a pick does.
     private void BuildLists()
     {
-        lists.AddPage(L.Lists.ForcesTab, forceTable, [forceSearch], forceCount);
+        lists.AddPage(L.Lists.ForcesTab, forceTable, [forceSearch, batchSurrenderButton], forceCount);
         lists.AddPage(L.Lists.CitiesTab, cityTable, [citySearch, cityForceBox], cityCount);
         lists.AddPage(L.Lists.OfficersTab, officerTable, [officerSearch, officerForceBox, officerStatusBox], officerCount);
         lists.AddPage(L.Lists.UnitsTab, unitTable, [unitSearch, unitForceBox, unitKindBox], unitCount);
@@ -91,7 +94,8 @@ internal sealed partial class EditorWindow
         lists.AddPage(L.Rules.RankPage,rankTable,[rankSearch],rankCount,PaneSection.Data);
         lists.AddPage(L.Rules.DoctrinePage,doctrineTable,[doctrineSearch],doctrineCount,PaneSection.Data);
         unlockButton.Click += () => _ = UnlockAncientsAsync();
-        lists.TabChanged += () => { RefreshLists(currentOnly: true); FocusSearch(); };
+        lists.PreparingTab += EnsureList;
+        lists.TabChanged += FocusSearch;
         lists.ApplyClicked += async () => await ApplyListDraftsAsync();
 
         foreach (GameTable table in ListTables)
@@ -116,10 +120,27 @@ internal sealed partial class EditorWindow
             box.Items.Add(L.Lists.AllForces);
             box.SelectedIndex = 0;
         }
-        foreach (WC.ComboBox box in new[] { cityForceBox, officerForceBox, officerStatusBox, unitForceBox, unitKindBox, ancientLockBox })
-            box.SelectionChanged += (_, _) => { if (!filling) RefreshLists(currentOnly: true); };
-        foreach (SearchBox box in new[] { forceSearch, citySearch, officerSearch, unitSearch, personalitySearch, itemSearch, ancientSearch, formationSearch, tacticSearch, policySearch, policyEffectSearch, officeSearch, rankSearch, doctrineSearch })
-            box.Box.TextChanged += (_, _) => { searchTimer.Stop(); searchTimer.Start(); };
+        foreach (var (kind, box) in new (ListKind, WC.ComboBox)[] {
+            (ListKind.Cities, cityForceBox), (ListKind.Officers, officerForceBox), (ListKind.Officers, officerStatusBox),
+            (ListKind.Units, unitForceBox), (ListKind.Units, unitKindBox), (ListKind.Ancients, ancientLockBox) })
+            box.SelectionChanged += (_, _) =>
+            {
+                if (filling) return;
+                listDirty[(int)kind] = true;
+                if (lists.Tab == (int)kind) RefreshLists(currentOnly: true);
+            };
+        foreach (var (kind, box) in new (ListKind, SearchBox)[] {
+            (ListKind.Forces, forceSearch), (ListKind.Cities, citySearch), (ListKind.Officers, officerSearch),
+            (ListKind.Units, unitSearch), (ListKind.Personalities, personalitySearch), (ListKind.Items, itemSearch),
+            (ListKind.Ancients, ancientSearch), (ListKind.Formations, formationSearch), (ListKind.Tactics, tacticSearch),
+            (ListKind.Policies, policySearch), (ListKind.PolicyEffects, policyEffectSearch), (ListKind.Offices, officeSearch),
+            (ListKind.Ranks, rankSearch), (ListKind.Doctrines, doctrineSearch) })
+            box.Box.TextChanged += (_, _) =>
+            {
+                listDirty[(int)kind] = true;
+                if (lists.Tab != (int)kind) return;
+                searchTimer.Stop(); searchTimer.Start();
+            };
 
     }
 
@@ -140,11 +161,41 @@ internal sealed partial class EditorWindow
 
     private void RefreshLists(bool currentOnly)
     {
-        bool Include(ListKind kind) => !currentOnly || lists.Tab == (int)kind;
+        if (!currentOnly)
+        {
+            Array.Fill(listDirty, true);
+            // Drafts follow live values even when their rows are filtered out or their tab is hidden.
+            if (snapshot is { } data) lists.TableDrafts.Follow((target, field) => target switch
+            {
+                CityTarget(int id) when id >= 1 && id < data.Cities.Length => data.Cities[id][field],
+                OfficerTarget(int id) when data.OfficerById.TryGetValue(id, out var officer) => officer[field],
+                UnitTarget(int slot, int commander) => data.Unit(slot, commander)?[field],
+                PersonalityTarget(int id) => data.Personalities.FirstOrDefault(p => p.Index == id)?[field],
+                _ => null
+            });
+            filling = true;
+            try
+            {
+                FillForceChoices();
+                if (snapshot is null)
+                    foreach (GameTable table in ListTables) table.SetRows([]);
+            }
+            finally { filling = false; }
+            LoadOfficerIcons();
+        }
+        else listDirty[lists.Tab] = true;
+        if (lists.Shown) EnsureList(lists.Tab);
+        UpdateControls();
+    }
+
+    // Called before a tab is exposed, including reopening the same tab after the pane was hidden.
+    private void EnsureList(int tab)
+    {
+        if (!listDirty[tab]) return;
+        bool Include(ListKind kind) => tab == (int)kind;
         filling = true;
         try
         {
-            if (!currentOnly) FillForceChoices();
             if (Include(ListKind.Forces)) FillTable(forceTable, ForceRows(), forceCount, L.Lists.ForceCount);
             if (Include(ListKind.Cities)) FillTable(cityTable, CityRows(), cityCount, L.Lists.CityCount);
             if (Include(ListKind.Officers)) FillTable(officerTable, OfficerRows(), officerCount, L.Lists.OfficerCount);
@@ -165,11 +216,9 @@ internal sealed partial class EditorWindow
             if (snapshot is not null && ruleKept?.Profile?.Table("policy") is null) policyCount.Text = policyEffectCount.Text = ruleNotice.Length > 0 ? ruleNotice : L.Rules.NotReady;
             if (snapshot is not null && ruleKept?.Profile?.Table("office") is null) officeCount.Text = ruleNotice.Length > 0 ? ruleNotice : L.Rules.NotReady;
             if (Include(ListKind.Ancients)) FillAncients();
+            listDirty[tab] = false;
         }
         finally { filling = false; }
-        // Search uses the existing snapshot and decoded portrait queue; do not restart its workers.
-        if (!currentOnly) LoadOfficerIcons();
-        UpdateControls();
     }
 
     // The force filters offer the forces that have a ruler, by name; a pick is kept as long as its force exists.
@@ -423,12 +472,14 @@ internal sealed partial class EditorWindow
     {
         if (!await OpenAsync(new UnitTarget(slot, commander))) return;
         if (lists.Tab != UnitTab) return;
+        EnsureList(UnitTab);
         if (!unitTable.Contains((slot, commander)) && snapshot?.Unit(slot, commander) is { } unit)
         {
             unitSearch.Text = "";
             if (!unit.IsArmy) unitKindBox.SelectedIndex = 1;
             unitForceBox.SelectedIndex = 0;
             FillLists();
+            EnsureList(UnitTab);
         }
         unitTable.Select((slot, commander));
     }

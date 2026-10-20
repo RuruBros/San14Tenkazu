@@ -15,6 +15,8 @@ internal static partial class RenderChecks
     {
         try
         {
+            if (args.Contains("--refresh-load")) { CheckRefreshLoad(args.First(a => !a.StartsWith("--"))); return 0; }
+            if (args.Contains("--refresh-caching")) { CheckRefreshCaching(args.First(a => !a.StartsWith("--"))); return 0; }
             if(args.Contains("--season-prepare-timings")){CheckSeasonPreparationTimings(args);return 0;}
             if (args.Contains("--unified-drafts")) { CheckUnifiedDrafts(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--table-drafts")) { CheckTableDrafts(args.First(a => !a.StartsWith("--"))); return 0; }
@@ -31,6 +33,8 @@ internal static partial class RenderChecks
 #if LOCAL_DEVELOPER
             if(args.Contains("--developer-compatibility-read")){ReadDeveloperCompatibilityFromMenu(args.First(a=>!a.StartsWith("--")));return 0;}
 #endif
+            if (args.Contains("--surrender")) { CheckSurrender(args.First(a => !a.StartsWith("--"))); return 0; }
+            if (args.Contains("--operation-progress")) { CheckOperationProgress(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--column-editing")) { CheckColumnEditing(args.First(a => !a.StartsWith("--"))); return 0; }
             if(args.Contains("--environment-menu")){CheckEnvironmentMenu(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--environment-overlay")){CheckEnvironmentOverlay(args.First(a=>!a.StartsWith("--")));return 0;}

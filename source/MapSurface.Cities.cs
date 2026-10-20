@@ -27,6 +27,11 @@ internal sealed partial class MapSurface
     private sealed class CityLayer(MapSurface map) : LabelLayer(map)
     {
         protected override void Draw(MapSurface map, IMapCanvas dc) => map.DrawCities(dc);
+        internal override void Redraw()
+        {
+            Map.InvalidateCityCommands();
+            base.Redraw();
+        }
     }
 
     // Labels claim their place on screen in order of importance: the selected city, the other cities (big ones

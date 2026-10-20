@@ -251,4 +251,22 @@ public class CardEditTests
         Assert.Equal(expected, edits.Select(e => e.Label));
         Assert.All(edits, edit => Assert.Equal(new FieldChange(OfficerFields.Loyalty, 150), Assert.Single(edit.Changes)));
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(99)]
+    [InlineData(100)]
+    [InlineData(120)]
+    [InlineData(150)]
+    [InlineData(200)]
+    public void Loyalty100RaisesOnlyVassalsBelow100(int loyalty)
+    {
+        GameSnapshot data = Game().With(12, OfficerFields.Loyalty, loyalty)
+            .Officer(50, "포로", 0, 진류, status: 6).Build();
+        List<RecordEdit> edits = Fills.RaiseOfficers(data, [1, 10, 11, 12, 20, 50], [OfficerFields.Loyalty], 100);
+
+        string[] expected = loyalty < 100 ? ["하후돈", "하후연", "조인"] : ["하후돈", "하후연"];
+        Assert.Equal(expected, edits.Select(e => e.Label));
+        Assert.All(edits, edit => Assert.Equal(new FieldChange(OfficerFields.Loyalty, 100), Assert.Single(edit.Changes)));
+    }
 }

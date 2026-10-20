@@ -25,6 +25,7 @@ internal sealed partial class EditorWindow
         GameIdentity identity = game!.Value;
         GameLayout found = layout!;
         SetBusy(true, scanning: false);
+        SetOperationProgress(L.OperationProgress.Checking);
         try
         {
             // Linked values wait for [정지]; plain ones go in while the game runs (GameChecks.PaceBlock). Telling the
@@ -37,6 +38,7 @@ internal sealed partial class EditorWindow
                 return false;
             }
             status.Text = L.Apply.Writing;
+            SetOperationProgress(L.Apply.Writing);
             if (!linked && snapshot?.Pace == GamePace.Running) AddLog(L.Apply.WritingWhileRunning);
             foreach (RecordEdit edit in edits)
                 AddLog(L.Apply.Request(edit.Label, string.Join(", ", edit.Changes.Select(c => $"{c.Field.Label} {c.Field.Read(edit.Expected):N0} → {c.Value:N0}"))));
@@ -46,9 +48,11 @@ internal sealed partial class EditorWindow
             IReadOnlyList<string> overwritten = await Task.Run(() => GameMemory.Apply(identity, edits));
             foreach (string item in overwritten) AddLog("  " + L.Apply.WroteOverGame(item));
             if (undoable) RememberUndo(edits);
+            SetOperationProgress(L.OperationProgress.Synchronizing);
             foreach (string line in await Task.Run(() => GameMemory.SyncForceAgreements(identity, found, edits))) AddLog("  " + line);
             // A 명품 counts for the game's rules only on its list of held ones, which the game itself puts right.
             foreach (string line in await Task.Run(() => GameMemory.SyncOwnedItems(identity, edits))) AddLog("  " + line);
+            SetOperationProgress(L.OperationProgress.Reading);
             await Task.Delay(300);
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
             snapshot = data;
@@ -78,6 +82,7 @@ internal sealed partial class EditorWindow
             // preserve its full diagnostic; only a verified stale rollback gets the "all undone" message.
             try
             {
+                SetOperationProgress(L.OperationProgress.Reading);
                 snapshot = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
                 map.SetSnapshot(snapshot);
                 MergeSnapshot();

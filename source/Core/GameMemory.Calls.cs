@@ -169,16 +169,20 @@ internal static partial class GameMemory
     // Has force `from` surrender to force `to` through the edit mode's 세력 항복 on the game's next frame. Both are
     // forces with a ruler (not tribes) and `from` is not the player's; the game checks that too. Throws when it was
     // not done; the game's change cannot be undone by the editor.
-    internal static void SurrenderForce(GameIdentity identity, GameLayout layout, int from, int to)
+    internal static void SurrenderForce(GameIdentity identity, GameLayout layout, ForceSurrenders.Request request)
     {
+        int from = request.From, to = request.To;
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         if (from == to || from is < 1 or > MaxPlayerForce || to is < 1 or > MaxPlayerForce) throw new ArgumentOutOfRangeException(nameof(from));
+        if (ReadPace(identity, layout) != GamePace.Paused) throw new InvalidOperationException(L.Surrender.PauseFirst);
         uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
         IntPtr handle = OpenProcess(access, false, identity.ProcessId);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
             int fromRuler = RulerOf(handle, identity, layout, from), toRuler = RulerOf(handle, identity, layout, to);
+            if (fromRuler != request.FromRuler || toRuler != request.ToRuler)
+                throw new InvalidOperationException(L.Surrender.Changed);
             if (layout.State != 0 && ReadBytes(handle, layout.State + StatePlayerForceOffset, 1)[0] == from)
                 throw new InvalidOperationException(L.Surrender.PlayerForce);
             (string? why, int result) = RunOnFrame(handle, identity, data =>

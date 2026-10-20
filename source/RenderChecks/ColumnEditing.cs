@@ -50,10 +50,14 @@ internal static partial class RenderChecks
         var window = OfflineEditor();
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, data);
         Call(window, "FillLists");
+        var map = Field<MapView>(window, "map");
         try
         {
             foreach ((string name, int count) in new[] { ("city", 3), ("officer", 6), ("unit", UnitFields.All.Length), ("personality", 2) })
             {
+                // Exercise a displayed table; unopened tabs intentionally have no materialized rows.
+                map.ShowList(name switch { "city" => ListKind.Cities, "officer" => ListKind.Officers,
+                    "unit" => ListKind.Units, _ => ListKind.Personalities });
                 GameTable table = Field<GameTable>(window, name + "Table");
                 table.EditingEnabled = true;
                 Check(name + "-writer-wired", table.ColumnWriter is not null && Buttons(table).Length == count);
@@ -90,6 +94,7 @@ internal static partial class RenderChecks
             var allowed = (IReadOnlyList<object>)Call(personality, "ColumnTargets", 2)!;
             Check("non-numeric-personality-effects-excluded", allowed.SequenceEqual(new object[] { 1 }));
 
+            map.ShowList(ListKind.Officers);
             var officers = Field<GameTable>(window, "officerTable");
             Field<SearchBox>(window, "officerSearch").Text = "장수";
             Field<WC.ComboBox>(window, "officerForceBox").SelectedIndex = Field<List<int>>(window, "forceChoices").IndexOf(1) + 1;

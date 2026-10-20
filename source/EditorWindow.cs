@@ -39,7 +39,8 @@ internal sealed partial class EditorWindow : W.Window
     {
         ToolTip = L.Auto.StopTip
     };
-    private readonly WC.ProgressBar progress = new() { IsIndeterminate = true, Height = 3, Visibility = W.Visibility.Collapsed, Margin = new W.Thickness(0, 2, 0, 0) };
+    private readonly WC.ProgressBar progress = new() { Height = 6, Foreground = CardSkin.Gold, Visibility = W.Visibility.Collapsed, Margin = new W.Thickness(0, 2, 0, 0) };
+    private readonly WC.TextBlock progressStatus = new() { Foreground = CardSkin.InkOnDark, TextTrimming = W.TextTrimming.CharacterEllipsis, Visibility = W.Visibility.Collapsed };
     private readonly WC.TextBlock status = new() { Foreground = CardSkin.InkOnDark, TextTrimming = W.TextTrimming.CharacterEllipsis, VerticalAlignment = W.VerticalAlignment.Center };
     private readonly LogPanel log = new();
     private readonly EditorLogFile logFile;
@@ -135,8 +136,10 @@ internal sealed partial class EditorWindow : W.Window
         var messages = new WC.StackPanel { VerticalAlignment = W.VerticalAlignment.Center };
         messages.Children.Add(status);
         messages.Children.Add(seasonStatus);
+        messages.Children.Add(progressStatus);
         messages.Children.Add(progress);
         status.SetBinding(W.FrameworkElement.ToolTipProperty, new System.Windows.Data.Binding(nameof(WC.TextBlock.Text)) { Source = status });
+        progressStatus.SetBinding(W.FrameworkElement.ToolTipProperty, new System.Windows.Data.Binding(nameof(WC.TextBlock.Text)) { Source = progressStatus });
         middle.Children.Add(messages);
         toolbar.Children.Add(connection);
         toolbar.Children.Add(tools);
@@ -246,9 +249,30 @@ internal sealed partial class EditorWindow : W.Window
 
     private void SetBusy(bool value, bool scanning)
     {
+        bool wasBusy = busy;
         busy = value || seasonClosing || seasonDisconnecting;
-        progress.Visibility = value && scanning ? W.Visibility.Visible : W.Visibility.Collapsed;
+        if (busy && !wasBusy) SetOperationProgress(scanning ? L.Connection.FindingData : L.OperationProgress.Working);
+        progress.Visibility = progressStatus.Visibility = busy ? W.Visibility.Visible : W.Visibility.Collapsed;
+        if (!busy)
+        {
+            progress.IsIndeterminate = false;
+            progress.Value = 0;
+            progressStatus.Text = "";
+            W.Automation.AutomationProperties.SetName(progress, "");
+        }
         UpdateControls();
+    }
+
+    // Count only completed work. Operations without a measured total use the animated indicator.
+    private void SetOperationProgress(string message, int completed = 0, int total = 0)
+    {
+        if (!busy) return;
+        progressStatus.Text = message;
+        progress.IsIndeterminate = total <= 0;
+        progress.Value = 0;
+        progress.Maximum = total > 0 ? total : 1;
+        progress.Value = completed;
+        W.Automation.AutomationProperties.SetName(progress, message);
     }
 
     private void UpdateControls()
@@ -287,6 +311,7 @@ internal sealed partial class EditorWindow : W.Window
         bool doctrineAvailable=!busy && connected && doctrineRuleSnapshot is not null && ruleKept?.Profile?.Table("doctrine") is not null;
         doctrineEditor.ApplyEnabled=doctrineAvailable; doctrineEditor.SetAvailable(doctrineAvailable);
         cityEditor.FillsEnabled = gateEditor.FillsEnabled = forceEditor.FillsEnabled = !busy && connected;
+        batchSurrenderButton.IsEnabled = !busy && connected;
         officerEditor.RevivalEnabled = !busy && connected;
         officerEditor.StatusChangeEnabled = !busy && connected;
         unlockButton.IsEnabled = !busy && snapshot?.Play is not null;
