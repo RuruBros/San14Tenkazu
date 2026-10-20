@@ -12,11 +12,13 @@ namespace San14Tenkazu;
 internal sealed class LogPanel : WC.DockPanel
 {
     private const double OpenHeight = 170;
+    internal const int MaximumCharacters = 128 * 1024;
+    private const int RetainedCharacters = 96 * 1024;
     private static readonly WM.Brush HoverInk = CardSkin.Brush(Theme.GoldLight);
 
     private readonly WC.TextBox text = new()
     {
-        IsReadOnly = true, TextWrapping = W.TextWrapping.Wrap, AcceptsReturn = true, BorderThickness = new W.Thickness(0),
+        IsReadOnly = true, IsUndoEnabled = false, TextWrapping = W.TextWrapping.Wrap, AcceptsReturn = true, BorderThickness = new W.Thickness(0),
         Background = CardSkin.DarkWood, Foreground = CardSkin.InkOnDark, VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto
     };
     private readonly WC.Border body;
@@ -87,7 +89,17 @@ internal sealed class LogPanel : WC.DockPanel
 
     internal void Append(string line)
     {
+        if (line.Length > MaximumCharacters) line = line[^MaximumCharacters..];
         text.AppendText(line);
+        // The complete editor log is written to disk. Keep a bounded recent portion in the UI,
+        // trimming a block at a time instead of copying the text on every append.
+        if (text.Text.Length > MaximumCharacters)
+        {
+            string content = text.Text;
+            int start = content.Length - RetainedCharacters;
+            int newline = content.IndexOf('\n', start);
+            text.Text = content[(newline >= 0 && newline < content.Length - 1 ? newline + 1 : start)..];
+        }
         if (Open) text.ScrollToEnd();
     }
 }
