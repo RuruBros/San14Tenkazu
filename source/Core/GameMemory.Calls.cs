@@ -96,12 +96,12 @@ internal static partial class GameMemory
         int codeSize = checked(codePages * StubPage);
         IntPtr page = VirtualAllocEx(handle, IntPtr.Zero, (UIntPtr)(codeSize + StubPage), MemCommit | MemReserve, PageReadWrite);
         if (page == IntPtr.Zero) return (L.Calls.WhyNoPage(Marshal.GetLastWin32Error()), 0);
+        using var allocation = new FrameAllocation(handle, page);
         ulong code = (ulong)page.ToInt64(), data = code + (ulong)codeSize;
         FrameCall c = call(data);
         if (!CodeIs(handle, c.Function, c.Start) || c.Args.Length > StubPage - StubArgs
             || (c.After ?? []).Any(next => !CodeIs(handle, next.Call.Function, next.Start)))
         {
-            VirtualFreeEx(handle, page, UIntPtr.Zero, MemRelease); // Nothing points at it yet.
             return (L.Calls.WhyCode, 0);
         }
         WriteBytes(handle, data + StubNext, BitConverter.GetBytes(update));
@@ -114,7 +114,6 @@ internal static partial class GameMemory
         {
             if (stub.Length > BodyOffset || body.Length > codeSize - BodyOffset)
             {
-                VirtualFreeEx(handle, page, UIntPtr.Zero, MemRelease);
                 return (L.Calls.WhyCode, 0);
             }
             Array.Resize(ref stub, BodyOffset + body.Length);
@@ -122,19 +121,22 @@ internal static partial class GameMemory
         }
         if (stub.Length > codeSize)
         {
-            VirtualFreeEx(handle, page, UIntPtr.Zero, MemRelease);
             return (L.Calls.WhyCode, 0);
         }
         WriteBytes(handle, code, stub);
         if (!VirtualProtectEx(handle, page, (UIntPtr)codeSize, PageExecuteRead, out _))
             return (L.Calls.WhyNoPage(Marshal.GetLastWin32Error()), 0);
-        FlushInstructionCache(handle, page, (UIntPtr)codeSize);
+        if (!FlushInstructionCache(handle, page, (UIntPtr)codeSize))
+            return (L.Calls.WhyNoPage(Marshal.GetLastWin32Error()), 0);
 
         if (!VirtualProtectEx(handle, (IntPtr)unchecked((long)slot), (UIntPtr)8, PageReadWrite, out uint slotProtect))
             return (L.Calls.WhyNoPage(Marshal.GetLastWin32Error()), 0);
         byte reached = StubArmed;
         try
         {
+            // Once publication is attempted a game thread may already have read this address,
+            // even if WriteBytes reports a failure. Only unpublished allocations can be freed.
+            allocation.MarkPublished();
             WriteBytes(handle, slot, BitConverter.GetBytes(code));
             var clock = System.Diagnostics.Stopwatch.StartNew();
             while (true)
