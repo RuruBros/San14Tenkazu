@@ -78,7 +78,9 @@ internal sealed class GameTable : WC.Border
         SizeChanged += (_, _) => PositionInput();
         IsVisibleChanged += (_, _) => { if (!IsVisible) CancelInput(); };
         // The game's shields come after the table is first drawn.
-        if (columns.Any(c => c.Kind == Kind.Shield)) MapArt.Changed += () => Dispatcher.BeginInvoke(Redraw);
+        if (columns.Any(c => c.Kind == Kind.Shield))
+            VisualEventSubscription.Attach(this, static changed => MapArt.Changed += changed,
+                static changed => MapArt.Changed -= changed, Redraw);
     }
 
     internal double RowHeight { get; }

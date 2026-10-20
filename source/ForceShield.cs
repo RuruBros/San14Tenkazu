@@ -20,7 +20,11 @@ internal sealed class ForceShield : W.FrameworkElement
         WeakReference<ForceShield>[] shields = [.. waiting];
         waiting.Clear();
         foreach (WeakReference<ForceShield> shield in shields)
-            if (shield.TryGetTarget(out ForceShield? alive)) alive.InvalidateVisual();
+            if (shield.TryGetTarget(out ForceShield? alive))
+            {
+                alive.waitingForArt = false;
+                alive.InvalidateVisual();
+            }
     });
 
     internal ForceShield() => WM.RenderOptions.SetBitmapScalingMode(this, WM.BitmapScalingMode.HighQuality);
@@ -36,12 +40,15 @@ internal sealed class ForceShield : W.FrameworkElement
         }
     }
     private System.Drawing.Color colour = System.Drawing.Color.Gray;
+    private bool waitingForArt;
 
     protected override void OnRender(WM.DrawingContext dc)
     {
         if (Draw(dc, new W.Rect(0, 0, ActualWidth, ActualHeight), colour)) return;
+        if (waitingForArt) return;
         if (waiting.Count >= 64) waiting.RemoveAll(shield => !shield.TryGetTarget(out _));
         waiting.Add(new WeakReference<ForceShield>(this));
+        waitingForArt = true;
     }
 
     // The shield over an area as tall as the sprite is (40 wide to 52 high). False when it is the drawn one.
