@@ -9,10 +9,11 @@ public sealed class AutomaticGameSettingsTests
         internal int Finds, Writes;
         internal RuntimeRuleSettings? Rules = RuntimeRuleSettings.Original;
         internal Action? OnRead;
-        internal readonly RuntimeRulePreference Preference = new(1, GameBuildProfiles.Current.ExeSha256, new(true, AbilityRuleMode.Growth200, true), true);
+        internal readonly RuntimeRulePreference Preference;
         internal readonly AutomaticGameSettings Monitor;
-        internal Fixture()
+        internal Fixture(RuntimeRuleSettings? settings = null)
         {
+            Preference = new(1, GameBuildProfiles.Current.ExeSha256, settings ?? new(true, AbilityRuleMode.Growth200, true), true);
             Monitor = new(new(() => { Finds++; return Current; }, id => Current == id,
                 _ => { OnRead?.Invoke(); return Rules; }, _ => Ready,
                 (id, settings, path) =>
@@ -27,18 +28,29 @@ public sealed class AutomaticGameSettingsTests
             id => $"receipt-{id.ProcessId}", () => IntentCurrent, token);
     }
 
-    [Fact]
-    public void LaunchAfterEditorStartPreparesOnceThenConnectsAndPreparesAgainOnRestart()
+    public static IEnumerable<object[]> SavedModes()
     {
-        var f = new Fixture(); Assert.Equal(AutomaticGamePhase.Absent, f.Poll().Phase);
+        foreach (bool traits in new[] { false, true })
+        foreach (AbilityRuleMode ability in Enum.GetValues<AbilityRuleMode>())
+        foreach (bool list in new[] { false, true })
+            if (!list || traits) yield return [traits, (int)ability, list];
+    }
+
+    [Theory] [MemberData(nameof(SavedModes))]
+    public void LaunchAfterEditorStartPreparesOnceThenConnectsAndPreparesAgainOnRestart(bool traits, int ability, bool list)
+    {
+        var settings = new RuntimeRuleSettings(traits, (AbilityRuleMode)ability, list);
+        int expectedWrites = settings == RuntimeRuleSettings.Original ? 0 : 1;
+        var f = new Fixture(settings); Assert.Equal(AutomaticGamePhase.Absent, f.Poll().Phase);
         f.Start(); f.Rules = null; Assert.Equal(AutomaticGamePhase.Starting, f.Poll().Phase);
         f.Rules = RuntimeRuleSettings.Original; Assert.Equal(AutomaticGamePhase.RulesApplied, f.Poll().Phase);
         for (int i = 0; i < 5; i++) Assert.Equal(AutomaticGamePhase.RulesApplied, f.Poll().Phase);
-        Assert.Equal(1, f.Writes); Assert.Equal(2, f.Finds);
+        Assert.Equal(expectedWrites, f.Writes); Assert.Equal(settings, f.Rules); Assert.Equal(2, f.Finds);
         f.Ready = true; Assert.Equal(AutomaticGamePhase.Connect, f.Poll().Phase);
         f.Current = null; Assert.Equal(AutomaticGamePhase.Absent, f.Poll().Phase);
         f.Start(11); f.Ready = false; f.Rules = RuntimeRuleSettings.Original;
-        Assert.Equal(AutomaticGamePhase.RulesApplied, f.Poll().Phase); Assert.Equal(2, f.Writes);
+        Assert.Equal(AutomaticGamePhase.RulesApplied, f.Poll().Phase); Assert.Equal(2 * expectedWrites, f.Writes);
+        Assert.Equal(settings, f.Rules);
     }
 
     [Theory] [InlineData(false)] [InlineData(true)]

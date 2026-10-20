@@ -11,9 +11,6 @@ internal sealed partial class EditorWindow
     private GameIdentity? runtimeRuleFailure;
     private string runtimeRuleNotice = "";
     private GameIdentity? runtimeRulesIdentity;
-    // The officer-data check of the saved rules (experience curve, clamped levels, traits removed at load) for one
-    // loaded world: its need arises at load time, so one scan per storage/settings serves until a write or a reload.
-    private (GameLayout Layout, RuntimeRuleSettings Settings, bool Result)? runtimeReapplyCheck;
     private PlateButton BuildRuntimeRulesMenu()
     {
         runtimeRulesButton.Click += async () =>
@@ -92,7 +89,7 @@ internal sealed partial class EditorWindow
 
     private void FollowRuntimeRuleResult(RuntimeRuleApplyResult result)
     {
-        layout = result.Layout; snapshot = result.Snapshot; runtimeReapplyCheck = null;
+        layout = result.Layout; snapshot = result.Snapshot;
         // Earlier ability/experience Undo belongs to a different growth curve.
         undoHistory.RemoveAll(h => h.Edits.Any(e => e.Changes.Any(c => OfficerFields.Abilities.Contains(c.Field) || OfficerFields.IsExperience(c.Field))));
         map.SetSnapshot(snapshot); FillLists(); ReopenEditor();
@@ -102,7 +99,7 @@ internal sealed partial class EditorWindow
     {
         if (busy || refreshing || runtimeRulesChecking || runtimeRulesChanging || layoutRecovering
             || seasonClosing || seasonDisconnecting || game is not { Verified: true } identity || layout is null) return;
-        if (retry) { runtimeRuleFailure = null; runtimeReapplyCheck = null; }
+        if (retry) runtimeRuleFailure = null;
         if (runtimeRuleFailure == identity) return;
         bool Pending() => lists.Pending > 0 || aiView?.Pending == true || Editors.Any(c => c.Pending > 0) || RulesPending || runtimeRulesWindow?.HasPendingChanges == true;
         if (Pending()) return;
@@ -135,14 +132,10 @@ internal sealed partial class EditorWindow
                 bool experienceChanged = false;
                 if (preference.Settings.Growth || preference.Settings.Traits9 || preference.Settings.Expanded)
                 {
-                    if (runtimeReapplyCheck is { } known && known.Settings == preference.Settings && known.Layout.SameStorage(currentLayout))
-                        experienceChanged = known.Result;
-                    else
-                    {
-                        experienceChanged = await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings) ?? false);
-                        if (!Current() || Pending() || runtimeRuleFile.Read() != preference) return;
-                        runtimeReapplyCheck = (currentLayout, preference.Settings, experienceChanged);
-                    }
+                    // Matching patch bytes and table addresses do not prove that officer data still matches.
+                    // A load can reuse storage; save discovery can also find recovery data on a later refresh.
+                    experienceChanged = await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings) ?? false);
+                    if (!Current() || Pending() || runtimeRuleFile.Read() != preference) return;
                 }
                 if (!experienceChanged)
                 {
@@ -157,7 +150,6 @@ internal sealed partial class EditorWindow
             if (!Current() || Pending()) return;
             if (runtimeRuleFile.Read() != preference) return;
             if (pace != GamePace.Paused) { Notice(L.GameSettingsUi.WaitingForPause); return; }
-            runtimeReapplyCheck = null;
             writing = true; runtimeRulesChanging = true; ++ruleRevision; SetBusy(true, scanning: false); runtimeRulesWindow?.SetBusy(true);
             var result = await Task.Run(() => runtimeRuleAccess.Apply(identity, preference.Settings, runtimeRuleFile.ReceiptPath(identity), preference.ConvertExperience, true));
             if (game != identity) return;
