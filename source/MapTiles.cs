@@ -54,6 +54,7 @@ internal sealed class MapTiles
     private bool fromGame = true;
     private bool enabled = true;
     private int running;
+    private int generation;
     private long frame;
 
     // A layer that starts at firstLevel shows nothing when zoomed out further, so what lies under it shows.
@@ -85,7 +86,7 @@ internal sealed class MapTiles
         {
             if (enabled == value) return;
             enabled = value;
-            if (!enabled) tiles.Clear();
+            if (!enabled) { generation++; tiles.Clear(); }
             Refresh();
         }
     }
@@ -321,14 +322,29 @@ internal sealed class MapTiles
             ushort[]? tileCounties = counties;
             bool game = fromGame;
             TileKey key = tile.Key;
-            Task.Run(() => render(key, territory, tileCounties, game)).ContinueWith(task =>
-                canvas.Dispatcher.BeginInvoke(() => Done(tile, drawnFor, task)), TaskScheduler.Default);
+            int startedIn = generation;
+            Renderer draw = render;
+            var owner = new WeakReference<MapTiles>(this);
+            // A tile's Element and this canvas belong to the map's visual tree. Neither a worker
+            // nor a queued completion should keep that tree alive after it has been unloaded.
+            Task.Run(() => draw(key, territory, tileCounties, game)).ContinueWith(task =>
+                QueueCompleted(owner, key, drawnFor, startedIn, task), TaskScheduler.Default);
         }
     }
 
-    private void Done(Tile tile, int drawnFor, Task<WMI.BitmapSource?> task)
+    private static void QueueCompleted(WeakReference<MapTiles> owner, TileKey key, int drawnFor, int generation, Task<WMI.BitmapSource?> task)
+    {
+        if (!owner.TryGetTarget(out var target) || target.canvas.Dispatcher.HasShutdownStarted) return;
+        target.canvas.Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (owner.TryGetTarget(out var current)) current.Done(key, drawnFor, generation, task);
+        }));
+    }
+
+    private void Done(TileKey key, int drawnFor, int startedIn, Task<WMI.BitmapSource?> task)
     {
         running--;
+        if (startedIn != generation || !tiles.TryGetValue(key, out var tile)) { Refresh(); return; }
         tile.Rendering = false;
         // An image for older territory is still better than none; it is drawn again afterwards.
         if (task.IsCompletedSuccessfully && (drawnFor == version || tile.Image is null || tile.Version < drawnFor))

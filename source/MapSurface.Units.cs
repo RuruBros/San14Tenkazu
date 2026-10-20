@@ -127,6 +127,12 @@ internal sealed partial class MapSurface
             next[(unit.Slot, unit.Commander)] = glide;
         }
         glides = next;
+        StartGlides(now);
+    }
+
+    // Reloading resumes the same trajectory and clock; it must not restart or extend the move.
+    private void StartGlides(double now)
+    {
         if (!gliding && AnyGliding(now))
         {
             gliding = true;

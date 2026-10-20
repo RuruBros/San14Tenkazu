@@ -142,8 +142,10 @@ internal sealed partial class MapSurface : WC.Grid
         // The game's label sprites are scaled down; smooth them, and redraw once they have loaded.
         WM.RenderOptions.SetBitmapScalingMode(cities, WM.BitmapScalingMode.HighQuality);
         WM.RenderOptions.SetBitmapScalingMode(units, WM.BitmapScalingMode.HighQuality);
-        MapArt.Changed += () => Dispatcher.BeginInvoke(() =>
+        VisualEventSubscription.Attach(this, static changed => MapArt.Changed += changed,
+            static changed => MapArt.Changed -= changed, () =>
         {
+            InvalidateCityCommands();
             cities.Redraw();
             units.Redraw();
         });
@@ -169,14 +171,24 @@ internal sealed partial class MapSurface : WC.Grid
         };
         Children.Add(card);
         SizeChanged += (_, _) => ApplyView();
-        Loaded += (_, _) => { if (gpu is null) StartGpu(); };
+        Loaded += (_, _) =>
+        {
+            if (gpu is null) StartGpu();
+            StartGlides(Now);
+            units.Redraw();
+        };
         Unloaded += (_, _) =>
         {
             looping = false;
             WM.CompositionTarget.Rendering -= OnFrame;
             WM.CompositionTarget.Rendering -= OnGpuFrame;
+            WM.CompositionTarget.Rendering -= OnGlide;
+            gliding = false;
             gpuHooked = false;
+            gpuImage.Source = null;
             gpu?.Dispose(); gpu = null;
+            gpuFrame.Reset(); cityCommands.Reset(); InvalidateCityCommands();
+            tiles.Enabled = ground.Enabled = false;
             renderLog?.Dispose();
         };
         StartGpu();

@@ -85,7 +85,8 @@ internal static partial class CardSkin
             mark.Child = picture.Source is null ? fallback : picture;
         }
         Show(false);
-        GameSkin.Changed += () => mark.Dispatcher.BeginInvoke(() => Show(mark.IsMouseOver));
+        VisualEventSubscription.Attach(mark, static changed => GameSkin.Changed += changed,
+            static changed => GameSkin.Changed -= changed, () => Show(mark.IsMouseOver));
         mark.MouseEnter += (_, _) => Show(true);
         mark.MouseLeave += (_, _) => Show(false);
         mark.MouseLeftButtonUp += (_, e) =>
@@ -116,7 +117,8 @@ internal sealed class PlateButton : W.FrameworkElement
         FocusVisualStyle = null;
         Cursor = WI.Cursors.Hand;
         IsEnabledChanged += (_, _) => InvalidateVisual();
-        GameSkin.Changed += () => Dispatcher.BeginInvoke(() =>
+        VisualEventSubscription.Attach(this, static changed => GameSkin.Changed += changed,
+            static changed => GameSkin.Changed -= changed, () =>
         {
             InvalidateMeasure();
             InvalidateVisual();
