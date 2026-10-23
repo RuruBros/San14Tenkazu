@@ -18,7 +18,12 @@ internal static partial class GameMemory
     // Whether the connected game still needs the officer-data side of the saved rules: experience on the
     // wrong curve, levels clamped below their experience, or abilities/traits the original loader removed
     // that the located save still holds.
-    internal static bool RuntimeRulesNeedReapply(GameIdentity identity, GameLayout layout, RuntimeRuleSettings settings)
+    internal static bool RuntimeRulesNeedReapply(GameIdentity identity, GameLayout layout, RuntimeRuleSettings settings, string? runtimeReceipt = null)
+    {
+        lock (RuntimeRuleLock) return RuntimeRulesNeedReapplyLocked(identity, layout, settings, runtimeReceipt);
+    }
+
+    private static bool RuntimeRulesNeedReapplyLocked(GameIdentity identity, GameLayout layout, RuntimeRuleSettings settings, string? runtimeReceipt)
     {
         if (!settings.Growth && !settings.Traits9 && !settings.Expanded) return false;
         GameCapabilities.Require(identity, GameFeature.RuntimeAbilities);
@@ -26,12 +31,17 @@ internal static partial class GameMemory
         var current = ReadCurrentLayout(identity);
         if (!layout.SameStorage(current)) throw new InvalidOperationException(L.RuntimeErrors.Loading);
         byte[]?[] records = ReadOfficerRecords(identity, current);
+        var history = runtimeReceipt is null ? null : new SaveRestoreEdits(SaveRestoreEdits.PathFor(runtimeReceipt), identity, current);
+        history?.Observe(address => address >= current.OfficerArray && (address - current.OfficerArray) % OfficerStride == 0
+            && (address - current.OfficerArray) / OfficerStride < (ulong)records.Length
+                ? records[(int)((address - current.OfficerArray) / OfficerStride)] : null);
         var save = settings.Traits9 || settings.Expanded ? GameSaveLocator.FindLoaded(records)?.Save : null;
         for (int slot = 1; slot < records.Length; slot++)
         {
             byte[] record = records[slot]!;
             if (settings.Growth && RuntimeRuleExperience.NeedsReapply(record, settings)) return true;
-            if (save is not null && SaveRestore.Plan(record, 0, save.Officers[slot], settings).Length != 0) return true;
+            ulong address = current.OfficerArray + (ulong)(slot * OfficerStride);
+            if (save is not null && SaveRestore.Plan(record, address, save.Officers[slot], settings, history?.PreservesTraits(address, record) == true).Length != 0) return true;
         }
         return false;
     }
@@ -131,6 +141,8 @@ internal static partial class GameMemory
                     p.Bytes(previous), p.Bytes(wanted), p.Rva < GameBuildFacts.Runtime.ExecutableLimit))
                     .Where(p => !p.Before.SequenceEqual(p.After)).ToList();
                 int conversions = 0, restorations = 0, traitRestorations = 0;
+                var history = current is null ? null : new SaveRestoreEdits(SaveRestoreEdits.PathFor(journalPath), identity, current);
+                history?.Observe(address => memory.Read(address, OfficerStride));
                 if (save is not null && save.Officers.Length != current!.OfficerCount) save = null;
                 if (!beforeLoad && (wanted.Growth || previous.Growth || save is not null))
                 {
@@ -140,7 +152,7 @@ internal static partial class GameMemory
                         ulong address = current.OfficerArray + (ulong)(slot * OfficerStride);
                         byte[] record = memory.Read(address, OfficerStride);
                         if (BitConverter.ToUInt64(record) != identity.Classes.Officer) throw new InvalidDataException(L.RuntimeErrors.OfficerTableChanged);
-                        var fromSave = save is null ? [] : SaveRestore.Plan(record, address, save.Officers[slot], wanted);
+                        var fromSave = save is null ? [] : SaveRestore.Plan(record, address, save.Officers[slot], wanted, history?.PreservesTraits(address, record) == true);
                         var converted = RuntimeRuleExperience.Plan(record, address, previous, wanted, reapply, convertExperience)
                             .Where(w => !fromSave.Any(s => s.Address == w.Address)).ToArray();
                         writes.AddRange(converted); writes.AddRange(fromSave);

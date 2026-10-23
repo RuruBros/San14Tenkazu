@@ -7,11 +7,11 @@ internal static class SaveRestore
 {
     internal const int TraitOffset = 0x118, TraitBytes = 18, AbilityOffset = 0xEC;
 
-    internal static RuntimeRuleWrite[] Plan(byte[] record, ulong address, SaveOfficer saved, RuntimeRuleSettings wanted)
+    internal static RuntimeRuleWrite[] Plan(byte[] record, ulong address, SaveOfficer saved, RuntimeRuleSettings wanted, bool preserveTraits = false)
     {
         if (!GameSaveFile.SameOfficer(record, saved)) return [];
         var writes = new List<RuntimeRuleWrite>();
-        if (wanted.Traits9 && saved.TraitCount >= 6 && record.AsSpan(TraitOffset, TraitBytes).IndexOfAnyExcept((byte)0) < 0)
+        if (!preserveTraits && wanted.Traits9 && saved.TraitCount >= 6 && record.AsSpan(TraitOffset, TraitBytes).IndexOfAnyExcept((byte)0) < 0)
         {
             byte[] after = new byte[TraitBytes];
             for (int slot = 0; slot < 9; slot++) BitConverter.GetBytes(saved.Traits[slot]).CopyTo(after, slot * 2);
