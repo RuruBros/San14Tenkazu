@@ -10,8 +10,8 @@ namespace San14Tenkazu.EnvironmentRules;
 internal static class EnvironmentNativeBundle
 {
     // Updated only after native build/checks and exact source snapshot packaging.
-    internal const string DllHash="f1fda5b0513ba05d0bf5346b323b7c897a5eaaabf3bb15cbd5b3d099b3b42399";
-    internal const string ManifestHash="771185e52ddcdcdcb767a805fe139a9129a613f5223e2622d469087f40804579";
+    internal const string DllHash="8131de363284def4984a429c96462fcd190f7b13555cb83092fd5a40726a4258";
+    internal const string ManifestHash="cff2d7f01e0b41b6b8fad3f54ebb926d0fd4e8be4c847e2df134fdf23daaeb20";
     internal static readonly (ulong Rva,int Size,string Hash)[] Targets=GameBuildFacts.EnvironmentTargets();
     internal static readonly string[] SourceNames=["EnvironmentBridge.cpp","EnvironmentProtocol.h","EnvironmentPolicy.h","EnvironmentSignatures.h","EnvironmentWeather.h","EnvironmentChecks.cpp","BuildEnvironmentBridge.ps1","EnvironmentNotification.h","EnvironmentNotificationSignatures.h","EnvironmentNoticeSound.h","GameBuildFacts.g.h"];
     private static string Hash(byte[] value)=>Convert.ToHexString(SHA256.HashData(value)).ToLowerInvariant();

@@ -13,24 +13,29 @@ __declspec(noinline) void __fastcall moraleAdapter(void* unit,int delta,void*,in
     auto value=reinterpret_cast<uint64_t>(unit);write<uint8_t>(value+0x1a,static_cast<uint8_t>(std::clamp(int(read<uint8_t>(value,0x1a))+delta,0,100)));
 }
 struct Fixture {
-    uint64_t module{},root{},world{},manager{},tiles{},units{},cities{},counties{};Bootstrap input{};
+    uint64_t module{},root{},world{},manager{},tiles{},units{},cities{},counties{},buildings{};Bootstrap input{};int climateT{},climateP{};
     std::shared_ptr<Session> s;std::shared_ptr<Message> message;
     static uint64_t allocate(size_t size){auto value=VirtualAlloc(nullptr,size,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!value)throw std::bad_alloc();return reinterpret_cast<uint64_t>(value);}
     Fixture() {
         module=allocate(0x2780000);root=allocate(0x90000);world=allocate(0x1000);manager=allocate(0x1000);
-        tiles=allocate(48400*0x20);units=allocate(501*0x200);cities=allocate(47*0x168);counties=allocate(501*0x200);
-        input.module=module;input.generation=17;input.worldClass=101;input.unitClass=102;input.tileClass=103;input.countyClass=104;input.cityClass=105;
+        tiles=allocate(48400*0x20);units=allocate(501*0x200);cities=allocate((CitySlots+1)*0x168);counties=allocate(501*0x200);buildings=allocate((CitySlots+1)*0x20);
+        input.module=module;input.generation=17;input.worldClass=101;input.unitClass=102;input.tileClass=103;input.countyClass=104;input.cityClass=105;input.buildingClass=106;
         write<uint64_t>(module+0x277df18,root-0x290);write<uint64_t>(root+0x86f58,world);write<uint64_t>(world,101);
         write<uint64_t>(module+0x1b9fb70,manager);write<uint64_t>(manager+0x210,1);
         write<uint64_t>(root+0xdfe0,tiles);write<uint64_t>(root+0x7e5a8,units);
         for(unsigned tile=0;tile<48400;tile++){write<uint64_t>(tiles+tile*0x20,103);write<uint16_t>(tiles+tile*0x20+0x12,1);}
         for(unsigned i=0;i<=500;i++)write<uint64_t>(units+i*0x200,102);
-        for(unsigned city=1;city<=46;city++) {
+        for(unsigned city=1;city<=CitySlots;city++) {
             auto value=cities+city*0x168;write<uint64_t>(root+0xdaa8+city*8,value);write<uint64_t>(value,105);
             write<uint16_t>(value+0x4e,static_cast<uint16_t>(city));write<uint16_t>(value+0x30,1);write<int>(value+0x38,10000);
+            write<uint8_t>(value+0xce,1);write<uint16_t>(value+0x12,0xc591);write<uint16_t>(value+0x14,0xd3c9);
+            auto building=buildings+city*0x20;write<uint64_t>(root+0x6d808+city*8,building);write<uint64_t>(building,106);
+            auto tile=220*80+80+city-1;write<uint16_t>(building+0x10,static_cast<uint16_t>(tile));write<uint8_t>(building+0x12,1);
+            write<uint16_t>(tiles+tile*0x20+0x12,static_cast<uint16_t>(city));
+            write<uint16_t>(tiles+tile*0x20+0x1a,static_cast<uint16_t>(city));
         }
         for(unsigned county=1;county<=500;county++) {
-            auto value=counties+county*0x200;write<uint64_t>(root+0x6c860+county*8,value);write<uint64_t>(value,104);write<uint8_t>(value+0x34,1);
+            auto value=counties+county*0x200;write<uint64_t>(root+0x6c860+county*8,value);write<uint64_t>(value,104);write<uint8_t>(value+0x34,static_cast<uint8_t>(county<=CitySlots?county:1));
         }
         // Only the native morale adapter is synthetic here; the real game's body is separately checked in Oracle.
         BYTE jump[]{0x48,0xb8,0,0,0,0,0,0,0,0,0xff,0xe0};auto adapter=reinterpret_cast<uint64_t>(&moraleAdapter);std::memcpy(jump+2,&adapter,8);
@@ -40,14 +45,16 @@ struct Fixture {
         message=std::make_shared<Message>();message->sequence=1;message->seed=1;message->values=DefaultValues;
         climate(200,30000);s=std::make_shared<Session>(input);s->pending.store(message);clock(10,23);
     }
-    ~Fixture(){for(auto value:{module,root,world,manager,tiles,units,cities,counties})VirtualFree(reinterpret_cast<void*>(value),0,MEM_RELEASE);}
+    ~Fixture(){for(auto value:{module,root,world,manager,tiles,units,cities,counties,buildings})VirtualFree(reinterpret_cast<void*>(value),0,MEM_RELEASE);}
     void unit(unsigned slot,unsigned tile) {auto value=units+slot*0x200;write<uint8_t>(value+0x10,1);write<uint16_t>(value+0x12,static_cast<uint16_t>(slot));
         write<uint16_t>(value+0x16,10000);write<uint8_t>(value+0x1a,100);write<uint16_t>(value+0x2a,static_cast<uint16_t>(tile));}
-    void climate(int16_t t,uint16_t p){for(unsigned i=0;i<ClimateBytes;i+=4){std::memcpy(message->climate+i,&t,2);std::memcpy(message->climate+i+2,&p,2);}}
+    void climate(int16_t t,uint16_t p){climateT=t;climateP=p;double temperature=double(t)/10,precipitation=double(p)/10;
+        for(unsigned i=0;i<ClimateSourceCount;i++){auto row=message->climate+i*ClimateRowBytes;uint32_t tile=i*500;std::memcpy(row,&tile,4);
+            for(unsigned month=0;month<12;month++){std::memcpy(row+4+month*16,&temperature,8);std::memcpy(row+12+month*16,&precipitation,8);}}}
     void clock(unsigned day,uint8_t hour){write<uint32_t>(world+0x34,date(day));write<uint8_t>(world+0x38,hour);}
     void seedFor(uint32_t kind,bool heavy=false) {
         for(uint64_t seed=1;;seed++) {
-            auto w=weather(seed,serial(date(11)),1,read<int16_t>(reinterpret_cast<uint64_t>(message->climate)),read<uint16_t>(reinterpret_cast<uint64_t>(message->climate)+2));
+            auto w=weather(seed,serial(date(11)),1,climateT,climateP);
             int chance=kind==10?message->values.floodChance:kind==11?message->values.wildfireChance:kind==12?message->values.droughtChance:kind==13?message->values.blizzardChance:message->values.heatwaveChance;
             if((kind==13?w==8:heavy?w==2:!w)&&random(seed,serial(date(11)),1,kind)%1000<uint32_t(chance)){message->seed=seed;break;}
         }
@@ -142,7 +149,7 @@ void customChecks() {
 void vectors(const char* path) {
     std::ofstream out(path);if(!out)throw std::runtime_error("Vector output open failed");out<<"[";bool first=true;
     for(auto seed:{1ull,0x123456789abcdef0ull,0xffffffffffffffffull})for(unsigned dateValue:{69120u,69121u,69122u,69123u})
-        for(unsigned city:{1u,20u,46u})for(int t:{-100,20,21,300})for(int p:{0,200,800,3000}) {
+        for(unsigned city:{1u,20u,46u,47u,51u})for(int t:{-100,20,21,300})for(int p:{0,200,800,3000}) {
             auto w=weather(seed,dateValue,city,t,p);
             for(auto rates:{std::array<int,4>{0,0,0,0},std::array<int,4>{7,31,13,49},std::array<int,4>{99,83,97,91}})for(unsigned flags:{0u,1u,2u,3u,63u}) {
                 auto values=DefaultValues;values.rainReduction=rates[0];values.heavyRainReduction=rates[1];values.snowReduction=rates[2];values.deepSnowReduction=rates[3];
@@ -244,6 +251,16 @@ void soundChecks(){
 void developerChecks(){
     auto request=[](Fixture& f,unsigned mode,unsigned city=1,unsigned kind=0){auto r=std::make_shared<Message>();r->sequence=50;r->reserved=mode|(city<<8)|(kind<<16);f.s->testRequest.store(r);f.s->frame();};
     fixtureNoticeReady=false;
+    for(unsigned city=47;city<=CitySlots;city++){
+        Fixture f;f.s->frame();request(f,2,city,2);
+        require(f.s->state.testState==3&&f.s->state.testCity==city,"added city developer damage waits for boundary");
+        f.clock(11,0);f.s->frame();
+        require(f.s->state.testState==4&&read<int>(f.cities+city*0x168+0x38)==9400&&read<int>(f.cities+0x168+0x38)==10000&&f.s->state.recentDates[(city-1)*5+2]==date(11),"added city developer drought changes only its own live record and history");
+        auto count=f.s->state.lastEvent;f.s->frame();require(f.s->state.lastEvent==count,"added city developer damage is one shot");
+    }
+    {Fixture f;write<uint8_t>(f.cities+51*0x168+0xce,0);f.s->frame();request(f,2,51,2);require(f.s->state.testState==6&&!f.s->state.lastEvent,"missing loaded geography rejects developer damage");}
+    {Fixture f;f.s->frame();request(f,1,52,2);require(f.s->state.testState==6,"developer test rejects unsupported city without array access");}
+    {Fixture f;f.s->frame();request(f,2,51,2);request(f,0);f.clock(11,0);f.s->frame();require(f.s->state.testState==5&&read<int>(f.cities+51*0x168+0x38)==10000,"added city cancellation prevents real loss");}
     for(unsigned kind=0;kind<5;kind++){
         Fixture f;auto tile=220*80+80;
         if(kind==0)write<uint8_t>(f.tiles+(tile+1)*0x20+0x10,13);
@@ -279,7 +296,75 @@ void developerChecks(){
     fixtureNotices.clear();fixtureNoticeReady=true;
 }
 }
+void geographyChecks() {
+    {
+        Fixture f;
+        // Observed live castle county/home references; no patch-version branch.
+        const uint16_t observed[][3]{{2,339,47},{4,333,46},{24,341,49},{29,342,50},{46,343,51},{49,345,23},{50,352,29}};
+        for(auto& row:observed){auto tile=read<uint16_t>(f.buildings+row[0]*0x20,0x10);write<uint16_t>(f.tiles+tile*0x20+0x12,row[1]);write<uint8_t>(f.counties+row[1]*0x200+0x34,static_cast<uint8_t>(row[2]));}
+        World world{};require(f.s->world(world)&&world.availableCities==((uint64_t(1)<<51)-1)&&!world.unavailableCities,"live castle base identity does not require its county home to equal the city ID");
+        for(auto& row:observed)require(f.s->region(world,world.cityTiles[row[0]])==row[0],"validated castle cell uses its actual base ID despite a different county home");
+        write<uint16_t>(f.tiles+500*0x20+0x12,345);write<uint16_t>(f.tiles+500*0x20+0x1a,49);
+        require(f.s->region(world,500)==23,"non-castle cell still follows actual county home instead of an unverified base marker");
+        f.s->frame();WeatherSnapshot snapshot;
+        require(f.s->weatherSnapshot(snapshot)&&snapshot.regions[world.cityTiles[49]]==49&&snapshot.regions[world.cityTiles[50]]==50,"weather snapshot preserves added castle cells with cross-city counties");
+    }
+    for(uint32_t city:{49u,50u}){
+        Fixture f;uint16_t county=city==49?345:352,home=city==49?23:29;auto tile=read<uint16_t>(f.buildings+city*0x20,0x10);
+        write<uint16_t>(f.tiles+tile*0x20+0x12,county);write<uint8_t>(f.counties+county*0x200+0x34,static_cast<uint8_t>(home));
+        f.s->frame();auto request=std::make_shared<Message>();request->sequence=50;request->reserved=2|(city<<8)|(2<<16);f.s->testRequest.store(request);f.s->frame();f.clock(11,0);f.s->frame();
+        require(f.s->state.testState==4&&read<int>(f.cities+city*0x168+0x38)==9400&&read<int>(f.cities+home*0x168+0x38)==10000,"cross-county added city drought writes its own city, never the county home city");
+    }
+    constexpr uint64_t last=uint64_t(1)<<50;
+    {
+        Fixture f;f.climate(400,0);f.message->flags=Drought;f.message->values.droughtChance=1000;
+        while(weather(f.message->seed,serial(date(11)),51,400,0))++f.message->seed;
+        f.s->frame();f.clock(11,0);f.s->frame();
+        require(read<int>(f.cities+51*0x168+0x38)==9400&&f.s->state.recentDates[50*5+2]==date(11),"city 51 actual drought loss and event receipt use its own record");
+    }
+    {
+        Fixture f;f.message->flags=SnowMovement|SnowVisual;f.climate(-50,30000);
+        while(!weather(f.message->seed,serial(date(10)),51,-50,30000))++f.message->seed;
+        f.s->frame();require(f.s->state.availableCities==((uint64_t(1)<<51)-1)&&!f.s->state.unavailableCities,"all 51 loaded ordinary cities are eligible");
+        WeatherSnapshot snapshot;
+        require(f.s->weatherSnapshot(snapshot)&&snapshot.regions[220*80+130]==51&&snapshot.weather[50]!=0,"added city shares current gameplay and visual weather");
+        write<uint8_t>(f.cities+51*0x168+0xce,0);f.s->frame();
+        require((f.s->state.unavailableCities&last)&&!(f.s->state.availableCities&last)&&!f.s->state.weather[50]&&f.s->admission,"missing state excludes only the affected city without inventing weather");
+        write<uint8_t>(f.cities+51*0x168+0xce,1);
+        write<uint64_t>(f.root+0x6d808+51*8,0);f.s->frame();
+        require((f.s->state.unavailableCities&last)&&!f.s->state.weather[50]&&f.s->admission,"missing castle is reported and does not disable valid cities");
+        write<uint64_t>(f.root+0x6d808+51*8,f.buildings+51*0x20);
+        write<uint64_t>(f.root+0x6d808+200*8,f.buildings+51*0x20);write<uint64_t>(f.root+0x6d808+51*8,0);f.s->frame();
+        require((f.s->state.availableCities&last)&&!f.s->state.unavailableCities,"castle lookup follows its loaded base ID instead of the building table index");
+        write<uint64_t>(f.root+0x6d808+201*8,f.buildings+51*0x20);f.s->frame();
+        require((f.s->state.unavailableCities&last)&&!(f.s->state.availableCities&last),"ambiguous castle ownership is not resolved by inventing a preferred record");
+        write<uint64_t>(f.root+0x6d808+201*8,0);
+        write<uint8_t>(f.counties+51*0x200+0x34,0);f.s->frame();
+        require((f.s->state.unavailableCities&last)&&!f.s->state.weather[50],"missing county ownership is not filled from a default city");
+        write<uint8_t>(f.counties+51*0x200+0x34,51);
+        write<uint64_t>(f.cities+51*0x168+0x12,0);f.s->frame();
+        require((f.s->state.availableCities&last)&&!f.s->state.unavailableCities,"missing optional name does not invent a different city's identity");
+        for(uint32_t city=47;city<=51;city++)write<uint8_t>(f.cities+city*0x168+0xce,uint8_t(city-29));
+        f.s->frame();require(f.s->state.availableCities==((uint64_t(1)<<46)-1)&&!f.s->state.unavailableCities,"original tribal slots remain excluded from ordinary-city effects");
+    }
+    {
+        Fixture f;f.climate(400,0);World world{};require(f.s->world(world),"loaded geography fixture is readable");
+        auto row=f.message->climate;uint32_t tile=220*80+130;double t=10,p=20;
+        std::memcpy(row,&tile,4);for(unsigned month=0;month<12;month++){std::memcpy(row+4+month*16,&t,8);std::memcpy(row+12+month*16,&p,8);}
+        int temperature{},rain{};f.s->climate(*f.message,world,51,date(10),temperature,rain);
+        require(temperature==100&&rain==200,"added city's exact physical climate anchor is preserved");
+        write<uint16_t>(f.buildings+51*0x20+0x10,500);write<uint16_t>(f.tiles+500*0x20+0x12,51);write<uint16_t>(f.tiles+500*0x20+0x1a,51);
+        require(f.s->world(world),"relocated city metadata is readable in the same storage");
+        f.s->climate(*f.message,world,51,date(10),temperature,rain);
+        require(temperature==400&&rain==0,"same city ID uses its newly loaded position's climate");
+        f.message->flags=Drought;f.message->values.droughtChance=1000;f.seedFor(12);f.s->frame();
+        f.s->state.recentDates[50*5+2]=date(10);
+        write<uint16_t>(f.buildings+51*0x20+0x10,1000);write<uint16_t>(f.tiles+1000*0x20+0x12,51);write<uint16_t>(f.tiles+1000*0x20+0x1a,51);
+        f.clock(11,0);f.s->frame();
+        require(read<int>(f.cities+51*0x168+0x38)==10000&&!f.s->state.recentDates[50*5+2],"same-address geography reload clears stale events and cannot trigger retrospective damage");
+    }
+}
 int main(int argc,char** argv) {
-    try{sessionChecks();migratingFrameChecks();eligibilityChecks();disasterChecks(Flood,200,30000,10,0,true);disasterChecks(Wildfire,300,0,11,5,false);disasterChecks(Drought,300,0,12,0,false);disasterChecks(Blizzard,-50,30000,13,0,false);disasterChecks(Heatwave,300,0,14,0,false);customChecks();noticePageChecks();notificationChecks();presentationChecks();soundChecks();developerChecks();dispatchChecks();hookChecks();if(argc==2)vectors(argv[1]);return 0;}
+    try{geographyChecks();sessionChecks();migratingFrameChecks();eligibilityChecks();disasterChecks(Flood,200,30000,10,0,true);disasterChecks(Wildfire,300,0,11,5,false);disasterChecks(Drought,300,0,12,0,false);disasterChecks(Blizzard,-50,30000,13,0,false);disasterChecks(Heatwave,300,0,14,0,false);customChecks();noticePageChecks();notificationChecks();presentationChecks();soundChecks();developerChecks();dispatchChecks();hookChecks();if(argc==2)vectors(argv[1]);return 0;}
     catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

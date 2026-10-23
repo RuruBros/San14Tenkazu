@@ -114,7 +114,7 @@ internal static class EnvironmentPolicy
     // Upper two bits: snow depth; lower two bits: rain strength.
     internal static uint Weather(ulong seed,uint date,uint city,int temperatureTenths,int precipitationTenths)
     {
-        if(city is <1 or >46||temperatureTenths is < -600 or >600||precipitationTenths is <0 or >30000)
+        if(city is <1 or >EnvironmentProtocol.CitySlots||temperatureTenths is < -600 or >600||precipitationTenths is <0 or >30000)
             throw new ArgumentOutOfRangeException(nameof(city));
         uint chance=(uint)Math.Clamp(precipitationTenths/5,50,650);
         if(temperatureTenths<=20)
@@ -140,7 +140,8 @@ internal static class EnvironmentPolicy
 
 internal static class EnvironmentClimate
 {
-    // Interpolate monthly source normals using the verified hex grid and source cityTile anchors.
+    // Transfer the observed climate anchors, independent of the current city's ID or
+    // optional properties. Native samples these sources at the fresh loaded castle tile.
     internal static byte[] Pack(GameSnapshot snapshot)
     {
         using var stream=typeof(SeasonClimate).Assembly.GetManifestResourceStream("Seasons.climate.json")!;
@@ -149,23 +150,20 @@ internal static class EnvironmentClimate
             Tile=s.GetProperty("cityTile").GetInt32(),
             T=s.GetProperty("temperatureC").EnumerateArray().Select(v=>v.GetDouble()).ToArray(),
             P=s.GetProperty("precipitationMm").EnumerateArray().Select(v=>v.GetDouble()).ToArray()}).ToArray();
-        static (double X,double Y) Center(int tile)=>(1.5*(tile%220),Math.Sqrt(3)*(tile/220+((tile%220&1)==0?.5:0)));
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if(sources.Length!=EnvironmentProtocol.ClimateSourceCount)throw new InvalidDataException("Climate source count differs");
         using var result=new MemoryStream();using var writer=new BinaryWriter(result);
-        for(int city=1;city<=46;city++)
+        foreach(var source in sources)
         {
-            if(!snapshot.CastleByCity.TryGetValue(city,out var castle))throw new InvalidDataException(L.Environment.RegionUnavailable);
-            var point=Center(castle.Tile);
+            if(source.Tile is <0 or >=GameMemory.TileCount||source.T.Length!=12||source.P.Length!=12)
+                throw new InvalidDataException("Climate source metadata differs");
+            writer.Write((uint)source.Tile);
             for(int month=0;month<12;month++)
             {
-                double t=0,p=0,weight=0;
-                foreach(var source in sources)
-                {
-                    var anchor=Center(source.Tile);double distance=Math.Pow(anchor.X-point.X,2)+Math.Pow(anchor.Y-point.Y,2);
-                    if(distance<1e-12){t=source.T[month];p=source.P[month];weight=1;break;}
-                    double w=1/distance;t+=source.T[month]*w;p+=source.P[month]*w;weight+=w;
-                }
-                writer.Write(checked((short)Math.Round(t/weight*10)));
-                writer.Write(checked((ushort)Math.Round(p/weight*10)));
+                double t=source.T[month],p=source.P[month];
+                if(!double.IsFinite(t)||!double.IsFinite(p)||t is <-60 or >60||p is <0 or >3000)
+                    throw new InvalidDataException("Climate source monthly values differ");
+                writer.Write(t);writer.Write(p);
             }
         }
         return result.ToArray();

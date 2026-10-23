@@ -1,11 +1,12 @@
 using System.Runtime.InteropServices;
 using San14Tenkazu.EnvironmentRules;
+using San14Tenkazu.Seasons;
 namespace San14Tenkazu.Tests;
 
 public class EnvironmentTests
 {
     private static EnvironmentProtocol.Reply Reply(EnvironmentEffects flags=EnvironmentEffects.RainMovement)=>new(){Magic=EnvironmentProtocol.Magic,
-        Version=EnvironmentProtocol.Version,Size=58552,Generation=7,Sequence=1,Applied=1,Date=192|(4u<<16)|(21u<<24),Flags=(uint)flags,Weather=new byte[46],Events=new EnvironmentProtocol.Event[1024],RecentDates=new uint[230]};
+        Version=EnvironmentProtocol.Version,Size=(uint)Marshal.SizeOf<EnvironmentProtocol.Reply>(),Generation=7,Sequence=1,Applied=1,Date=192|(4u<<16)|(21u<<24),Flags=(uint)flags,Weather=new byte[EnvironmentProtocol.CitySlots],Events=new EnvironmentProtocol.Event[1024],RecentDates=new uint[EnvironmentProtocol.CitySlots*5]};
     private sealed class Session:IEnvironmentSession
     {
         internal TaskCompletionSource<EnvironmentProtocol.Reply>? Pending;
@@ -18,16 +19,32 @@ public class EnvironmentTests
     [Fact]
     public void ProtocolHasNativeLayoutAndPreservesEveryEvent()
     {
-        Assert.Equal(376,Marshal.SizeOf<EnvironmentProtocol.Bootstrap>());Assert.Equal(2352,Marshal.SizeOf<EnvironmentProtocol.Message>());
-        Assert.Equal(40,Marshal.SizeOf<EnvironmentProtocol.Recovery>());Assert.Equal(56,Marshal.SizeOf<EnvironmentProtocol.Event>());Assert.Equal(58552,Marshal.SizeOf<EnvironmentProtocol.Reply>());
+        Assert.Equal(384,Marshal.SizeOf<EnvironmentProtocol.Bootstrap>());Assert.Equal(1512,Marshal.SizeOf<EnvironmentProtocol.Message>());
+        Assert.Equal(40,Marshal.SizeOf<EnvironmentProtocol.Recovery>());Assert.Equal(56,Marshal.SizeOf<EnvironmentProtocol.Event>());Assert.Equal(58672,Marshal.SizeOf<EnvironmentProtocol.Reply>());
         Assert.Equal(92,Marshal.SizeOf<EnvironmentValues>());
         var value=Reply();value.Events[1023]=new(){Id=1024,Commander=42,FoodBefore=5000,FoodAfter=4500};
-        value.RecentDates[229]=value.Date;
+        value.RecentDates[^1]=value.Date;value.Weather[^1]=8;value.AvailableCities=1UL<<50;value.UnavailableCities=1UL<<49;
         value.Values=new(7,31,13,49,3,17,11,9,27,43,19,8,23,61,37);
         var round=EnvironmentProtocol.Read<EnvironmentProtocol.Reply>(EnvironmentProtocol.Bytes(value));Assert.Equal(1024ul,round.Events[1023].Id);Assert.Equal(4500,round.Events[1023].FoodAfter);
         Assert.Equal(new GameCalendarDate(192,4,21),EnvironmentProtocol.Date(round.Date));
         Assert.Equal(value.Values,round.Values);
-        Assert.Equal(value.Date,round.RecentDates[229]);
+        Assert.Equal(value.Date,round.RecentDates[^1]);Assert.Equal(8,round.Weather[^1]);
+        Assert.Equal(value.AvailableCities,round.AvailableCities);Assert.Equal(value.UnavailableCities,round.UnavailableCities);
+    }
+    [Fact]
+    public void RecoveryReadsCompleteCurrentBootstrapBeforeConfirmingTheNativeWorker()
+    {
+        var input=new EnvironmentProtocol.Bootstrap{Magic=EnvironmentProtocol.Magic,Version=EnvironmentProtocol.Version,
+            Size=(uint)Marshal.SizeOf<EnvironmentProtocol.Bootstrap>(),BuildingClass=0x12345678,Pipe="fixture",
+            Recovery=new(){Magic=EnvironmentProtocol.Magic,Version=EnvironmentProtocol.Version,Generation=42,Complete=1,Frames=12345,Thread=678}};
+        byte[] bytes=EnvironmentProtocol.Bytes(input);int reads=0;
+        byte[] Read(int size){reads++;Assert.Equal(384,size);return bytes.Take(size).ToArray();}
+        var result=EnvironmentProtocol.ReadRecovery(Read);
+        Assert.Equal(1,reads);Assert.True(result.Confirmed(42));Assert.Equal(12345ul,result.Frames);Assert.Equal(678u,result.Thread);
+        input.Version--;bytes=EnvironmentProtocol.Bytes(input);
+        Assert.Throws<InvalidDataException>(()=>EnvironmentProtocol.ReadRecovery(Read));
+        input.Version++;input.Recovery.Complete=0;bytes=EnvironmentProtocol.Bytes(input);
+        Assert.False(EnvironmentProtocol.ReadRecovery(Read).Confirmed(42));
     }
     [Theory]
     [InlineData(1,false,false,-1)]
@@ -63,6 +80,37 @@ public class EnvironmentTests
         Assert.Equal(0u,(value with{Date=192|(4u<<16)|(11u<<24)}).Recent(1,3));
         Assert.Equal(0u,(value with{Flags=EnvironmentEffects.RainMovement}).Recent(1,3));
         Assert.Null(EnvironmentOverlay.From(new(EnvironmentPhase.Off,EnvironmentEffects.None,EnvironmentEffects.None,true,reply)));
+    }
+    [Fact]
+    public void ExtraCityWeatherAndRecentDamageRespectMissingGeographyReceipts()
+    {
+        var reply=Reply(EnvironmentEffects.All);reply.Weather[50]=8;reply.RecentDates[254]=reply.Date;
+        var overlay=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.All,EnvironmentEffects.All,false,reply))!;
+        Assert.Equal(2,overlay.WeatherKind(51));Assert.Equal(reply.Date,overlay.Recent(51,7));
+        reply.UnavailableCities=1UL<<50;
+        var missing=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.All,EnvironmentEffects.All,false,reply))!;
+        Assert.False(overlay.SameAs(missing));Assert.Equal(0,missing.WeatherKind(51));Assert.Equal(0u,missing.Recent(51,7));Assert.Empty(missing.Marks(51));
+        Assert.Equal(0,missing.WeatherKind(52));Assert.Equal(0u,missing.Recent(52,3));
+    }
+    [Fact]
+    public void ClimateWireContainsObservedSourcesRegardlessOfCityCountOrOptionalProperties()
+    {
+        var original=GeographyFixture.Create();var expanded=GeographyFixture.Create(51);
+        expanded.CastleByCity.Clear();Array.Clear(expanded.Cities[51].Data,CityFields.NameOffset,8);
+        byte[] sources=EnvironmentClimate.Pack(original);
+        Assert.Equal(EnvironmentProtocol.ClimateBytes,sources.Length);Assert.Equal(sources,EnvironmentClimate.Pack(expanded));
+        using var stream=typeof(SeasonClimate).Assembly.GetManifestResourceStream("Seasons.climate.json")!;
+        using var json=System.Text.Json.JsonDocument.Parse(stream);int offset=0;
+        foreach(var station in json.RootElement.GetProperty("stations").EnumerateArray())
+        {
+            Assert.Equal(station.GetProperty("cityTile").GetUInt32(),System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(sources.AsSpan(offset)));offset+=4;
+            for(int month=0;month<12;month++)
+            {
+                Assert.Equal(station.GetProperty("temperatureC")[month].GetDouble(),BitConverter.ToDouble(sources,offset));offset+=8;
+                Assert.Equal(station.GetProperty("precipitationMm")[month].GetDouble(),BitConverter.ToDouble(sources,offset));offset+=8;
+            }
+        }
+        Assert.Equal(sources.Length,offset);
     }
     [Fact]
     public void SavingCombinationsIsAtomicAndRejectsConcurrentChanges()

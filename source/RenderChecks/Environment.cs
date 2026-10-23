@@ -18,8 +18,8 @@ internal static partial class RenderChecks
     {
         internal bool FailApply;
         internal int Applies;
-        internal EnvironmentProtocol.Reply Receipt=new(){Magic=EnvironmentProtocol.Magic,Version=EnvironmentProtocol.Version,Size=58552,Generation=5,
-            Date=192|(4u<<16)|(21u<<24),Weather=new byte[46],Events=new EnvironmentProtocol.Event[1024],RecentDates=new uint[230]};
+        internal EnvironmentProtocol.Reply Receipt=new(){Magic=EnvironmentProtocol.Magic,Version=EnvironmentProtocol.Version,Size=(uint)System.Runtime.InteropServices.Marshal.SizeOf<EnvironmentProtocol.Reply>(),Generation=5,
+            Date=192|(4u<<16)|(21u<<24),Weather=new byte[EnvironmentProtocol.CitySlots],Events=new EnvironmentProtocol.Event[1024],RecentDates=new uint[EnvironmentProtocol.CitySlots*5]};
         public ValueTask<EnvironmentProtocol.Reply> ApplyAsync(EnvironmentSettings value,CancellationToken token)
         {Applies++;if(FailApply)throw new IOException("fixture environment apply failure");Receipt.Flags=(uint)value.Effects;Receipt.Values=value.Values;Receipt.Sequence++;Receipt.Applied=Receipt.Sequence;return ValueTask.FromResult(Receipt);}
         public ValueTask<EnvironmentProtocol.Reply> QueryAsync(CancellationToken token)=>ValueTask.FromResult(Receipt);

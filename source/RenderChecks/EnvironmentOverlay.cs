@@ -57,7 +57,7 @@ internal static partial class RenderChecks
             var next=overlay with{Date=192|(7u<<16)|(1u<<24)};map.SetEnvironment(next);
             string nextText=(string)Property(Call(map,"HoverHitTest",regionPoint)!,"Spot")!;
             Check("region-hover-refreshes-date-and-expires-ten-day-damage",nextText.Contains(L.Environment.CurrentWeather("192/7/1"))&&!nextText.Contains(L.Environment.RecentDamage("192/6/21")));
-            map.SetEnvironment(overlay with{Weather=new byte[46],RecentDates=new uint[230]});
+            map.SetEnvironment(overlay with{Weather=new byte[EnvironmentProtocol.CitySlots],RecentDates=new uint[EnvironmentProtocol.CitySlots*5]});
             Check("clear-region-has-no-weather-card",Empty(Call(map,"HoverHitTest",regionPoint)!));
             map.SetEnvironment(overlay);Pump(()=>Field<WC.Image>(map,"environmentFill").Source is not null);Call(layer,"Redraw");
             var view=new MapView();typeof(MapView).GetField("snapshot",Hidden)!.SetValue(view,data);view.SetEnvironment(overlay);Call(view,"BuildLegend");

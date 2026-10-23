@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+﻿param([Parameter(Mandatory=$true)][string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
 $taskGameProfile=Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json') -Raw | ConvertFrom-Json
@@ -42,4 +42,4 @@ $taskSnapshot=Join-Path $taskOut 'sources';New-Item -ItemType Directory -Path $t
 foreach($taskFile in $taskFiles){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskFile) -ErrorAction Stop}
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
 if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant() -cne $taskGameProfileHash){throw 'Game build profile changed during Native build.'}
-[ordered]@{nativeBuild=20;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'EnvironmentBridge.dll')).Hash.ToLower();hashes=$taskHashes;protocolVersion=5;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;nativeFixtureVerified=$true;liveGameVerified=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
+[ordered]@{nativeBuild=23;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'EnvironmentBridge.dll')).Hash.ToLower();hashes=$taskHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;nativeFixtureVerified=$true;liveGameVerified=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8

@@ -36,7 +36,7 @@ internal sealed partial class MapSurface
     {
         environmentHits.Clear();if(environment is not {} value||snapshot is not {} data)return;
         double dpi=WM.VisualTreeHelper.GetDpi(this).PixelsPerDip;CheckTextDpi(dpi);
-        for(int city=1;city<=46;city++)
+        foreach(int city in data.CityIds)
         {
             var marks=value.Marks(city).ToArray();if(marks.Length==0)continue;W.Point at=CityOnScreen(city);
             if(at.X<-100-LabelPad||at.Y<-100-LabelPad||at.X>ActualWidth+100+LabelPad||at.Y>ActualHeight+100+LabelPad)continue;
@@ -56,10 +56,11 @@ internal sealed partial class MapSurface
         ?data.County(data.TileCounties[tile])?.HomeCity??0:0;
     private string? DescribeEnvironment(int city,int kind=0,bool includeCity=true)
     {
-        if(environment is not {} value||snapshot is not {} data||city is <1 or >46)return null;
+        if(environment is not {} value||snapshot is not {} data||city is <1 or >EnvironmentProtocol.CitySlots)return null;
+        if((value.UnavailableCities&(1UL<<(city-1)))!=0)return (includeCity?data.CityName(city)+"\n":"")+L.Environment.RegionUnavailable;
         var marks=value.Marks(city).Where(mark=>kind==0||mark.Kind==kind).ToArray();if(marks.Length==0)return null;
         var lines=new List<string>();
-        if(includeCity)lines.Add(data.Cities.FirstOrDefault(c=>c?.CityId==city)?.Name??CityNames.ById[city]);
+        if(includeCity)lines.Add(data.CityName(city));
         foreach(var mark in marks)
         {
             lines.Add(mark.Kind switch{1=>L.Environment.RainVisual,2=>L.Environment.SnowVisual,3=>L.Environment.Flood,4=>L.Environment.Wildfire,6=>L.Environment.Blizzard,7=>L.Environment.Heatwave,_=>L.Environment.Drought});

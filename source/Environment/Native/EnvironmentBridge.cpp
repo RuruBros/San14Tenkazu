@@ -38,7 +38,9 @@ std::mutex connection;
 std::atomic<long> callbacks{0};
 struct World {
     uint64_t root{},state{},tiles{},units{};uint32_t date{};
-    uint64_t cities[47]{},counties[501]{};
+    uint64_t cities[CitySlots+1]{},counties[501]{};
+    uint16_t cityTiles[CitySlots+1]{};wchar_t cityNames[CitySlots+1][5]{};
+    uint64_t availableCities{},unavailableCities{};
 };
 struct Session {
     Bootstrap input;std::atomic<bool> admission{true};
@@ -48,7 +50,7 @@ struct Session {
     uint64_t testRoot{},testWorld{},testConfig{},testDeadline{},testStillSince{},testForegroundSince{};
     uint32_t testHour{},testNoticeFlags{};
     std::recursive_mutex stateLock;Reply state;World previous{};
-    uint8_t regionHasRiver[47]{},regionHasForest[47]{},regionByTile[TileCount]{};uint64_t topologyRoot{},topologyState{};
+    uint8_t regionHasRiver[CitySlots+1]{},regionHasForest[CitySlots+1]{},regionByTile[TileCount]{};uint64_t topologyRoot{},topologyState{},topologyFingerprint{},lastTopologyFingerprint{};
     uint32_t lastDate{},lastHour{};uint64_t lastState{},lastRoot{};
     struct Notice{uint32_t date,city,kind,units=0;int64_t troops=0,morale=0,food=0;};std::vector<Notice> notices;
     uint64_t noticeQueued=0;uint32_t noticeDate=0,noticeCity=0,noticeKind=0;
@@ -66,9 +68,39 @@ struct Session {
         result.date=read<uint32_t>(result.state,0x34);if(!validDate(result.date))return false;
         result.tiles=read<uint64_t>(result.root,gamebuild::Memory::TileTable);result.units=read<uint64_t>(result.root,gamebuild::Memory::UnitTable);
         if(!result.tiles||!result.units||read<uint64_t>(result.tiles)!=input.tileClass||read<uint64_t>(result.units)!=input.unitClass)return false;
-        for(uint32_t city=1;city<=46;city++) {
+        // A building's table index need not be its city ID. Resolve type-1 castles
+        // through the loaded hex's base ID, as the editor's snapshot reader does.
+        uint64_t castles[CitySlots+1]{};bool ambiguous[CitySlots+1]{};
+        for(uint32_t index=0;index<gamebuild::Memory::MaxBuildings;index++) {
+            auto building=read<uint64_t>(result.root,gamebuild::Memory::BuildingTable+uint64_t(index)*8);
+            uint64_t klass{};uint8_t type{};uint16_t tile{},base{};
+            if(!copy(klass,building)||klass!=input.buildingClass||!copy(type,building+0x12)||type!=1||!copy(tile,building+0x10)||tile>=TileCount)continue;
+            auto hex=result.tiles+uint64_t(tile)*gamebuild::Memory::TileStride;
+            if(!copy(klass,hex)||klass!=input.tileClass||!copy(base,hex+gamebuild::Memory::TileBaseOffset)||base<1||base>CitySlots)continue;
+            if(castles[base])ambiguous[base]=true;else castles[base]=building;
+        }
+        for(uint32_t city=1;city<=CitySlots;city++) {
             result.cities[city]=read<uint64_t>(result.root,gamebuild::Memory::CityTable+city*8);
-            if(read<uint64_t>(result.cities[city])!=input.cityClass||read<uint16_t>(result.cities[city],0x4e)!=city)return false;
+            auto place=result.cities[city];uint64_t bit=uint64_t(1)<<(city-1),klass{};uint16_t object{};uint8_t province{};
+            if(!copy(klass,place)||klass!=input.cityClass||!copy(object,place+0x4e)||object!=city||!copy(province,place+0xce))
+                {result.unavailableCities|=bit;continue;}
+            if(province>=18&&province<=22)continue;
+            if(province<1||province>17){result.unavailableCities|=bit;continue;}
+            auto building=ambiguous[city]?0:castles[city];
+            uint16_t tile{};uint8_t type{};
+            if(!copy(klass,building)||klass!=input.buildingClass||!copy(type,building+0x12)||type!=1||!copy(tile,building+0x10)||tile>=TileCount)
+                {result.unavailableCities|=bit;continue;}
+            auto hex=result.tiles+uint64_t(tile)*0x20;uint16_t county{};
+            if(!copy(klass,hex)||klass!=input.tileClass||!copy(county,hex+0x12)||county<1||county>500)
+                {result.unavailableCities|=bit;continue;}
+            auto record=read<uint64_t>(result.root,gamebuild::Memory::CountyTable+uint64_t(county)*8);uint8_t home{};
+            // The castle's validated hex base names this city. A loaded data patch can
+            // place it in a county assigned to another valid city; those are separate facts.
+            if(!copy(klass,record)||klass!=input.countyClass||!copy(home,record+0x34)||home<1||home>CitySlots)
+                {result.unavailableCities|=bit;continue;}
+            result.availableCities|=bit;result.cityTiles[city]=tile;
+            struct Name{wchar_t text[4];}name{};
+            if(copy(name,place+0x12))std::memcpy(result.cityNames[city],name.text,sizeof(name));
         }
         for(uint32_t county=1;county<=500;county++)result.counties[county]=read<uint64_t>(result.root,gamebuild::Memory::CountyTable+county*8);
         return result.date==read<uint32_t>(result.state,0x34)&&result.root==read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
@@ -77,20 +109,30 @@ struct Session {
         if(tile>=48400)return 0;
         auto hex=world.tiles+tile*0x20;
         if(read<uint64_t>(hex)!=input.tileClass)return 0;
+        auto base=read<uint16_t>(hex,gamebuild::Memory::TileBaseOffset);
+        if(base>=1&&base<=CitySlots&&(world.availableCities&(uint64_t(1)<<(base-1)))&&world.cityTiles[base]==tile)return base;
         auto county=read<uint16_t>(hex,0x12);if(county==0||county>500)return 0;
         auto record=world.counties[county];if(!record||read<uint64_t>(record)!=input.countyClass)return 0;
-        auto city=read<uint8_t>(record,0x34);return city<=46?city:0;
+        auto city=read<uint8_t>(record,0x34);return city>=1&&city<=CitySlots&&(world.availableCities&(uint64_t(1)<<(city-1)))?city:0;
     }
     void topology(const World& world) {
-        if(world.root==topologyRoot&&world.state==topologyState)return;
+        // Observe decoded geography even when a reload reuses the same root/state addresses.
+        uint64_t fingerprint=1469598103934665603ull;
+        auto mix=[&](uint64_t value){fingerprint^=value;fingerprint*=1099511628211ull;};
+        mix(world.availableCities);mix(world.unavailableCities);
+        for(uint32_t city=1;city<=CitySlots;city++){
+            mix(world.cities[city]);mix(world.cityTiles[city]);
+            for(auto ch:world.cityNames[city])mix(ch);
+        }
+        for(uint32_t county=1;county<=500;county++)mix(world.counties[county]);
         std::memset(regionHasRiver,0,sizeof(regionHasRiver));std::memset(regionHasForest,0,sizeof(regionHasForest));
         for(uint32_t tile=0;tile<48400;tile++) {
-            uint32_t city=region(world,tile);regionByTile[tile]=static_cast<uint8_t>(city);if(!city)continue;
-            auto terrain=read<uint8_t>(world.tiles+tile*0x20,0x10);
+            uint32_t city=region(world,tile);regionByTile[tile]=static_cast<uint8_t>(city);
+            auto terrain=read<uint8_t>(world.tiles+tile*0x20,0x10);mix((uint64_t(city)<<16)|terrain);if(!city)continue;
             if(terrain==13||terrain==14)regionHasRiver[city]=1;
             if(forest(terrain))regionHasForest[city]=1;
         }
-        topologyRoot=world.root;topologyState=world.state;
+        topologyRoot=world.root;topologyState=world.state;topologyFingerprint=fingerprint;
     }
     bool riverside(const World& world,uint32_t tile) const {
         uint32_t x=tile%220,y=tile/220;
@@ -102,17 +144,27 @@ struct Session {
         return river(int(x),int(y))||river(int(x),int(y)-1)||river(int(x),int(y)+1)||
             river(int(x)-1,int(y))||river(int(x)+1,int(y))||river(int(x)-1,int(y)+step)||river(int(x)+1,int(y)+step);
     }
-    void climate(const Message& config,uint32_t city,uint32_t date,int& t,int& p) const {
+    void climate(const Message& config,const World& world,uint32_t city,uint32_t date,int& t,int& p) const {
         uint32_t month=((date>>16)&255)-1,day=(date>>24)-1,next=(month+1)%12;
-        int16_t a{},b{};uint16_t c{},d{};
-        auto offset=(city-1)*48+month*4,nextOffset=(city-1)*48+next*4;
-        std::memcpy(&a,config.climate+offset,2);std::memcpy(&b,config.climate+nextOffset,2);
-        std::memcpy(&c,config.climate+offset+2,2);std::memcpy(&d,config.climate+nextOffset+2,2);
-        t=int(a)+(int(b)-int(a))*int(day)/30;p=int(c)+(int(d)-int(c))*int(day)/30;
+        auto center=[](uint32_t tile){return std::pair{1.5*double(tile%220),std::sqrt(3.)*(double(tile/220)+((tile%220&1)?0.:.5))};};
+        auto point=center(world.cityTiles[city]);
+        auto sample=[&](uint32_t m,int channel){
+            double total=0,weight=0;
+            for(uint32_t source=0;source<ClimateSourceCount;source++){
+                auto row=config.climate+source*ClimateRowBytes;uint32_t tile{};std::memcpy(&tile,row,4);
+                double value{};std::memcpy(&value,row+4+m*16+channel*8,8);
+                auto anchor=center(tile);double dx=anchor.first-point.first,dy=anchor.second-point.second,distance=dx*dx+dy*dy;
+                if(distance<1e-12)return int(std::nearbyint(value*10));
+                double w=1/distance;total+=value*w;weight+=w;
+            }
+            return int(std::nearbyint(total/weight*10));
+        };
+        int a=sample(month,0),b=sample(next,0),c=sample(month,1),d=sample(next,1);
+        t=a+(b-a)*int(day)/30;p=c+(d-c)*int(day)/30;
     }
     void append(Event event) {
         event.id=++state.lastEvent;state.events[(event.id-1)%EventCount]=event;
-        if(event.city>=1&&event.city<=46&&event.kind>=2&&event.kind<=11&&event.kind!=7){
+        if(event.city>=1&&event.city<=CitySlots&&event.kind>=2&&event.kind<=11&&event.kind!=7){
             uint32_t kind=event.kind<=3?0:event.kind<=5?1:event.kind==6?2:event.kind<=9?3:4;state.recentDates[(event.city-1)*DisasterCount+kind]=event.date;
             auto found=std::find_if(notices.begin(),notices.end(),[&](const Notice& n){return n.date==event.date&&n.city==event.city&&n.kind==kind;});
             if(found==notices.end()){notices.push_back({event.date,event.city,kind});found=notices.end()-1;}
@@ -140,7 +192,7 @@ struct Session {
             cancelTest();state.testId=request->sequence;state.testMode=mode;state.testCity=city;state.testKind=kind;state.testDate=w.date;state.testError=0;
             if(mode){state.reserved=0;presentation.lastReceipt=0;}
             if(!mode)return;
-            if(mode>2||city<1||city>46||kind>=DisasterCount||presentation.busy()) {state.testState=6;state.testError=ERROR_INVALID_STATE;return;}
+            if(mode>2||city<1||city>CitySlots||kind>=DisasterCount||!(w.availableCities&(uint64_t(1)<<(city-1)))||presentation.busy()) {state.testState=6;state.testError=ERROR_INVALID_STATE;return;}
             testRoot=w.root;testWorld=w.state;testConfig=config.sequence;testHour=hour;testDeadline=now+120000;testStillSince=now;testForegroundSince=0;
             state.testState=mode==1?1:3;
             // A request received on a boundary never authorizes damage on that same frame.
@@ -155,8 +207,10 @@ struct Session {
             if(!testForeground()){testForegroundSince=0;return;}
             if(!testForegroundSince)testForegroundSince=now;
             if(state.testState==1&&now-testStillSince>=800&&now-testForegroundSince>=800&&!presentation.busy()&&noticeReady(input.module)) {
+                wchar_t fallback[24]{};swprintf_s(fallback,L"도시 %u",state.testCity);
+                const auto cityName=w.cityNames[state.testCity][0]?w.cityNames[state.testCity]:fallback;
                 wchar_t text[201]{};const wchar_t* names[]{L"홍수",L"산불",L"가뭄",L"폭설",L"폭염"};
-                swprintf_s(text,L"[개발자 · 표시 전용] %s · %s\f지도 표식과 그림·원본 효과음 확인\f병력·사기·병량 피해 없음.\f종료 시 테스트 표식을 지웁니다.",NoticeCities[state.testCity],names[state.testKind]);
+                swprintf_s(text,L"[개발자 · 표시 전용] %s · %s\f지도 표식과 그림·원본 효과음 확인\f병력·사기·병량 피해 없음.\f종료 시 테스트 표식을 지웁니다.",cityName,names[state.testKind]);
                 if(presentation.begin(input.module,text,state.testKind,true)){state.testState=2;state.reserved=1;presentationBusy=presentation.busy();}
                 else {state.testState=6;state.testError=ERROR_INVALID_STATE;}
             }
@@ -176,12 +230,14 @@ struct Session {
         ++frames;auto config=pending.load();if(!config)return;
         World worldValue{};if(!world(worldValue)){if(state.testState>=1&&state.testState<=3)cancelTest(ERROR_INVALID_STATE);testRequest.store(nullptr);lastDate=0;return;}
         state.thread=id;state.date=worldValue.date;
-        topology(worldValue);uint32_t today=serial(worldValue.date);
+        topology(worldValue);bool geographyChanged=lastTopologyFingerprint&&lastTopologyFingerprint!=topologyFingerprint;
+        state.availableCities=worldValue.availableCities;state.unavailableCities=worldValue.unavailableCities;
+        uint32_t today=serial(worldValue.date);
         uint32_t hour=read<uint8_t>(worldValue.state,0x38);
         // Only continuous forward game time authorizes damage. Load/rewind/jump establishes a new baseline.
-        bool continuous=lastDate&&lastRoot==worldValue.root&&lastState==worldValue.state&&
+        bool continuous=lastDate&&!geographyChanged&&lastRoot==worldValue.root&&lastState==worldValue.state&&
             today==serial(lastDate)+1&&lastHour>hour;
-        if(lastDate&&(lastRoot!=worldValue.root||lastState!=worldValue.state||(worldValue.date!=lastDate&&!continuous))){
+        if(lastDate&&(geographyChanged||lastRoot!=worldValue.root||lastState!=worldValue.state||(worldValue.date!=lastDate&&!continuous))){
             std::memset(state.recentDates,0,sizeof(state.recentDates));notices.clear();}
         for(auto& date:state.recentDates)if(date&&(today<serial(date)||today-serial(date)>=10))date=0;
         bool changed=state.applied!=config->sequence;
@@ -189,12 +245,13 @@ struct Session {
         testFrame(worldValue,*config,hour,continuous,changed);
         state.applied=config->sequence;state.flags=config->flags;state.values=config->values;
         if(presentation.busy()&&!presentation.diagnostic&&!((config->flags|testFlags())&DisasterFlags[presentation.kind]))presentation.poll(input.module,true);
-        for(uint32_t city=1;city<=46;city++) {
-            int t{},p{};climate(*config,city,worldValue.date,t,p);
+        for(uint32_t city=1;city<=CitySlots;city++) {
+            if(!(worldValue.availableCities&(uint64_t(1)<<(city-1)))){state.weather[city-1]=0;continue;}
+            int t{},p{};climate(*config,worldValue,city,worldValue.date,t,p);
             state.weather[city-1]=static_cast<uint8_t>(weather(config->seed,today,city,t,p));
         }
         previous=worldValue;
-        lastDate=worldValue.date;lastRoot=worldValue.root;lastState=worldValue.state;lastHour=hour;
+        lastTopologyFingerprint=topologyFingerprint;lastDate=worldValue.date;lastRoot=worldValue.root;lastState=worldValue.state;lastHour=hour;
         if(!testNotice.empty()&&!presentation.busy()&&noticeReady(input.module)){state.reserved=presentation.begin(input.module,testNotice.c_str(),testNoticeKind,true)?1u:2u;presentationBusy=presentation.busy();testNotice.clear();}
         if(continuous&&!changed&&((worldValue.date>>24)-1)%10==0){
             bool forced=state.testState==3&&!requestThisFrame;
@@ -204,16 +261,18 @@ struct Session {
         while(!notices.empty()&&!((config->flags|testFlags())&DisasterFlags[notices.front().kind]))notices.erase(notices.begin());
         if(!notices.empty()&&!presentation.busy()&&noticeReady(input.module)){
             auto& n=notices.front();wchar_t text[201]{};const wchar_t* names[]{L"홍수",L"산불",L"가뭄",L"폭설",L"폭염"};
-            swprintf_s(text,L"%u년 %u월 %u일 · %s %s 피해\f피해 부대 %u개 · 병력 -%lld\f사기 합계 -%lld · 도시 병량 -%lld",n.date&65535,(n.date>>16)&255,n.date>>24,NoticeCities[n.city],names[n.kind],n.units,n.troops,n.morale,n.food);
+            wchar_t place[32]{};if(worldValue.cityNames[n.city][0])wcscpy_s(place,worldValue.cityNames[n.city]);else swprintf_s(place,L"거점 %u",n.city);
+            swprintf_s(text,L"%u년 %u월 %u일 · %s %s 피해\f피해 부대 %u개 · 병력 -%lld\f사기 합계 -%lld · 도시 병량 -%lld",n.date&65535,(n.date>>16)&255,n.date>>24,place,names[n.kind],n.units,n.troops,n.morale,n.food);
             if(presentation.begin(input.module,text,n.kind)){presentationBusy=presentation.busy();++noticeQueued;noticeDate=n.date;noticeCity=n.city;noticeKind=n.kind;notices.erase(notices.begin());}
             else fail(ERROR_INVALID_DATA);
         }
         state.noticesQueued=noticeQueued;state.noticesPending=static_cast<uint32_t>(notices.size());state.noticeDate=noticeDate;state.noticeCity=noticeCity;state.noticeKind=noticeKind;
     }
     void effects(const World& world,const Message& config,uint32_t today,uint32_t testCity=0,uint32_t testKind=0) {
-        uint32_t disasters[47]{};
-        for(uint32_t city=1;city<=46;city++) {
-            int t{},p{};climate(config,city,world.date,t,p);
+        uint32_t disasters[CitySlots+1]{};
+        for(uint32_t city=1;city<=CitySlots;city++) {
+            if(!(world.availableCities&(uint64_t(1)<<(city-1))))continue;
+            int t{},p{};climate(config,world,city,world.date,t,p);
             disasters[city]=environment::disasters(config.seed,today,city,config.flags,config.values,state.weather[city-1],t,p,regionHasRiver[city],regionHasForest[city]);
         }
         if(testCity&&testKind<DisasterCount)disasters[testCity]=
@@ -252,7 +311,7 @@ struct Session {
             if(read<uint16_t>(unit,0x16)!=newTroops)return fail(ERROR_WRITE_FAULT);
             append({0,world.date,eventKind,city,tile,slot,commander,troops,newTroops,morale,newMorale,0,0});
         }
-        for(uint32_t city=1;city<=46&&admission;city++)if(disasters[city]) {
+        for(uint32_t city=1;city<=CitySlots&&admission;city++)if(disasters[city]) {
             auto place=world.cities[city];if(!read<uint16_t>(place,0x30))continue;
             int food=read<int32_t>(place,0x38);if(food<0)return fail(ERROR_INVALID_DATA);
             uint32_t kind=0;int percent=-1;
@@ -270,6 +329,7 @@ struct Session {
     bool weatherSnapshot(WeatherSnapshot& result) {
         std::lock_guard lock(stateLock);auto config=pending.load();World currentWorld{};
         if((!admission&&!presentation.visual())||!config||state.applied!=config->sequence||!world(currentWorld)||currentWorld.root!=previous.root||currentWorld.state!=previous.state)return false;
+        topology(currentWorld);if(lastTopologyFingerprint!=topologyFingerprint)return false;
         result.generation=state.generation;result.sequence=state.applied;result.date=currentWorld.date;result.flags=admission?config->flags:0;
         result.reserved=presentation.visual();
         result.flags|=testFlags();
@@ -277,7 +337,7 @@ struct Session {
         std::memcpy(result.recentDates,state.recentDates,sizeof(result.recentDates));
         if(state.testState==2)result.recentDates[(state.testCity-1)*DisasterCount+state.testKind]=currentWorld.date;
         for(auto& date:result.recentDates)if(date&&(serial(currentWorld.date)<serial(date)||serial(currentWorld.date)-serial(date)>=10))date=0;
-        for(uint32_t city=1;city<=46;city++){int t{},p{};climate(*config,city,currentWorld.date,t,p);
+        for(uint32_t city=1;city<=CitySlots;city++){if(!(currentWorld.availableCities&(uint64_t(1)<<(city-1)))){result.weather[city-1]=0;continue;}int t{},p{};climate(*config,currentWorld,city,currentWorld.date,t,p);
             result.weather[city-1]=static_cast<uint8_t>(weather(config->seed,serial(currentWorld.date),city,t,p));}
         return currentWorld.date==read<uint32_t>(currentWorld.state,0x34)&&currentWorld.root==read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
     }
@@ -292,7 +352,7 @@ struct Session {
         auto tile=read<uint16_t>(unit,0x2a);uint32_t city=region(previous,tile);if(!city)return original;
         if(water(read<uint8_t>(previous.tiles+tile*0x20,0x10)))return original;
         uint32_t date=read<uint32_t>(previous.state,0x34);if(!validDate(date))return original;
-        int t{},p{};climate(*config,city,date,t,p);
+        int t{},p{};climate(*config,previous,city,date,t,p);
         int percent=movement(weather(config->seed,serial(date),city,t,p),config->flags,config->values);
         int next=std::max(1,int(int64_t(original)*percent/100));if(next<original)++slowed;return next;
     }
@@ -462,7 +522,7 @@ Recovery serve(const Bootstrap& input) {
             else{std::lock_guard lock(session->stateLock);session->testNotice.assign(text,length);session->testNoticeKind=message.reserved;session->state.reserved=0;}
         }else if(message.command==5){
             auto mode=message.reserved&255,city=(message.reserved>>8)&255,kind=(message.reserved>>16)&255;
-            if(message.reserved>>24||mode>2||(mode&&(city<1||city>46||kind>=DisasterCount)))error=ERROR_INVALID_DATA;
+            if(message.reserved>>24||mode>2||(mode&&(city<1||city>CitySlots||kind>=DisasterCount)))error=ERROR_INVALID_DATA;
             else session->testRequest.store(std::make_shared<Message>(message));
         }else if(message.command!=2&&message.command!=3)error=ERROR_INVALID_FUNCTION;
         Reply reply;
@@ -476,7 +536,7 @@ Recovery serve(const Bootstrap& input) {
 bool bootstrap(Bootstrap* request,Bootstrap& input) {
     return request&&copy(input,reinterpret_cast<uint64_t>(request))&&input.magic==Magic&&input.version==Version&&input.size==sizeof(Bootstrap)&&
         input.generation&&input.controllerPid&&input.module==reinterpret_cast<uint64_t>(GetModuleHandleW(nullptr))&&
-        input.worldClass&&input.unitClass&&input.tileClass&&input.countyClass&&input.cityClass&&input.pipe[127]==0&&
+        input.worldClass&&input.unitClass&&input.tileClass&&input.countyClass&&input.cityClass&&input.buildingClass&&input.pipe[127]==0&&
         !wcsncmp(input.pipe,L"\\\\.\\pipe\\san14-environment-",27);
 }
 }
