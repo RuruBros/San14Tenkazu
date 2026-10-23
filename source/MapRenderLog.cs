@@ -13,7 +13,7 @@ internal sealed class MapRenderLog : IDisposable
     private int stopped;
     internal string? StopReason { get; private set; }
     internal Task Completion { get; }
-    private const string Header = "event,utc,zoom,moving,width,height,submitted,presented,world_ms,cities_ms,units_ms,draw_ms,end_ms,submit_ms,present_delay_ms,uploads,geometry_builds,culled,interop_bindings,skipped_locks,front_available,copy_wait_ms,unit_layout_ms,unit_tokens_ms,unit_shields_ms,unit_allocated_bytes,unit_count,unit_layout_reused,prepare_ms,commands,render_thread,render_allocated_bytes,gc_process_pause_ms,sprite_builds,sprite_draws,render_error,camera_x,camera_y,frame_age_ms";
+    private const string Header = "event,utc,zoom,moving,width,height,submitted,presented,world_ms,cities_ms,units_ms,draw_ms,end_ms,submit_ms,present_delay_ms,uploads,geometry_builds,culled,interop_bindings,skipped_locks,front_available,copy_wait_ms,unit_layout_ms,unit_tokens_ms,unit_shields_ms,unit_allocated_bytes,unit_count,unit_layout_reused,prepare_ms,commands,render_thread,render_allocated_bytes,gc_process_pause_ms,sprite_builds,sprite_draws,render_error,camera_x,camera_y,frame_age_ms,ready_queue_ms,present_work_ms,image_lock_ms,image_bind_ms,image_dirty_ms,image_unlock_ms";
 
     private static TextWriter CreateWriter(string path)
     {
@@ -87,7 +87,7 @@ internal sealed class MapRenderLog : IDisposable
             spriteDraws = complete ? gpu.Canvas.SpriteDraws : 0;
         string error = (gpu.RenderError ?? "").Replace("\r", " ").Replace("\n", " ").Replace("\"", "\"\"");
         TryWrite(string.Create(CultureInfo.InvariantCulture,
-            $"{kind},{DateTime.UtcNow:O},{zoom:F5},{moving},{width},{height},{gpu.SubmittedFrames},{gpu.PresentedFrames},{phases.World:F4},{phases.Cities:F4},{phases.Units:F4},{frame.Draw:F4},{frame.End:F4},{frame.Submit:F4},{gpu.LastPresentDelay:F4},{uploads},{geometries},{culled},{gpu.BackBufferBindings},{gpu.SkippedLocks},{gpu.Image.IsFrontBufferAvailable},{gpu.LastCopyWait:F4},{units.Layout:F4},{units.Tokens:F4},{units.Shields:F4},{units.Allocated},{units.TokensShown},{units.LayoutReused},{preparedMs:F4},{commands},{gpu.RenderThreadId},{(complete ? gpu.LastAllocatedBytes : 0)},{(complete ? gpu.LastGcPauseMs : 0):F4},{spriteBuilds},{spriteDraws},\"{error}\",{camera.X:F5},{camera.Y:F5},{frameAgeMs:F4}"));
+            $"{kind},{DateTime.UtcNow:O},{zoom:F5},{moving},{width},{height},{gpu.SubmittedFrames},{gpu.PresentedFrames},{phases.World:F4},{phases.Cities:F4},{phases.Units:F4},{frame.Draw:F4},{frame.End:F4},{frame.Submit:F4},{gpu.LastPresentDelay:F4},{uploads},{geometries},{culled},{gpu.BackBufferBindings},{gpu.SkippedLocks},{gpu.Image.IsFrontBufferAvailable},{gpu.LastCopyWait:F4},{units.Layout:F4},{units.Tokens:F4},{units.Shields:F4},{units.Allocated},{units.TokensShown},{units.LayoutReused},{preparedMs:F4},{commands},{gpu.RenderThreadId},{(complete ? gpu.LastAllocatedBytes : 0)},{(complete ? gpu.LastGcPauseMs : 0):F4},{spriteBuilds},{spriteDraws},\"{error}\",{camera.X:F5},{camera.Y:F5},{frameAgeMs:F4},{gpu.LastReadyQueueMs:F4},{gpu.LastPresentWorkMs:F4},{gpu.LastImageLockMs:F4},{gpu.LastImageBindMs:F4},{gpu.LastImageDirtyMs:F4},{gpu.LastImageUnlockMs:F4}"));
     }
     internal bool TryWrite(string line)
     {
