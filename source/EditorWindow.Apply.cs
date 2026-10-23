@@ -45,7 +45,7 @@ internal sealed partial class EditorWindow
             WarnAboveCaps(edits);
             _ = GameMemory.AgreementPairs(found.Forces, edits);
 
-            IReadOnlyList<string> overwritten = await Task.Run(() => GameMemory.Apply(identity, edits));
+            IReadOnlyList<string> overwritten = await Task.Run(() => GameMemory.Apply(identity, edits, runtimeRuleFile.ReceiptPath(identity)));
             foreach (string item in overwritten) AddLog("  " + L.Apply.WroteOverGame(item));
             if (undoable) RememberUndo(edits);
             SetOperationProgress(L.OperationProgress.Synchronizing);

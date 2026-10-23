@@ -134,7 +134,7 @@ internal sealed partial class EditorWindow
                 {
                     // Matching patch bytes and table addresses do not prove that officer data still matches.
                     // A load can reuse storage; save discovery can also find recovery data on a later refresh.
-                    experienceChanged = await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings) ?? false);
+                    experienceChanged = await Task.Run(() => runtimeRuleAccess.NeedsExperienceReapply?.Invoke(identity, currentLayout, preference.Settings, runtimeRuleFile.ReceiptPath(identity)) ?? false);
                     if (!Current() || Pending() || runtimeRuleFile.Read() != preference) return;
                 }
                 if (!experienceChanged)

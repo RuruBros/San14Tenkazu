@@ -47,7 +47,7 @@ internal static partial class RenderChecks
                 actual = target;
                 experienceChanged = false;
                 return new(layout, new TestGame().Build(target), 0);
-            }, (_, _, _) => { Interlocked.Increment(ref dataChecks); onDataCheck?.Invoke(); return experienceChanged; });
+            }, (_, _, _, _) => { Interlocked.Increment(ref dataChecks); onDataCheck?.Invoke(); return experienceChanged; });
         var editor = OfflineEditor(() => false, storage, storage, storage, runtimeRuleAccess: access);
         void Setup(GameIdentity id) { Set(editor, "game", id); Set(editor, "layout", layout); Set(editor, "snapshot", new TestGame().Build(actual)); }
         void Poll(bool retry = false) => Await((Task)Call(editor, "ReapplyRuntimeRulesAsync", retry)!);
@@ -144,6 +144,7 @@ internal static partial class RenderChecks
                     $"same-storage-recheck-mode-traits-{traits}-ability-{ability}-list-{list}");
             }
             CheckRuntimeRuleRecordRechecks(storage, checks, Await);
+            CheckRuntimeTraitDeletion(storage, checks, Await);
             File.WriteAllText(Path.Combine(output, "checks.json"), JsonSerializer.Serialize(new { gameAccess = false, checks }, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"PASS {checks.Count} runtime preference/reconnect/pause/race checks; gameAccess=false");
         }
@@ -185,7 +186,7 @@ internal static partial class RenderChecks
                 {
                     foreach (var write in Plan()) write.After.CopyTo(record, checked((int)(write.Address - 0x2000)));
                     writes++; return new(layout, new TestGame().Build(target), 0);
-                }, (_, _, _) => Plan().Length != 0);
+                }, (_, _, _, _) => Plan().Length != 0);
             file.Save(new(1, identity.ExeHash, settings, true));
             var editor = OfflineEditor(() => false, folder, folder, folder, runtimeRuleAccess: access);
             void Set(string name, object? value) => editor.GetType().GetField(name, Hidden)!.SetValue(editor, value);

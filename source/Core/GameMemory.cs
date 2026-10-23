@@ -1135,7 +1135,12 @@ internal static partial class GameMemory
     // record is compared with edit.Expected right before it is written: an edit that changes a linked field
     // (LinkedFields) is refused when any linked field of its record has moved since, and a plain value the game
     // changed meanwhile is written over and returned, to be reported.
-    internal static IReadOnlyList<string> Apply(GameIdentity identity, IReadOnlyList<RecordEdit> edits)
+    internal static IReadOnlyList<string> Apply(GameIdentity identity, IReadOnlyList<RecordEdit> edits, string? runtimeReceipt = null)
+    {
+        lock (RuntimeRuleLock) return ApplyWithRecoveryEdits(identity, edits, runtimeReceipt);
+    }
+
+    private static IReadOnlyList<string> ApplyWithRecoveryEdits(GameIdentity identity, IReadOnlyList<RecordEdit> edits, string? runtimeReceipt)
     {
         GameCapabilities.Require(identity, GameFeature.DataWrite);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
@@ -1149,13 +1154,21 @@ internal static partial class GameMemory
             if (identity.Verified)
                 foreach (var expected in edits.Select(e => e.ExpectedRuntimeRules).OfType<RuntimeRuleSettings>().Distinct())
                     RuntimeRulePatches.VerifyFull((address, length) => ReadBytes(handle, address, length), identity.ModuleBase, expected);
-            return Apply(new ProcessMemory(handle), identity.Classes, edits);
+            var memory = new ProcessMemory(handle);
+            var storage = identity.Verified && runtimeReceipt is not null && edits.Any(e => e.Kind == RecordKind.Officer) ? ReadCurrentLayout(identity) : null;
+            var history = storage is not null ? new SaveRestoreEdits(SaveRestoreEdits.PathFor(runtimeReceipt!), identity, storage) : null;
+            return Apply(memory, identity.Classes, edits, history is null ? null : () =>
+            {
+                if (!IsSameGame(identity) || SaveRestoreEdits.Scope.For(identity, storage!) != SaveRestoreEdits.Scope.For(identity, ReadCurrentLayout(identity)))
+                    throw new InvalidOperationException(L.RuntimeErrors.Loading);
+                history.Record(memory, edits);
+            });
         }
         finally { CloseHandle(handle); }
     }
 
     // The write itself, on the game's memory or (in the tests) on records made up in memory.
-    internal static IReadOnlyList<string> Apply(IRecordMemory memory, GameClasses classes, IReadOnlyList<RecordEdit> edits)
+    internal static IReadOnlyList<string> Apply(IRecordMemory memory, GameClasses classes, IReadOnlyList<RecordEdit> edits, Action? commit = null)
     {
         var undo = new WriteRecovery(memory, classes);
         var written = new HashSet<ulong>();   // fields this call has written: a later edit of the record finds them changed
@@ -1214,6 +1227,7 @@ internal static partial class GameMemory
                     undo.Write(holder, officer, reset, [OfficerFields.Personalities[restart.Slot]]);
                 }
             }
+            commit?.Invoke();
             return overwritten;
         }
         catch (Exception failure)
