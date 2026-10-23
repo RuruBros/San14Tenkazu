@@ -21,6 +21,8 @@ internal sealed class DisasterTestWindow:W.Window
     internal readonly PlateButton ReadCompatibility=new(L.DeveloperUi.ReadCompatibility),CancelCompatibility=new(L.DeveloperUi.CancelDiagnostic);
     internal readonly WC.TextBox CompatibilityLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal City? Target=>Cities.SelectedItem as City;
+    internal readonly PlateButton ReadGeography=new(L.DeveloperUi.ReadGeography),EditGeography=new(L.DeveloperUi.EditGeography);
+    internal readonly WC.TextBox GeographyLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal DisasterTestWindow()
     {
         Title=L.DeveloperUi.WindowTitle;Width=650;Height=740;MinWidth=580;MinHeight=640;Background=CardSkin.Parchment;Foreground=CardSkin.Ink;
@@ -45,6 +47,11 @@ internal sealed class DisasterTestWindow:W.Window
         var reads=new WC.WrapPanel();foreach(var b in new[]{ReadCompatibility,CancelCompatibility}){b.Margin=new W.Thickness(0,0,8,14);reads.Children.Add(b);}heading.Children.Add(reads);
         WC.DockPanel.SetDock(heading,WC.Dock.Top);compatibility.Children.Add(heading);compatibility.Children.Add(CompatibilityLog);
         Tabs.Items.Add(new WC.TabItem{Header=L.DeveloperUi.CompatibilityTab,Content=compatibility,Background=CardSkin.Parchment,Foreground=CardSkin.Ink,Padding=new W.Thickness(12,6,12,6)});
+        var geography=new WC.DockPanel{Margin=new W.Thickness(20)};var geographyHeading=new WC.StackPanel();
+        geographyHeading.Children.Add(new WC.TextBlock{Text=L.DeveloperUi.GeographyInstructions,TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,0,0,14)});
+        foreach(var b in new[]{ReadGeography,EditGeography}){b.Margin=new W.Thickness(0,0,0,14);geographyHeading.Children.Add(b);}
+        WC.DockPanel.SetDock(geographyHeading,WC.Dock.Top);geography.Children.Add(geographyHeading);geography.Children.Add(GeographyLog);
+        Tabs.Items.Add(new WC.TabItem{Header=L.DeveloperUi.GeographyTab,Content=geography,Background=CardSkin.Parchment,Foreground=CardSkin.Ink,Padding=new W.Thickness(12,6,12,6)});
     }
     private bool available;
     private void SelectionChanged(){Preview.IsEnabled=Damage.IsEnabled=available&&Target is not null&&Kind.SelectedIndex>=0;}
@@ -52,7 +59,9 @@ internal sealed class DisasterTestWindow:W.Window
     internal void AppendTraitDiagnostic(string text){TraitLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);TraitLog.ScrollToEnd();}
     internal void SetCompatibilityAvailable(bool ready,bool reading){ReadCompatibility.IsEnabled=ready;CancelCompatibility.IsEnabled=reading;}
     internal void AppendCompatibility(string text){CompatibilityLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);CompatibilityLog.ScrollToEnd();}
-    internal void SetCities(GameSnapshot data){int selected=Target?.Id??1;Cities.ItemsSource=data.Cities.Where(c=>c.CityId is >=1 and <=46).Select(c=>new City(c.CityId,data.ForceOfCity(c.CityId),c.Name+" · "+data.ForceName(data.ForceOfCity(c.CityId)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);}
+    internal void SetCities(GameSnapshot data){int selected=Target?.Id??1;Cities.ItemsSource=data.CityIds.Select(id=>new City(id,data.ForceOfCity(id),data.CityName(id)+" · "+data.ForceName(data.ForceOfCity(id)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);}
+    internal void SetGeographyAvailable(bool ready){ReadGeography.IsEnabled=EditGeography.IsEnabled=ready;}
+    internal void AppendGeography(string text){GeographyLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);GeographyLog.ScrollToEnd();}
     internal void Append(string text){Log.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);Log.ScrollToEnd();}
     internal void SetReceipt(EnvironmentStatus? status)
     {

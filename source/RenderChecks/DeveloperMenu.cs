@@ -1,4 +1,4 @@
-using San14Tenkazu;
+﻿using San14Tenkazu;
 using System.IO;
 using System.Reflection;
 using San14Tenkazu.EnvironmentRules;
@@ -10,7 +10,7 @@ internal static partial class RenderChecks
 #if LOCAL_DEVELOPER
     private sealed class DeveloperFixture:IEnvironmentSession,IEnvironmentBackend,IEnvironmentDeveloperSession
     {
-        internal EnvironmentProtocol.Reply Receipt=new(){Weather=new byte[46],RecentDates=new uint[230],Events=new EnvironmentProtocol.Event[1024]};
+        internal EnvironmentProtocol.Reply Receipt=new(){Weather=new byte[EnvironmentProtocol.CitySlots],RecentDates=new uint[EnvironmentProtocol.CitySlots*5],Events=new EnvironmentProtocol.Event[1024]};
         internal bool Stopped;
         public ValueTask<IEnvironmentSession> StartAsync(CancellationToken token)=>ValueTask.FromResult<IEnvironmentSession>(this);
         public ValueTask<EnvironmentProtocol.Reply> ApplyAsync(EnvironmentSettings settings,CancellationToken token){Receipt.Flags=(uint)settings.Effects;return ValueTask.FromResult(Receipt);}
@@ -29,22 +29,27 @@ internal static partial class RenderChecks
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadTraitListDiagnostic")==expected,"Trait diagnostic entry leaked into public build");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadCompatibilityDiagnostic")==expected,"Compatibility diagnostic entry leaked into public build");
         Require((typeof(EditorWindow).GetMethod("ReadDeveloperCompatibility",Hidden)!=null)==expected,"Compatibility menu entry leaked into public build");
+        Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripDeveloperCities")==expected,"City roundtrip entry leaked into public build");
+        Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadDeveloperGeographyTopology")==expected,"Raw geography diagnostic leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunDeveloperGeography",Hidden)!=null)==expected,"City diagnostics leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("DeveloperEnvironmentEvidence",Hidden|BindingFlags.Static)!=null)==expected,"Native receipt diagnostic leaked into public build");
         Require((typeof(LogPanel).GetMethod("SetDeveloperButton",Hidden)!=null)==expected,"Developer log-header entry leaked into public build");
 #if LOCAL_DEVELOPER
         CheckNoticeTypographyReader();
         CheckTraitListDiagnostic();
         CheckCompatibilityDiagnostic();
         CheckDeveloperEntry();
+        CheckDeveloperGeography();
         var fixture=new DeveloperFixture();var controller=new EnvironmentController(fixture,Console.WriteLine);
         try {
             controller.ApplyAsync(EnvironmentSettings.New(),keepEmptySession:true).GetAwaiter().GetResult();
             Require(controller.Status is{Phase:EnvironmentPhase.On,Actual:EnvironmentEffects.None},"Developer session must not enable gameplay effects on startup");
-            controller.TestAsync(2,46,2).GetAwaiter().GetResult();Require(controller.Status.Receipt is{TestCity:46,TestKind:2,TestState:3},"Controller must preserve target and scheduled receipt");
+            controller.TestAsync(2,51,2).GetAwaiter().GetResult();Require(controller.Status.Receipt is{TestCity:51,TestKind:2,TestState:3},"Controller must preserve target and scheduled receipt");
             controller.TestAsync(0,1,0).GetAwaiter().GetResult();Require(controller.Status.Receipt is{TestState:5},"Controller must acknowledge cancellation");
         }finally{controller.DisposeAsync().AsTask().GetAwaiter().GetResult();}
         Require(fixture.Stopped,"Developer controller must restore native ownership on disposal");
         var window=new DisasterTestWindow();window.SetCities(new TestGame().Build());window.SetAvailable(true,true);
-        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==3&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
+        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==4&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
             && window.Tabs.Items[1] is WC.TabItem{Header:"개성 목록 진단"}&&window.Tabs.Items[2] is WC.TabItem{Header:"호환성 진단"},"Developer tabs must separate approved actions");
         try {
             window.Show();window.UpdateLayout();
@@ -52,7 +57,7 @@ internal static partial class RenderChecks
             Require(window.Preview.IsEnabled&&window.Damage.IsEnabled&&window.Stop.IsEnabled&&window.ReadText.IsEnabled,"Separate test actions missing");
             window.Cities.SelectedItem=null;Require(window.ReadText.IsEnabled&&window.ReadTraits.IsEnabled&&!window.Preview.IsEnabled,"Read-only diagnostics must not require a damage target");window.Cities.SelectedIndex=0;
             window.SetAvailable(false,true);Require(!window.Preview.IsEnabled&&!window.Damage.IsEnabled&&!window.ReadTraits.IsEnabled&&window.Stop.IsEnabled,"Busy state must retain cancellation");
-            var receipt=new EnvironmentProtocol.Reply{Date=192|(7u<<16)|(11u<<24),Weather=new byte[46],RecentDates=new uint[230],TestState=2,TestCity=1,TestKind=1};
+            var receipt=new EnvironmentProtocol.Reply{Date=192|(7u<<16)|(11u<<24),Weather=new byte[EnvironmentProtocol.CitySlots],RecentDates=new uint[EnvironmentProtocol.CitySlots*5],TestState=2,TestCity=1,TestKind=1};
             var overlay=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.None,EnvironmentEffects.None,false,receipt));
             Require(overlay is not null&&overlay.IsPreview(1,4)&&overlay.Recent(1,4)==receipt.Date&&receipt.RecentDates.All(d=>d==0),"Preview must be distinct from real history");
             window.SetReceipt(new(EnvironmentPhase.On,EnvironmentEffects.None,EnvironmentEffects.None,false,receipt));Require(window.Status.Text.Contains("피해 없음"),"Preview status must identify no damage");
@@ -99,7 +104,7 @@ internal static partial class RenderChecks
             var bounds=button.TransformToAncestor(log).TransformBounds(new W.Rect(0,0,button.ActualWidth,button.ActualHeight));
             Require(bounds.Right>log.ActualWidth-24&&bounds.Top>=0&&bounds.Bottom<=log.ActualHeight,"Developer entry must sit at the right edge of the log header");
             Click(button);Pump();var first=Field<DisasterTestWindow>(editor,"developerMenu");
-            Require(first.IsVisible&&first.Tabs.Items.Count==3&&!log.Open,"One click must open the tabbed window without expanding the log");
+            Require(first.IsVisible&&first.Tabs.Items.Count==4&&!log.Open,"One click must open the tabbed window without expanding the log");
             Click(button);Pump();Require(ReferenceEquals(first,Field<DisasterTestWindow>(editor,"developerMenu")),"Repeated click must reuse the same tools window");
             first.Close();Pump();
             var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(log.ActualWidth),(int)Math.Ceiling(log.ActualHeight),96,96,System.Windows.Media.PixelFormats.Pbgra32);

@@ -167,6 +167,9 @@ internal sealed partial class EditorWindow
         {
             runtimeRulesChecking = false;
             if (writing) { runtimeRulesChanging = false; SetBusy(false, scanning: false); runtimeRulesWindow?.SetBusy(false); }
+#if LOCAL_DEVELOPER
+            UpdateDeveloperControls();
+#endif
         }
     }
 }
