@@ -109,6 +109,7 @@ try {
     Invoke-Check @('--memory-resources') 'publish-memory-resources.log'
     Invoke-Check @('--memory-lifetimes', (Join-Path $taskArtifacts 'publish-memory-lifetimes')) 'publish-memory-lifetimes.log'
     Invoke-Check @('--map-reload', (Join-Path $taskArtifacts 'publish-map-reload')) 'publish-map-reload.log'
+    Invoke-Check @('--loaded-geography', (Join-Path $taskArtifacts 'publish-loaded-geography')) 'publish-loaded-geography.log'
     Invoke-Check @('--performance', (Join-Path $taskArtifacts 'publish-performance')) 'publish-performance.log'
     Invoke-Check @('--refresh-caching', (Join-Path $taskArtifacts 'publish-refresh-caching')) 'publish-refresh-caching.log'
     Invoke-Check @('--coast') 'publish-coast.log'

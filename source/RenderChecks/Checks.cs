@@ -9,6 +9,14 @@ using WMI = System.Windows.Media.Imaging;
 
 internal static partial class RenderChecks
 {
+    // Map fixtures supply the same explicit castle positions as a loaded snapshot.
+    // Core rule fixtures deliberately do not manufacture optional building records.
+    internal static San14Tenkazu.Tests.TestGame OriginalMapCastles(San14Tenkazu.Tests.TestGame game)
+    {
+        for (int city = 1; city <= GameMemory.CityCount; city++) game.Castle(city, 5000, MapTerrain.CityTiles[city]);
+        return game;
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);

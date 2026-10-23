@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\San14Tenkazu.csproj" />
     <Compile Include="..\Tests\TestGame.cs" Link="TestGame.cs" />
+    <Compile Include="..\Tests\GeographyFixture.cs" Link="GeographyFixture.cs" />
     <Compile Include="..\Tests\FormationFixture.cs" Link="FormationFixture.cs" />
     <Compile Include="..\Tests\TacticFixture.cs" Link="TacticFixture.cs" />
     <Compile Include="..\Tests\PolicyFixture.cs" Link="PolicyFixture.cs" />

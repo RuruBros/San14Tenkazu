@@ -147,11 +147,11 @@ internal sealed partial class MapSurface
     {
         W.Point p = CityOnScreen(id);
         if (p.X < -80 - LabelPad || p.Y < -40 - LabelPad || p.X > ActualWidth + 80 + LabelPad || p.Y > ActualHeight + 60 + LabelPad) return null;
-        CityRecord? city = snapshot?.Cities[id];
+        CityRecord? city = snapshot is { } data && data.IsCity(id) ? data.Cities[id] : null;
         double size = CastleSize(city?[CityFields.Scale] ?? 1);
         System.Drawing.Color owner = CityOwner(id);
         // Close up, the game's model stands for the city; the icon only while the model is too small to see.
-        W.Rect? model = ModelOnScreen(MapTerrain.CityTiles[id], ModelShowWidth);
+        W.Rect? model = CityTile(id) is { } cityTile ? ModelOnScreen(cityTile, ModelShowWidth) : null;
         W.Rect area = model ?? CastleArea(p, size);
         W.Rect own = ClaimIcon(area, model is not null);
         if (model is null) iconDraws.Add(() => DrawCastle(dc, p, size, owner));
@@ -181,8 +181,8 @@ internal sealed partial class MapSurface
     // A city's banner above its icon, or below, right or left of it when that place is taken.
     private void PlaceCityBanner(IMapCanvas dc, int id, Anchor at, double pixelsPerDip)
     {
-        CityRecord? city = snapshot?.Cities[id];
-        int force = snapshot is { } data && city is not null ? data.ForceOfCity(id) : 0;
+        CityRecord? city = snapshot is { } data && data.IsCity(id) ? data.Cities[id] : null;
+        int force = snapshot is not null && city is not null ? snapshot.ForceOfCity(id) : 0;
         System.Drawing.Color owner = CityOwner(id);
         long scale = city?[CityFields.Scale] ?? 1;
         (int Gold, int Food, int Troops, int Durability)? caps = CityFields.Caps(scale);
@@ -190,7 +190,7 @@ internal sealed partial class MapSurface
         bool selected = id == selectedCity;
         double? walls = city is not null && zoom >= CityTroopsZoom && snapshot!.CastleByCity.TryGetValue(id, out BuildingRecord? castle)
             && caps is { } full ? castle[CityFields.Durability] / (double)full.Durability : null;
-        Banner banner = MeasureBanner(CityNames.ById[id], force, owner, city is not null && zoom >= CityTroopsZoom ? city[CityFields.Troops] : null,
+        Banner banner = MeasureBanner(CityName(id), force, owner, city is not null && zoom >= CityTroopsZoom ? city[CityFields.Troops] : null,
             selected, gate: false, pixelsPerDip, walls);
         W.Rect area = Claim(true, at.Own, banner.Places(at))!.Value;
         bannerRects[id] = area;
@@ -290,11 +290,11 @@ internal sealed partial class MapSurface
         // too big), and always smaller than a city's name on its banner, which keeps one size.
         double t = Math.Min(1.1, 1 + 0.045 * (zoom - CountyLabelZoom));
         const double placeName = 9;      // landmarks and facilities: one size
-        foreach (int tile in MapTerrain.SeatTiles)
+        foreach (int tile in MapTerrain.TilesOf(MapTerrain.Seat, snapshot?.Terrain))
         {
             if (data.County(data.TileCounties[tile]) is not { } county || !seen.Add(county.Index)) continue;
             string name = county.Name;
-            if (name.Length == 0 || name == CityNames.ById[county.HomeCity]) continue;
+            if (name.Length == 0 || name == data.CityName(county.HomeCity)) continue;
             if (!OnScreen(tile, out W.Point p, 20, 80)) continue;
             if (ModelOnScreen(tile, 14) is { } village) p = new W.Point(p.X, village.Top - 4 * s);
             int owner = data.TileOwners[tile];
@@ -380,7 +380,7 @@ internal sealed partial class MapSurface
                 $"{MapArt.FacilityName(facility.Kind)} · {data.ForceName(facility.Force)} · {durability}" + (facility.Built ? "" : (" · " + L.Map.Building)),
                 0, facility.Building is not null ? FacilityTarget.Of(facility) : null));
         }
-        foreach (int tile in MapTerrain.PortTiles)
+        foreach (int tile in MapTerrain.TilesOf(MapTerrain.Port, snapshot?.Terrain))
         {
             if (!OnScreen(tile, out W.Point p, 20, 20) || ModelOnScreen(tile, 14) is not null || !MapArt.Has(MapArt.Port)) continue;
             iconDraws.Add(() =>

@@ -25,7 +25,7 @@ internal sealed partial class EditorWindow
         if (snapshot is not { } data || WriteBlock([GameChecks.GroupOf(field)]) is not null) return false;
         return target switch
         {
-            CityTarget(int id) => id is >= 1 and <= GameMemory.CityCount && id < data.Cities.Length && (field == CityFields.Troops || field == CityFields.Gold || field == CityFields.Food),
+            CityTarget(int id) => data.IsCity(id) && (field == CityFields.Troops || field == CityFields.Gold || field == CityFields.Food),
             GateTarget(int id) => data.Gates.Any(g => g.Id == id) && (field == GateFields.Troops || field == GateFields.Morale || field == GateFields.Durability),
             OfficerTarget(int id) => data.OfficerById.ContainsKey(id) && (field == OfficerFields.Loyalty || OfficerFields.Abilities.Contains(field)),
             UnitTarget(int slot, int commander) => data.Unit(slot, commander) is not null && UnitFields.All.Contains(field),

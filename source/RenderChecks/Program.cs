@@ -15,6 +15,7 @@ internal static partial class RenderChecks
     {
         try
         {
+            if (args.Contains("--loaded-geography")) { var paths = args.Where(a => !a.StartsWith("--")).ToArray(); CheckLoadedGeography(paths[0], paths.ElementAtOrDefault(1), paths.ElementAtOrDefault(2)); return 0; }
             if (args.Contains("--map-reload")) { MapReloadChecks.Run(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--memory-lifetimes")) { CheckMemoryLifetimes(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--refresh-load")) { CheckRefreshLoad(args.First(a => !a.StartsWith("--"))); return 0; }

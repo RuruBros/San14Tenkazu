@@ -19,7 +19,7 @@ internal sealed class MapTiles
     private const int Workers = 2;
 
     // Draws one tile (level, x, y) for the given territory, counties and base map kind; null leaves it empty.
-    internal delegate WMI.BitmapSource? Renderer(TileKey key, byte[]? owners, ushort[]? counties, bool fromGame);
+    internal delegate WMI.BitmapSource? Renderer(TileKey key, byte[]? owners, ushort[]? counties, bool fromGame, byte[]? terrain);
 
     private readonly Renderer render;
     private readonly int firstLevel;               // coarser levels are not drawn at all
@@ -51,6 +51,7 @@ internal sealed class MapTiles
     private int version;
     private byte[]? owners;
     private ushort[]? counties;
+    private byte[]? terrain;
     private bool fromGame = true;
     private bool enabled = true;
     private int running;
@@ -59,6 +60,9 @@ internal sealed class MapTiles
 
     // A layer that starts at firstLevel shows nothing when zoomed out further, so what lies under it shows.
     // A layer of thin lines takes a small standInLevels: magnified, a coarse tile's lines are wide smears.
+    internal MapTiles(Func<TileKey, byte[]?, ushort[]?, bool, WMI.BitmapSource?> render, int firstLevel = 0, int maxCached = 120, int standInLevels = LevelCount)
+        : this((key, owners, counties, game, _) => render(key, owners, counties, game), firstLevel, maxCached, standInLevels) { }
+
     internal MapTiles(Renderer render, int firstLevel = 0, int maxCached = 120, int standInLevels = LevelCount)
     {
         this.render = render;
@@ -149,6 +153,16 @@ internal sealed class MapTiles
         if (counties is null ? newCounties is null : newCounties is not null && counties.AsSpan().SequenceEqual(newCounties)) return;
         counties = newCounties;
         version++;
+        Refresh();
+    }
+
+    internal void SetTerrain(byte[] newTerrain)
+    {
+        if (ReferenceEquals(terrain, newTerrain)) return;
+        terrain = newTerrain;
+        version++;
+        generation++;
+        tiles.Clear();
         Refresh();
     }
 
@@ -320,6 +334,7 @@ internal sealed class MapTiles
             int drawnFor = version;
             byte[]? territory = owners;
             ushort[]? tileCounties = counties;
+            byte[]? tileTerrain = terrain;
             bool game = fromGame;
             TileKey key = tile.Key;
             int startedIn = generation;
@@ -327,7 +342,7 @@ internal sealed class MapTiles
             var owner = new WeakReference<MapTiles>(this);
             // A tile's Element and this canvas belong to the map's visual tree. Neither a worker
             // nor a queued completion should keep that tree alive after it has been unloaded.
-            Task.Run(() => draw(key, territory, tileCounties, game)).ContinueWith(task =>
+            Task.Run(() => draw(key, territory, tileCounties, game, tileTerrain)).ContinueWith(task =>
                 QueueCompleted(owner, key, drawnFor, startedIn, task), TaskScheduler.Default);
         }
     }

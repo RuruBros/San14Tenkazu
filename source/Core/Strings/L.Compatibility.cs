@@ -6,6 +6,7 @@ internal static partial class L
     {
         private static string T([CallerMemberName] string key = "") => Get(nameof(Compatibility)+"."+key);
         internal static string Unavailable => T();
+        internal static string MissingCastle(object? city) => Format(T(), (nameof(city), city));
         internal static string CurveUnknown => T();
         internal static string Import => T();
         internal static string ImportRules => T();

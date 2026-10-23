@@ -21,7 +21,7 @@ internal static partial class RenderChecks
         var ground = Enumerable.Range(0, width * height).Select(i => unchecked((int)0xFF000000) |
             (i * 37 & 255) << 16 | (i * 17 & 255) << 8 | (i * 3 & 255)).ToArray();
         var strategic = (WMI.BitmapSource)typeof(MapView).GetMethod("RenderStrategic", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
-            .Invoke(null, [owners, (ground, width, height)])!;
+            .Invoke(null, [owners, (ground, width, height), MapTerrain.Terrain])!;
         byte[] strategicPixels = new byte[width * height * 4];
         strategic.CopyPixels(strategicPixels, width * 4, 0);
         string strategicHash = Convert.ToHexString(SHA256.HashData(strategicPixels));

@@ -269,11 +269,11 @@ internal sealed partial class EditorWindow
         string word = citySearch.Text.Trim();
         int force = PickedForce(cityForceBox);
         var rows = new List<GameTable.Row>();
-        foreach (int id in Enumerable.Range(1, GameMemory.CityCount))
+        foreach (int id in data.CityIds)
         {
             CityRecord city = data.Cities[id];
             int owner = data.ForceOfCity(id);
-            string name = CityNames.ById[id], governor = data.OfficerName(city.Governor), forceName = data.ForceName(owner);
+            string name = data.CityName(id), governor = data.OfficerName(city.Governor), forceName = data.ForceName(owner);
             if (force != 0 && owner != force) continue;
             if (word.Length > 0 && !name.Contains(word) && !governor.Contains(word) && !forceName.Contains(word)) continue;
             rows.Add(new GameTable.Row(id, [name, new GameTable.Shield(forceName, MapView.ForceColor(owner)), CityFields.ScaleName(city[CityFields.Scale]), governor, city[CityFields.Troops], city[CityFields.Gold], city[CityFields.Food]]));
@@ -309,7 +309,7 @@ internal sealed partial class EditorWindow
 
     // An officer's force over the base he belongs to, the two lines of one cell.
     private static string ForceAndBase(GameSnapshot data, OfficerRecord officer) =>
-        data.ForceName(data.ForceOfCorps(officer.Corps)) + "\n" + CityNames.BaseName(officer.BaseId);
+        data.ForceName(data.ForceOfCorps(officer.Corps)) + "\n" + data.BaseName(officer.BaseId);
 
     private List<GameTable.Row> UnitRows()
     {

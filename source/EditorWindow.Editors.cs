@@ -235,7 +235,7 @@ internal sealed partial class EditorWindow
                 map.ShowEditor(forceEditor, origin);
                 map.HighlightForce = force;
                 return true;
-            case CityTarget(int city) when city is >= 1 and <= GameMemory.CityCount:
+            case CityTarget(int city) when data.IsCity(city):
                 cityEditor.Open(CityView(data, city));
                 map.ShowEditor(cityEditor, origin);
                 map.SelectedCity = city;
@@ -389,7 +389,7 @@ internal sealed partial class EditorWindow
         foreach (int id in data.CitiesOf(force))
         {
             CityRecord city = data.Cities[id];
-            rows.Add(new GameTable.Row(id, [CityNames.ById[id], CityFields.ScaleName(city[CityFields.Scale]), data.OfficerName(city.Governor),
+            rows.Add(new GameTable.Row(id, [data.CityName(id), CityFields.ScaleName(city[CityFields.Scale]), data.OfficerName(city.Governor),
                 city[CityFields.Troops], city[CityFields.Gold], city[CityFields.Food]]));
         }
         return rows;
@@ -472,7 +472,7 @@ internal sealed partial class EditorWindow
         }
         CountyRecord[] owned = data.Counties.Where(c => c.HomeCity == id).ToArray();
         var counties = owned.Select(c => new CityEditorCard.County(c.Index, c.Name, c.Name == city.Name,
-            c.CurrentCity == c.HomeCity || c.CurrentCity is < 1 or > GameMemory.CityCount ? "" : CityNames.ById[c.CurrentCity],
+            c.CurrentCity == c.HomeCity || !data.IsCity(c.CurrentCity) ? "" : data.CityName(c.CurrentCity),
             CountyFields.All.ToDictionary(f => f, f => c[f]))).ToList();
         var officers = OfficerTables.Order(data.Officers.Where(o => o.BaseId == id && OfficerFields.IsActive(o.Status))).Select(OfficerTables.RowOf).ToList();
         // Who may govern: the force's 태수 and 일반 officers in the city now (and whoever governs it now).
@@ -480,7 +480,7 @@ internal sealed partial class EditorWindow
             .OrderByDescending(o => o[OfficerFields.Leadership] + o[OfficerFields.Politics])
             .Select(o => new GameName(o.Id, o.Name, L.Force.StrategistChoiceTip(o[OfficerFields.Leadership], o[OfficerFields.Politics]))).ToList();
         bool fixedGovernor = data.OfficerById.GetValueOrDefault(city.Governor) is { Status: 1 or 2 };
-        return new CityEditorCard.View(id, CityNames.ById[id], force, data.ForceName(force), MapView.ForceColor(force), CityFields.ScaleName(city[CityFields.Scale]),
+        return new CityEditorCard.View(id, data.CityName(id), force, data.ForceName(force), MapView.ForceColor(force), CityFields.ScaleName(city[CityFields.Scale]),
             city.Governor, data.OfficerName(city.Governor), values, counties, officers, governors, fixedGovernor, CityIndependence.Refusal(data, id));
     }
 
@@ -579,9 +579,9 @@ internal sealed partial class EditorWindow
         int lord = (int)officer[OfficerFields.FormerLord], months = (int)officer[OfficerFields.FormerLordMonths];
         string formerLord = lord is > 0 and < 10000 && data.OfficerName(lord) is { Length: > 0 } name ? name + (months > 0 ? (" " + L.Officer.NotServingMonths(months)) : "") : "";
         return new OfficerEditorCard.Standing(force, data.ForceName(force), MapView.ForceColor(force), OfficerFields.StatusName(officer.Status),
-            officer.BaseId, CityNames.BaseName(officer.BaseId), office == "없음" ? "" : office, corps, place, formerLord,
+            officer.BaseId, data.BaseName(officer.BaseId), office == "없음" ? "" : office, corps, place, formerLord,
             officer.Status is >= 1 and <= 4 ? Transfers.Blocker(data, officer, Transfer.Move) : "",
-            officer.Status is >= 1 and <= 4 ? Transfers.Blocker(data, officer, Transfer.Defect) : "");
+            officer.Status is >= 1 and <= 4 ? Transfers.Blocker(data, officer, Transfer.Defect) : "") { CityBase = data.IsCity(officer.BaseId) };
     }
 
     private void ShowOfficer(GameSnapshot data, OfficerRecord officer)

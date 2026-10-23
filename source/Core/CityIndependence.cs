@@ -36,7 +36,7 @@ internal static class CityIndependence
 
     internal static string? Refusal(GameSnapshot data, int id)
     {
-        if (id is < 1 or > GameMemory.CityCount || id >= data.Cities.Length) return L.Independence.NoCity;
+        if (!data.IsCity(id)) return L.Independence.NoCity;
         CityRecord city = data.Cities[id];
         int force = data.ForceOfCity(id);
         if (force is < 1 or > GameMemory.MaxPlayerForce || BaseGrants.Ruler(data, force) is not { } ruler)
@@ -77,6 +77,6 @@ internal static class CityIndependence
         && ruler.Address == request.GovernorAddress && ruler.BaseId == request.City
         && ruler.Corps == after.Cities[request.City].Corps
         && ruler[OfficerFields.PlaceField] == request.City
-        && Enumerable.Range(1, GameMemory.CityCount).Where(id => id != request.City)
+        && before.CityIds.Where(id => id != request.City)
             .All(id => before.ForceOfCity(id) == after.ForceOfCity(id));
 }

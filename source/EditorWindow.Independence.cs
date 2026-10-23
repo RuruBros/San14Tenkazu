@@ -22,7 +22,7 @@ internal sealed partial class EditorWindow
             CityIndependence.Request request = CityIndependence.Prepare(before, city);
             if (before.Cities[city].Governor != data.Cities[city].Governor || before.ForceOfCity(city) != data.ForceOfCity(city))
                 throw new InvalidOperationException(L.Independence.Changed);
-            string place = CityNames.ById[city], governor = before.OfficerName(request.Governor);
+            string place = before.CityName(city), governor = before.OfficerName(request.Governor);
             if (!ConfirmDiscard() || !Confirm(L.Independence.Confirm(place, governor), W.MessageBoxImage.Warning,
                 defaultNo: true, title: L.Independence.Button)) return;
             AddLog(L.Independence.Request(place, governor, before.ForceName(request.FromForce), request.NewForce));

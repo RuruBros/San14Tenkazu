@@ -117,10 +117,10 @@ internal sealed class GroundDetail
     internal int MipCount => mipCount;
 
     // One close-up tile over the lit base map (null when the ground data is missing or the tile is off the map).
-    internal static WMI.BitmapSource? Render(MapTiles.TileKey key, WMI.BitmapSource baseImage, float basePixelsPerUnit) =>
-        shared.Value?.RenderTile(key, baseImage, basePixelsPerUnit);
+    internal static WMI.BitmapSource? Render(MapTiles.TileKey key, WMI.BitmapSource baseImage, float basePixelsPerUnit, byte[]? terrain = null) =>
+        shared.Value?.RenderTile(key, baseImage, basePixelsPerUnit, terrain);
 
-    private WMI.BitmapSource? RenderTile(MapTiles.TileKey key, WMI.BitmapSource baseImage, float basePpu)
+    private WMI.BitmapSource? RenderTile(MapTiles.TileKey key, WMI.BitmapSource baseImage, float basePpu, byte[]? terrain)
     {
         const int size = MapTiles.TileSize;
         float ppu = MapTiles.PixelsPerUnit(key.Level);
@@ -211,7 +211,7 @@ internal sealed class GroundDetail
                 output[py * size + px] = ToByte(r) << 16 | ToByte(g) << 8 | ToByte(b);
             }
         }
-        MapTrees.Draw(output, size, wx0, wy0, ppu);
+        MapTrees.Draw(output, size, wx0, wy0, ppu, terrain);
         var image = WMI.BitmapSource.Create(size, size, 96, 96, WM.PixelFormats.Bgr32, null, output, size * 4);
         image.Freeze();
         return image;

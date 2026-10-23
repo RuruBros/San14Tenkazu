@@ -375,7 +375,7 @@ internal sealed partial class MapSurface
         W.Point from = glides.TryGetValue((unit.Slot, unit.Commander), out Glide? glide) ? Position(glide, Now) : TileWorld(unit.Tile);
         W.Point to = TilePoint(destination);
         int start = unit.NextTile is var next && next < GameMemory.TileCount ? next : unit.Tile;
-        if (routeCache.Start != start || routeCache.Goal != destination) routeCache = (start, destination, MapRoutes.Find(start, destination));
+        if (routeCache.Start != start || routeCache.Goal != destination) routeCache = (start, destination, MapRoutes.Find(start, destination, TerrainTypes));
         if (routeShape.Shape is null || routeShape.Start != start || routeShape.Goal != destination || routeShape.Tile != unit.Tile || routeShape.From != from)
         {
             var points = new List<W.Point> { from };

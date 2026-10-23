@@ -10,8 +10,11 @@ internal static class CityEdits
 
     internal static EditPlan Plan(GameSnapshot data, int id, Request request)
     {
+        if (!data.IsCity(id)) return EditPlan.Refuse(L.Give.Gone);
         CityRecord city = data.Cities[id];
-        string name = CityNames.ById[id];
+        string name = data.CityName(id);
+        if (request.City.Any(c => c.Field.Record == RecordKind.Building) && !data.CastleByCity.ContainsKey(id))
+            return EditPlan.Refuse(L.Compatibility.MissingCastle(name));
         if (request.Governor is int pick && pick != city.Governor && !MayGovern(data, id, pick))
             return EditPlan.Refuse(L.Edits.NotGovernor(data.OfficerName(pick), name));
         var edits = new List<RecordEdit>();

@@ -3206,6 +3206,7 @@ SavedSummary = 저장 설정 · 사계절 {seasonal} · 화면 효과 {visual}�
 AutoFailed = 환경·재해 자동 적용 중단 · {error} · 새로고침으로 재시도하세요.
 
 [Compatibility]
+MissingCastle = {city}의 성 건물 정보가 없어 내구도를 변경할 수 없습니다.
 Unavailable = 이 기능에 필요한 게임 구조 또는 버전 검증이 없습니다
 CurveUnknown = 능력치 성장 곡선을 검증하지 못했습니다
 Import = 설정 가져오기

@@ -18,7 +18,7 @@ internal sealed partial class MapView
         var shade=new byte[GameMemory.TileCount];var regions=new int[501];foreach(var county in data.Counties)if(county.Index is >0 and <=500)regions[county.Index]=county.HomeCity;
         for(int tile=0;tile<shade.Length;tile++){int county=data.TileCounties[tile];if(county is >0 and <=500)shade[tile]=(byte)value.Shade(regions[county]);}
         View view=FillView();using var bitmap=new Bitmap(view.Width,view.Height,PixelFormat.Format32bppPArgb);using Graphics g=Graphics.FromImage(bitmap);
-        foreach(var pair in OwnerAreas(shade,view)){using var brush=new SolidBrush(Color.FromArgb(45,EnvironmentColor(pair.Key)));g.FillPath(brush,pair.Value);pair.Value.Dispose();}
+        foreach(var pair in OwnerAreas(shade,view,data.Terrain??MapTerrain.Terrain)){using var brush=new SolidBrush(Color.FromArgb(45,EnvironmentColor(pair.Key)));g.FillPath(brush,pair.Value);pair.Value.Dispose();}
         return ToImage(bitmap);
     }
 }

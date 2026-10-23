@@ -39,7 +39,7 @@ internal sealed partial class EditorWindow
     // The hex a card's city, gate or unit stands on and its name; nulls when it has none on the map now.
     private static (int? Tile, string? Name) PlaceOf(GameSnapshot data, EditorTarget target) => target switch
     {
-        CityTarget(int city) when city is >= 1 and <= GameMemory.CityCount => (MapTerrain.CityTiles[city], CityNames.ById[city]),
+        CityTarget(int city) when data.IsCity(city) => (data.CityTile(city), data.CityName(city)),
         GateTarget(int id) when data.Gates.FirstOrDefault(g => g.Id == id) is { Tile: >= 0 and < GameMemory.TileCount } gate => (gate.Tile, gate.Name),
         FacilityTarget facility when facility.Find(data) is { Tile: >= 0 and < GameMemory.TileCount } found => (found.Tile, MapArt.FacilityName(found.Kind)),
         UnitTarget(int slot, int commander) when data.Unit(slot, commander) is { Tile: < GameMemory.TileCount } unit =>

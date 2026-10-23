@@ -266,6 +266,9 @@ internal static class MapTerrain
 
     private static int[] TilesOf(int type) => Enumerable.Range(0, Terrain.Length).Where(tile => Terrain[tile] == type).ToArray();
 
+    internal static IEnumerable<int> TilesOf(int type, byte[]? terrain) => terrain is null ? TilesOf(type)
+        : Enumerable.Range(0, terrain.Length).Where(tile => terrain[tile] == type);
+
     private static byte[] Decode(string base64)
     {
         using var input = new MemoryStream(Convert.FromBase64String(base64));

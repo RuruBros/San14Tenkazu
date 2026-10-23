@@ -276,7 +276,7 @@ internal sealed class MapShaders : IDisposable
     }
 
     // The ground over the base map, then the trees on it (as far as the zoom shows them).
-    internal void DrawGround(ID3D11DeviceContext dc, Target target, Camera camera)
+    internal void DrawGround(ID3D11DeviceContext dc, Target target, Camera camera, byte[]? terrain = null)
     {
         if (ground is not { Usable: true } made) return;
         Begin(dc, target, camera, made.Area, GroundOpacity(camera.Scale));
@@ -286,14 +286,15 @@ internal sealed class MapShaders : IDisposable
         dc.PSSetShaderResources(0, [made.BaseMap!, made.MaterialMap!, made.Albedo!, made.Normals ?? made.Albedo!]);
         dc.PSSetSampler(0, repeat);
         dc.Draw(4, 0);
-        DrawTrees(dc, target, camera, Ramp(camera.Scale, TreesFrom, TreesFull));
+        DrawTrees(dc, target, camera, Ramp(camera.Scale, TreesFrom, TreesFull), terrain);
     }
 
     // ---- Trees -------------------------------------------------------------------------------------
 
-    private sealed class Woods(MapTrees.Sprite[] sprites) : IDisposable
+    private sealed class Woods(MapTrees.Sprite[] sprites, byte[]? terrain) : IDisposable
     {
         internal readonly MapTrees.Sprite[] Sprites = sprites;
+        internal readonly byte[]? Terrain = terrain;
         internal ID3D11Buffer? Trees;
         internal ID3D11ShaderResourceView? TreeView;
         internal ID3D11ShaderResourceView?[] Pictures = new ID3D11ShaderResourceView?[2];
@@ -310,9 +311,10 @@ internal sealed class MapShaders : IDisposable
 
     private Woods? woods, woodsMade;
     private MapTrees.Sprite[]? woodsAsked;
+    private byte[]? woodsTerrainAsked;
     private readonly List<(int Start, int Count)> visibleTrees = [];
 
-    private void DrawTrees(ID3D11DeviceContext dc, Target target, Camera camera, float opacity)
+    private void DrawTrees(ID3D11DeviceContext dc, Target target, Camera camera, float opacity, byte[]? terrain)
     {
         lock (sync)
         {
@@ -324,20 +326,21 @@ internal sealed class MapShaders : IDisposable
             }
         }
         if (MapTrees.Sprites is not { } sprites) return;
-        if (!ReferenceEquals(woodsAsked, sprites))
+        if (!ReferenceEquals(woodsAsked, sprites) || !ReferenceEquals(woodsTerrainAsked, terrain))
         {
             woodsAsked = sprites;
+            woodsTerrainAsked = terrain;
             ID3D11Device worker = device.QueryInterface<ID3D11Device>();
             Task.Run(() =>
             {
                 Woods? made = null;
-                try { made = MakeWoods(worker, sprites); }
+                try { made = MakeWoods(worker, sprites, terrain); }
                 catch (Exception ex) when (ex is not OutOfMemoryException) { Debug.WriteLine("Trees not made: " + ex.Message); }
                 finally { worker.Dispose(); }
                 if (made is null) return;
                 lock (sync)
                 {
-                    if (disposed)
+                    if (disposed || !ReferenceEquals(woodsAsked, sprites) || !ReferenceEquals(woodsTerrainAsked, terrain))
                     {
                         made.Dispose();
                         return;
@@ -348,7 +351,7 @@ internal sealed class MapShaders : IDisposable
                 Ready?.Invoke();
             });
         }
-        if (opacity <= 0 || woods is not { Count: > 0 } made || !ReferenceEquals(made.Sprites, sprites)) return;
+        if (opacity <= 0 || woods is not { Count: > 0 } made || (!ReferenceEquals(made.Sprites, sprites) || !ReferenceEquals(made.Terrain, terrain))) return;
         var constants = new Vector4[3];
         for (int kind = 0; kind < 2; kind++)
         {
@@ -386,12 +389,12 @@ internal sealed class MapShaders : IDisposable
         }
     }
 
-    private static Woods MakeWoods(ID3D11Device device, MapTrees.Sprite[] sprites)
+    private static Woods MakeWoods(ID3D11Device device, MapTrees.Sprite[] sprites, byte[]? terrain)
     {
-        var woods = new Woods(sprites);
+        var woods = new Woods(sprites, terrain);
         try
         {
-            List<MapTrees.Tree> trees = MapTrees.Trees(0, MapTerrain.Columns - 1, 0, MapTerrain.Rows - 1);
+            List<MapTrees.Tree> trees = MapTrees.Trees(0, MapTerrain.Columns - 1, 0, MapTerrain.Rows - 1, terrain);
             // Each tree as x, y, scale and tone, the tone negative for the second kind.
             var data = new Vector4[Math.Max(1, trees.Count)];
             for (int i = 0; i < trees.Count; i++)
@@ -447,19 +450,21 @@ internal sealed class MapShaders : IDisposable
 
     private byte[]? hexOwners;
     private ushort[]? hexCounties;
+    private byte[]? hexTerrain;
     private bool hexesMade;
     private readonly Vector4[] lines = new Vector4[2 + 256];      // the shader's Lines: widths, strengths, colours
     private bool linesMade;
 
-    private void UpdateHexes(ID3D11DeviceContext dc, byte[]? owners, ushort[]? counties)
+    private void UpdateHexes(ID3D11DeviceContext dc, byte[]? owners, ushort[]? counties, byte[]? terrainData)
     {
-        if (hexesMade && ReferenceEquals(owners, hexOwners) && (ReferenceEquals(counties, hexCounties) ||
+        if (hexesMade && ReferenceEquals(terrainData, hexTerrain) && ReferenceEquals(owners, hexOwners) && (ReferenceEquals(counties, hexCounties) ||
             counties is not null && hexCounties is not null && counties.AsSpan().SequenceEqual(hexCounties))) return;
         hexesMade = true;
         hexOwners = owners;
+        hexTerrain = terrainData;
         hexCounties = counties?.ToArray();
         int count = MapTerrain.Columns * MapTerrain.Rows;
-        byte[] terrain = MapTerrain.Terrain;
+        byte[] terrain = terrainData ?? MapTerrain.Terrain;
         int Owner(int tile) => owners is null || tile >= owners.Length || MapTerrain.IsSea(terrain[tile]) ? 0 : owners[tile];
         bool InCounty(int tile) => counties is not null && tile < counties.Length && counties[tile] != 0 && !MapTerrain.IsWater(terrain[tile]);
         var info = new uint[count];
@@ -481,9 +486,9 @@ internal sealed class MapShaders : IDisposable
     }
 
     // The borders, county boundaries, hex grid and marks (MapView.RenderDetail) at this scale.
-    internal void DrawBorders(ID3D11DeviceContext dc, Target target, Camera camera, byte[]? owners, ushort[]? counties, System.Drawing.Color[]? palette = null)
+    internal void DrawBorders(ID3D11DeviceContext dc, Target target, Camera camera, byte[]? owners, ushort[]? counties, System.Drawing.Color[]? palette = null, byte[]? terrain = null)
     {
-        UpdateHexes(dc, owners, counties);
+        UpdateHexes(dc, owners, counties, terrain);
         float s = camera.Scale;
         // Widths in device pixels, as the tiles drew them (MapView.DrawBorders, DrawCountyBorders, DrawSymbols)
         // but following the zoom smoothly instead of a tile level's scale.

@@ -30,7 +30,7 @@ internal static partial class RenderChecks
         root.IsHitTestVisible = false;
         var host = new W.Window { Content = root, Width = 1280, Height = 800, ShowActivated = false, ShowInTaskbar = false,
             Title = "천하도 렌더링 검증", FontFamily = window.FontFamily, FontSize = window.FontSize };
-        var fixture = new TestGame().Force(1, 1, 1);
+        var fixture = OriginalMapCastles(new TestGame().Force(1, 1, 1));
         for (int i = 1; i <= 180; i++) fixture.Officer(i, "장수" + i, 1, 1, 4).Leading(i);
         GameSnapshot made = fixture.Build();
         var data = new GameSnapshot { Cities = made.Cities, Counties = made.Counties, Officers = made.Officers,

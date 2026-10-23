@@ -181,7 +181,7 @@ internal sealed partial class MapSurface
     }
 
     // Centres the map on a city, zooming in when the map shows too much to see it.
-    internal void ShowCity(int id) => ShowTile(MapTerrain.CityTiles[id]);
+    internal void ShowCity(int id) { if (CityTile(id) is { } tile) ShowTile(tile); }
 
     // Centres the map on a hex (a base, an officer's whereabouts), zooming in when the map shows too much.
     internal void ShowTile(int tile) => FlyTo(TileWorld(tile), 3);
@@ -440,8 +440,8 @@ internal sealed partial class MapSurface
 
     private string Describe(int id)
     {
-        CityRecord? city = snapshot?.Cities[id];
-        if (city is null || snapshot is null) return $"{CityNames.ById[id]} (ID {id})";
+        CityRecord? city = snapshot is { } data && data.IsCity(id) ? data.Cities[id] : null;
+        if (city is null || snapshot is null) return $"{CityName(id)} (ID {id})";
         string scale = CityFields.ScaleName(city[CityFields.Scale]);
         string governor = snapshot.OfficerName(city.Governor);
         return L.Map.CityTip(city.Name, snapshot.ForceName(snapshot.ForceOfCity(id)), scale) + (governor.Length > 0 ? (" · " + L.Map.GovernorPart(governor)) : "") + "\n" +
@@ -484,7 +484,7 @@ internal sealed partial class MapSurface
         foreach(var hit in environmentHits)if(hit.Area.Contains(location))return new MapHit(hit.City,null,hit.Text);
         int city = 0;
         double cityDistance = double.MaxValue;
-        for (int id = 1; id <= GameMemory.CityCount; id++)
+        foreach (int id in CityIds)
         {
             double distance = (CityOnScreen(id) - location).Length;
             if (distance <= 14 && distance < cityDistance)
@@ -494,8 +494,8 @@ internal sealed partial class MapSurface
             }
         }
         // A city's model or banner picks it too (units standing over them still win).
-        for (int id = 1; city == 0 && id <= GameMemory.CityCount; id++)
-            if (ModelOnScreen(MapTerrain.CityTiles[id], ModelShowWidth) is { } model && model.Contains(location))
+        foreach (int id in CityIds)
+            if (city == 0 && CityTile(id) is { } cityTile && ModelOnScreen(cityTile, ModelShowWidth) is { } model && model.Contains(location))
             {
                 city = id;
                 cityDistance = 14;

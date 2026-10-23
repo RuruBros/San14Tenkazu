@@ -67,7 +67,7 @@ internal static partial class GameMemory
         Guard(identity.ModuleBase + OfficerListAddRva, OfficerListAddStart);
 
         // The destination and its owner must still be the records used to make the plan.
-        bool city = request.Base <= CityCount;
+        bool city = data.IsCity(request.Base);
         ulong targetAddress;
         byte[] targetData;
         if (city) { var target = data.Cities[request.Base]; targetAddress = target.Address; targetData = target.Data; }

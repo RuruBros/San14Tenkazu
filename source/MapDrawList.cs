@@ -24,6 +24,7 @@ internal sealed class MapDrawList(int capacity = 2048) : IGpuMapCanvas
         internal WM.Color Colour;
         internal MapShaders.Camera Camera;
         internal byte[]? Owners;
+        internal byte[]? Terrain;
         internal ushort[]? Counties;
         internal System.Drawing.Color[]? Palette;
     }
@@ -131,12 +132,12 @@ internal sealed class MapDrawList(int capacity = 2048) : IGpuMapCanvas
     public void DrawShadowed(GameModels.Sprite sprite, W.Point origin, double opacity = 1)
         => commands.Add(new() { Kind = Kind.Shadow, Source = sprite.Image.IsFrozen ? sprite : sprite with { Image = Share(sprite.Image) }, A = origin, Opacity = opacity });
     public void DrawSprite(MapSprite sprite, W.Point origin) => commands.Add(new() { Kind = Kind.Sprite, Source = sprite, A = origin });
-    internal void DrawGround(MapShaders shaders, MapShaders.Camera camera)
-        => commands.Add(new() { Kind = Kind.Ground, Source = shaders, Camera = camera });
-    internal void DrawBorders(MapShaders shaders, MapShaders.Camera camera, byte[]? owners, ushort[]? counties)
+    internal void DrawGround(MapShaders shaders, MapShaders.Camera camera, byte[]? terrain = null)
+        => commands.Add(new() { Kind = Kind.Ground, Source = shaders, Camera = camera, Terrain = terrain });
+    internal void DrawBorders(MapShaders shaders, MapShaders.Camera camera, byte[]? owners, ushort[]? counties, byte[]? terrain = null)
     {
         for (int force = 1; force < palette.Length; force++) palette[force] = MapView.ForceColor(force);
-        commands.Add(new() { Kind = Kind.Borders, Source = shaders, Camera = camera, Owners = owners, Counties = counties, Palette = palette });
+        commands.Add(new() { Kind = Kind.Borders, Source = shaders, Camera = camera, Owners = owners, Counties = counties, Terrain = terrain, Palette = palette });
     }
 
     internal void Play(D2DCanvas canvas, GpuMap? gpu = null)
@@ -161,9 +162,9 @@ internal sealed class MapDrawList(int capacity = 2048) : IGpuMapCanvas
                 case Kind.Shadow: canvas.DrawShadowed((GameModels.Sprite)c.Source!, c.A, c.Opacity); break;
                 case Kind.Sprite: canvas.DrawSprite((MapSprite)c.Source!, c.A); break;
                 case Kind.Ground:
-                    gpu!.DrawGround((MapShaders)c.Source!, c.Camera); break;
+                    gpu!.DrawGround((MapShaders)c.Source!, c.Camera, c.Terrain); break;
                 case Kind.Borders:
-                    gpu!.DrawBorders((MapShaders)c.Source!, c.Camera, c.Owners, c.Counties, c.Palette); break;
+                    gpu!.DrawBorders((MapShaders)c.Source!, c.Camera, c.Owners, c.Counties, c.Palette, c.Terrain); break;
             }
     }
 }

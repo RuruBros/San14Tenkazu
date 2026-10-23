@@ -22,7 +22,7 @@ internal sealed partial class EditorWindow
             ReportError(new InvalidOperationException(blocked));
             return;
         }
-        string place = CityNames.BaseName(baseId);
+        string place = data.BaseName(baseId);
         if (BaseGrants.ForceOf(data, baseId) is > 0 and var owner)
         {
             Tell(L.Give.HasForce(place, data.ForceName(owner)));

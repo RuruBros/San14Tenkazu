@@ -13,7 +13,7 @@ internal static partial class RenderChecks
     {
         Directory.CreateDirectory(output);
         var app = new W.Application { ShutdownMode = W.ShutdownMode.OnExplicitShutdown };
-        var builder = new TestGame();
+        var builder = OriginalMapCastles(new TestGame());
         for (int force = 1; force <= 30; force++) builder.Force(force, force, force);
         for (int city = 1; city <= GameMemory.CityCount; city++) builder.City(city, (city - 1) % 30 + 1);
         builder.Gate(52, 1); // supplies complete tile ownership/county arrays, as a live snapshot does
