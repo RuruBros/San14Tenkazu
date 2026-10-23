@@ -3217,6 +3217,12 @@ ImportSaved = 규칙 설정을 저장했습니다. 자동 적용은 꺼져 있�
 ImportConfirm = 현재 게임의 검증된 기준값은 유지하고 선택한 파일의 설정만 가져옵니다. 자동 적용은 끕니다. 계속할까요?
 
 [DeveloperUi]
+ReadGeography = 로드 도시·날씨 receipt 기록 (읽기 전용)
+EditGeography = 추가 도시 금·성 내구도 왕복 검증
+GeographyTab = 도시·환경 검증
+GeographyInstructions = 일시정지 중 실제 도시 이름·주·성 위치·누락 속성·환경 receipt를 기록합니다.\n편집 왕복은 추가 도시(47번 이후)의 금과 성 내구도를 허용 범위에서 1만큼 변경하고 readback 후 즉시 복원합니다. 전체 transaction 동안 게임 thread를 정지하며 원본 byte 복원까지 대조합니다. 성이나 규모가 없으면 기록하고 해당 도시를 건너뜁니다. 복구가 확인되지 않으면 중단합니다. 재해 피해 복원용 기능은 아닙니다.
+GeographyReadDone = 읽기 진단 완료:
+GeographyRoundTripDone = 편집 왕복 완료 (도시별 결과 확인):
 Flood = 홍수
 Wildfire = 산불
 Drought = 가뭄

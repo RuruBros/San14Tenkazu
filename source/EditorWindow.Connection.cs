@@ -165,7 +165,13 @@ internal sealed partial class EditorWindow
                 else await DisconnectAsync(L.Connection.Disconnected(ex.Message));
             }
         }
-        finally { refreshing = false; }
+        finally
+        {
+            refreshing = false;
+#if LOCAL_DEVELOPER
+            UpdateDeveloperControls();
+#endif
+        }
         if (replaced) AddLog(L.Connection.WorldReplaced);
         if (game == identity) await ReapplyRuntimeRulesAsync(retry: replaced);
         if (game == identity) await ReapplyEnvironmentAsync(retry: replaced);

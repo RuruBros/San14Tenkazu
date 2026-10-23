@@ -8,6 +8,12 @@ internal static partial class L
     {
         private static string T([CallerMemberName] string key = "") => Get(nameof(DeveloperUi)+"."+key);
         internal static string Flood => T();
+        internal static string ReadGeography => T();
+        internal static string EditGeography => T();
+        internal static string GeographyTab => T();
+        internal static string GeographyInstructions => T();
+        internal static string GeographyReadDone => T() + " ";
+        internal static string GeographyRoundTripDone => T() + " ";
         internal static string Wildfire => T();
         internal static string Drought => T();
         internal static string Blizzard => T();

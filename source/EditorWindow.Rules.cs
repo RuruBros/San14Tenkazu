@@ -239,6 +239,9 @@ internal sealed partial class EditorWindow
         {
             rulePolling = false;
             if (writing) SetBusy(false, scanning: false);
+#if LOCAL_DEVELOPER
+            UpdateDeveloperControls();
+#endif
         }
     }
 
