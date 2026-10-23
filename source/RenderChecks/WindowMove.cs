@@ -133,7 +133,10 @@ internal static partial class RenderChecks
         var root = (W.FrameworkElement)editor.Content;
         var map = Field<MapView>(editor, "map");
         var surface = Field<MapSurface>(map, "surface");
-        var gpu = Field<GpuMap?>(surface, "gpu") ?? throw new InvalidOperationException("GPU renderer unavailable");
+        var gpu = Field<GpuMap?>(surface, "gpu");
+        if (gpu is null && Environment.GetEnvironmentVariable("SAN14_NO_GPU") != "1")
+            throw new InvalidOperationException("GPU renderer unavailable");
+        Console.WriteLine(JsonSerializer.Serialize(new { scenario = "window-move-renderer", gpu = gpu is not null, gameAccess = false }));
         editor.Content = null;
         var host = new W.Window { Content = root, Width = 1280, Height = 800, Left = 20, Top = 20,
             ShowInTaskbar = false, Title = "천하도 창 이동 렌더링 검사", FontFamily = editor.FontFamily, FontSize = editor.FontSize };

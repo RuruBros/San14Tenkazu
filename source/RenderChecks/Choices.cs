@@ -153,9 +153,15 @@ internal static partial class RenderChecks
             CapturePopup(decisionPopup, "open-ai-decisions");
             decisions.IsDropDownOpen = false;Pump();
             var source = W.PresentationSource.FromVisual(choice.Box)!;
-            choice.Box.RaiseEvent(new WI.KeyEventArgs(WI.Keyboard.PrimaryDevice, source, 0, WI.Key.Down)
-                { RoutedEvent = W.UIElement.KeyDownEvent });
-            Record("keyboard-down-selects-next-value", choice.Picked == 2, new { choice.Picked });
+            var key = new WI.KeyEventArgs(WI.Keyboard.PrimaryDevice, source, 0, WI.Key.Down)
+                { RoutedEvent = W.UIElement.KeyDownEvent };
+            journal.WriteLine(JsonSerializer.Serialize(new { name="keyboard-before",choice.Picked,choice.Box.IsDropDownOpen,
+                choice.Box.IsKeyboardFocusWithin,modifiers=WI.Keyboard.Modifiers.ToString(),focus=WI.Keyboard.FocusedElement?.GetType().Name }));
+            Record("keyboard-down-starts-without-modifiers", WI.Keyboard.Modifiers == WI.ModifierKeys.None);
+            choice.Box.RaiseEvent(key);
+            long immediate = choice.Picked;
+            Record("keyboard-down-selects-next-value", choice.Picked == 2, new { choice.Picked,immediate,key.Handled,
+                choice.Box.IsKeyboardFocusWithin,modifiers=WI.Keyboard.Modifiers.ToString(),focus=WI.Keyboard.FocusedElement?.GetType().Name });
             long before = choice.Picked;
             var wheel = new WI.MouseWheelEventArgs(WI.Mouse.PrimaryDevice, 0, 120) { RoutedEvent = W.UIElement.PreviewMouseWheelEvent };
             choice.Box.RaiseEvent(wheel);

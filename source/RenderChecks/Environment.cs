@@ -35,13 +35,15 @@ internal static partial class RenderChecks
         static T Field<T>(object owner,string name)=>(T)owner.GetType().GetField(name,Hidden)!.GetValue(owner)!;
         static void Set(object owner,string name,object? value)=>owner.GetType().GetField(name,Hidden)!.SetValue(owner,value);
         static object? Call(object owner,string name,params object?[] values)=>owner.GetType().GetMethod(name,Hidden)!.Invoke(owner,values);
-        static void Pump(Func<bool>? done=null)
+        void Pump(Func<bool>? done=null,[System.Runtime.CompilerServices.CallerLineNumber]int line=0)
         {
+            log.WriteLine(JsonSerializer.Serialize(new{stage="pump-start",line,utc=DateTime.UtcNow}));
             var watch=Stopwatch.StartNew();do
             {
                 var frame=new WT.DispatcherFrame();WT.Dispatcher.CurrentDispatcher.BeginInvoke(WT.DispatcherPriority.Background,new Action(()=>frame.Continue=false));WT.Dispatcher.PushFrame(frame);
-                if(watch.ElapsedMilliseconds>15000)throw new TimeoutException("Environment menu did not complete");if(done is not null)Thread.Sleep(5);
+                if(watch.ElapsedMilliseconds>15000)throw new TimeoutException($"Environment menu did not complete at line {line}; elapsedMs={watch.ElapsedMilliseconds}; done={done?.Invoke()}");if(done is not null)Thread.Sleep(5);
             }while(done is not null&&!done());
+            log.WriteLine(JsonSerializer.Serialize(new{stage="pump-complete",line,elapsedMs=watch.ElapsedMilliseconds}));
         }
         static void Click(PlateButton button){Require(button.IsEnabled,"Button disabled");((Action)typeof(PlateButton).GetField("Click",Hidden)!.GetValue(button)!).Invoke();}
         static bool HasCombo(W.DependencyObject node){if(node is WC.ComboBox)return true;foreach(object child in W.LogicalTreeHelper.GetChildren(node))if(child is W.DependencyObject value&&HasCombo(value))return true;return false;}

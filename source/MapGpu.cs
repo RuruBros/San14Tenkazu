@@ -74,6 +74,13 @@ internal sealed class GpuMap : IDisposable
     internal int PresentedFrames { get; private set; }
     internal double LastPresentDelay { get; private set; }
     internal double LastCopyWait { get; private set; }
+    internal double LastReadyQueueMs { get; private set; }
+    internal double LastPresentWorkMs { get; private set; }
+    internal double LastImageLockMs { get; private set; }
+    internal double LastImageBindMs { get; private set; }
+    internal double LastImageDirtyMs { get; private set; }
+    internal double LastImageUnlockMs { get; private set; }
+    private long recordingReadyAt;
     private long submittedAt;
 
     private sealed class FrameTarget : IDisposable
@@ -197,7 +204,7 @@ internal sealed class GpuMap : IDisposable
         pending = true; recordingReady = false;
         SubmittedFrames++;
         try { return Record(draw); }
-        finally { recordingReady = true; }
+        finally { recordingReadyAt = Stopwatch.GetTimestamp(); recordingReady = true; }
     }
 
     internal bool RenderAsync(MapDrawList frame)
@@ -248,7 +255,7 @@ internal sealed class GpuMap : IDisposable
                 RenderError = ex.ToString(); Lost = true;
                 Debug.WriteLine("Map renderer stopped: " + RenderError);
             }
-            finally { recordingReady = true; }
+            finally { recordingReadyAt = Stopwatch.GetTimestamp(); recordingReady = true; }
             if (!stopping && frame is not null) FrameReady?.Invoke();
         }
     }
@@ -294,13 +301,18 @@ internal sealed class GpuMap : IDisposable
     internal bool Present()
     {
         if (!Pending || !recordingReady || Lost || back?.Texture is null) return false;
+        long presentAt = Stopwatch.GetTimestamp();
+        LastReadyQueueMs = recordingReadyAt == 0 ? 0 : Stopwatch.GetElapsedTime(recordingReadyAt).TotalMilliseconds;
+        LastImageLockMs = LastImageBindMs = LastImageDirtyMs = LastImageUnlockMs = 0;
         bool locked = false;
         try
         {
             var status = immediate.GetData(finished, IntPtr.Zero, 0, AsyncGetDataFlags.DoNotFlush);
             if (status.Failure) { Lost = true; return false; }
             if (status.Code != 0) return false;
+            long stageAt = Stopwatch.GetTimestamp();
             locked = Image.TryLock(new W.Duration(TimeSpan.Zero));
+            LastImageLockMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
             if (!locked)
             {
                 Image.Unlock(); // TryLock increments the count even on timeout.
@@ -328,11 +340,15 @@ internal sealed class GpuMap : IDisposable
             LastCopyWait = Stopwatch.GetElapsedTime(copiedAt).TotalMilliseconds;
             if (boundSurface != front.Surface9!.NativePointer)
             {
+                stageAt = Stopwatch.GetTimestamp();
                 Image.SetBackBuffer(WI.D3DResourceType.IDirect3DSurface9, front.Surface9.NativePointer, true);
+                LastImageBindMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
                 boundSurface = front.Surface9.NativePointer;
                 BackBufferBindings++;
             }
+            stageAt = Stopwatch.GetTimestamp();
             Image.AddDirtyRect(new W.Int32Rect(0, 0, front.Width, front.Height));
+            LastImageDirtyMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
             frontReady = true;
             pending = false;
             PresentedFrames++;
@@ -340,7 +356,15 @@ internal sealed class GpuMap : IDisposable
             if (previous != front) previous?.Dispose();
         }
         catch (SharpGen.Runtime.SharpGenException) { Lost = true; return false; }
-        finally { if (locked) Image.Unlock(); }
+        finally
+        {
+            if (locked)
+            {
+                long stageAt = Stopwatch.GetTimestamp(); Image.Unlock();
+                LastImageUnlockMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
+            }
+            LastPresentWorkMs = Stopwatch.GetElapsedTime(presentAt).TotalMilliseconds;
+        }
         if (pendingResize is { } size)
         {
             pendingResize = null;
