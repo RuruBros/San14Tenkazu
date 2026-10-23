@@ -31,7 +31,7 @@ internal static class GameCapabilities
             GameFeature.Offices => [("world", c.World), ("office", c.Post)],
             GameFeature.Ranks => [("world", c.World), ("rank", c.Rank)],
             GameFeature.Doctrines => [("world", c.World), ("doctrine", c.Doctrine), ("doctrine-panel", c.DoctrinePanel)],
-            GameFeature.Environment => [("world", c.World), ("city", c.City), ("county", c.County), ("tile", c.Tile), ("unit", c.Unit)],
+            GameFeature.Environment => [("world", c.World), ("city", c.City), ("county", c.County), ("tile", c.Tile), ("unit", c.Unit), ("building", c.Building)],
             GameFeature.Seasons or GameFeature.GameCalls => [("world", c.World)],
             GameFeature.AiTrees => [("officer", c.Officer), ("force", c.Force), ("corps", c.Corps), ("world", c.World)],
             _ => throw new ArgumentOutOfRangeException(nameof(feature))

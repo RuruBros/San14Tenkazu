@@ -11,6 +11,44 @@ using WMI = System.Windows.Media.Imaging;
 
 internal static partial class RenderChecks
 {
+    private static void WriteLoadedClimateVectors(string path)
+    {
+        // Independent reference: retain the previous managed monthly interpolation
+        // and rounding, then compare its output with the real Native climate body.
+        using var stream=typeof(GameSnapshot).Assembly.GetManifestResourceStream("Seasons.climate.json")!;
+        using var json=JsonDocument.Parse(stream);
+        var sources=json.RootElement.GetProperty("stations").EnumerateArray().ToArray();
+        using var writer=new BinaryWriter(new FileStream(path,FileMode.CreateNew));
+        writer.Write(San14Tenkazu.EnvironmentRules.EnvironmentClimate.Pack(GeographyFixture.Create(51)));
+        writer.Write(51*360);
+        static (double X,double Y) Center(int tile)=>(1.5*(tile%220),Math.Sqrt(3)*(tile/220+((tile%220&1)==0?.5:0)));
+        for(int city=1;city<=51;city++)
+        {
+            int tile=city<=46?MapTerrain.CityTiles[city]:(city-46)*6500;
+            var point=Center(tile);var monthly=new (int T,int P)[12];
+            for(int month=0;month<12;month++)
+            {
+                double t=0,p=0,weight=0;
+                foreach(var source in sources)
+                {
+                    var anchor=Center(source.GetProperty("cityTile").GetInt32());
+                    double distance=Math.Pow(anchor.X-point.X,2)+Math.Pow(anchor.Y-point.Y,2);
+                    double st=source.GetProperty("temperatureC")[month].GetDouble(),sp=source.GetProperty("precipitationMm")[month].GetDouble();
+                    if(distance<1e-12){t=st;p=sp;weight=1;break;}
+                    double w=1/distance;t+=st*w;p+=sp*w;weight+=w;
+                }
+                monthly[month]=((int)Math.Round(t/weight*10),(int)Math.Round(p/weight*10));
+            }
+            for(int month=0;month<12;month++)for(int day=0;day<30;day++)
+            {
+                var a=monthly[month];var b=monthly[(month+1)%12];
+                writer.Write((uint)tile);writer.Write(192u|((uint)(month+1)<<16)|((uint)(day+1)<<24));
+                writer.Write(a.T+(b.T-a.T)*day/30);writer.Write(a.P+(b.P-a.P)*day/30);
+            }
+        }
+        Console.WriteLine("Exported 18360 original/expanded loaded-position climate cases; gameAccess=false");
+    }
+
     // Owned snapshots and WPF controls only. No editor startup, live process access or developer-menu actions.
     private static void CheckLoadedGeography(string output, string? nativeFixture = null, string? patchMap = null)
     {

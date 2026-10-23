@@ -341,8 +341,8 @@ o.a=float4(1000,0,0,1);o.t=float3(1,0,0);o.n=float3(0,1,0);o.uv=v;return o;})";
     TreeColorParameters weatherOnly{27,195,7,1,{0,1,0,0},true,false};environment::WeatherSnapshot regional;
     regional.generation=17;regional.sequence=2;regional.date=195|(7u<<16)|(1u<<24);regional.flags=192;
     for(UINT tile=0;tile<environment::TileCount;tile++)regional.regions[tile]=tile%220<155?1:2;
-    auto precipitation=[&](uint8_t code,float seconds,uint32_t flags=192u){
-        regional.weather[0]=code;regional.flags=flags;scene.fixtureWeather(regional);scene.fixtureTime(seconds);
+    auto precipitation=[&](uint8_t code,float seconds,uint32_t flags=192u,uint32_t city=1u){
+        std::memset(regional.weather,0,sizeof(regional.weather));regional.weather[city-1]=code;regional.flags=flags;scene.fixtureWeather(regional);scene.fixtureTime(seconds);
         setup();context->Draw(3,0);auto before=pixels();SeasonSceneTicket ticket;
         require(scene.enter(context.Get(),weatherOnly,3,0,ticket)==S_OK&&ticket.observed&&!ticket.changed,"Weather-only entry modified a seasonal material");
         context->Draw(3,0);require(scene.leave(context.Get(),ticket)&&pixels()==before,"Weather-only changed original terrain pixels");
@@ -356,6 +356,12 @@ o.a=float4(1000,0,0,1);o.t=float3(1,0,0);o.n=float3(0,1,0);o.uv=v;return o;})";
     require(rain0.first!=rain0.second&&snow0.first!=snow0.second&&rain0.second!=rain1.second&&snow0.second!=snow1.second,"Regional rain/snow failed actual animated GPU output");
     require(rain0.second!=snow0.second,"Rain and snowfall have identical appearance");
     std::cerr<<"PASS regional rain/snow animated GPU pixels, clear region, independent seasonal OFF, individual visual flags, original state restoration\n";
+    for(UINT tile=0;tile<environment::TileCount;tile++)regional.regions[tile]=tile%220<155?51:50;
+    auto addedRain=precipitation(2,.37f,192,51),addedSnow=precipitation(8,.37f,192,51);
+    require(addedRain.first!=addedRain.second&&addedSnow.first!=addedSnow.second&&addedRain.second!=addedSnow.second,"Added city 51 rain/snow did not reach actual GPU output");
+    std::cerr<<"PASS city 51 regional rain/snow GPU pixels, adjacent clear city 50, original state restoration\n";
+    for(UINT tile=0;tile<environment::TileCount;tile++)regional.regions[tile]=tile%220<155?1:2;
+    std::memset(regional.weather,0,sizeof(regional.weather));
     // Indicators use actual receipt dates and render without precipitation or seasonal materials.
     for(UINT tile=0;tile<environment::TileCount;tile++){
         float col=float(tile%220),row=float(tile/220),wx=37126+(1.5f*col+1)*468,wz=12930+1.7320508075688772f*(row+(int(col)&1?.5f:1.f))*468;

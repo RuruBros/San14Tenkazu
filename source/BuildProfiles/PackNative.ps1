@@ -16,7 +16,7 @@ if((Get-FileHash -LiteralPath $taskManifestPath).Hash.ToLowerInvariant() -cne $M
 $taskManifest=Get-Content -LiteralPath $taskManifestPath -Raw | ConvertFrom-Json
 $taskProfile=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'current.json') -Raw | ConvertFrom-Json
 $taskProfileHash=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'current.json')).Hash.ToLowerInvariant()
-$taskProtocol=if($Kind -eq 'Season'){6}else{5}
+$taskProtocol=6
 if($taskManifest.protocolVersion -ne $taskProtocol -or $taskManifest.dllSha256 -cne $DllSha256 -or
     $taskManifest.gameProfileId -cne $taskProfile.id -or $taskManifest.gameProfileSha256 -cne $taskProfileHash -or
     $taskManifest.nativeContractId -cne $taskProfile.nativeContractId){throw 'Native protocol/profile/DLL pin differs.'}

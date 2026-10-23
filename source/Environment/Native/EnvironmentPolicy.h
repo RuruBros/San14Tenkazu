@@ -2,6 +2,7 @@
 #include "EnvironmentProtocol.h"
 #include <algorithm>
 #include <cstring>
+#include <cmath>
 namespace environment {
 inline uint64_t random(uint64_t seed,uint32_t date,uint32_t city,uint32_t kind) {
     uint64_t value=seed^(uint64_t(date)<<32)^(uint64_t(city)<<16)^kind;
@@ -53,9 +54,13 @@ inline uint32_t disasters(uint64_t seed,uint32_t day,uint32_t city,uint32_t flag
 }
 inline bool valid(const Message& value) {
     if(value.flags&~All||!valid(value.values)||!value.seed||value.reserved)return false;
-    for(size_t offset=0;offset<ClimateBytes;offset+=4) {
-        int16_t t;uint16_t p;std::memcpy(&t,value.climate+offset,2);std::memcpy(&p,value.climate+offset+2,2);
-        if(t< -600||t>600||p>30000)return false;
+    for(size_t source=0;source<ClimateSourceCount;source++) {
+        auto row=value.climate+source*ClimateRowBytes;uint32_t tile;std::memcpy(&tile,row,4);
+        if(tile>=TileCount)return false;
+        for(size_t month=0;month<12;month++) {
+            double t,p;std::memcpy(&t,row+4+month*16,8);std::memcpy(&p,row+12+month*16,8);
+            if(!std::isfinite(t)||!std::isfinite(p)||t< -60||t>60||p<0||p>3000)return false;
+        }
     }
     return true;
 }

@@ -183,13 +183,13 @@ internal sealed class SeasonNativeProcess:IDisposable
         if(worker!=IntPtr.Zero)
         {
             Wait(worker,30000);
-            receipt=EnvironmentProtocol.Read<EnvironmentProtocol.Bootstrap>(Read((ulong)bootstrap.ToInt64(),376)).Recovery;
+            receipt=EnvironmentProtocol.ReadRecovery(size=>Read((ulong)bootstrap.ToInt64(),size));
             if(!receipt.Confirmed(generation))
             {
                 // Retry the same closed session's recovery; never load another build/name or free live callback data.
                 var resident=Modules().Single(m=>m.Path.Equals(dll,StringComparison.OrdinalIgnoreCase));
                 CloseHandle(worker);worker=Launch(resident.Base+ExportRva(dll,"EnvironmentRecover"),bootstrap);Wait(worker,30000);
-                receipt=EnvironmentProtocol.Read<EnvironmentProtocol.Bootstrap>(Read((ulong)bootstrap.ToInt64(),376)).Recovery;
+                receipt=EnvironmentProtocol.ReadRecovery(size=>Read((ulong)bootstrap.ToInt64(),size));
             }
             if(!receipt.Confirmed(generation))throw new IOException($"Environment recovery unconfirmed: error={receipt.Error}");
         }

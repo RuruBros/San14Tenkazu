@@ -110,7 +110,7 @@ class SeasonSceneGpu {
         SEASON_CREATE(device->CreatePixelShader(SeasonWeatherAreaBytecode,sizeof(SeasonWeatherAreaBytecode),nullptr,&areaShader));
         SEASON_CREATE(device->CreateVertexShader(SeasonWeatherMarkVertexBytecode,sizeof(SeasonWeatherMarkVertexBytecode),nullptr,&markVertex));
         SEASON_CREATE(device->CreatePixelShader(SeasonWeatherMarkBytecode,sizeof(SeasonWeatherMarkBytecode),nullptr,&markShader));
-        static_assert(sizeof(RegionMark)==40);D3D11_BUFFER_DESC markDesc{46*sizeof(RegionMark),D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE,0,D3D11_RESOURCE_MISC_BUFFER_STRUCTURED,sizeof(RegionMark)};
+        static_assert(sizeof(RegionMark)==40);D3D11_BUFFER_DESC markDesc{environment::CitySlots*sizeof(RegionMark),D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE,0,D3D11_RESOURCE_MISC_BUFFER_STRUCTURED,sizeof(RegionMark)};
         SEASON_CREATE(device->CreateBuffer(&markDesc,nullptr,&marks));SEASON_CREATE(device->CreateShaderResourceView(marks.Get(),nullptr,&marksView));
         D3D11_TEXTURE2D_DESC regional{220,220,1,1,DXGI_FORMAT_R16_UINT,{1,0},D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE,0,0};
         SEASON_CREATE(device->CreateTexture2D(&regional,nullptr,&regionalWeather));SEASON_CREATE(device->CreateShaderResourceView(regionalWeather.Get(),nullptr,&regionalView));
@@ -225,7 +225,7 @@ public:
         uint64_t total=parameters?SeasonSceneData::MaskBytes+SeasonSceneData::ClimateBytes+64+16+2*144:0;
         if(terrainTable){D3D11_BUFFER_DESC b{};terrainTable->GetDesc(&b);total+=b.ByteWidth;}
         D3D11_TEXTURE2D_DESC d{};if(sceneCopy){sceneCopy->GetDesc(&d);total+=uint64_t(d.Width)*d.Height*4;}
-        if(depthCopy){depthCopy->GetDesc(&d);total+=uint64_t(d.Width)*d.Height*(d.Format==DXGI_FORMAT_R32G8X24_TYPELESS?8:4);}return total+rice.gpuBytes()+(regionalWeather?environment::TileCount*2:0)+(weatherVolume?32:0)+(marks?46*sizeof(RegionMark):0);
+        if(depthCopy){depthCopy->GetDesc(&d);total+=uint64_t(d.Width)*d.Height*(d.Format==DXGI_FORMAT_R32G8X24_TYPELESS?8:4);}return total+rice.gpuBytes()+(regionalWeather?environment::TileCount*2:0)+(weatherVolume?32:0)+(marks?environment::CitySlots*sizeof(RegionMark):0);
     }
     HRESULT weather(ID3D11DeviceContext* context,const TreeColorParameters& p,ID3D11RenderTargetView* target);
     bool updateWeather(ID3D11DeviceContext* context,const TreeColorParameters& p){
@@ -240,9 +240,9 @@ public:
         received=received&&weatherSnapshot->magic==environment::WeatherMagic&&weatherSnapshot->version==environment::WeatherVersion
             &&weatherSnapshot->size==sizeof(*weatherSnapshot)&&weatherSnapshot->generation&&weatherSnapshot->sequence
             &&weatherSnapshot->date==(p.year|(p.month<<16)|(p.day<<24));
-        std::array<uint16_t,environment::TileCount> cells{};std::array<RegionMark,46> indicators{};std::array<uint32_t,46> counts{};
+        std::array<uint16_t,environment::TileCount> cells{};std::array<RegionMark,environment::CitySlots> indicators{};std::array<uint32_t,environment::CitySlots> counts{};
         if(received)for(size_t tile=0;tile<cells.size();tile++){
-            auto city=weatherSnapshot->regions[tile];if(city<1||city>46)continue;uint32_t code=weatherSnapshot->weather[city-1];
+            auto city=weatherSnapshot->regions[tile];if(city<1||city>environment::CitySlots)continue;uint32_t code=weatherSnapshot->weather[city-1];
             if(!(weatherSnapshot->flags&(1|4|64)))code&=~3;if(!(weatherSnapshot->flags&(2|4|128)))code&=~12;
             auto& mark=indicators[city-1];mark.mask=((code&3)?1u:0u)|((code&12)?2u:0u);mark.dates[5]=weatherSnapshot->date;
             for(uint32_t k=0;k<5;k++){auto date=weatherSnapshot->recentDates[(city-1)*5+k];
@@ -251,7 +251,7 @@ public:
             cells[tile]=static_cast<uint16_t>(code);float col=float(tile%220),row=float(tile/220);++counts[city-1];
             mark.x+=37126+(1.5f*col+1)*468;mark.z+=12930+1.7320508075688772f*(row+(int(col)&1?.5f:1.f))*468;
         }
-        for(size_t city=0;city<46;city++)if(counts[city]){indicators[city].x/=counts[city];indicators[city].z/=counts[city];}
+        for(size_t city=0;city<environment::CitySlots;city++)if(counts[city]){indicators[city].x/=counts[city];indicators[city].z/=counts[city];}
         context->UpdateSubresource(marks.Get(),0,nullptr,indicators.data(),0,0);
         context->UpdateSubresource(regionalWeather.Get(),0,nullptr,cells.data(),440,0);return received;
     }
@@ -324,7 +324,7 @@ inline HRESULT SeasonSceneGpu::weather(ID3D11DeviceContext* context,const TreeCo
         auto* markResource=marksView.Get();context->VSSetShaderResources(108,1,&markResource);
         auto* regionResource=regionalView.Get();context->PSSetShaderResources(106,1,&regionResource);
         context->VSSetShader(areaVertex.Get(),nullptr,0);context->PSSetShader(areaShader.Get(),nullptr,0);context->Draw(3,0);
-        context->VSSetShader(markVertex.Get(),nullptr,0);context->PSSetShader(markShader.Get(),nullptr,0);context->DrawInstanced(6,46*7,0,0);
+        context->VSSetShader(markVertex.Get(),nullptr,0);context->PSSetShader(markShader.Get(),nullptr,0);context->DrawInstanced(6,environment::CitySlots*7,0,0);
         ID3D11ShaderResourceView* empty[2]{};context->PSSetShaderResources(0,2,empty);context->VSSetShaderResources(1,1,empty);
     }
     // The complete D3D11.1 pipeline is restored by the scope, including OM,

@@ -75,6 +75,8 @@ internal static partial class RenderChecks
                 }
                 Console.WriteLine($"Exported {count} managed calendar vectors without game access");return 0;
             }
+            if(args.Contains("--environment-climate-vectors"))
+            {WriteLoadedClimateVectors(args.First(a=>!a.StartsWith("--")));return 0;}
             if(args.Contains("--season-game-scene-data"))
             {
                 string directory=args.FirstOrDefault(a=>a.StartsWith("--game-directory="))?[17..]??throw new ArgumentException("Game directory required");

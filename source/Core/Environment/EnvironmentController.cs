@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -43,7 +43,7 @@ internal sealed class EnvironmentNativeBackend(GameIdentity identity,byte[] clim
                 Size=(uint)Marshal.SizeOf<EnvironmentProtocol.Bootstrap>(),ControllerPid=(uint)owner.Id,
                 ControllerStartFileTime=(ulong)owner.StartTime.ToUniversalTime().ToFileTimeUtc(),Module=identity.ModuleBase,Generation=generation,
                 WorldClass=identity.Classes.World,UnitClass=identity.Classes.Unit,TileClass=identity.Classes.Tile,
-                CountyClass=identity.Classes.County,CityClass=identity.Classes.City,Pipe="\\\\.\\pipe\\"+name};
+                CountyClass=identity.Classes.County,CityClass=identity.Classes.City,BuildingClass=identity.Classes.Building,Pipe="\\\\.\\pipe\\"+name};
             await GameMemory.FrameDispatchGate.WaitAsync(token).ConfigureAwait(false);
             try
             {
@@ -68,13 +68,13 @@ internal sealed class EnvironmentNativeBackend(GameIdentity identity,byte[] clim
         ,IEnvironmentDeveloperSession
 #endif
     {
-        private ulong sequence;private bool closed;
+        private ulong sequence;private bool closed;private ulong? loggedUnavailableCities;
         public async ValueTask CheckNotificationAsync(string text,CancellationToken token,int kind=0)
         {if(text.Length is <1 or >200||kind is <0 or >4)throw new ArgumentOutOfRangeException(nameof(text));await Send(4,null,token,text,(uint)kind).ConfigureAwait(false);}
 #if LOCAL_DEVELOPER
         public async ValueTask<EnvironmentProtocol.Reply> TestAsync(int mode,int city,int kind,CancellationToken token)
         {
-            if(mode is <0 or >2||city is <1 or >46||kind is <0 or >4)throw new ArgumentOutOfRangeException(nameof(mode));
+            if(mode is <0 or >2||city is <1 or >EnvironmentProtocol.CitySlots||kind is <0 or >4)throw new ArgumentOutOfRangeException(nameof(mode));
             var reply=await Send(5,null,token,reserved:(uint)(mode|(city<<8)|(kind<<16))).ConfigureAwait(false);ulong requested=sequence;
             for(int i=0;i<60&&(reply.TestId!=requested||mode==0&&reply.TestState==7);i++){await Task.Delay(50,token).ConfigureAwait(false);reply=await QueryAsync(token).ConfigureAwait(false);}
             if(reply.TestId!=requested||mode==0&&reply.TestState==7)throw new IOException("Developer request/recovery was not acknowledged by the game frame");return reply;
@@ -96,6 +96,11 @@ internal sealed class EnvironmentNativeBackend(GameIdentity identity,byte[] clim
             if(reply.Magic!=EnvironmentProtocol.Magic||reply.Version!=EnvironmentProtocol.Version||reply.Size!=bytes.Length||
                 reply.Generation!=generation||reply.Sequence!=sequence)throw new InvalidDataException("Environment reply identity differs");
             if(reply.Error!=0)throw new IOException($"Environment native error={reply.Error}");
+            if(loggedUnavailableCities!=reply.UnavailableCities)
+            {
+                loggedUnavailableCities=reply.UnavailableCities;
+                if(reply.UnavailableCities!=0)log("Environment geography unavailable cities: "+string.Join(",",Enumerable.Range(1,EnvironmentProtocol.CitySlots).Where(city=>(reply.UnavailableCities&(1UL<<(city-1)))!=0)));
+            }
             return reply;
         }
         public async ValueTask<EnvironmentProtocol.Reply> ApplyAsync(EnvironmentSettings settings,CancellationToken token)
