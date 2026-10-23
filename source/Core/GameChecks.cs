@@ -61,7 +61,7 @@ internal static class GameChecks
         OfficerRecord[] named = data.Officers.Where(o => o.Id is >= 1 and < 1000).ToArray();
         OfficerRecord[] active = named.Where(o => OfficerFields.IsActive(o.Status)).ToArray();
         OfficerRecord[] members = data.Officers.Where(o => OfficerFields.IsMember(o.Status)).ToArray();
-        CityRecord[] cities = data.Cities.Skip(1).ToArray();
+        CityRecord[] cities = data.CityIds.Select(id => data.Cities[id]).ToArray();
 
         // 도시: scale and stores in range, the 태수 one of the city's officers, a castle under every city.
         Add(City, L.Checks.CityScale, cities.Select(c => c[CityFields.Scale] is >= 1 and <= 4));

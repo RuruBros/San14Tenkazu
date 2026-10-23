@@ -27,7 +27,7 @@ internal static class GamePlaces
     // A base's hex: a city's centre, a tribe's castle or a gate.
     internal static int? BaseTile(this GameSnapshot data, int id) => id switch
     {
-        >= 1 and <= GameMemory.CityCount => MapTerrain.CityTiles[id],
+        _ when data.CityTile(id) is { } tile => tile,
         >= GameMemory.TribeFirst and <= GameMemory.TribeLast when data.CastleByCity.TryGetValue(id, out BuildingRecord? castle) => castle.Tile,
         >= GameMemory.GateFirst and <= GameMemory.GateLast when data.Gates.FirstOrDefault(g => g.Id == id) is { Tile: >= 0 } gate => gate.Tile,
         _ => null
@@ -36,11 +36,11 @@ internal static class GamePlaces
     // A hex's name: the base on it, or its county and the county's city, e.g. "계교 (업)".
     internal static string TileName(this GameSnapshot data, int tile)
     {
-        for (int id = 1; id <= GameMemory.CityCount; id++)
-            if (MapTerrain.CityTiles[id] == tile) return CityNames.ById[id];
+        foreach (int id in data.CityIds)
+            if (data.CityTile(id) == tile) return data.CityName(id);
         if (data.Gates.FirstOrDefault(g => g.Tile == tile) is { } gate) return gate.Name;
         if (tile < 0 || tile >= data.TileCounties.Length || data.County(data.TileCounties[tile]) is not { } county) return "";
-        string city = CityNames.ById[county.HomeCity];
+        string city = data.CityName(county.HomeCity);
         return county.Name == city ? city : $"{county.Name} ({city})";
     }
 }

@@ -283,13 +283,13 @@ internal sealed class GpuMap : IDisposable
         { RenderError = ex.ToString(); Lost = true; return false; }
     }
 
-    internal void DrawGround(MapShaders shaders, MapShaders.Camera camera)
+    internal void DrawGround(MapShaders shaders, MapShaders.Camera camera, byte[]? terrain = null)
     {
         shaders.PrepareGround(Canvas);
-        Direct3D((dc, target) => shaders.DrawGround(dc, target, camera));
+        Direct3D((dc, target) => shaders.DrawGround(dc, target, camera, terrain));
     }
-    internal void DrawBorders(MapShaders shaders, MapShaders.Camera camera, byte[]? owners, ushort[]? counties, System.Drawing.Color[]? palette = null)
-        => Direct3D((dc, target) => shaders.DrawBorders(dc, target, camera, owners, counties, palette));
+    internal void DrawBorders(MapShaders shaders, MapShaders.Camera camera, byte[]? owners, ushort[]? counties, System.Drawing.Color[]? palette = null, byte[]? terrain = null)
+        => Direct3D((dc, target) => shaders.DrawBorders(dc, target, camera, owners, counties, palette, terrain));
 
     internal bool Present()
     {

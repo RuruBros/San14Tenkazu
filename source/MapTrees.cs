@@ -65,13 +65,13 @@ internal static class MapTrees
 
     // Draws the trees standing on or near a ground tile into its pixels (opaque BGR, size x size, starting at
     // world point (x0, y0), ppu pixels per world unit), northern ones first so that southern ones stand in front.
-    internal static void Draw(int[] output, int size, float x0, float y0, float ppu)
+    internal static void Draw(int[] output, int size, float x0, float y0, float ppu, byte[]? terrain = null)
     {
         if (sprites is not { } kinds || ppu < MinimumPixelsPerUnit) return;
         float x1 = x0 + size / ppu, y1 = y0 + size / ppu, margin = 1.5f;
         int column0 = Math.Max(0, (int)((x0 - margin) / 1.5f) - 1), column1 = Math.Min(MapTerrain.Columns - 1, (int)((x1 + margin) / 1.5f) + 1);
         int row0 = Math.Max(0, (int)((y0 - margin) / MapTerrain.Sqrt3) - 1), row1 = Math.Min(MapTerrain.Rows - 1, (int)((y1 + margin) / MapTerrain.Sqrt3) + 1);
-        List<Tree> trees = Trees(column0, column1, row0, row1);
+        List<Tree> trees = Trees(column0, column1, row0, row1, terrain);
         if (trees.Count == 0) return;
         // Shadows first (to the south-east, as the models'), then the trees.
         foreach (Tree tree in trees) Blit(output, size, x0, y0, ppu, kinds[tree.Kind], tree.X + ShadowX * tree.Scale, tree.Y + ShadowY * tree.Scale, tree.Scale, 0, shadow: true);
@@ -79,14 +79,14 @@ internal static class MapTrees
     }
 
     // The trees on the hexes of these columns and rows, northern ones first.
-    internal static List<Tree> Trees(int column0, int column1, int row0, int row1)
+    internal static List<Tree> Trees(int column0, int column1, int row0, int row1, byte[]? terrain = null)
     {
         var trees = new List<Tree>();
         for (int row = row0; row <= row1; row++)
             for (int column = column0; column <= column1; column++)
             {
                 int tile = row * MapTerrain.Columns + column;
-                (int count, float palms) = Wood(MapTerrain.Terrain[tile]);
+                (int count, float palms) = Wood((terrain ?? MapTerrain.Terrain)[tile]);
                 if (count == 0) continue;
                 System.Drawing.PointF centre = MapTerrain.TileCenter(tile);
                 uint seed = (uint)tile * 2654435761u + 12345;

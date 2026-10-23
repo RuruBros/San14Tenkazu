@@ -44,6 +44,8 @@ internal readonly record struct BasePointer(ulong Rva, ulong Delta);
 internal sealed record CityRecord(int CityId, ulong Address, byte[] Data)
 {
     internal string Name => GameMemory.ReadName(Data, CityFields.NameOffset, 4);
+    internal int State => Data[0xCE];
+    internal bool IsTribe => State is >= 18 and <= 22;
     internal int Corps => BinaryPrimitives.ReadUInt16LittleEndian(Data.AsSpan(CityFields.CorpsOffset));
     internal int Governor => BinaryPrimitives.ReadUInt16LittleEndian(Data.AsSpan(CityFields.GovernorOffset));
     internal long this[FieldDef field] => field.Read(Data);
@@ -169,7 +171,7 @@ internal enum GamePace { Unknown, Paused, Running }
 // ColorIndex picks the game's force colour (MapView.GamePalette); Country is the force's 국호, "" when none.
 internal readonly record struct ForceInfo(int Id, int RulerId, int ColorIndex, string Country);
 
-internal sealed class GameSnapshot
+internal sealed partial class GameSnapshot
 {
     internal RuntimeRuleSettings? RuntimeRules { get; init; } = RuntimeRuleSettings.Original;
     internal required CityRecord[] Cities { get; init; }          // index = city ID
@@ -229,7 +231,7 @@ internal sealed class GameSnapshot
         return tile < TileOwners.Length ? TileOwners[tile] : 0;
     }
 
-    internal IEnumerable<int> CitiesOf(int force) => Enumerable.Range(1, GameMemory.CityCount).Where(id => ForceOfCity(id) == force);
+    internal IEnumerable<int> CitiesOf(int force) => CityIds.Where(id => ForceOfCity(id) == force);
 
     internal IEnumerable<GateRecord> GatesOf(int force) => Gates.Where(g => ForceOfGate(g) == force);
 
@@ -253,7 +255,7 @@ internal sealed class GameSnapshot
 
     // The base the unit's commander belongs to (the city it marched from), "" when unknown.
     internal string UnitBase(UnitRecord unit) =>
-        OfficerById.TryGetValue(unit.Commander, out OfficerRecord? officer) ? CityNames.BaseName(officer.BaseId) : "";
+        OfficerById.TryGetValue(unit.Commander, out OfficerRecord? officer) ? BaseName(officer.BaseId) : "";
 
     // The unit another unit is going after, null otherwise.
     internal UnitRecord? TargetUnit(UnitRecord unit) =>
@@ -273,7 +275,7 @@ internal sealed class GameSnapshot
     internal string PlaceName(UnitRecord unit)
     {
         if (County(unit.County) is not { } county) return "";
-        string city = CityNames.ById[county.HomeCity];
+        string city = CityName(county.HomeCity);
         return county.Name == city ? city : $"{county.Name} ({city})";
     }
 
@@ -310,6 +312,7 @@ internal sealed class GameSnapshot
             CastleByCity = CastleByCity.ToDictionary(pair => pair.Key, pair => pair.Value with { Data = Data(pair.Value.Address, pair.Value.Data) }),
             TileOwners = TileOwners,
             TileCounties = TileCounties,
+            Terrain = Terrain,
             Forces = Forces,
             ForceRecords = ForceRecords.ToDictionary(pair => pair.Key, pair => pair.Value with { Data = Data(pair.Value.Address, pair.Value.Data) }),
             CorpsRecords = CorpsRecords.ToDictionary(pair => pair.Key, pair => pair.Value with { Data = Data(pair.Value.Address, pair.Value.Data) }),
@@ -816,9 +819,10 @@ internal static partial class GameMemory
         try
         {
             using var buffers = new SnapshotReadBuffers();
-            byte[] allCities = buffers.Read(handle, layout.CityArray, (CityCount + 1) * CityStride);
-            var cities = new CityRecord[CityCount + 1];
-            for (int id = 0; id <= CityCount; id++)
+            int citySlots = (layout.Tribes ? TribeLast : CityCount) + 1;
+            byte[] allCities = buffers.Read(handle, layout.CityArray, citySlots * CityStride);
+            var cities = new CityRecord[citySlots];
+            for (int id = 0; id < citySlots; id++)
             {
                 byte[] data = Slice(allCities, id, CityStride);
                 ValidateCity(data, identity.Classes.City, id);
@@ -831,7 +835,7 @@ internal static partial class GameMemory
             {
                 byte[] data = Slice(allCounties, index, CountyStride);
                 RequireVtable(data, identity.Classes.County, L.Terms.RecordCounty);
-                if (data[CountyFields.HomeCityOffset] is >= 1 and <= CityCount)
+                if (data[CountyFields.HomeCityOffset] > 0 && data[CountyFields.HomeCityOffset] < citySlots)
                     counties.Add(new CountyRecord(index, layout.CountyArray + (ulong)(index * CountyStride), data));
             }
 
@@ -848,6 +852,7 @@ internal static partial class GameMemory
             byte[] tiles = buffers.Read(handle, layout.TileArray, TileCount * TileStride);
             RequireVtable(tiles, identity.Classes.Tile, L.Terms.RecordMap);
             (byte[] owners, ushort[] tileCounties) = ReadTileMap(tiles.AsSpan(0, TileCount * TileStride), before?.TileOwners, before?.TileCounties);
+            byte[] terrainTypes = ReadTerrainMap(tiles.AsSpan(0, TileCount * TileStride), before?.Terrain);
 
             // Castle buildings are type 1 (cities and tribes), gates type 2; the tile under them names the base.
             // Types 3 and up are facilities forces built (the records past ~3000 are not buildings in use).
@@ -876,17 +881,7 @@ internal static partial class GameMemory
                 if (BinaryPrimitives.ReadUInt16LittleEndian(tiles.AsSpan(i * TileStride + TileLandmarkOffset)) is var id and >= 1 and <= 100)
                     landmarks.Add((id, i));
 
-            var tribes = new List<CityRecord>();
-            if (layout.Tribes)
-            {
-                byte[] allTribes = buffers.Read(handle, layout.CityArray + (ulong)(TribeFirst * CityStride), (TribeLast - TribeFirst + 1) * CityStride);
-                for (int id = TribeFirst; id <= TribeLast; id++)
-                {
-                    byte[] data = Slice(allTribes, id - TribeFirst, CityStride);
-                    if (BitConverter.ToUInt64(data, 0) == identity.Classes.City && BitConverter.ToUInt16(data, CityFields.IdOffset) == id)
-                        tribes.Add(new CityRecord(id, layout.CityArray + (ulong)(id * CityStride), data));
-                }
-            }
+            var tribes = cities.Where(c => c.CityId > 0 && c.IsTribe).ToArray();
 
             var gates = new List<GateRecord>();
             byte[] gateBuffer = new byte[GateRead];
@@ -989,6 +984,7 @@ internal static partial class GameMemory
                 CastleByCity = castles,
                 TileOwners = owners,
                 TileCounties = tileCounties,
+                Terrain = terrainTypes,
                 Forces = forces,
                 ForceRecords = forceRecords,
                 CorpsRecords = corpsRecords,
@@ -1003,7 +999,7 @@ internal static partial class GameMemory
                 Hour = hour,
                 Pace = before is not { Date: not null, Hour: >= 0 } || date is null || hour < 0 ? GamePace.Unknown
                     : before.Date == date && before.Hour == hour ? GamePace.Paused : GamePace.Running,
-                Tribes = tribes.ToArray(),
+                Tribes = tribes,
                 Gates = gates.ToArray(),
                 Landmarks = landmarks.ToArray(),
                 Facilities = facilities.ToArray(),

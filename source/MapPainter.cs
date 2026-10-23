@@ -29,9 +29,9 @@ internal static class MapPainter
         _ => -1f
     };
 
-    internal static Bitmap Build(Func<int, Color> landColor)
+    internal static Bitmap Build(Func<int, Color> landColor, byte[]? terrainData = null)
     {
-        byte[] terrain = MapTerrain.Terrain;
+        byte[] terrain = terrainData ?? MapTerrain.Terrain;
         int width = (int)MathF.Ceiling(MapTerrain.WorldWidth * PixelsPerUnit), height = (int)MathF.Ceiling(MapTerrain.WorldHeight * PixelsPerUnit);
 
         // Fields on the staggered grid (column = hex column, row = half-hex cell).
@@ -157,9 +157,9 @@ internal static class MapPainter
     }
 
     // Road network: centre-to-centre segments between road tiles and the settlements they reach.
-    internal static (PointF A, PointF B)[] RoadSegments()
+    internal static (PointF A, PointF B)[] RoadSegments(byte[]? terrainData = null)
     {
-        byte[] terrain = MapTerrain.Terrain;
+        byte[] terrain = terrainData ?? MapTerrain.Terrain;
         static bool IsRoad(int t) => t is 2 or 11;
         static bool IsStop(int t) => t is 15 or 16 or 17 or 18;
         var segments = new List<(PointF, PointF)>();

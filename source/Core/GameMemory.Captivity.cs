@@ -88,7 +88,7 @@ internal static partial class GameMemory
                 Guard(force.Address, force.Data);
             }
         }
-        bool city = target.Base <= CityCount;
+        bool city = data.IsCity(target.Base);
         ulong baseAddress = city ? data.Cities[target.Base].Address : data.Gates.Single(g => g.Id == target.Base).Address;
         byte[] baseData = city ? data.Cities[target.Base].Data : data.Gates.Single(g => g.Id == target.Base).Data;
         Guard(raw + (city ? (ulong)Tables.Cities + (ulong)target.Base * 8

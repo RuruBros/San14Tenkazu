@@ -36,6 +36,8 @@ internal sealed class TestGame
         {
             byte[] data = Record(GameMemory.CityStride, Classes.City);
             BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(CityFields.IdOffset), (ushort)id);
+            data[0xCE] = id == 0 ? (byte)0 : (byte)1;
+            Encoding.Unicode.GetBytes(CityNames.ById[id]).CopyTo(data, CityFields.NameOffset);
             return new CityRecord(id, Address(), data);
         }).ToArray();
     }
@@ -162,10 +164,12 @@ internal sealed class TestGame
     }
 
     // A city's castle building with its durability.
-    internal TestGame Castle(int city, int durability)
+    internal TestGame Castle(int city, int durability, int tile = 0)
     {
         byte[] data = Record(GameMemory.BuildingStride, Classes.Building);
         Set(data, CityFields.Durability, durability);
+        BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(GameMemory.BuildingTileOffset), checked((ushort)tile));
+        data[GameMemory.BuildingTypeOffset] = 1;
         castles[city] = new BuildingRecord(castles.Count, Address(), data);
         return this;
     }
@@ -174,6 +178,7 @@ internal sealed class TestGame
     internal TestGame Gate(int id, int corps, int governor = 0, int durability = 5000)
     {
         byte[] data = Record(0xC0, Classes.Gate);
+        Encoding.Unicode.GetBytes(CityNames.BaseName(id)).CopyTo(data, CityFields.NameOffset);
         BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(CityFields.IdOffset), (ushort)id);
         BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(CityFields.CorpsOffset), (ushort)corps);
         Set(data, CityFields.GateGovernor, governor);

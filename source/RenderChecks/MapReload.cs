@@ -104,7 +104,7 @@ internal static class MapReloadChecks
         try
         {
             window.Show(); Pump();
-            var made = new TestGame().Force(1, 1, 1).Officer(1, "test", 1, 1, 4).Leading(1).Build();
+            var made = RenderChecks.OriginalMapCastles(new TestGame().Force(1, 1, 1).Officer(1, "test", 1, 1, 4).Leading(1)).Build();
             UnitRecord original = made.Units[0];
             int tile = MapTerrain.Columns * (MapTerrain.Rows / 2) + MapTerrain.Columns / 2;
             GameSnapshot Snapshot(int at)

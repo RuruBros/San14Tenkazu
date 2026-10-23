@@ -5,6 +5,21 @@ namespace San14Tenkazu;
 
 internal static partial class GameMemory
 {
+    internal static byte[] ReadTerrainMap(ReadOnlySpan<byte> tiles, byte[]? previous)
+    {
+        if (tiles.Length != TileCount * TileStride) throw new ArgumentException("Incomplete tile map", nameof(tiles));
+        byte[] result = previous is { Length: TileCount } ? previous : new byte[TileCount];
+        for (int tile = 0; tile < TileCount; tile++)
+        {
+            ushort value = BinaryPrimitives.ReadUInt16LittleEndian(tiles.Slice(tile * TileStride + 0x10, 2));
+            if (value > 24) throw new InvalidDataException("Loaded terrain type is outside the supported hex layout");
+            if (result[tile] == value) continue;
+            if (ReferenceEquals(result, previous)) result = (byte[])result.Clone();
+            result[tile] = (byte)value;
+        }
+        return result;
+    }
+
     // Bulk table reads belong to this operation. Only independently owned record copies and decoded tile
     // fields enter the snapshot; returning these buffers cannot rewrite snapshots or pending edits.
     internal sealed class SnapshotReadBuffers(ArrayPool<byte>? pool = null) : IDisposable

@@ -23,7 +23,7 @@ internal static partial class RenderChecks
         var old=Environment.GetEnvironmentVariable("SAN14_NO_GPU");Environment.SetEnvironmentVariable("SAN14_NO_GPU","1");
         var map=new MapSurface();var host=new W.Window{Content=map,Width=1000,Height=750,ShowActivated=false,ShowInTaskbar=false};
         try{
-            host.Show();var data=new TestGame().Force(1,1,1).Officer(1,"환경 검사 장수",1,1,4).Leading(1).Gate(52,0).Gate(53,0).Build();data.Counties[0].Data[CountyFields.HomeCityOffset]=1;data.Counties[1].Data[CountyFields.HomeCityOffset]=2;
+            host.Show();var data=OriginalMapCastles(new TestGame().Force(1,1,1).Officer(1,"환경 검사 장수",1,1,4).Leading(1).Gate(52,0).Gate(53,0)).Build();data.Counties[0].Data[CountyFields.HomeCityOffset]=1;data.Counties[1].Data[CountyFields.HomeCityOffset]=2;
             for(int tile=0;tile<data.TileCounties.Length;tile++)data.TileCounties[tile]=(ushort)(tile%220<110?52:53);
             int unitTile=110*220+55;System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(data.Units[0].Data.AsSpan(UnitFields.TileOffset),(ushort)unitTile);
             uint date=192|(6u<<16)|(21u<<24);var weather=new byte[46];weather[0]=2;weather[1]=8;var recent=new uint[230];for(int k=0;k<5;k++)recent[k]=date;

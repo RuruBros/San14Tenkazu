@@ -24,7 +24,10 @@ internal sealed partial class OfficerEditorCard : EditorCard
     // for the [소속] page also his corps, where he is now, the ruler he left (each "" when none), why he cannot be
     // moved or let go now and why he cannot be sent to another force ("" when he can; a commander out with his unit can).
     internal sealed record Standing(int Force, string ForceName, System.Drawing.Color Colour, string Status, int Base, string BaseName, string Office,
-        string Corps = "", string Place = "", string FormerLord = "", string Blocked = "", string SendBlocked = "");
+        string Corps = "", string Place = "", string FormerLord = "", string Blocked = "", string SendBlocked = "")
+    {
+        internal bool CityBase { get; init; }
+    }
 
     // The game's officers have up to five 개성; the slots after them are shown only when an officer uses them.
     private const int UsualPersonalities = 5;
@@ -315,7 +318,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
         forcePosts = forces;
         bool serving = status is 2 or 3 or 4, free = status is 5 or 6;
         moveChoices = forces.FirstOrDefault(f => f.Force == standing.Force)?.Bases
-            .Where(b => b.Base != standing.Base && (status != 1 || b.Base is >= 1 and <= GameMemory.CityCount)).ToList() ?? [];
+            .Where(b => b.Base != standing.Base && (status != 1 || b.Base is >= 1 and <= GameMemory.TribeLast)).ToList() ?? [];
         moveBase.ItemsSource = moveChoices.Select(b => b.Name).ToList();
         moveBase.SelectedIndex = moveChoices.Count > 0 ? 0 : -1;
         moveLine.Visibility = (serving || status == 1) && moveChoices.Count > 0 ? W.Visibility.Visible : W.Visibility.Collapsed;
@@ -536,7 +539,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
     // His base's name opening its card: a city's or a gate's (a tribe's base has none); null for another base.
     private WD.Inline? BaseLink(Standing standing) => standing.Base switch
     {
-        >= 1 and <= GameMemory.CityCount => Link(standing.BaseName, new CityTarget(standing.Base)),
+        _ when standing.CityBase => Link(standing.BaseName, new CityTarget(standing.Base)),
         >= GameMemory.GateFirst and <= GameMemory.GateLast => Link(standing.BaseName, new GateTarget(standing.Base)),
         _ => null
     };

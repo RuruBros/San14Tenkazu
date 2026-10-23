@@ -15,6 +15,8 @@ internal static class MapModels
 
     // City style by city ID (index 1~46): a square walls, b rounded, c angled. All 46 seen in the game.
     private const string CityStyles = "-bbbbbbbaaaaaaaaaabababbbccccccc" + "aaaacccccbacccc";
+    private static readonly Dictionary<string, char> KnownCityStyles = Enumerable.Range(1, 46)
+        .ToDictionary(id => CityNames.ById[id], id => CityStyles[id], StringComparer.Ordinal);
     // Gates 52~61 (호관 … 면죽관).
     private static readonly int[] GateYaws = [90, 90, 90, 270, 60, 240, 180, 120, 120, 180];
     // Tribes 47~51 (오환, 선비, 강: d; 산월, 남만: e), all seen in the game.
@@ -41,10 +43,13 @@ internal static class MapModels
     };
     private const double FacilityScale = 1.5;
 
-    internal static string CityModel(int cityId, long scale, bool ruined = false)
+    internal static string? CityModel(CityRecord city, bool ruined = false)
     {
-        string size = scale switch { >= 4 => "l", >= 2 => "m", _ => "s" };
-        char style = cityId > 0 && cityId < CityStyles.Length ? CityStyles[cityId] : 'a';
+        // The loaded record does not expose a verified model-style property. Retain the
+        // observed original art only for its named identity; an unknown city keeps its icon.
+        if (!KnownCityStyles.TryGetValue(city.Name, out char style)) return null;
+        string? size = city[CityFields.Scale] switch { 4 => "l", 2 or 3 => "m", 1 => "s", _ => null };
+        if (size is null) return null;
         return $"obj-mc01-{size}-city-{style}-{(ruined ? "brk-002" : "nm-001")}";
     }
 
@@ -52,14 +57,15 @@ internal static class MapModels
     internal static List<Placement> All(GameSnapshot? data)
     {
         var list = new List<Placement>();
-        foreach (int tile in MapTerrain.SeatTiles) list.Add(new Placement("obj-mc01-prefecture-nm-001", 0, tile));
-        foreach (int tile in MapTerrain.PortTiles) list.Add(new Placement("obj-mc01-port-nm-001", PortYaw(tile), tile));
+        foreach (int tile in MapTerrain.TilesOf(MapTerrain.Seat, data?.Terrain)) list.Add(new Placement("obj-mc01-prefecture-nm-001", 0, tile));
+        foreach (int tile in MapTerrain.TilesOf(MapTerrain.Port, data?.Terrain)) list.Add(new Placement("obj-mc01-port-nm-001", PortYaw(tile, data?.Terrain), tile));
         if (data is null) return list;
-        for (int id = 1; id <= GameMemory.CityCount; id++)
-            list.Add(new Placement(CityModel(id, data.Cities[id][CityFields.Scale], ruined: data.ForceOfCity(id) == 0), 0, MapTerrain.CityTiles[id]));
+        foreach (int id in data.CityIds)
+            if (data.CityTile(id) is { } tile && CityModel(data.Cities[id], ruined: data.ForceOfCity(id) == 0) is { } model)
+                list.Add(new Placement(model, 0, tile));
         foreach (CityRecord tribe in data.Tribes)
             if (data.CastleByCity.TryGetValue(tribe.CityId, out BuildingRecord? castle) && castle.Tile < GameMemory.TileCount)
-                list.Add(new Placement($"obj-mc01-l-city-{TribeStyles[tribe.CityId - GameMemory.TribeFirst]}-nm-001", 0, castle.Tile));
+                list.Add(new Placement($"obj-mc01-l-city-{TribeStyles[tribe.State - 18]}-nm-001", 0, castle.Tile));
         foreach (GateRecord gate in data.Gates)
         {
             if (gate.Tile < 0) continue;
@@ -74,14 +80,14 @@ internal static class MapModels
 
     // A port faces along its shore: 90° on from the mean direction of its water neighbours, in 30° steps.
     // This matched 28 of the 31 ports seen (the rest within 30°).
-    private static int PortYaw(int tile)
+    private static int PortYaw(int tile, byte[]? terrain = null)
     {
-        if (PortYaws.TryGetValue(tile, out int yaw)) return yaw;
+        if ((terrain is null || terrain.AsSpan().SequenceEqual(MapTerrain.Terrain)) && PortYaws.TryGetValue(tile, out int yaw)) return yaw;
         int column = tile % MapTerrain.Columns, row = tile / MapTerrain.Columns;
         double x = 0, y = 0;
         int[] angles = [90, 30, -30, -90, -150, 150];      // N, NE, SE, S, SW, NW, counter-clockwise from east
         for (int direction = 0; direction < 6; direction++)
-            if (MapTerrain.Neighbour(column, row, direction) is >= 0 and var neighbour && MapTerrain.IsWater(MapTerrain.Terrain[neighbour]))
+            if (MapTerrain.Neighbour(column, row, direction) is >= 0 and var neighbour && MapTerrain.IsWater((terrain ?? MapTerrain.Terrain)[neighbour]))
             {
                 x += Math.Cos(angles[direction] * Math.PI / 180);
                 y += Math.Sin(angles[direction] * Math.PI / 180);

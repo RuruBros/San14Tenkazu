@@ -16,7 +16,7 @@ internal static partial class RenderChecks
         File.WriteAllText(Path.Combine(output, "pan-pixels.jsonl"), "");
         var map = new MapSurface { Width = 1280, Height = 800, ProfileUnits = true };
         map.Measure(new W.Size(1280, 800)); map.Arrange(new W.Rect(0, 0, 1280, 800));
-        var game = new TestGame().Force(1, 1, 1);
+        var game = OriginalMapCastles(new TestGame().Force(1, 1, 1));
         for (int i = 1; i <= 180; i++) game.Officer(i, "장수" + i, 1, 1, 3).Leading(i);
         GameSnapshot Snapshot()
         {

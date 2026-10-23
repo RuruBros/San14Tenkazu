@@ -85,7 +85,7 @@ internal static partial class GameMemory
         bool ruler = officer.Status == 1;
         if ((!ruler && corps != plannedCorps) || data.ForceOfCorps(corps) != force ||
             ruler && (kind != Transfer.Move || force != data.ForceOfCorps(officer.Corps) ||
-                home is not (>= 1 and <= CityCount)))
+                !data.IsCity(home)))
             throw new InvalidOperationException(L.Transfers.DestinationChanged);
         RecordGuard(destination.NativeAddress, destination.Bytes, 0, 8);
         RecordGuard(destination.NativeAddress, destination.Bytes, 0x2E, 4);
@@ -121,7 +121,7 @@ internal static partial class GameMemory
             checks.Add(new TransferCall(new(exe + 0x233440, unit.Address, 0), MustReturnZero: true));
             IReadOnlyList<int> route = TransferRouting.Find(world, unit, force, home);
             if (route.Count == 0)
-                throw new InvalidOperationException(L.Transfers.NoRoute(officer.Name, CityNames.BaseName(home)));
+                throw new InvalidOperationException(L.Transfers.NoRoute(officer.Name, data.BaseName(home)));
             evidence.Add(L.Transfers.RouteEvidence(officer.Name, unit.Slot, unit.Tile, route[^1], route.Count - 1, force));
         }
 

@@ -46,7 +46,7 @@ internal sealed partial class MapSurface
         {
             cityOrderData = snapshot;
             cityOrderSelected = selectedCity;
-            cityOrder = Enumerable.Range(1, GameMemory.CityCount).OrderBy(id => id == selectedCity ? 0 : 1)
+            cityOrder = (snapshot?.CityIds ?? Enumerable.Range(1, GameMemory.CityCount)).OrderBy(id => id == selectedCity ? 0 : 1)
                 .ThenByDescending(id => snapshot?.Cities[id][CityFields.Scale] ?? 0).ToArray();
         }
         return cityOrder;

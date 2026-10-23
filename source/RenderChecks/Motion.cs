@@ -29,7 +29,7 @@ internal static partial class RenderChecks
         var other = new W.Window { Content = new WC.TextBox { Text = "Inactive / partial cover" },
             Width = 260, Height = 130, Left = 980, Top = 150, ShowActivated = false, ShowInTaskbar = false,
             Title = "천하도 가림 검사" };
-        var game = new TestGame().Force(1, 1, 1).Officer(1, "장수", 1, 1, 4).Leading(1);
+        var game = OriginalMapCastles(new TestGame().Force(1, 1, 1).Officer(1, "장수", 1, 1, 4).Leading(1));
         // A city with no assigned corps is neutral and has no mark on its shield. Populate ownership
         // explicitly so this motion scene also exercises the banner's mark instead of empty flags.
         for (int city = 1; city <= GameMemory.CityCount; city++) game.City(city, 1);

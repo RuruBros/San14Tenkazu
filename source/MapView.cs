@@ -169,7 +169,10 @@ internal sealed partial class MapView : WC.DockPanel
     // null before the game is connected: the map shows terrain only.
     internal void SetSnapshot(GameSnapshot? data)
     {
+        byte[] terrain = data?.Terrain ?? MapTerrain.Terrain;
+        bool terrainChanged = !ReferenceEquals(snapshot?.Terrain, data?.Terrain);
         snapshot = data;
+        if (terrainChanged) { RequestFill(); RequestVeil(); }
         if (SetForceColors(data?.Forces))
         {
             RequestFill();
@@ -190,7 +193,7 @@ internal sealed partial class MapView : WC.DockPanel
         // A force that is gone is no longer shown alone.
         if (highlightForce > 0 && (data is null || !data.CitiesOf(highlightForce).Any() && !data.Units.Any(u => data.ForceOfUnit(u) == highlightForce)))
             SetHighlight(0);
-        string key = data is null ? "" : string.Join(",", Enumerable.Range(1, GameMemory.CityCount).Select(data.ForceOfCity)) +
+        string key = data is null ? "" : string.Join(",", data.CityIds.Select(data.ForceOfCity)) +
             "|" + string.Join(",", data.Forces.Values.Select(f => f.RulerId));
         if (key != legendKey)
         {
@@ -255,7 +258,7 @@ internal sealed partial class MapView : WC.DockPanel
     // The game's whole field, the playable map within it, placed with its top-left corner at Origin (world units).
     internal sealed record Scenery(WMI.BitmapSource Image, PointF Origin, float PixelsPerUnit);
     private static Task<BaseMap>? baseMap;
-    private static readonly Lazy<(PointF A, PointF B)[]> Roads = new(MapPainter.RoadSegments);
+    private static readonly Lazy<(PointF A, PointF B)[]> Roads = new(() => MapPainter.RoadSegments());
 
     private static BaseMap BuildBaseMap()
     {
@@ -465,12 +468,13 @@ internal sealed partial class MapView : WC.DockPanel
         // A light wash of each force's colour inside its borders; the game's textured ground needs a little
         // more of it than the plain painted map to show.
         int alpha = fromGame ? 72 : 60;
+        byte[] terrain = snapshot?.Terrain ?? MapTerrain.Terrain;
         Task.Run(() =>
         {
             if (version != Volatile.Read(ref fillVersion)) return;
-            using Bitmap bitmap = RenderFill(currentOwners, alpha);
+            using Bitmap bitmap = RenderFill(currentOwners, alpha, terrain);
             WMI.BitmapSource image = ToImage(bitmap);
-            WMI.BitmapSource? strategicImage = GroundPixels() is { } ground ? RenderStrategic(currentOwners, ground) : null;
+            WMI.BitmapSource? strategicImage = GroundPixels() is { } ground ? RenderStrategic(currentOwners, ground, terrain) : null;
             OnUiThread(() => { if (version == fillVersion) surface.SetFill(image, strategicImage, FillPixelsPerUnit); });
         });
     }
@@ -492,7 +496,7 @@ internal sealed partial class MapView : WC.DockPanel
     // The game's strategic view: each force's land in its colour, shaded by the ground's own light so that
     // mountains, cliffs and rivers still show. Opaque where a force owns the land, clear elsewhere; the
     // surface lays it over the map at partial strength.
-    private static WMI.BitmapSource RenderStrategic(byte[] owners, (int[] Pixels, int Width, int Height) ground)
+    private static WMI.BitmapSource RenderStrategic(byte[] owners, (int[] Pixels, int Width, int Height) ground, byte[] terrain)
     {
         int width = ground.Width, height = ground.Height;
         View view = FillView(width, height);
@@ -501,7 +505,7 @@ internal sealed partial class MapView : WC.DockPanel
         using (Graphics g = Graphics.FromImage(bitmap))
         {
             g.SmoothingMode = SmoothingMode.None;
-            foreach ((int owner, GraphicsPath area) in OwnerAreas(owners, view))
+            foreach ((int owner, GraphicsPath area) in OwnerAreas(owners, view, terrain))
             {
                 using var brush = new SolidBrush(Color.FromArgb(255, owner, 0, 0));
                 g.FillPath(brush, area);
@@ -538,11 +542,12 @@ internal sealed partial class MapView : WC.DockPanel
 
     // One detail tile (borders, grid and map symbols); runs on a worker thread.
     // Tile (x, y) of a level covers device pixels [x, x + 1) * TileSize at that level's scale.
-    internal static WMI.BitmapSource RenderTile(int level, int x, int y, byte[]? owners, ushort[]? counties, bool fromGame)
+    internal static WMI.BitmapSource RenderTile(int level, int x, int y, byte[]? owners, ushort[]? counties, bool fromGame, byte[]? terrainData = null)
     {
+        byte[] terrain = terrainData ?? MapTerrain.Terrain;
         float ppu = MapTiles.PixelsPerUnit(level);
         const int size = MapTiles.TileSize;
-        using Bitmap bitmap = RenderDetail(new View((x + 0.5f) * size / ppu, (y + 0.5f) * size / ppu, ppu, size, size), owners, counties, fromGame);
+        using Bitmap bitmap = RenderDetail(new View((x + 0.5f) * size / ppu, (y + 0.5f) * size / ppu, ppu, size, size), owners, counties, fromGame, terrain);
         return ToImage(bitmap);
     }
 
@@ -628,9 +633,9 @@ internal sealed partial class MapView : WC.DockPanel
     }
 
     // One close-up ground tile from the game's ground textures (null without them); runs on a worker thread.
-    internal static WMI.BitmapSource? RenderGround(MapTiles.TileKey key) =>
+    internal static WMI.BitmapSource? RenderGround(MapTiles.TileKey key, byte[]? terrain = null) =>
         baseMap is { IsCompletedSuccessfully: true } task && task.Result.FromGame
-            ? GroundDetail.Render(key, task.Result.Image, task.Result.PixelsPerUnit) : null;
+            ? GroundDetail.Render(key, task.Result.Image, task.Result.PixelsPerUnit, terrain) : null;
 
     private static (int Col0, int Col1, int Row0, int Row1) VisibleTiles(View view)
     {
@@ -651,7 +656,7 @@ internal sealed partial class MapView : WC.DockPanel
         ];
     }
 
-    private static bool IsOutside(int tile) => MapTerrain.IsSea(MapTerrain.Terrain[tile]);
+    private static bool IsOutside(int tile, byte[] terrain) => MapTerrain.IsSea(terrain[tile]);
 
     // The whole world at the territory layers' resolution: pixel (x, y) is world point (x, y) / FillPixelsPerUnit.
     private static View FillView() =>
@@ -663,25 +668,25 @@ internal sealed partial class MapView : WC.DockPanel
     // Each force's land as one path of its hexes, drawn a little large so that they join (the caller disposes them).
     // Winding: with the default alternate rule the strips where two hexes overlap were left out, and magnified
     // they spotted the ground with dashes and dots.
-    private static Dictionary<int, GraphicsPath> OwnerAreas(byte[] owners, View view)
+    private static Dictionary<int, GraphicsPath> OwnerAreas(byte[] owners, View view, byte[] terrain)
     {
         var areas = new Dictionary<int, GraphicsPath>();
         for (int tile = 0; tile < owners.Length; tile++)
         {
             int owner = owners[tile];
-            if (owner == 0 || IsOutside(tile)) continue;
+            if (owner == 0 || IsOutside(tile, terrain)) continue;
             if (!areas.TryGetValue(owner, out GraphicsPath? area)) areas[owner] = area = new GraphicsPath(FillMode.Winding);
             area.AddPolygon(Hex(view, tile, 1.04f));
         }
         return areas;
     }
 
-    private static Bitmap RenderFill(byte[] owners, int alpha)
+    private static Bitmap RenderFill(byte[] owners, int alpha, byte[] terrain)
     {
         View view = FillView();
         var bitmap = new Bitmap(view.Width, view.Height, PixelFormat.Format32bppPArgb);
         using Graphics g = Graphics.FromImage(bitmap);
-        foreach ((int owner, GraphicsPath path) in OwnerAreas(owners, view))
+        foreach ((int owner, GraphicsPath path) in OwnerAreas(owners, view, terrain))
         {
             using var brush = new SolidBrush(Color.FromArgb(alpha, ForceColor(owner)));
             g.FillPath(brush, path);
@@ -690,14 +695,14 @@ internal sealed partial class MapView : WC.DockPanel
         return bitmap;
     }
 
-    private static Bitmap RenderDetail(View view, byte[]? owners, ushort[]? counties, bool fromGame)
+    private static Bitmap RenderDetail(View view, byte[]? owners, ushort[]? counties, bool fromGame, byte[] terrain)
     {
         var bitmap = new Bitmap(view.Width, view.Height, PixelFormat.Format32bppPArgb);
         using Graphics g = Graphics.FromImage(bitmap);
         (int col0, int col1, int row0, int row1) = VisibleTiles(view);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         // The game's textures already show roads, mountains and forests.
-        if (!fromGame) DrawRoads(g, view);
+        if (!fromGame) DrawRoads(g, view, terrain);
 
         // Faint white hex grid when zoomed in, like the game's map.
         if (view.Scale >= 9)
@@ -707,12 +712,12 @@ internal sealed partial class MapView : WC.DockPanel
                 for (int col = col0; col <= col1; col++)
                 {
                     int tile = row * MapTerrain.Columns + col;
-                    if (!MapTerrain.IsWater(MapTerrain.Terrain[tile])) g.DrawPolygon(gridPen, Hex(view, tile));
+                    if (!MapTerrain.IsWater(terrain[tile])) g.DrawPolygon(gridPen, Hex(view, tile));
                 }
         }
-        if (counties is not null && view.Scale >= 6) DrawCountyBorders(g, view, counties, col0, col1, row0, row1);
-        DrawSymbols(g, view, col0, col1, row0, row1, glyphs: !fromGame);
-        if (owners is not null) DrawBorders(g, view, owners, col0, col1, row0, row1);
+        if (counties is not null && view.Scale >= 6) DrawCountyBorders(g, view, counties, col0, col1, row0, row1, terrain);
+        DrawSymbols(g, view, col0, col1, row0, row1, glyphs: !fromGame, terrain);
+        if (owners is not null) DrawBorders(g, view, owners, col0, col1, row0, row1, terrain);
         return bitmap;
     }
 
@@ -720,21 +725,21 @@ internal sealed partial class MapView : WC.DockPanel
     private static Pen RoundPen(Color color, float width) => new(color, width) { LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round };
 
     // County boundaries as white lines, as the game draws them over the land.
-    private static void DrawCountyBorders(Graphics g, View view, ushort[] counties, int col0, int col1, int row0, int row1)
+    private static void DrawCountyBorders(Graphics g, View view, ushort[] counties, int col0, int col1, int row0, int row1, byte[] terrain)
     {
         using var path = new GraphicsPath();
         for (int row = row0; row <= row1; row++)
             for (int col = col0; col <= col1; col++)
             {
                 int tile = row * MapTerrain.Columns + col;
-                if (counties[tile] == 0 || IsOutside(tile) || MapTerrain.IsWater(MapTerrain.Terrain[tile])) continue;
+                if (counties[tile] == 0 || IsOutside(tile, terrain) || MapTerrain.IsWater(terrain[tile])) continue;
                 PointF[]? edge = null;
                 // Each shared edge once: from the north, north-east and south-east neighbours.
                 for (int direction = 0; direction < 3; direction++)
                 {
                     int neighbour = MapTerrain.Neighbour(col, row, direction);
                     if (neighbour < 0 || counties[neighbour] == 0 || counties[neighbour] == counties[tile] ||
-                        IsOutside(neighbour) || MapTerrain.IsWater(MapTerrain.Terrain[neighbour])) continue;
+                        IsOutside(neighbour, terrain) || MapTerrain.IsWater(terrain[neighbour])) continue;
                     edge ??= Hex(view, tile);
                     (int a, int b) = EdgeVertices(direction);
                     path.StartFigure();
@@ -748,11 +753,11 @@ internal sealed partial class MapView : WC.DockPanel
         g.DrawPath(pen, path);
     }
 
-    private static void DrawRoads(Graphics g, View view)
+    private static void DrawRoads(Graphics g, View view, byte[] terrain)
     {
         var bounds = new RectangleF(-20, -20, view.Width + 40, view.Height + 40);
         using var path = new GraphicsPath();
-        foreach ((PointF a, PointF b) in Roads.Value)
+        foreach ((PointF a, PointF b) in ReferenceEquals(terrain, MapTerrain.Terrain) ? Roads.Value : MapPainter.RoadSegments(terrain))
         {
             PointF sa = view.ToScreen(a), sb = view.ToScreen(b);
             if (!bounds.Contains(sa) && !bounds.Contains(sb)) continue;
@@ -770,7 +775,7 @@ internal sealed partial class MapView : WC.DockPanel
     }
 
     // Mountains, forests and settlements as small map symbols; detail grows with zoom.
-    private static void DrawSymbols(Graphics g, View view, int col0, int col1, int row0, int row1, bool glyphs)
+    private static void DrawSymbols(Graphics g, View view, int col0, int col1, int row0, int row1, bool glyphs, byte[] terrain)
     {
         float r = view.Scale;
         using var peakLight = new SolidBrush(Color.FromArgb(215, 236, 224, 200));
@@ -785,7 +790,7 @@ internal sealed partial class MapView : WC.DockPanel
             for (int col = col0; col <= col1; col++)
             {
                 int tile = row * MapTerrain.Columns + col;
-                int type = MapTerrain.Terrain[tile];
+                int type = terrain[tile];
                 PointF c = view.ToScreen(MapTerrain.TileCenter(tile));
                 // Per-tile jitter so ranges don't look stamped.
                 uint hash = (uint)tile * 2654435761u;
@@ -834,7 +839,7 @@ internal sealed partial class MapView : WC.DockPanel
     }
 
     // Borders: a soft wide band in the owner's colour under a bright line with dark edges, like the game's.
-    private static void DrawBorders(Graphics g, View view, byte[] owners, int col0, int col1, int row0, int row1)
+    private static void DrawBorders(Graphics g, View view, byte[] owners, int col0, int col1, int row0, int row1, byte[] terrain)
     {
         var borders = new Dictionary<int, GraphicsPath>();
         for (int row = row0; row <= row1; row++)
@@ -842,12 +847,12 @@ internal sealed partial class MapView : WC.DockPanel
             {
                 int tile = row * MapTerrain.Columns + col;
                 int owner = owners[tile];
-                if (owner == 0 || IsOutside(tile)) continue;
+                if (owner == 0 || IsOutside(tile, terrain)) continue;
                 PointF[]? edge = null;
                 for (int direction = 0; direction < 6; direction++)
                 {
                     int neighbour = MapTerrain.Neighbour(col, row, direction);
-                    if (neighbour >= 0 && owners[neighbour] == owner && !IsOutside(neighbour)) continue;
+                    if (neighbour >= 0 && owners[neighbour] == owner && !IsOutside(neighbour, terrain)) continue;
                     edge ??= Hex(view, tile, 0.92f);
                     if (!borders.TryGetValue(owner, out GraphicsPath? border)) borders[owner] = border = new GraphicsPath();
                     (int a, int b) = EdgeVertices(direction);
@@ -898,7 +903,7 @@ internal sealed partial class MapView : WC.DockPanel
             });
             return;
         }
-        var forces = Enumerable.Range(1, GameMemory.CityCount).GroupBy(snapshot.ForceOfCity).OrderByDescending(f => f.Count()).ThenBy(f => f.Key);
+        var forces = snapshot.CityIds.GroupBy(snapshot.ForceOfCity).OrderByDescending(f => f.Count()).ThenBy(f => f.Key);
         foreach (var force in forces)
         {
             int id = force.Key;

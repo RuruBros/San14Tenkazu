@@ -20,10 +20,10 @@ internal static class Transfers
     private static List<Post> Posts(GameSnapshot data)
     {
         var posts = new List<Post>();
-        for (int id = 1; id <= GameMemory.CityCount; id++)
+        foreach (int id in data.CityIds)
         {
             CityRecord city = data.Cities[id];
-            if (data.ForceOfCorps(city.Corps) is > 0 and var force) posts.Add(new Post(id, CityNames.ById[id], city.Corps, force));
+            if (data.ForceOfCorps(city.Corps) is > 0 and var force) posts.Add(new Post(id, data.CityName(id), city.Corps, force));
         }
         foreach (GateRecord gate in data.Gates)
             if (data.ForceOfCorps(gate.Corps) is > 0 and var force) posts.Add(new Post(gate.Id, gate.Name, gate.Corps, force));
@@ -69,7 +69,7 @@ internal static class Transfers
         int force = data.ForceOfCorps(officer.Corps);
         if (kind == Transfer.Move && to!.Value.Force != force) return EditPlan.Refuse(L.Transfers.SameForceOnly);
         if (kind == Transfer.Defect && to!.Value.Force == force) return EditPlan.Refuse(L.Transfers.OtherForceOnly);
-        if (officer.Status == 1 && target is not (>= 1 and <= GameMemory.CityCount))
+        if (officer.Status == 1 && !data.IsCity(target))
             return EditPlan.Refuse(L.Transfers.RulerCityOnly);
 
         var edits = new List<RecordEdit>();
@@ -114,7 +114,7 @@ internal static class Transfers
             Set(OfficerFields.ServiceValue, 0);
         }
 
-        string from = $"{data.ForceName(force)} {CityNames.BaseName(officer.BaseId)}";
+        string from = $"{data.ForceName(force)} {data.BaseName(officer.BaseId)}";
         string summary;
         switch (kind)
         {
@@ -124,7 +124,7 @@ internal static class Transfers
                 Set(OfficerFields.BaseField, to!.Value.Base);
                 if (!leading) Set(OfficerFields.PlaceField, to.Value.Base);
                 if (officer.Status is 2 or 3) Set(OfficerFields.StatusField, 4);
-                summary = L.Transfers.MoveSummary(officer.Name, CityNames.BaseName(officer.BaseId), to.Value.Name);
+                summary = L.Transfers.MoveSummary(officer.Name, data.BaseName(officer.BaseId), to.Value.Name);
                 break;
             case Transfer.Defect:
                 Join(to!.Value);
@@ -132,7 +132,7 @@ internal static class Transfers
                 break;
             case Transfer.Dismiss:
                 GoFree(data.Forces.TryGetValue(force, out ForceInfo lord) ? lord.RulerId : 0, OfficerFields.Dismissed);
-                summary = L.Transfers.DismissSummary(officer.Name, from, CityNames.BaseName(officer.BaseId), OfficerFields.Dismissed);
+                summary = L.Transfers.DismissSummary(officer.Name, from, data.BaseName(officer.BaseId), OfficerFields.Dismissed);
                 break;
             case Transfer.Recruit:
                 Join(to!.Value);
@@ -141,7 +141,7 @@ internal static class Transfers
             default:
                 int holder = BaseForce(data, officer.BaseId);
                 GoFree(data.Forces.TryGetValue(holder, out ForceInfo keeper) ? keeper.RulerId : 0, OfficerFields.Released);
-                summary = L.Transfers.ReleaseSummary(officer.Name, CityNames.BaseName(officer.BaseId));
+                summary = L.Transfers.ReleaseSummary(officer.Name, data.BaseName(officer.BaseId));
                 break;
         }
         if (officer.Status == 2 && kind is Transfer.Move or Transfer.Defect)
@@ -157,7 +157,7 @@ internal static class Transfers
             if (GovernorEdit(data, officer.BaseId, officer.Id, 0) is { } governor)
             {
                 edits.Add(governor);
-                notes.Add(L.Transfers.NoGovernor(CityNames.BaseName(officer.BaseId)));
+                notes.Add(L.Transfers.NoGovernor(data.BaseName(officer.BaseId)));
             }
         // The force he leaves no longer has him as 군사 or in its 정책 slots.
         if (kind is Transfer.Defect or Transfer.Dismiss || kind == Transfer.Recruit && force > 0 && force != to!.Value.Force)
@@ -171,7 +171,7 @@ internal static class Transfers
     // The force of a base: a city's, a gate's or a tribe's.
     private static int BaseForce(GameSnapshot data, int baseId) => baseId switch
     {
-        >= 1 and <= GameMemory.CityCount => data.ForceOfCity(baseId),
+        _ when data.IsCity(baseId) => data.ForceOfCity(baseId),
         >= GameMemory.GateFirst and <= GameMemory.GateLast => data.Gates.FirstOrDefault(g => g.Id == baseId) is { } gate ? data.ForceOfCorps(gate.Corps) : 0,
         _ => 0
     };
@@ -179,8 +179,8 @@ internal static class Transfers
     // A base's 태수 set to someone else, when it is the given officer now; null otherwise.
     private static RecordEdit? GovernorEdit(GameSnapshot data, int baseId, int from, int to)
     {
-        if (baseId is >= 1 and <= GameMemory.CityCount && data.Cities[baseId] is var city && city[CityFields.Governor] == from)
-            return new RecordEdit(RecordKind.City, city.Address, city.Data, CityNames.ById[baseId], [new FieldChange(CityFields.Governor, to)]);
+        if (data.IsCity(baseId) && data.Cities[baseId] is var city && city[CityFields.Governor] == from)
+            return new RecordEdit(RecordKind.City, city.Address, city.Data, data.CityName(baseId), [new FieldChange(CityFields.Governor, to)]);
         if (data.Gates.FirstOrDefault(g => g.Id == baseId) is { } gate && gate[CityFields.GateGovernor] == from)
             return new RecordEdit(RecordKind.Gate, gate.Address, gate.Data, gate.Name, [new FieldChange(CityFields.GateGovernor, to)]);
         return null;

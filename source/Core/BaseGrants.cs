@@ -28,22 +28,22 @@ internal static class BaseGrants
 
     // Whether the ID is a city's or a gate's: the bases the cards edit.
     internal static bool IsBase(GameSnapshot data, int baseId) =>
-        baseId is >= 1 and <= GameMemory.CityCount || data.Gates.Any(g => g.Id == baseId);
+        data.IsCity(baseId) || data.Gates.Any(g => g.Id == baseId);
 
     // The force that holds a city or a gate (0 none).
     internal static int ForceOf(GameSnapshot data, int baseId) =>
-        baseId is >= 1 and <= GameMemory.CityCount ? data.ForceOfCity(baseId)
+        data.IsCity(baseId) ? data.ForceOfCity(baseId)
         : data.Gates.FirstOrDefault(g => g.Id == baseId) is { } gate ? data.ForceOfGate(gate) : 0;
 
     // The base's record as read: the address the game call checks.
     internal static ulong Address(GameSnapshot data, int baseId) =>
-        baseId is >= 1 and <= GameMemory.CityCount ? data.Cities[baseId].Address : data.Gates.First(g => g.Id == baseId).Address;
+        data.IsCity(baseId) ? data.Cities[baseId].Address : data.Gates.First(g => g.Id == baseId).Address;
 
     // Why the base cannot go to the force, or null when it can.
     internal static string? Refusal(GameSnapshot data, int baseId, int force)
     {
         if (!IsBase(data, baseId)) return L.Give.Gone;
-        string place = CityNames.BaseName(baseId);
+        string place = data.BaseName(baseId);
         if (ForceOf(data, baseId) is > 0 and var owner) return L.Give.HasForce(place, data.ForceName(owner));
         if (force is < 1 or > GameMemory.MaxPlayerForce || Ruler(data, force) is null) return L.Give.NoRuler(data.ForceName(force));
         return null;
@@ -52,7 +52,7 @@ internal static class BaseGrants
     // The base's own values the game changed as it handed the base over (before → after), written back as they were.
     internal static EditPlan KeptValues(GameSnapshot before, GameSnapshot after, int baseId)
     {
-        if (baseId is >= 1 and <= GameMemory.CityCount)
+        if (before.IsCity(baseId))
         {
             CityRecord city = before.Cities[baseId];
             List<FieldChange> kept = [.. new[] { CityFields.Gold, CityFields.Food, CityFields.Troops, CityFields.Wounded }.Select(f => new FieldChange(f, city[f]))];

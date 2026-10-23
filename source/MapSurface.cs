@@ -42,9 +42,9 @@ internal sealed partial class MapSurface : WC.Grid
     private readonly WC.Image strategic = Layer(WM.BitmapScalingMode.Linear);   // territory in force colours, zoomed out
     private readonly WC.Image veil = Layer(WM.BitmapScalingMode.Linear);        // dark over all but the force shown alone
     private readonly WC.Canvas veilAround = new() { IsHitTestVisible = false, Visibility = W.Visibility.Collapsed };   // and past the map's edges
-    private readonly MapTiles tiles = new((key, owners, counties, game) => MapView.RenderTile(key.Level, key.X, key.Y, owners, counties, game), standInLevels: 1);
+    private readonly MapTiles tiles = new((key, owners, counties, game, terrain) => MapView.RenderTile(key.Level, key.X, key.Y, owners, counties, game, terrain), standInLevels: 1);
     // Close up, the game's ground textures replace the magnified base map (from 16 device pixels per unit).
-    private readonly MapTiles ground = new((key, _, _, _) => MapView.RenderGround(key), firstLevel: 2, maxCached: 60);
+    private readonly MapTiles ground = new((key, _, _, _, terrain) => MapView.RenderGround(key, terrain), firstLevel: 2, maxCached: 60);
     private readonly WM.MatrixTransform worldTransform = new();
     // The GPU renderer (null where Direct3D is not available: then WPF draws the layers above, as before).
     private GpuMap? gpu;
@@ -74,6 +74,10 @@ internal sealed partial class MapSurface : WC.Grid
     private readonly Stopwatch clock = Stopwatch.StartNew();
 
     private GameSnapshot? snapshot;
+    private byte[] TerrainTypes => snapshot?.Terrain ?? MapTerrain.Terrain;
+    private IEnumerable<int> CityIds => snapshot?.CityIds ?? Enumerable.Range(1, GameMemory.CityCount);
+    private int? CityTile(int id) => snapshot is null ? id > 0 && id < MapTerrain.CityTiles.Length ? MapTerrain.CityTiles[id] : null : snapshot.CityTile(id);
+    private string CityName(int id) => snapshot?.CityName(id) ?? CityNames.BaseName(id);
     private int selectedCity, hoverCity, selectedGate, hoverGate;
     private FacilityTarget? selectedFacility, hoverFacility;
     private string? hoverSpot;
@@ -389,8 +393,8 @@ internal sealed partial class MapSurface : WC.Grid
             ? shaders.GroundReady(whole.Image, whole.PixelsPerUnit, whole.Origin.X, whole.Origin.Y)
             : shaders.GroundReady(image, basePixelsPerUnit);
         if (!ready || MapShaders.GroundOpacity(camera.Scale) <= 0) return;
-        if (canvas is MapDrawList recorded) recorded.DrawGround(shaders, camera);
-        else gpu.DrawGround(shaders, camera);
+        if (canvas is MapDrawList recorded) recorded.DrawGround(shaders, camera, TerrainTypes);
+        else gpu.DrawGround(shaders, camera, TerrainTypes);
     }
 
     // The borders, county boundaries, grid and marks, when the tiles are not drawing them.
@@ -398,8 +402,8 @@ internal sealed partial class MapSurface : WC.Grid
     {
         if (gpu?.Shaders is not { } shaders || tiles.Enabled) return;
         MapShaders.Camera camera = ShaderCamera();
-        if (canvas is MapDrawList recorded) recorded.DrawBorders(shaders, camera, territory, counties);
-        else gpu.DrawBorders(shaders, camera, territory, counties);
+        if (canvas is MapDrawList recorded) recorded.DrawBorders(shaders, camera, territory, counties, TerrainTypes);
+        else gpu.DrawBorders(shaders, camera, territory, counties, terrain: TerrainTypes);
     }
 
     // The world's WPF layers (pictures, coloured bands, tiles, the models' drawing) as WPF would draw them.
@@ -489,7 +493,15 @@ internal sealed partial class MapSurface : WC.Grid
         if (data?.Date is { } date)
             dateText.Text = L.Map.Date(date.Year, date.Month, date.Day) + data.Pace switch { GamePace.Paused => (" · " + L.Map.Paused), GamePace.Running => (" · " + L.Map.Running), _ => "" };
         dateChip.Visibility = data?.Date is null ? W.Visibility.Collapsed : W.Visibility.Visible;
+        byte[] oldTerrain = TerrainTypes;
         snapshot = data;
+        if (!ReferenceEquals(oldTerrain, TerrainTypes))
+        {
+            tiles.SetTerrain(TerrainTypes); ground.SetTerrain(TerrainTypes);
+            routeCache = (-1, -1, null); routeShape = default;
+        }
+        if (selectedCity != 0 && data is not null && !data.IsCity(selectedCity)) selectedCity = 0;
+        if (hoverCity != 0 && data is not null && !data.IsCity(hoverCity)) hoverCity = 0;
         SetEnvironment(environment);
         cityOrder = [];
         UpdateGlides(Now);
@@ -768,7 +780,7 @@ internal sealed partial class MapSurface : WC.Grid
     }
 
     // Where a city or a unit is on screen now (DIPs in this surface), for cards opened beside them.
-    internal W.Point CityOnScreen(int id) => TilePoint(MapTerrain.CityTiles[id]);
+    internal W.Point CityOnScreen(int id) => CityTile(id) is { } tile ? TilePoint(tile) : new W.Point(double.NegativeInfinity, double.NegativeInfinity);
 
     internal W.Point? UnitOnScreen((int Slot, int Commander) unit) =>
         glides.TryGetValue(unit, out Glide? glide) ? ToScreen(Position(glide, Now)) : null;

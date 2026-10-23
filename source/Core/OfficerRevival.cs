@@ -10,8 +10,8 @@ internal static class OfficerRevival
 
     internal static IReadOnlyList<Destination> Targets(GameSnapshot data, RevivalMode mode)
     {
-        IEnumerable<Destination> bases = data.Cities.Skip(1).Select(c =>
-            new Destination(c.CityId, CityNames.ById[c.CityId], c.Corps, data.ForceOfCorps(c.Corps)))
+        IEnumerable<Destination> bases = data.CityIds.Select(id => data.Cities[id]).Select(c =>
+            new Destination(c.CityId, data.CityName(c.CityId), c.Corps, data.ForceOfCorps(c.Corps)))
             .Concat(data.Gates.Select(g => new Destination(g.Id, g.Name, g.Corps, data.ForceOfCorps(g.Corps))));
         return bases.Where(b => mode == RevivalMode.Free || b.Corps is >= 1 and <= 51 &&
             b.Force is >= 1 and <= GameMemory.MaxPlayerForce && data.Forces.TryGetValue(b.Force, out var force) &&

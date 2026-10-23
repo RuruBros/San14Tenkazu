@@ -13,11 +13,11 @@ internal static class OfficerCaptivity
             data.ForceOfCorps(ruler.Corps) == f.Id && BaseForce(data, ruler.BaseId) == f.Id)
         .OrderBy(f => data.ForceName(f.Id), StringComparer.CurrentCulture)
         .Select(f => new Target(f.Id, data.ForceName(f.Id), data.OfficerById[f.Ruler].BaseId,
-            CityNames.BaseName(data.OfficerById[f.Ruler].BaseId))).ToArray();
+            data.BaseName(data.OfficerById[f.Ruler].BaseId))).ToArray();
 
     internal static int BaseForce(GameSnapshot data, int id) => id switch
     {
-        >= 1 and <= GameMemory.CityCount => data.ForceOfCity(id),
+        _ when data.IsCity(id) => data.ForceOfCity(id),
         >= GameMemory.GateFirst and <= GameMemory.GateLast => data.Gates.FirstOrDefault(g => g.Id == id) is { } gate
             ? data.ForceOfGate(gate) : 0,
         _ => 0

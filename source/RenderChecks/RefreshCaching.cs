@@ -29,7 +29,7 @@ internal static partial class RenderChecks
         }
         static GameSnapshot Data(int leadership = 65, int tile = 24280, bool includeOfficer = true)
         {
-            var builder = new TestGame().Force(1, 1, 1).Force(2, 2, 2).City(1, 1).City(2, 2).Gate(52, 1);
+            var builder = OriginalMapCastles(new TestGame().Force(1, 1, 1).Force(2, 2, 2).City(1, 1).City(2, 2).Gate(52, 1));
             for (int i = 1; i <= 120; i++)
                 if (i != 11 || includeOfficer) builder.Officer(i, "장수" + i, 1, 1, 3);
             if (includeOfficer) builder.With(11, OfficerFields.Leadership, leadership).Leading(11);

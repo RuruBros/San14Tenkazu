@@ -15,10 +15,10 @@ internal static class MapRoutes
     };
 
     // The hexes from start to goal, both included; null when there is no way (or the goal is too far to look).
-    internal static List<int>? Find(int start, int goal)
+    internal static List<int>? Find(int start, int goal, byte[]? terrainData = null)
     {
         if (start == goal) return [start];
-        byte[] terrain = MapTerrain.Terrain;
+        byte[] terrain = terrainData ?? MapTerrain.Terrain;
         var cost = new Dictionary<int, float> { [start] = 0 };
         var from = new Dictionary<int, int>();
         var open = new PriorityQueue<int, float>();

@@ -214,16 +214,16 @@ internal static partial class GameMemory
     internal static void GiveBase(GameIdentity identity, int baseId, ulong baseAddress, int ruler, ulong rulerAddress)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        bool city = baseId is >= 1 and <= CityCount;
+        bool city = baseId is >= 1 and <= TribeLast;
         if (!city && baseId is < GateFirst or > GateLast) throw new ArgumentOutOfRangeException(nameof(baseId));
         uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
         IntPtr handle = OpenProcess(access, false, identity.ProcessId);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
-            byte[] place = ReadBytes(handle, baseAddress, CityFields.IdOffset + 2);
+            byte[] place = ReadBytes(handle, baseAddress, city ? CityStride : CityFields.IdOffset + 2);
             if (BitConverter.ToUInt64(place, 0) != (city ? identity.Classes.City : identity.Classes.Gate) ||
-                BitConverter.ToUInt16(place, CityFields.IdOffset) != baseId)
+                BitConverter.ToUInt16(place, CityFields.IdOffset) != baseId || city && place[0xCE] is >= 18 and <= 22)
                 throw new InvalidOperationException(L.Give.Gone);
             if (BitConverter.ToUInt16(place, CityFields.CorpsOffset) != 0) throw new InvalidOperationException(L.Give.Taken);
             byte[] officer = ReadBytes(handle, rulerAddress, OfficerFields.StatusOffset + 1);
