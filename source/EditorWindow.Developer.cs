@@ -100,13 +100,22 @@ internal sealed partial class EditorWindow
     private async Task RunDeveloperTest(int mode)
     {
         if(developerChanging||developerMenu is not {} window)return;
+        var diagnosticStarted=System.Diagnostics.Stopwatch.GetTimestamp();
         try {
             if(game is not{Verified:true} identity||layout is not {} found||busy||seasonClosing||seasonDisconnecting)throw new InvalidOperationException(L.DeveloperUi.ReadyConnectionRequired);
             var target=window.Target??throw new InvalidOperationException(L.DeveloperUi.ChooseTargetCity);int kind=window.Kind.SelectedIndex;
             developerChanging=true;UpdateDeveloperControls();
+            if(developerNoticeDiagnostic is not null&&!await CancelDeveloperCore())throw new IOException(L.Seasons.Unrestored);
             var fresh=await Task.Run(()=>GameMemory.ReadSnapshot(identity,found));
             if(fresh.ForceOfCity(target.Id)!=target.Force)throw new InvalidOperationException(L.DeveloperUi.CityOwnerChanged);
             if(await Task.Run(()=>GameMemory.ReadPace(identity,found))!=GamePace.Paused)throw new InvalidOperationException(L.DeveloperUi.PauseRequired);
+            if(mode==1&&window.PictureDiagnostic.IsChecked==true){
+                if(seasonController?.Status is not{Phase:SeasonPhase.Off,OriginalRestored:true,Requested:false}||
+                    environmentController?.Status.Actual is {} effects&&effects!=EnvironmentEffects.None)throw new InvalidOperationException(L.DeveloperUi.PictureDiagnosticRendererOff);
+                developerNoticeDiagnostic=new(Path.Combine(seasonStorageRoot,"environment","diagnostics"),identity,fresh,target.Id,kind,found,diagnosticStarted);
+                StartDeveloperNoticeDeadline();
+                window.Append(L.DeveloperUi.PictureDiagnosticPrepared+developerNoticeDiagnostic.DirectoryPath);
+            }
             var values=environmentController?.Status.Receipt?.Values??environmentSettings.Values;
             string details=DisasterTestWindow.Losses(kind,values);
             if(mode==2&&W.MessageBox.Show(window,L.DeveloperUi.DamageConfirmation($"{target.Label}", $"{DisasterTestWindow.Names[kind]}", $"{details}"),L.DeveloperUi.DamageConfirmationTitle,W.MessageBoxButton.YesNo,W.MessageBoxImage.Warning)!=W.MessageBoxResult.Yes)return;
@@ -117,8 +126,11 @@ internal sealed partial class EditorWindow
             }
             if(environmentController.Status.Phase!=EnvironmentPhase.On)
                 await environmentController.ApplyAsync(environmentSettings with{Effects=EnvironmentEffects.None},keepEmptySession:true);
+            developerNoticeDiagnostic?.Observe(environmentController.Status);
             developerRendering=true;await SyncWeatherRenderingAsync();
+            if(developerNoticeDiagnostic?.DeadlineExpired==true)throw new TimeoutException("Diagnostic preparation exceeded 120 seconds");
             await environmentController.TestAsync(mode,target.Id,kind);
+            developerNoticeDiagnostic?.Observe(environmentController.Status);
             if(environmentController.Status.Receipt is not {} receipt||receipt.TestState is 5 or 6)
                 throw new InvalidOperationException(L.DeveloperUi.GameFrameRejected);
             RecordEnvironment(L.DeveloperUi.DisasterTestEvidence($"{identity.ProcessId}", $"{target.Label}", $"{DisasterTestWindow.Names[kind]}", $"{mode}", $"{details}"));
@@ -134,7 +146,7 @@ internal sealed partial class EditorWindow
                 if(controller.Status.Phase==EnvironmentPhase.On)await controller.TestAsync(0,1,0);
                 if(controller.Status.Requested==EnvironmentEffects.None)await controller.StopAsync();
             }
-            developerRendering=false;await SyncWeatherRenderingAsync();return true;
+            developerRendering=false;await SyncWeatherRenderingAsync();await CompleteDeveloperNoticeDiagnostic();return true;
         }catch(Exception error){developerMenu?.Append(L.DeveloperUi.RecoveryUnconfirmed+error.Message);RecordEnvironment("Developer recovery failure: "+error);return false;}
     }
     private async Task<bool> CancelDeveloperTest()

@@ -10,6 +10,7 @@ inline uint64_t random(uint64_t seed,uint32_t date,uint32_t city,uint32_t kind) 
     value=(value^(value>>27))*0x94d049bb133111eb;return value^(value>>31);
 }
 inline uint32_t weather(uint64_t seed,uint32_t date,uint32_t city,int temperature,int precipitation) {
+    if(!effectCity(city))return 0;
     uint32_t chance=static_cast<uint32_t>(std::clamp(precipitation/5,50,650));
     if(temperature<=20) {
         uint32_t block=date/3;if(random(seed,block,city,2)%1000>=chance)return 0;
@@ -44,6 +45,7 @@ inline bool valid(const Values& v) {
 }
 inline uint32_t disasters(uint64_t seed,uint32_t day,uint32_t city,uint32_t flags,const Values& v,
     uint32_t w,int t,int p,bool river,bool trees) {
+    if(!effectCity(city))return 0;
     uint32_t result=0;
     if((flags&Flood)&&river&&(w&3)==2&&p>=800&&random(seed,day,city,10)%1000<uint32_t(v.floodChance))result|=Flood;
     if((flags&Wildfire)&&trees&&t>=180&&p<600&&!w&&random(seed,day,city,11)%1000<uint32_t(v.wildfireChance))result|=Wildfire;

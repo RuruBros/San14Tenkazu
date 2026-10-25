@@ -242,7 +242,7 @@ public:
             &&weatherSnapshot->date==(p.year|(p.month<<16)|(p.day<<24));
         std::array<uint16_t,environment::TileCount> cells{};std::array<RegionMark,environment::CitySlots> indicators{};std::array<uint32_t,environment::CitySlots> counts{};
         if(received)for(size_t tile=0;tile<cells.size();tile++){
-            auto city=weatherSnapshot->regions[tile];if(city<1||city>environment::CitySlots)continue;uint32_t code=weatherSnapshot->weather[city-1];
+            auto city=weatherSnapshot->regions[tile];if(!environment::effectCity(city))continue;uint32_t code=weatherSnapshot->weather[city-1];
             if(!(weatherSnapshot->flags&(1|4|64)))code&=~3;if(!(weatherSnapshot->flags&(2|4|128)))code&=~12;
             auto& mark=indicators[city-1];mark.mask=((code&3)?1u:0u)|((code&12)?2u:0u);mark.dates[5]=weatherSnapshot->date;
             for(uint32_t k=0;k<5;k++){auto date=weatherSnapshot->recentDates[(city-1)*5+k];

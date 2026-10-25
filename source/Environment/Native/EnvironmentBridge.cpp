@@ -16,6 +16,7 @@ extern "C" __declspec(dllexport) const char San14BuildProfileIdentity[]=SAN14_BU
 #include "EnvironmentPolicy.h"
 #include "EnvironmentSignatures.h"
 #include "EnvironmentWeather.h"
+#include "EnvironmentNoticeTraceStore.h"
 using namespace environment;
 namespace {
 struct Handle {HANDLE value{};~Handle(){if(value&&value!=INVALID_HANDLE_VALUE)CloseHandle(value);}};
@@ -42,6 +43,30 @@ struct World {
     uint16_t cityTiles[CitySlots+1]{};wchar_t cityNames[CitySlots+1][5]{};
     uint64_t availableCities{},unavailableCities{};
 };
+// Compare the exact inputs consumed by region()/topology(), not a sampled hash
+// or just root/state pointers. SSE2 is part of the supported Windows x64 ABI.
+// Other tile fields can change without invalidating geography.
+bool tileInputs(uint64_t address,uint8_t* saved,bool capture) noexcept {
+    static_assert(gamebuild::Memory::TileStride==0x20&&gamebuild::Memory::TileBaseOffset==0x1a);
+    const auto klassMask=_mm_set_epi64x(0,-1);
+    const auto geographyMask=_mm_set_epi64x(0x00000000ffff0000ll,0x00000000ffff00ffll);
+    __try {
+        for(size_t offset=0;offset<TileCount*0x20;offset+=0x20){
+            auto a=_mm_and_si128(_mm_loadu_si128(reinterpret_cast<const __m128i*>(address+offset)),klassMask);
+            auto b=_mm_and_si128(_mm_loadu_si128(reinterpret_cast<const __m128i*>(address+offset+16)),geographyMask);
+            if(capture){_mm_storeu_si128(reinterpret_cast<__m128i*>(saved+offset),a);_mm_storeu_si128(reinterpret_cast<__m128i*>(saved+offset+16),b);}
+            else if(_mm_movemask_epi8(_mm_cmpeq_epi8(a,_mm_loadu_si128(reinterpret_cast<const __m128i*>(saved+offset))))!=0xffff||
+                    _mm_movemask_epi8(_mm_cmpeq_epi8(b,_mm_loadu_si128(reinterpret_cast<const __m128i*>(saved+offset+16))))!=0xffff)return false;
+        }
+        return true;
+    } __except(EXCEPTION_EXECUTE_HANDLER){return false;}
+}
+bool sameGeographyWorld(const World& a,const World& b) {
+    return a.root==b.root&&a.state==b.state&&a.tiles==b.tiles&&a.units==b.units&&
+        a.availableCities==b.availableCities&&a.unavailableCities==b.unavailableCities&&
+        !std::memcmp(a.cities,b.cities,sizeof(a.cities))&&!std::memcmp(a.counties,b.counties,sizeof(a.counties))&&
+        !std::memcmp(a.cityTiles,b.cityTiles,sizeof(a.cityTiles))&&!std::memcmp(a.cityNames,b.cityNames,sizeof(a.cityNames));
+}
 struct Session {
     Bootstrap input;std::atomic<bool> admission{true};
     std::atomic<uint32_t> failure{0},thread{0};std::atomic<uint64_t> frames{0},speedCalls{0},slowed{0};
@@ -51,6 +76,11 @@ struct Session {
     uint32_t testHour{},testNoticeFlags{};
     std::recursive_mutex stateLock;Reply state;World previous{};
     uint8_t regionHasRiver[CitySlots+1]{},regionHasForest[CitySlots+1]{},regionByTile[TileCount]{};uint64_t topologyRoot{},topologyState{},topologyFingerprint{},lastTopologyFingerprint{};
+    std::vector<uint8_t> geographyTiles=std::vector<uint8_t>(TileCount*0x20);
+    uint64_t countyClasses[501]{};uint8_t countyHomes[501]{};bool geographyReady=false;
+#ifdef ENVIRONMENT_FIXTURE
+    uint64_t topologyBuilds=0;
+#endif
     uint32_t lastDate{},lastHour{};uint64_t lastState{},lastRoot{};
     struct Notice{uint32_t date,city,kind,units=0;int64_t troops=0,morale=0,food=0;};std::vector<Notice> notices;
     uint64_t noticeQueued=0;uint32_t noticeDate=0,noticeCity=0,noticeKind=0;
@@ -58,7 +88,8 @@ struct Session {
     uint32_t testNoticeKind=0;NoticePresentation presentation;std::atomic<bool> stopPresentation{false},presentationBusy{false};
     BYTE speedBefore[sizeof(MoveSpeedCode)]{},speedInstalled[sizeof(MoveSpeedCode)]{};
     DWORD speedProtect{},slotProtect{};bool prepared{},speedHooked{},slotHooked{};
-    explicit Session(const Bootstrap& value):input(value){state.generation=value.generation;}
+    std::shared_ptr<notice_trace::Store> noticeTrace=std::make_shared<notice_trace::Store>();
+    explicit Session(const Bootstrap& value):input(value){state.generation=value.generation;presentation.trace=noticeTrace.get();}
     bool world(World& result) {
         result.root=read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
         result.state=read<uint64_t>(result.root,gamebuild::Memory::StatePointer);
@@ -116,6 +147,9 @@ struct Session {
         auto city=read<uint8_t>(record,0x34);return city>=1&&city<=CitySlots&&(world.availableCities&(uint64_t(1)<<(city-1)))?city:0;
     }
     void topology(const World& world) {
+#ifdef ENVIRONMENT_FIXTURE
+        ++topologyBuilds;
+#endif
         // Observe decoded geography even when a reload reuses the same root/state addresses.
         uint64_t fingerprint=1469598103934665603ull;
         auto mix=[&](uint64_t value){fingerprint^=value;fingerprint*=1099511628211ull;};
@@ -133,6 +167,16 @@ struct Session {
             if(forest(terrain))regionHasForest[city]=1;
         }
         topologyRoot=world.root;topologyState=world.state;topologyFingerprint=fingerprint;
+    }
+    bool captureGeographyInputs(const World& world) {
+        for(uint32_t i=1;i<=500;i++){
+            countyClasses[i]=read<uint64_t>(world.counties[i]);countyHomes[i]=read<uint8_t>(world.counties[i],0x34);
+        }
+        return tileInputs(world.tiles,geographyTiles.data(),true);
+    }
+    bool sameGeographyInputs(const World& world) {
+        for(uint32_t i=1;i<=500;i++)if(countyClasses[i]!=read<uint64_t>(world.counties[i])||countyHomes[i]!=read<uint8_t>(world.counties[i],0x34))return false;
+        return tileInputs(world.tiles,geographyTiles.data(),false);
     }
     bool riverside(const World& world,uint32_t tile) const {
         uint32_t x=tile%220,y=tile/220;
@@ -172,47 +216,62 @@ struct Session {
         }
     }
     uint32_t testFlags() const {return testNoticeFlags|(state.testCity&&state.testKind<DisasterCount&&(state.testState==2||state.testState==4)?DisasterFlags[state.testKind]:0);}
-    void cancelTest(uint32_t reason=0) {
+    void cancelTest(uint32_t reason=0,uint32_t cause=notice_trace::ManualCancel) {
+        if(state.testMode==1&&(state.testState==1||state.testState==2||state.testState==7))noticeTrace->stop(cause);
+        presentation.traceEvent(input.module,notice_trace::Cancel,reason);
         if(presentation.diagnostic)presentation.poll(input.module,true);
         if(presentation.lastReceipt)state.reserved=presentation.diagnosticReceipt();
         testNotice.clear();state.testState=presentation.diagnostic&&presentation.busy()?7:5;state.testError=reason;
     }
+#ifdef ENVIRONMENT_FIXTURE
+    bool fixtureForegroundPid=true,fixtureEngineForeground=true;
+#endif
     bool testForeground() const {
 #ifdef ENVIRONMENT_FIXTURE
-        return true;
+        auto samePid=fixtureForegroundPid;
 #else
-        DWORD pid{};GetWindowThreadProcessId(GetForegroundWindow(),&pid);
-        return pid==GetCurrentProcessId()&&read<uint8_t>(input.module+gamebuild::Engine::ForegroundRva)==1;
+        DWORD pid{};GetWindowThreadProcessId(GetForegroundWindow(),&pid);auto samePid=pid==GetCurrentProcessId();
 #endif
+        if(!noticeGate(noticeTrace.get(),notice_trace::ForegroundPid,samePid,samePid))return false;
+#ifdef ENVIRONMENT_FIXTURE
+        auto foreground=uint8_t(fixtureEngineForeground);
+#else
+        auto foreground=read<uint8_t>(input.module+gamebuild::Engine::ForegroundRva);
+#endif
+        return noticeGate(noticeTrace.get(),notice_trace::EngineForeground,foreground==1,foreground);
     }
     void testFrame(const World& w,const Message& config,uint32_t hour,bool continuous,bool changed) {
-        auto request=testRequest.exchange(nullptr);auto now=GetTickCount64();
+        auto request=testRequest.exchange(nullptr);auto now=notice_trace::milliseconds();
         if(request) {
             auto mode=request->reserved&255,city=(request->reserved>>8)&255,kind=(request->reserved>>16)&255;
             cancelTest();state.testId=request->sequence;state.testMode=mode;state.testCity=city;state.testKind=kind;state.testDate=w.date;state.testError=0;
             if(mode){state.reserved=0;presentation.lastReceipt=0;}
             if(!mode)return;
-            if(mode>2||city<1||city>CitySlots||kind>=DisasterCount||!(w.availableCities&(uint64_t(1)<<(city-1)))||presentation.busy()) {state.testState=6;state.testError=ERROR_INVALID_STATE;return;}
+            if(mode>2||!effectCity(city)||kind>=DisasterCount||!(w.availableCities&(uint64_t(1)<<(city-1)))||presentation.busy()) {state.testState=6;state.testError=ERROR_INVALID_STATE;return;}
             testRoot=w.root;testWorld=w.state;testConfig=config.sequence;testHour=hour;testDeadline=now+120000;testStillSince=now;testForegroundSince=0;
+            if(mode==1&&effectCity(city)){noticeTrace->start(request->sequence,kind);presentation.traceEvent(input.module,notice_trace::Requested);}
             state.testState=mode==1?1:3;
             // A request received on a boundary never authorizes damage on that same frame.
             return;
         }
         if(state.testState!=1&&state.testState!=2&&state.testState!=3)return;
+        if(noticeTrace->enabled&&noticeTrace->expired()){cancelTest();return;}
         if(w.root!=testRoot||w.state!=testWorld||config.sequence!=testConfig||changed||
-            (lastDate&&w.date!=lastDate&&!continuous)||(lastDate==w.date&&hour<lastHour)) {cancelTest(ERROR_INVALID_STATE);return;}
+            (lastDate&&w.date!=lastDate&&!continuous)||(lastDate==w.date&&hour<lastHour)) {cancelTest(ERROR_INVALID_STATE,notice_trace::StateChanged);return;}
         if(state.testMode==1) {
-            if(w.date!=state.testDate||hour!=testHour){cancelTest(ERROR_RETRY);return;}
-            if(now>=testDeadline){cancelTest(WAIT_TIMEOUT);return;}
+            if(w.date!=state.testDate||hour!=testHour){cancelTest(ERROR_RETRY,notice_trace::StateChanged);return;}
+            if(now>=testDeadline){cancelTest(WAIT_TIMEOUT,notice_trace::PreparationDeadline);return;}
             if(!testForeground()){testForegroundSince=0;return;}
             if(!testForegroundSince)testForegroundSince=now;
-            if(state.testState==1&&now-testStillSince>=800&&now-testForegroundSince>=800&&!presentation.busy()&&noticeReady(input.module)) {
+            if(state.testState==1&&noticeGate(noticeTrace.get(),notice_trace::RequestAge,now-testStillSince>=800,now-testStillSince)&&
+                noticeGate(noticeTrace.get(),notice_trace::ForegroundAge,now-testForegroundSince>=800,now-testForegroundSince)&&
+                noticeGate(noticeTrace.get(),notice_trace::NotBusy,!presentation.busy(),presentation.busy())&&noticeReady(input.module,noticeTrace.get())) {
                 wchar_t fallback[24]{};swprintf_s(fallback,L"도시 %u",state.testCity);
                 const auto cityName=w.cityNames[state.testCity][0]?w.cityNames[state.testCity]:fallback;
                 wchar_t text[201]{};const wchar_t* names[]{L"홍수",L"산불",L"가뭄",L"폭설",L"폭염"};
                 swprintf_s(text,L"[개발자 · 표시 전용] %s · %s\f지도 표식과 그림·원본 효과음 확인\f병력·사기·병량 피해 없음.\f종료 시 테스트 표식을 지웁니다.",cityName,names[state.testKind]);
                 if(presentation.begin(input.module,text,state.testKind,true)){state.testState=2;state.reserved=1;presentationBusy=presentation.busy();}
-                else {state.testState=6;state.testError=ERROR_INVALID_STATE;}
+                else {noticeTrace->stop(notice_trace::QueueFailure);state.testState=6;state.testError=ERROR_INVALID_STATE;}
             }
         }
     }
@@ -226,11 +285,16 @@ struct Session {
         if(notices.empty()&&!presentation.busy())testNoticeFlags=0;
         if(presentation.lastReceipt)state.reserved=presentation.diagnosticReceipt();
         if(!admission)return;
+        geographyReady=false;
         auto id=GetCurrentThreadId();thread.store(id);
         ++frames;auto config=pending.load();if(!config)return;
-        World worldValue{};if(!world(worldValue)){if(state.testState>=1&&state.testState<=3)cancelTest(ERROR_INVALID_STATE);testRequest.store(nullptr);lastDate=0;return;}
+        World worldValue{};if(!world(worldValue)){if(state.testState>=1&&state.testState<=3)cancelTest(ERROR_INVALID_STATE,notice_trace::StateChanged);testRequest.store(nullptr);lastDate=0;return;}
         state.thread=id;state.date=worldValue.date;
-        topology(worldValue);bool geographyChanged=lastTopologyFingerprint&&lastTopologyFingerprint!=topologyFingerprint;
+        if(!captureGeographyInputs(worldValue)){lastDate=0;return;}
+        topology(worldValue);
+        World verified{};
+        if(!world(verified)||verified.date!=worldValue.date||!sameGeographyWorld(verified,worldValue)||!sameGeographyInputs(verified)){lastDate=0;return;}
+        bool geographyChanged=lastTopologyFingerprint&&lastTopologyFingerprint!=topologyFingerprint;
         state.availableCities=worldValue.availableCities;state.unavailableCities=worldValue.unavailableCities;
         uint32_t today=serial(worldValue.date);
         uint32_t hour=read<uint8_t>(worldValue.state,0x38);
@@ -239,6 +303,7 @@ struct Session {
             today==serial(lastDate)+1&&lastHour>hour;
         if(lastDate&&(geographyChanged||lastRoot!=worldValue.root||lastState!=worldValue.state||(worldValue.date!=lastDate&&!continuous))){
             std::memset(state.recentDates,0,sizeof(state.recentDates));notices.clear();}
+        std::fill(state.recentDates+46*DisasterCount,state.recentDates+CitySlots*DisasterCount,0u);
         for(auto& date:state.recentDates)if(date&&(today<serial(date)||today-serial(date)>=10))date=0;
         bool changed=state.applied!=config->sequence;
         auto requestThisFrame=testRequest.load()!=nullptr;
@@ -246,7 +311,7 @@ struct Session {
         state.applied=config->sequence;state.flags=config->flags;state.values=config->values;
         if(presentation.busy()&&!presentation.diagnostic&&!((config->flags|testFlags())&DisasterFlags[presentation.kind]))presentation.poll(input.module,true);
         for(uint32_t city=1;city<=CitySlots;city++) {
-            if(!(worldValue.availableCities&(uint64_t(1)<<(city-1)))){state.weather[city-1]=0;continue;}
+            if(!effectCity(city)||!(worldValue.availableCities&(uint64_t(1)<<(city-1)))){state.weather[city-1]=0;continue;}
             int t{},p{};climate(*config,worldValue,city,worldValue.date,t,p);
             state.weather[city-1]=static_cast<uint8_t>(weather(config->seed,today,city,t,p));
         }
@@ -267,15 +332,16 @@ struct Session {
             else fail(ERROR_INVALID_DATA);
         }
         state.noticesQueued=noticeQueued;state.noticesPending=static_cast<uint32_t>(notices.size());state.noticeDate=noticeDate;state.noticeCity=noticeCity;state.noticeKind=noticeKind;
+        geographyReady=true;
     }
     void effects(const World& world,const Message& config,uint32_t today,uint32_t testCity=0,uint32_t testKind=0) {
         uint32_t disasters[CitySlots+1]{};
         for(uint32_t city=1;city<=CitySlots;city++) {
-            if(!(world.availableCities&(uint64_t(1)<<(city-1))))continue;
+            if(!effectCity(city)||!(world.availableCities&(uint64_t(1)<<(city-1))))continue;
             int t{},p{};climate(config,world,city,world.date,t,p);
             disasters[city]=environment::disasters(config.seed,today,city,config.flags,config.values,state.weather[city-1],t,p,regionHasRiver[city],regionHasForest[city]);
         }
-        if(testCity&&testKind<DisasterCount)disasters[testCity]=
+        if(effectCity(testCity)&&testKind<DisasterCount)disasters[testCity]=
             (testKind==0&&!regionHasRiver[testCity])||(testKind==1&&!regionHasForest[testCity])?0:DisasterFlags[testKind];
         // Verified plain fields, on the engine frame after its update. Fractional losses retain positive units.
         // Native morale mitigation and zero-morale destruction queues remain the game's responsibility.
@@ -284,7 +350,7 @@ struct Session {
             if(read<uint64_t>(unit)!=input.unitClass)return fail(ERROR_INVALID_DATA);
             uint32_t kind=read<uint8_t>(unit,0x10),commander=read<uint16_t>(unit,0x12);
             if((kind!=1&&kind!=2)||!commander)continue;
-            uint32_t tile=read<uint16_t>(unit,0x2a),city=region(world,tile);if(!city)continue;
+            uint32_t tile=read<uint16_t>(unit,0x2a),city=region(world,tile);if(!effectCity(city))continue;
             uint32_t terrain=read<uint8_t>(world.tiles+tile*0x20,0x10),eventKind=0;
             int troops=read<uint16_t>(unit,0x16),morale=read<uint8_t>(unit,0x1a),newTroops=troops,newMorale=morale;
             if(troops<=0||morale<=0)continue;
@@ -328,17 +394,23 @@ struct Session {
     void fail(uint32_t error){failure=error;admission=false;}
     bool weatherSnapshot(WeatherSnapshot& result) {
         std::lock_guard lock(stateLock);auto config=pending.load();World currentWorld{};
-        if((!admission&&!presentation.visual())||!config||state.applied!=config->sequence||!world(currentWorld)||currentWorld.root!=previous.root||currentWorld.state!=previous.state)return false;
-        topology(currentWorld);if(lastTopologyFingerprint!=topologyFingerprint)return false;
+        if((!admission&&!presentation.visual())||!config||state.applied!=config->sequence||!geographyReady||!world(currentWorld)||!sameGeographyWorld(currentWorld,previous))return false;
+        // A frame publishes geography only after a full rebuild and input check.
+        // Every reader still validates ALL consumed raw fields, including same-
+        // address reloads; it never rebuilds regions/fingerprint on the Draw path.
+        if(lastTopologyFingerprint!=topologyFingerprint||!sameGeographyInputs(currentWorld))return false;
         result.generation=state.generation;result.sequence=state.applied;result.date=currentWorld.date;result.flags=admission?config->flags:0;
         result.reserved=presentation.visual();
         result.flags|=testFlags();
         std::memcpy(result.regions,regionByTile,sizeof(regionByTile));
         std::memcpy(result.recentDates,state.recentDates,sizeof(result.recentDates));
-        if(state.testState==2)result.recentDates[(state.testCity-1)*DisasterCount+state.testKind]=currentWorld.date;
+        std::fill(result.recentDates+46*DisasterCount,result.recentDates+CitySlots*DisasterCount,0u);
+        if(state.testState==2&&effectCity(state.testCity))result.recentDates[(state.testCity-1)*DisasterCount+state.testKind]=currentWorld.date;
         for(auto& date:result.recentDates)if(date&&(serial(currentWorld.date)<serial(date)||serial(currentWorld.date)-serial(date)>=10))date=0;
-        for(uint32_t city=1;city<=CitySlots;city++){if(!(currentWorld.availableCities&(uint64_t(1)<<(city-1)))){result.weather[city-1]=0;continue;}int t{},p{};climate(*config,currentWorld,city,currentWorld.date,t,p);
+        if(currentWorld.date==lastDate)std::memcpy(result.weather,state.weather,sizeof(result.weather));
+        else for(uint32_t city=1;city<=CitySlots;city++){if(!effectCity(city)||!(currentWorld.availableCities&(uint64_t(1)<<(city-1)))){result.weather[city-1]=0;continue;}int t{},p{};climate(*config,currentWorld,city,currentWorld.date,t,p);
             result.weather[city-1]=static_cast<uint8_t>(weather(config->seed,serial(currentWorld.date),city,t,p));}
+        for(uint32_t city=1;city<=CitySlots;city++)if(!effectCity(city)||!(currentWorld.availableCities&(uint64_t(1)<<(city-1))))result.weather[city-1]=0;
         return currentWorld.date==read<uint32_t>(currentWorld.state,0x34)&&currentWorld.root==read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust;
     }
     int speed(void* value,int original) {
@@ -349,7 +421,7 @@ struct Session {
         if(read<uint64_t>(input.module+gamebuild::Memory::BasePointerRva)+gamebuild::Memory::BaseAdjust!=previous.root||read<uint64_t>(previous.root,gamebuild::Memory::StatePointer)!=previous.state)return original;
         if(unit<previous.units||unit>=previous.units+501*0x200||((unit-previous.units)%0x200)!=0)return original;
         if(read<uint64_t>(unit)!=input.unitClass)return original;
-        auto tile=read<uint16_t>(unit,0x2a);uint32_t city=region(previous,tile);if(!city)return original;
+        auto tile=read<uint16_t>(unit,0x2a);uint32_t city=region(previous,tile);if(!effectCity(city))return original;
         if(water(read<uint8_t>(previous.tiles+tile*0x20,0x10)))return original;
         uint32_t date=read<uint32_t>(previous.state,0x34);if(!validDate(date))return original;
         int t{},p{};climate(*config,previous,city,date,t,p);
@@ -358,6 +430,8 @@ struct Session {
     }
 };
 std::atomic<std::shared_ptr<Session>> current;
+std::atomic<std::shared_ptr<notice_trace::Store>> lastNoticeTrace;
+std::atomic<bool> noticeTraceUsed{false};
 BOOL readWeather(WeatherSnapshot* output) {
     WeatherSnapshot header;if(!output||!copy(header,reinterpret_cast<uint64_t>(output))||header.magic!=WeatherMagic||header.version!=WeatherVersion||header.size!=sizeof(header))return FALSE;
     auto session=current.load();WeatherSnapshot result;
@@ -420,7 +494,7 @@ namespace {
 Recovery finish(const std::shared_ptr<Session>& s) {
     Recovery result;result.generation=s->input.generation;result.reserved=s->failure;s->admission=false;
     if(!s->prepared){result.complete=1;return result;}
-    s->stopPresentation=true;auto uiDeadline=GetTickCount64()+2000;
+    s->noticeTrace->stop(notice_trace::OwnerStop);s->stopPresentation=true;auto uiDeadline=GetTickCount64()+2000;
     while(s->presentationBusy&&GetTickCount64()<uiDeadline)Sleep(1);
     if(s->presentationBusy){result.error=ERROR_BUSY;return result;}
     auto speedTarget=reinterpret_cast<BYTE*>(s->input.module+gamebuild::Engine::MoveSpeedRva);
@@ -443,6 +517,8 @@ Recovery finish(const std::shared_ptr<Session>& s) {
     if(callbacks||std::memcmp(speedTarget,s->speedBefore,sizeof(MoveSpeedCode))||!protection(speedTarget,sizeof(MoveSpeedCode),s->speedProtect)) {
         result.error=ERROR_INVALID_STATE;return result;
     }
+    s->presentation.traceEvent(s->input.module,notice_trace::Finished);
+    if(s->noticeTrace->enabled)lastNoticeTrace.store(s->noticeTrace);
     result.frames=s->frames;result.thread=s->thread;result.complete=1;current.store(nullptr);s->pending.store(nullptr);return result;
 }
 bool attach(const std::shared_ptr<Session>& s) {
@@ -555,6 +631,23 @@ extern "C" __declspec(dllexport) DWORD WINAPI EnvironmentRecover(Bootstrap* requ
     auto result=finish(session);request->recovery=result;return result.error;
 }
 extern "C" __declspec(dllexport) BOOL WINAPI EnvironmentReadWeather(WeatherSnapshot* output){return readWeather(output);}
+static BOOL copyNoticeQuery(notice_trace::Query* output,const notice_trace::Query& value)noexcept{
+    __try{*output=value;return TRUE;}__except(EXCEPTION_EXECUTE_HANDLER){return FALSE;}
+}
+extern "C" __declspec(dllexport) BOOL WINAPI EnvironmentNoticeTraceExchange(notice_trace::Query* output){
+    notice_trace::Query query;if(!output||!copy(query,reinterpret_cast<uint64_t>(output))||query.magic!=notice_trace::Magic||
+        query.version!=notice_trace::Version||query.size!=sizeof(query)||!query.season||query.command>4)return FALSE;
+    auto session=current.load();auto trace=session?session->noticeTrace:lastNoticeTrace.load();if(!trace)return FALSE;
+    if(query.command==1){
+        if(!session||!session->admission||query.controllerPid!=session->input.controllerPid||query.controllerStart!=session->input.controllerStartFileTime||noticeTraceUsed.exchange(true))return FALSE;
+        if(!trace->arm(session->input.generation,query.season))return FALSE;
+        notice_trace::State armed;armed.phase=notice_trace::Armed;trace->record(armed);
+    }
+    if(!trace->read(query))return FALSE;
+    if(query.command==4){if(query.reserved<notice_trace::PreparationDeadline||query.reserved>notice_trace::OwnerStop)return FALSE;trace->stop(query.reserved);}
+    if(query.command==3){if(!query.state.ended)return FALSE;lastNoticeTrace.store(nullptr);}
+    return copyNoticeQuery(output,query);
+}
 #ifndef ENVIRONMENT_FIXTURE
 BOOL WINAPI DllMain(HINSTANCE instance,DWORD reason,LPVOID) {if(reason==DLL_PROCESS_ATTACH)DisableThreadLibraryCalls(instance);return TRUE;}
 #endif

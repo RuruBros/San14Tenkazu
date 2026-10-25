@@ -24,11 +24,11 @@ internal static partial class RenderChecks
         catch(System.IO.IOException){failed=true;}
         Require(failed&&failureMemory.Read(failing.Cities[47].Address,failing.Cities[47].Data.Length).SequenceEqual(failing.Cities[47].Data)&&failureMemory.Read(failing.CastleByCity[47].Address,failing.CastleByCity[47].Data.Length).SequenceEqual(failing.CastleByCity[47].Data),"Log failure after write must still restore city and castle");
         var window=new DisasterTestWindow();window.SetCities(GeographyFixture.Create(51));
-        Require(window.Cities.Items.Count==51&&window.Cities.Items.Cast<DisasterTestWindow.City>().Any(c=>c.Id==51),"Loaded extra city must be selectable");
+        Require(window.Cities.Items.Count==46&&window.Cities.Items.Cast<DisasterTestWindow.City>().All(c=>c.Id<=46),"Extra cities must be excluded from effect test selection while remaining editable");
         window.SetCities(original);Require(window.Cities.Items.Count==46,"Original tribal targets must remain excluded");
         var receipt=new San14Tenkazu.EnvironmentRules.EnvironmentProtocol.Reply{Date=192|(7u<<16)|(11u<<24),Weather=new byte[51],RecentDates=new uint[255],TestState=2,TestCity=51,TestKind=2};
         var overlay=San14Tenkazu.EnvironmentRules.EnvironmentOverlay.From(new(San14Tenkazu.EnvironmentRules.EnvironmentPhase.On,0,0,false,receipt));
-        Require(overlay?.IsPreview(51,5)==true&&overlay.Recent(51,5)==receipt.Date,"Added city preview must retain receipt provenance");
+        Require(overlay is null,"Stale added city preview must not create a visible marker");
         receipt.AvailableCities=(1UL<<51)-1;receipt.Weather[50]=3;receipt.TestId=7;
         receipt.Events=[new(){Id=1,City=49,Kind=2,FoodBefore=30000,FoodAfter=28200}];
         var status=new San14Tenkazu.EnvironmentRules.EnvironmentStatus(San14Tenkazu.EnvironmentRules.EnvironmentPhase.On,0,0,false,receipt);

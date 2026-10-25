@@ -33,6 +33,9 @@ internal static partial class RenderChecks
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadDeveloperGeographyTopology")==expected,"Raw geography diagnostic leaked into public build");
         Require((typeof(EditorWindow).GetMethod("RunDeveloperGeography",Hidden)!=null)==expected,"City diagnostics leaked into public build");
         Require((typeof(EditorWindow).GetMethod("DeveloperEnvironmentEvidence",Hidden|BindingFlags.Static)!=null)==expected,"Native receipt diagnostic leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("PrepareDeveloperNoticeScene",Hidden)!=null)==expected&&
+            (typeof(EditorWindow).Assembly.GetType("San14Tenkazu.DeveloperNoticeDiagnostic")!=null)==expected,"Picture diagnostics leaked into public build");
+        Require((typeof(EditorWindow).Assembly.GetType("San14Tenkazu.DeveloperNoticeCausality")!=null)==expected,"Causal diagnostic reader leaked into public build");
         Require((typeof(LogPanel).GetMethod("SetDeveloperButton",Hidden)!=null)==expected,"Developer log-header entry leaked into public build");
 #if LOCAL_DEVELOPER
         CheckNoticeTypographyReader();
@@ -40,11 +43,14 @@ internal static partial class RenderChecks
         CheckCompatibilityDiagnostic();
         CheckDeveloperEntry();
         CheckDeveloperGeography();
+        CheckDeveloperNoticeDiagnostic();
         var fixture=new DeveloperFixture();var controller=new EnvironmentController(fixture,Console.WriteLine);
         try {
             controller.ApplyAsync(EnvironmentSettings.New(),keepEmptySession:true).GetAwaiter().GetResult();
             Require(controller.Status is{Phase:EnvironmentPhase.On,Actual:EnvironmentEffects.None},"Developer session must not enable gameplay effects on startup");
-            controller.TestAsync(2,51,2).GetAwaiter().GetResult();Require(controller.Status.Receipt is{TestCity:51,TestKind:2,TestState:3},"Controller must preserve target and scheduled receipt");
+            bool excluded=false;try{controller.TestAsync(2,51,2).GetAwaiter().GetResult();}catch(ArgumentOutOfRangeException){excluded=true;}
+            Require(excluded,"Controller must reject excluded city before dispatch");
+            controller.TestAsync(2,46,2).GetAwaiter().GetResult();Require(controller.Status.Receipt is{TestCity:46,TestKind:2,TestState:3},"Controller must preserve original city target and scheduled receipt");
             controller.TestAsync(0,1,0).GetAwaiter().GetResult();Require(controller.Status.Receipt is{TestState:5},"Controller must acknowledge cancellation");
         }finally{controller.DisposeAsync().AsTask().GetAwaiter().GetResult();}
         Require(fixture.Stopped,"Developer controller must restore native ownership on disposal");
@@ -54,6 +60,7 @@ internal static partial class RenderChecks
         try {
             window.Show();window.UpdateLayout();
             Require(window.Kind.Items.Count==5&&window.Cities.Items.Count>0,"Disaster/city choices missing");
+            Require(window.PictureDiagnostic.IsChecked==true&&window.PictureDiagnostic.IsEnabled,"Approved preview picture diagnostics must be visible and enabled");
             Require(window.Preview.IsEnabled&&window.Damage.IsEnabled&&window.Stop.IsEnabled&&window.ReadText.IsEnabled,"Separate test actions missing");
             window.Cities.SelectedItem=null;Require(window.ReadText.IsEnabled&&window.ReadTraits.IsEnabled&&!window.Preview.IsEnabled,"Read-only diagnostics must not require a damage target");window.Cities.SelectedIndex=0;
             window.SetAvailable(false,true);Require(!window.Preview.IsEnabled&&!window.Damage.IsEnabled&&!window.ReadTraits.IsEnabled&&window.Stop.IsEnabled,"Busy state must retain cancellation");

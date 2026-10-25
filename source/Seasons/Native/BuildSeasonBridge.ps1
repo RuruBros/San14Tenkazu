@@ -10,7 +10,7 @@ $taskFiles+=@('SeasonSceneChecks.cpp','SeasonSceneGpu.h','SeasonWeatherCapture.h
     '..\Shaders\SeasonGameWeather.hlsl','..\Shaders\SeasonGameParameters.hlsli','..\Shaders\SeasonCommon.hlsli','..\Shaders\SeasonTreeCoverage.hlsli','..\Shaders\SeasonWeather.hlsli')
 $taskFiles+=@('SeasonRiceGpu.h','SeasonRiceChecks.cpp','..\Shaders\SeasonGameRice.hlsl','..\Shaders\SeasonVegetation.hlsli')
 $taskFiles+=@('..\..\Environment\Native\EnvironmentWeather.h')
-$taskFiles+=@('SeasonNoticeArt.h')
+$taskFiles+=@('SeasonNoticeArt.h','SeasonNoticeCausality.h','..\..\Environment\Native\EnvironmentNoticeTrace.h')
 $taskFiles+=@('GameBuildFacts.g.h')
 $taskHashes=@{}
 foreach($taskFile in $taskFiles){$taskHashes[$taskFile]=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $taskFile)).Hash.ToLower()}
@@ -84,4 +84,4 @@ $taskManifestHashes=@{}
 foreach($taskFile in $taskFiles){$taskName=[IO.Path]::GetFileName($taskFile);Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskName) -ErrorAction Stop;$taskManifestHashes[$taskName]=$taskHashes[$taskFile]}
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
 if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant() -cne $taskGameProfileHash){throw 'Game build profile changed during Native build.'}
-[ordered]@{nativeBuild=59;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
+[ordered]@{nativeBuild=67;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8

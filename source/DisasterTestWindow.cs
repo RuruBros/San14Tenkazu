@@ -13,6 +13,7 @@ internal sealed class DisasterTestWindow:W.Window
     internal readonly WC.ComboBox Cities=new(){Margin=new W.Thickness(0,4,0,12)};
     internal readonly PlateButton Preview=new(L.DeveloperUi.Preview){ToolTip=L.DeveloperUi.PreviewTip},Damage=new(L.DeveloperUi.ScheduleDamage),Stop=new(L.DeveloperUi.CancelTest),Refresh=new(L.DeveloperUi.RefreshCities);
     internal readonly PlateButton ReadText=new(L.DeveloperUi.ReadNotice){ToolTip=L.DeveloperUi.ReadNoticeTip};
+    internal readonly WC.CheckBox PictureDiagnostic=new(){Content=L.DeveloperUi.PictureDiagnostic,IsChecked=true,ToolTip=L.DeveloperUi.PictureDiagnosticTip,Margin=new W.Thickness(0,0,0,10)};
     internal readonly WC.TextBlock Status=new(){TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,12,0,12)};
     internal readonly WC.TextBox Log=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto,MinHeight=150};
     internal readonly PlateButton ReadTraits=new(L.DeveloperUi.ReadTraits);
@@ -33,6 +34,7 @@ internal sealed class DisasterTestWindow:W.Window
         form.Children.Add(new WC.TextBlock{Text=L.DeveloperUi.CityHeading});form.Children.Add(Cities);form.Children.Add(Refresh);
         form.Children.Add(new WC.TextBlock{Text=L.DeveloperUi.DisasterKind,Margin=new W.Thickness(0,12,0,0)});form.Children.Add(Kind);
         form.Children.Add(new WC.TextBlock{Text=L.DeveloperUi.DisasterInstructions,TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,0,0,12)});
+        form.Children.Add(PictureDiagnostic);
         var actions=new WC.WrapPanel();foreach(var button in new[]{Preview,Damage,Stop,ReadText}){button.Margin=new W.Thickness(0,0,8,8);actions.Children.Add(button);}form.Children.Add(actions);form.Children.Add(Status);
         Cities.SelectionChanged+=(_,_)=>SelectionChanged();Kind.SelectionChanged+=(_,_)=>SelectionChanged();
         var diagnostic = new WC.DockPanel { Margin = new W.Thickness(20) };
@@ -55,11 +57,11 @@ internal sealed class DisasterTestWindow:W.Window
     }
     private bool available;
     private void SelectionChanged(){Preview.IsEnabled=Damage.IsEnabled=available&&Target is not null&&Kind.SelectedIndex>=0;}
-    internal void SetAvailable(bool ready,bool stop){available=ready;Cities.IsEnabled=Kind.IsEnabled=Refresh.IsEnabled=ReadText.IsEnabled=ReadTraits.IsEnabled=ready;Stop.IsEnabled=stop;SelectionChanged();}
+    internal void SetAvailable(bool ready,bool stop){available=ready;PictureDiagnostic.IsEnabled=Cities.IsEnabled=Kind.IsEnabled=Refresh.IsEnabled=ReadText.IsEnabled=ReadTraits.IsEnabled=ready;Stop.IsEnabled=stop;SelectionChanged();}
     internal void AppendTraitDiagnostic(string text){TraitLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);TraitLog.ScrollToEnd();}
     internal void SetCompatibilityAvailable(bool ready,bool reading){ReadCompatibility.IsEnabled=ready;CancelCompatibility.IsEnabled=reading;}
     internal void AppendCompatibility(string text){CompatibilityLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);CompatibilityLog.ScrollToEnd();}
-    internal void SetCities(GameSnapshot data){int selected=Target?.Id??1;Cities.ItemsSource=data.CityIds.Select(id=>new City(id,data.ForceOfCity(id),data.CityName(id)+" · "+data.ForceName(data.ForceOfCity(id)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);}
+    internal void SetCities(GameSnapshot data){int selected=Target?.Id??1;Cities.ItemsSource=data.CityIds.Where(EnvironmentPolicy.EffectCity).Select(id=>new City(id,data.ForceOfCity(id),data.CityName(id)+" · "+data.ForceName(data.ForceOfCity(id)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);}
     internal void SetGeographyAvailable(bool ready){ReadGeography.IsEnabled=EditGeography.IsEnabled=ready;}
     internal void AppendGeography(string text){GeographyLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);GeographyLog.ScrollToEnd();}
     internal void Append(string text){Log.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);Log.ScrollToEnd();}

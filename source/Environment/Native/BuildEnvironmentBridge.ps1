@@ -1,9 +1,10 @@
-﻿param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
 $taskGameProfile=Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json') -Raw | ConvertFrom-Json
 $taskGameProfileHash=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant()
 $taskFiles=@('EnvironmentBridge.cpp','EnvironmentProtocol.h','EnvironmentPolicy.h','EnvironmentSignatures.h','EnvironmentWeather.h','EnvironmentChecks.cpp','BuildEnvironmentBridge.ps1','EnvironmentNotification.h','EnvironmentNotificationSignatures.h','EnvironmentNoticeSound.h','GameBuildFacts.g.h')
+$taskFiles+=@('EnvironmentNoticeTrace.h','EnvironmentNoticeTraceStore.h')
 $taskHashes=@{};foreach($taskFile in $taskFiles){$taskHashes[$taskFile]=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $taskFile)).Hash.ToLower()}
 $taskSourceRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $taskZip=Join-Path $taskSourceRoot 'Reverse\.cache\tools\detours-4.0.1.zip'
@@ -42,4 +43,4 @@ $taskSnapshot=Join-Path $taskOut 'sources';New-Item -ItemType Directory -Path $t
 foreach($taskFile in $taskFiles){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskFile) -ErrorAction Stop}
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
 if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant() -cne $taskGameProfileHash){throw 'Game build profile changed during Native build.'}
-[ordered]@{nativeBuild=23;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'EnvironmentBridge.dll')).Hash.ToLower();hashes=$taskHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;nativeFixtureVerified=$true;liveGameVerified=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
+[ordered]@{nativeBuild=26;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'EnvironmentBridge.dll')).Hash.ToLower();hashes=$taskHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;nativeFixtureVerified=$true;liveGameVerified=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
