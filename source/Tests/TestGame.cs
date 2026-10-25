@@ -232,6 +232,7 @@ internal sealed class TestGame
 
     internal GameSnapshot Build(RuntimeRuleSettings? rules = null, int playerForce = -1) => new()
     {
+        Session = new(GameSessionPhase.Playing, 0, 0, []),
         RuntimeRules = rules ?? RuntimeRuleSettings.Original,
         PlayerForce = playerForce,
         Cities = cities,

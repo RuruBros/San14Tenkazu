@@ -36,9 +36,10 @@ internal static partial class RenderChecks
         var file = new RuntimeRulePreferenceFile(Path.Combine(storage, "runtime-rules"));
         GameIdentity? current = null;
         RuntimeRuleSettings? rules = RuntimeRuleSettings.Original;
-        int writes = 0; bool fail = false;
-        var access = new AutomaticGameAccess(() => current, id => current == id, _ => rules, _ => false,
-            (id, wanted, receipt) => { writes++; if (fail) throw new IOException("injected preparation failure"); rules = wanted; return true; });
+        int writes = 0; bool fail = false, dataReady = false;
+        GameSessionObservation session = new(GameSessionPhase.Title, 0, 0, []);
+        var access = new AutomaticGameAccess(() => current, id => current == id, _ => rules, _ => dataReady,
+            (id, wanted, receipt) => { writes++; if (fail) throw new IOException("injected preparation failure"); rules = wanted; return true; }, _ => session);
         var editor = new EditorWindow(() => false, storage, storage, storage, automaticGameAccess: access);
         var window = new RuntimeRulesWindow(null, offline: true);
         void Poll() => Await((Task)Call(editor, "PollAutomaticGameAsync")!);
@@ -70,6 +71,33 @@ internal static partial class RenderChecks
             window.Close();
             var unknown = new RuntimeRulesWindow(null);
             Check(!unknown.Apply.IsEnabled, "unknown-connected-rules-still-block-apply"); unknown.Close();
+            dataReady = true;
+            Poll();
+            Check(Field<System.Windows.Controls.TextBlock>(editor, "status").Text == L.Connection.TitleWaiting,
+                "populated-title-tables-show-title-waiting");
+            Check(writes == 3 && typeof(EditorWindow).GetField("game", Hidden)!.GetValue(editor) is null,
+                "title-neither-connects-nor-writes-rules");
+            var data = new TestGame().Build(playerForce: 0);
+            typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(editor, data);
+            typeof(EditorWindow).GetField("game", Hidden)!.SetValue(editor, current);
+            Call(editor, "UpdateControls");
+            Check(Field<PlateButton>(editor, "playButton").IsEnabled, "confirmed-play-with-zero-player-enables-auto-stop");
+            var hiddenDrafts = Field<CityEditorCard>(editor, "cityEditor").TableDrafts;
+            var retained = hiddenDrafts.Get(new CityTarget(1), CityFields.Troops, 100);
+            retained.Set(123);
+            Await((Task)Call(editor, "WaitForSessionAsync", current!.Value, session)!);
+            Check(typeof(EditorWindow).GetField("snapshot", Hidden)!.GetValue(editor) is null
+                && !Field<PlateButton>(editor, "playButton").IsEnabled, "title-return-clears-data-and-auto-stop");
+            Check(typeof(EditorWindow).GetField("game", Hidden)!.GetValue(editor) is null, "title-return-disconnects-old-world");
+            Check(File.ReadAllText(Field<EditorLogFile>(editor, "logFile").PathName).Contains("phase=Title"),
+                "title-state-evidence-is-written-to-editor-log");
+            Check(retained.IsChanged && retained.Value == 123, "title-return-retains-hidden-card-draft");
+            session = new(GameSessionPhase.Playing, 0, 0, []);
+            Poll();
+            Check(typeof(EditorWindow).GetField("game", Hidden)!.GetValue(editor) is null && writes == 3
+                && Field<WC.TextBlock>(editor, "status").Text == L.AutomaticSettings.PendingEdits,
+                "hidden-draft-after-title-blocks-unattended-reconnection");
+            hiddenDrafts.Clear();
             File.WriteAllText(Path.Combine(output, "checks.json"), JsonSerializer.Serialize(new { gameAccess = false, checks }, new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"PASS {checks.Count} automatic settings WPF checks; gameAccess=false");
         }

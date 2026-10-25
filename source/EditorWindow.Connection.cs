@@ -9,17 +9,54 @@ namespace San14Tenkazu;
 // The connection to the game: finding it, reading it again every two seconds, and AUTO(데모) 플레이.
 internal sealed partial class EditorWindow
 {
+    private string sessionEvidence = "";
+    private bool connectionWaitingForSession;
+    private bool sessionDataUnavailable;
+
+    private void ObserveSession(GameIdentity identity, GameSessionObservation session)
+    {
+        string evidence = $"Game session: PID={identity.ProcessId}, startUtc={identity.StartTimeUtc:O}, {session.Evidence}";
+        if (sessionEvidence == evidence) return;
+        sessionEvidence = evidence;
+        AddLog(evidence);
+    }
+
+    private async Task WaitForSessionAsync(GameIdentity identity, GameSessionObservation session)
+    {
+        ObserveSession(identity, session);
+        connectionWaitingForSession = true;
+        sessionDataUnavailable = true;
+        // Invalidate in-flight rule reads and remove live data immediately, even if
+        // native cleanup needs a retry. Drafts are retained until explicit discard.
+        layoutRecovering = true;
+        snapshot = null;
+        writesAllowed = false;
+        ResetRules();
+        map.SetSnapshot(null);
+        map.HideEditors();
+        FillLists();
+        demoNoticed = false;
+        if (!await DisconnectAsync(null) && game is not null) liveTimer.Start();
+        AutomaticNotice(session.WaitingMessage);
+    }
+
     private async Task ConnectAsync()
     {
         if (busy || automaticGameChecking && !automaticGameConnecting) return;
         if (!ConfirmDiscard()) return;
+        connectionWaitingForSession = false;
+        sessionDataUnavailable = false;
         scanCancellation = new CancellationTokenSource();
         CancellationToken token = scanCancellation.Token;
         SetBusy(true, scanning: true);
+        GameIdentity? attemptedIdentity = null;
         try
         {
             status.Text = L.Connection.CheckingExe;
             GameIdentity identity = await Task.Run(GameMemory.FindGame, token);
+            attemptedIdentity = identity;
+            var session = await Task.Run(() => GameMemory.RequirePlayingSession(identity), token);
+            ObserveSession(identity, session);
             StartFaceLibrary(GameMemory.ExecutablePath(identity));
             if(!await DisconnectAsync(null))return;
             lists.TableDrafts.Clear();
@@ -41,8 +78,10 @@ internal sealed partial class EditorWindow
             if (found.UnitCount == 0) AddLog(L.Connection.NoUnits);
             SetOperationProgress(L.OperationProgress.Reading);
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found), token);
+            if (data.Session is {} loadedSession) ObserveSession(identity, loadedSession);
             countryNames = await Task.Run(() => GameMemory.ReadCountryNames(identity, found), token);
             catalog = await Task.Run(() => GameMemory.ReadCatalog(identity, found), token);
+            await Task.Run(() => GameMemory.RequirePlayingSession(identity), token);
             officerEditor.SetCatalog(catalog);
             forceEditor.SetNames(countryNames, catalog);
             if (catalog.Personalities.Length == 0 || catalog.Tactics.Length == 0) AddLog(L.Connection.NoNameLists);
@@ -70,6 +109,12 @@ internal sealed partial class EditorWindow
             demoNoticed = false;
             ObservePlayerForce(data);
         }
+        catch (GameSessionUnavailableException ex)
+        {
+            connectionWaitingForSession = true;
+            // FindGame may have succeeded before game was assigned.
+            if (attemptedIdentity is {} observed) await WaitForSessionAsync(observed, ex.Observation);
+        }
         catch (OperationCanceledException)
         {
             status.Text = L.Connection.SearchCancelled;
@@ -88,10 +133,10 @@ internal sealed partial class EditorWindow
             SetBusy(false, scanning: false);
         }
         // The game builds its AI trees anew from its file when it starts: the numbers kept go in again.
-        if (game is not null) await ReapplyAiAsync();
-        if (game is not null) await ReapplyRuntimeRulesAsync(retry: true);
-        if (game is not null) await ReapplyEnvironmentAsync(retry: true);
-        if (game is not null) { ruleTimer.Start(); await PollRulesAsync(); }
+        if (game is not null && !layoutRecovering) await ReapplyAiAsync();
+        if (game is not null && !layoutRecovering) await ReapplyRuntimeRulesAsync(retry: true);
+        if (game is not null && !layoutRecovering) await ReapplyEnvironmentAsync(retry: true);
+        if (game is not null && !layoutRecovering) { ruleTimer.Start(); await PollRulesAsync(); }
     }
 
     private async Task ReloadAsync()
@@ -118,6 +163,10 @@ internal sealed partial class EditorWindow
             status.Text = L.Connection.Reread;
             ObservePlayerForce(snapshot);
         }
+        catch (GameSessionUnavailableException ex)
+        {
+            await WaitForSessionAsync(identity, ex.Observation);
+        }
         catch (Exception ex)
         {
             await DisconnectAsync(L.Connection.ReadFailed);
@@ -142,6 +191,7 @@ internal sealed partial class EditorWindow
             GameSnapshot? before = snapshot;
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found, before));
             if (busy || game != identity) return;
+            if (data.Session is {} session) ObserveSession(identity, session);
             replaced = !layout.SameStorage(found);
             if (replaced) undoHistory.RemoveAll(h => h.Rule is null);
             layout = found;
@@ -150,6 +200,10 @@ internal sealed partial class EditorWindow
             map.SetSnapshot(data);
             MergeSnapshot();
             ObservePlayerForce(data);
+        }
+        catch (GameSessionUnavailableException ex)
+        {
+            if (game == identity) await WaitForSessionAsync(identity, ex.Observation);
         }
         catch (Exception ex)
         {
@@ -257,7 +311,7 @@ internal sealed partial class EditorWindow
 
     private async Task ResumePlayAsync()
     {
-        if (busy || game is null || layout is null || snapshot is not { IsDemoPlay: true } data) return;
+        if (busy || layoutRecovering || game is null || layout is null || snapshot is not { IsDemoPlay: true } data) return;
         if (WriteBlock([GameChecks.World]) is { } blocked)
         {
             ReportError(new InvalidOperationException(blocked));

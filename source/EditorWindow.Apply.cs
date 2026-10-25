@@ -4,7 +4,8 @@
 internal sealed partial class EditorWindow
 {
     // Typed values wait in the open editor card; reading the game again or leaving drops them, after asking.
-    private bool HasPendingEdits => OpenEditor is { Pending: > 0 } || lists.Pending > 0 || aiView?.Pending == true;
+    private bool HasPendingEdits => OpenEditor is { Pending: > 0 } || lists.Pending > 0 || aiView?.Pending == true
+        || sessionDataUnavailable && Editors.Any(card => card.Pending > 0);
     private bool ConfirmDiscard() =>
         !HasPendingEdits || Confirm(L.Apply.DiscardAndGoOn);
 

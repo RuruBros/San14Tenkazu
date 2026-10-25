@@ -112,6 +112,8 @@ internal static partial class L
         internal static string ReadFailed => T();
         internal static string Disconnected(object? message) => Format(T(), (nameof(message), message));
         internal static string WorldReplaced => T();
+        internal static string TitleWaiting => T();
+        internal static string SessionWaiting => T();
     }
 
     // 검증하지 않은 게임 버전

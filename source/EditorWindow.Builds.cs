@@ -47,6 +47,7 @@ internal sealed partial class EditorWindow
 
     // Why values of these groups may not be written to the game now, or null when they may.
     private string? WriteBlock(IEnumerable<string> groups) =>
+        layoutRecovering || snapshot is null ? L.Connection.SessionWaiting :
         game is { } identity ? GameChecks.WriteBlock(identity.Verified, writesAllowed, checks, groups) : null;
 
     // Saves what is kept about a build; a save that fails is only logged (the next connection asks or searches again).
