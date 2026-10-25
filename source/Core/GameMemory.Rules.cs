@@ -61,7 +61,10 @@ internal static partial class GameMemory
     // Re-resolve only the verified root. During a load, unavailable tables wait for the next refresh;
     // do not start a whole-process fallback scan over objects being destroyed/reconstructed.
     internal static GameLayout ReadCurrentLayout(GameIdentity identity)
-        => TryReadCurrentLayout(identity) ?? throw new InvalidOperationException(L.Rules.NotReady);
+    {
+        RequirePlayingSession(identity);
+        return TryReadCurrentLayout(identity) ?? throw new InvalidOperationException(L.Rules.NotReady);
+    }
 
     internal static GameLayout? TryReadCurrentLayout(GameIdentity identity)
     {

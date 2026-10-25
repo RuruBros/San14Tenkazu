@@ -40,6 +40,7 @@ internal sealed partial class EditorWindow
                 runtimeRuleFile.ReceiptPath, () => runtimeRuleFile.Read() == preference, automaticGameCancellation.Token));
             if (automaticGameCancellation.IsCancellationRequested) return;
             candidate = observation.Identity;
+            if (candidate is {} observed && observation.Session is {} session) ObserveSession(observed, session);
             switch (observation.Phase)
             {
                 case AutomaticGamePhase.Absent:
@@ -48,6 +49,9 @@ internal sealed partial class EditorWindow
                     AutomaticNotice(L.AutomaticSettings.Starting); break;
                 case AutomaticGamePhase.RulesApplied:
                     AutomaticNotice(L.AutomaticSettings.RulesApplied); break;
+                case AutomaticGamePhase.SessionWaiting:
+                    automaticGameFailure = null;
+                    AutomaticNotice(observation.Session!.WaitingMessage); break;
                 case AutomaticGamePhase.Unsupported:
                     // No rules can be prepared for an unknown build, but the editor still connects to it once (read-only
                     // until its self-checks pass), as it did at startup before the automatic settings existed.
@@ -63,7 +67,7 @@ internal sealed partial class EditorWindow
                     automaticGameConnecting = true;
                     try { await ConnectAsync(); }
                     finally { automaticGameConnecting = false; }
-                    if (game != candidate) { automaticGameFailure = candidate; automaticFailedPreference = preference; }
+                    if (game != candidate && !connectionWaitingForSession) { automaticGameFailure = candidate; automaticFailedPreference = preference; }
                     else { automaticGameFailure = null; automaticNotice = ""; }
                     break;
             }

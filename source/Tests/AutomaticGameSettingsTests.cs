@@ -9,6 +9,7 @@ public sealed class AutomaticGameSettingsTests
         internal int Finds, Writes;
         internal RuntimeRuleSettings? Rules = RuntimeRuleSettings.Original;
         internal Action? OnRead;
+        internal GameSessionObservation Session = new(GameSessionPhase.Playing, 0, 0, []);
         internal readonly RuntimeRulePreference Preference;
         internal readonly AutomaticGameSettings Monitor;
         internal Fixture(RuntimeRuleSettings? settings = null)
@@ -21,7 +22,7 @@ public sealed class AutomaticGameSettingsTests
                     Assert.Equal(Current, id); Assert.Equal($"receipt-{id.ProcessId}", path);
                     if (!PrepareAllowed) return false;
                     Writes++; Rules = CorruptReadback ? RuntimeRuleSettings.Original : settings; return true;
-                }));
+                }, _ => Session));
         }
         internal void Start(int pid = 10) => Current = new(pid, DateTime.UtcNow, 0x140000000, GameBuildProfiles.Current.ExeSha256, true, TestGame.Classes);
         internal AutomaticGameObservation Poll(CancellationToken token = default) => Monitor.Poll(Preference,
@@ -97,6 +98,22 @@ public sealed class AutomaticGameSettingsTests
         Assert.Equal(AutomaticGamePhase.Starting, f.Monitor.Poll(null, _ => "", () => true, default).Phase);
         f.Ready = true;
         Assert.Equal(AutomaticGamePhase.Connect, f.Monitor.Poll(null, _ => "", () => true, default).Phase);
+        Assert.Equal(0, f.Writes);
+    }
+
+    [Fact]
+    public void PopulatedTitleTablesWaitAndSameProcessConnectsAfterLoad()
+    {
+        var f = new Fixture(); f.Start(); f.Ready = true;
+        f.Session = new(GameSessionPhase.Title, 0, 0, []);
+        Assert.Equal(AutomaticGamePhase.SessionWaiting, f.Poll().Phase);
+        Assert.Equal(0, f.Writes);
+        f.Session = new(GameSessionPhase.Transition, 0, 1, []);
+        Assert.Equal(AutomaticGamePhase.SessionWaiting, f.Poll().Phase);
+        f.Session = new(GameSessionPhase.Playing, 0, 0, []);
+        Assert.Equal(AutomaticGamePhase.Connect, f.Poll().Phase);
+        f.Session = new(GameSessionPhase.Title, 0, 0, []);
+        Assert.Equal(AutomaticGamePhase.SessionWaiting, f.Poll().Phase);
         Assert.Equal(0, f.Writes);
     }
 }

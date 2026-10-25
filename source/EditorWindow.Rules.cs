@@ -139,7 +139,7 @@ internal sealed partial class EditorWindow
     // values in place both reach this path; unchanged values never trigger another write.
     private async Task PollRulesAsync()
     {
-        if (busy || refreshing || rulePolling || game is not { Verified: true } identity || layout is null) return;
+        if (busy || refreshing || layoutRecovering || rulePolling || game is not { Verified: true } identity || layout is null) return;
         rulePolling = true;
         long revision = ruleRevision;
         GameLayout currentLayout = layout;

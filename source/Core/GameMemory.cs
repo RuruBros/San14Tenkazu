@@ -211,7 +211,8 @@ internal sealed partial class GameSnapshot
     internal int Hour { get; init; } = -1;
     // Whether the game moved on since the read before this one (ReadSnapshot's before); Unknown without one.
     internal GamePace Pace { get; init; }
-    internal bool IsDemoPlay => DemoFlag || PlayerForce == 0;
+    internal GameSessionObservation? Session { get; init; }
+    internal bool IsDemoPlay => Session?.IsPlaying == true && (DemoFlag || PlayerForce == 0);
 
     internal int ForceOfCorps(int corps) => corps >= 0 && corps < CorpsForce.Length ? CorpsForce[corps] : 0;
     internal int CorpsLeader(int corps) => corps >= 0 && corps < CorpsLeaders.Length ? CorpsLeaders[corps] : 0;
@@ -335,6 +336,7 @@ internal sealed partial class GameSnapshot
             Date = Date,
             Hour = Hour,
             Pace = Pace,
+            Session = Session,
             RuntimeRules = RuntimeRules
         };
     }
@@ -815,6 +817,7 @@ internal static partial class GameMemory
     internal static GameSnapshot ReadSnapshot(GameIdentity identity, GameLayout layout, GameSnapshot? before = null)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
+        GameSessionObservation? session = identity.Verified ? RequirePlayingSession(identity) : null;
         IntPtr handle = OpenRead(identity.ProcessId);
         try
         {
@@ -972,8 +975,16 @@ internal static partial class GameMemory
                 hour = state[StateHourOffset];
             }
 
+            if (session is not null)
+            {
+                var afterSession = RequirePlayingSession(identity);
+                if (session.Entries[2].Address != afterSession.Entries[2].Address)
+                    throw new GameSessionUnavailableException(afterSession with { Phase = GameSessionPhase.Transition, Error = "Game session changed during snapshot read" });
+                session = afterSession;
+            }
             return new GameSnapshot
             {
+                Session = session,
                 // Runtime patches exist only on the verified build: an unknown build runs the original rules, and its
                 // ability curve is still checked by GameChecks before any write is allowed. Null means the verified
                 // build's code was found in a state no setting explains.
@@ -1107,6 +1118,7 @@ internal static partial class GameMemory
     internal static GamePace ReadPace(GameIdentity identity, GameLayout layout)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
+        if (identity.Verified && !ReadSession(identity).IsPlaying) return GamePace.Unknown;
         IntPtr handle = OpenRead(identity.ProcessId);
         try
         {
@@ -1119,7 +1131,7 @@ internal static partial class GameMemory
                 if (!TryRead(handle, layout.State + StateYearOffset, after)) return GamePace.Unknown;
                 if (!before.AsSpan().SequenceEqual(after)) return GamePace.Running;
             }
-            return GamePace.Paused;
+            return identity.Verified && !ReadSession(identity).IsPlaying ? GamePace.Unknown : GamePace.Paused;
         }
         finally { CloseHandle(handle); }
     }
@@ -1138,6 +1150,7 @@ internal static partial class GameMemory
 
     private static IReadOnlyList<string> ApplyWithRecoveryEdits(GameIdentity identity, IReadOnlyList<RecordEdit> edits, string? runtimeReceipt)
     {
+        if (identity.Verified) RequirePlayingSession(identity);
         GameCapabilities.Require(identity, GameFeature.DataWrite);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
@@ -1245,6 +1258,7 @@ internal static partial class GameMemory
     // again right before the write, both values are read back, and the old values are restored if anything fails.
     internal static DemoEnd EndDemoPlay(GameIdentity identity, GameLayout layout, int force)
     {
+        RequirePlayingSession(identity);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         if (layout.State == 0) throw new InvalidOperationException(L.Errors.NoStateForPlayer);
         if (force is < 1 or > MaxPlayerForce) throw new ArgumentOutOfRangeException(nameof(force));

@@ -2,16 +2,17 @@ namespace San14Tenkazu;
 
 internal sealed record AutomaticGameAccess(Func<GameIdentity?> Find, Func<GameIdentity, bool> Same,
     Func<GameIdentity, RuntimeRuleSettings?> ReadRules, Func<GameIdentity, bool> DataReady,
-    Func<GameIdentity, RuntimeRuleSettings, string, bool> Prepare)
+    Func<GameIdentity, RuntimeRuleSettings, string, bool> Prepare,
+    Func<GameIdentity, GameSessionObservation>? Session = null)
 {
     internal static readonly AutomaticGameAccess Live = new(
         () => GameMemory.IsRunning() ? GameMemory.FindGame() : null, GameMemory.IsSameGame,
         GameMemory.ReadRuntimeRules, id => GameMemory.TryReadCurrentLayout(id) is not null,
-        GameMemory.TryPrepareRuntimeRulesAutomatically);
+        GameMemory.TryPrepareRuntimeRulesAutomatically, GameMemory.ReadSession);
 }
 
-internal enum AutomaticGamePhase { Absent, Starting, RulesApplied, Connect, Unsupported }
-internal sealed record AutomaticGameObservation(GameIdentity? Identity, AutomaticGamePhase Phase);
+internal enum AutomaticGamePhase { Absent, Starting, RulesApplied, Connect, Unsupported, SessionWaiting }
+internal sealed record AutomaticGameObservation(GameIdentity? Identity, AutomaticGamePhase Phase, GameSessionObservation? Session = null);
 
 // Called serially. Cache EXE verification per process, never per polling interval.
 // Readiness is an observed table state, not proof that no load has previously occurred.
@@ -29,7 +30,12 @@ internal sealed class AutomaticGameSettings(AutomaticGameAccess access)
         if (observed is not { } identity) return new(null, AutomaticGamePhase.Absent);
         if (!identity.Verified) return new(identity, AutomaticGamePhase.Unsupported);
         preference?.CheckBuild(identity.ExeHash);
-        if (access.DataReady(identity)) return new(identity, AutomaticGamePhase.Connect);
+        var session = access.Session?.Invoke(identity);
+        AutomaticGameObservation Ready() => new(identity,
+            session is { IsPlaying: false } ? AutomaticGamePhase.SessionWaiting : AutomaticGamePhase.Connect, session);
+        // Raw tables also exist at the title. Keep their presence as the code-only
+        // preparation guard, but require the active game state before connecting.
+        if (access.DataReady(identity)) return Ready();
         if (preference is null) return new(identity, AutomaticGamePhase.Starting);
         var rules = access.ReadRules(identity);
         if (rules is null) return new(identity, AutomaticGamePhase.Starting);
@@ -43,7 +49,10 @@ internal sealed class AutomaticGameSettings(AutomaticGameAccess access)
         if (!intentCurrent()) throw new InvalidOperationException(L.Rules.ProfileMoved);
         if (!access.Same(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         if (!access.Prepare(identity, preference.Settings, receipt(identity)))
-            return new(identity, AutomaticGamePhase.Connect);
+        {
+            session = access.Session?.Invoke(identity);
+            return Ready();
+        }
         if (!access.Same(identity) || access.ReadRules(identity) != preference.Settings)
             throw new InvalidDataException(L.Preparation.VerificationFailed);
         prepared = preference;

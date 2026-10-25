@@ -321,7 +321,7 @@ internal sealed partial class EditorWindow : W.Window
         map.AiEnabled = !busy;
         // [검색 취소] only matters while the slow memory search runs.
         cancelButton.Visibility = busy && scanCancellation is not null ? W.Visibility.Visible : W.Visibility.Collapsed;
-        playButton.IsEnabled = !busy && snapshot?.IsDemoPlay == true;
+        playButton.IsEnabled = !busy && connected && snapshot?.IsDemoPlay == true;
         undoButton.IsEnabled = !busy && connected && undoHistory.Count > 0;
         undoButton.ToolTip = undoHistory.Count == 0 ? L.Undo.NothingTip
             : L.Undo.LastTip(undoHistory.Count, undoHistory[^1].Summary.Replace(", ", "\n"));
