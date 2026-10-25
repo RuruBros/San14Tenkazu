@@ -25,6 +25,8 @@ internal sealed partial class EditorWindow
         window.Damage.Click+=async()=>await RunDeveloperTest(2);
         window.Stop.Click+=async()=>await CancelDeveloperTest();
         window.ReadText.Click+=async()=>await ReadDeveloperNoticeText();
+        window.PerformanceStart.Click+=async()=>await RunPerformanceDiagnostic();
+        window.PerformanceStop.Click+=()=>performanceCancellation?.Cancel();
         window.ReadTraits.Click+=async()=>await ReadDeveloperTraitList();
         window.ReadCompatibility.Click+=()=>compatibilityTask=ReadDeveloperCompatibility();
         window.CancelCompatibility.Click+=()=>compatibilityCancellation?.Cancel();
@@ -32,6 +34,7 @@ internal sealed partial class EditorWindow
         window.EditGeography.Click+=async()=>await RunDeveloperGeography(true);
         bool closeAllowed=false,closePending=false;
         window.Closing+=async(_,e)=>{
+            if(performanceCancellation is {} measuring){measuring.Cancel();e.Cancel=true;return;}
             if(compatibilityCancellation is {} reading){reading.Cancel();e.Cancel=true;return;}
             if(closeAllowed)return;e.Cancel=true;if(developerChanging||closePending)return;closePending=true;
             try {
@@ -46,6 +49,7 @@ internal sealed partial class EditorWindow
     {
         if(developerMenu is not {} window)return;
         bool available=!developerChanging&&!environmentChanging&&!busy&&!seasonClosing&&!seasonDisconnecting;
+        window.PerformanceStart.IsEnabled=available&&seasonController?.Status.Phase==SeasonPhase.On;
         window.SetAvailable(available&&game is{Verified:true}&&layout is not null&&snapshot is not null,available);
         window.SetCompatibilityAvailable(available&&!refreshing&&!rulePolling&&!runtimeRulesChecking&&!environmentChecking&&!seasonStarting&&!seasonStopping,compatibilityCancellation is not null);
         window.SetGeographyAvailable(available&&!HasPendingEdits&&!refreshing&&!rulePolling&&!runtimeRulesChecking&&!environmentChecking&&!seasonStarting&&!seasonStopping&&game is{Verified:true}&&layout is not null&&snapshot is not null);

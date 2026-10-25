@@ -16,6 +16,7 @@ extern "C" __declspec(dllexport) const char San14BuildProfileIdentity[]=SAN14_BU
 #include "EnvironmentPolicy.h"
 #include "EnvironmentSignatures.h"
 #include "EnvironmentWeather.h"
+#include "EnvironmentWeatherTiming.h"
 #include "EnvironmentNoticeTraceStore.h"
 using namespace environment;
 namespace {
@@ -74,6 +75,7 @@ struct Session {
     std::atomic<std::shared_ptr<const Message>> testRequest;
     uint64_t testRoot{},testWorld{},testConfig{},testDeadline{},testStillSince{},testForegroundSince{};
     uint32_t testHour{},testNoticeFlags{};
+    std::atomic<uint64_t> performanceUntil{0},performanceFrames{0},performanceWait{0},performanceTotal{0};std::atomic<uint32_t> performanceThread{0};
     std::recursive_mutex stateLock;Reply state;World previous{};
     uint8_t regionHasRiver[CitySlots+1]{},regionHasForest[CitySlots+1]{},regionByTile[TileCount]{};uint64_t topologyRoot{},topologyState{},topologyFingerprint{},lastTopologyFingerprint{};
     std::vector<uint8_t> geographyTiles=std::vector<uint8_t>(TileCount*0x20);
@@ -276,10 +278,13 @@ struct Session {
         }
     }
     void frame() {
+        auto tick=[](){LARGE_INTEGER q{};QueryPerformanceCounter(&q);return uint64_t(q.QuadPart);};
+        bool measuring=performanceUntil.load()&&GetTickCount64()<performanceUntil.load();auto entered=measuring?tick():0;
+        struct FrameTiming {Session* s;uint64_t begin;~FrameTiming(){if(begin){LARGE_INTEGER q{};QueryPerformanceCounter(&q);s->performanceTotal.fetch_add(q.QuadPart-begin);s->performanceFrames.fetch_add(1);s->performanceThread=GetCurrentThreadId();}}};
         // The authenticated AppUpdate dispatch can migrate between game workers.
         // Serialize the whole admitted frame, including its baseline and notice
         // ownership; a thread ID is a receipt, not the frame's authorization.
-        std::lock_guard lock(stateLock);
+        std::lock_guard lock(stateLock);FrameTiming measuredFrame{this,entered};if(measuring)performanceWait.fetch_add(tick()-entered);
         presentation.poll(input.module,stopPresentation);presentationBusy=presentation.busy();
         if(state.testState==7&&!presentation.busy())state.testState=5;
         if(notices.empty()&&!presentation.busy())testNoticeFlags=0;
@@ -392,13 +397,20 @@ struct Session {
         }
     }
     void fail(uint32_t error){failure=error;admission=false;}
-    bool weatherSnapshot(WeatherSnapshot& result) {
-        std::lock_guard lock(stateLock);auto config=pending.load();World currentWorld{};
+    // Negative admission hint only. A positive result never replaces the full
+    // weather/geography validation performed immediately before image binding.
+    uint32_t noticeVisual() {std::lock_guard lock(stateLock);return presentation.visual();}
+    bool weatherSnapshot(WeatherSnapshot& result,WeatherTiming* timing=nullptr) {
+        auto tick=[](){LARGE_INTEGER q{};QueryPerformanceCounter(&q);return uint64_t(q.QuadPart);};
+        auto entered=timing?tick():0;std::lock_guard lock(stateLock);auto acquired=timing?tick():0;
+        if(timing){timing->wait=acquired-entered;performanceUntil=GetTickCount64()+1000;timing->frameCalls=performanceFrames;timing->frameWait=performanceWait;timing->frameTotal=performanceTotal;timing->frameThread=performanceThread;}
+        struct EndTiming {WeatherTiming* t;uint64_t begin;bool copying=false;~EndTiming(){if(t){LARGE_INTEGER q{};QueryPerformanceCounter(&q);(copying?t->copy:t->guard)=q.QuadPart-begin;}}} measured{timing,acquired};auto config=pending.load();World currentWorld{};
         if((!admission&&!presentation.visual())||!config||state.applied!=config->sequence||!geographyReady||!world(currentWorld)||!sameGeographyWorld(currentWorld,previous))return false;
         // A frame publishes geography only after a full rebuild and input check.
         // Every reader still validates ALL consumed raw fields, including same-
         // address reloads; it never rebuilds regions/fingerprint on the Draw path.
         if(lastTopologyFingerprint!=topologyFingerprint||!sameGeographyInputs(currentWorld))return false;
+        if(timing){auto now=tick();timing->guard=now-acquired;measured.begin=now;measured.copying=true;}
         result.generation=state.generation;result.sequence=state.applied;result.date=currentWorld.date;result.flags=admission?config->flags:0;
         result.reserved=presentation.visual();
         result.flags|=testFlags();
@@ -631,6 +643,15 @@ extern "C" __declspec(dllexport) DWORD WINAPI EnvironmentRecover(Bootstrap* requ
     auto result=finish(session);request->recovery=result;return result.error;
 }
 extern "C" __declspec(dllexport) BOOL WINAPI EnvironmentReadWeather(WeatherSnapshot* output){return readWeather(output);}
+extern "C" __declspec(dllexport) uint32_t WINAPI EnvironmentNoticeVisual(){auto session=current.load();return session?session->noticeVisual():0;}
+extern "C" __declspec(dllexport) BOOL WINAPI EnvironmentReadWeatherTiming(WeatherSnapshot* output,WeatherTiming* destination){
+    WeatherSnapshot header;WeatherTiming timing;
+    if(!output||!destination||!copy(header,reinterpret_cast<uint64_t>(output))||header.magic!=WeatherMagic||header.version!=WeatherVersion||header.size!=sizeof(header)||
+       !copy(timing,reinterpret_cast<uint64_t>(destination))||timing.size!=sizeof(timing)||timing.version!=1)return FALSE;
+    timing={};auto session=current.load();WeatherSnapshot result;bool ok=session&&session->weatherSnapshot(result,&timing);
+    if(!write(reinterpret_cast<uint64_t>(destination),timing))return FALSE;
+    return ok&&write(reinterpret_cast<uint64_t>(output),result);
+}
 static BOOL copyNoticeQuery(notice_trace::Query* output,const notice_trace::Query& value)noexcept{
     __try{*output=value;return TRUE;}__except(EXCEPTION_EXECUTE_HANDLER){return FALSE;}
 }

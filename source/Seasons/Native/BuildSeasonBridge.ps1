@@ -10,8 +10,8 @@ $taskFiles+=@('SeasonSceneChecks.cpp','SeasonSceneGpu.h','SeasonWeatherCapture.h
     '..\Shaders\SeasonGameWeather.hlsl','..\Shaders\SeasonGameParameters.hlsli','..\Shaders\SeasonCommon.hlsli','..\Shaders\SeasonTreeCoverage.hlsli','..\Shaders\SeasonWeather.hlsli')
 $taskFiles+=@('SeasonRiceGpu.h','SeasonRiceChecks.cpp','..\Shaders\SeasonGameRice.hlsl','..\Shaders\SeasonVegetation.hlsli')
 $taskFiles+=@('..\..\Environment\Native\EnvironmentWeather.h')
-$taskFiles+=@('SeasonNoticeArt.h','SeasonNoticeCausality.h','..\..\Environment\Native\EnvironmentNoticeTrace.h')
-$taskFiles+=@('GameBuildFacts.g.h')
+$taskFiles+=@('SeasonPerformance.h','SeasonPerformanceWeather.h','..\..\Environment\Native\EnvironmentWeatherTiming.h','SeasonNoticeArt.h','SeasonNoticeCausality.h','..\..\Environment\Native\EnvironmentNoticeTrace.h')
+$taskFiles+=@('GameBuildFacts.g.h','SeasonPerformanceChecks.cpp')
 $taskHashes=@{}
 foreach($taskFile in $taskFiles){$taskHashes[$taskFile]=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $taskFile)).Hash.ToLower()}
 $taskSourceRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -70,7 +70,7 @@ foreach($taskName in @('detours','modules','disasm','image','creatwth')){
     & $taskCl /nologo /c /MT /O2 /EHsc /W3 $taskIncludes "/Fo$taskObj" (Join-Path $taskVendor ($taskName+'.cpp'))
     if($LASTEXITCODE -ne 0){throw "Detours $taskName compile failed."};$taskObjects+=$taskObj
 }
-foreach($taskName in @('SeasonBridge','SeasonBridgeChecks','SeasonSceneChecks','SeasonRiceChecks')){
+foreach($taskName in @('SeasonBridge','SeasonBridgeChecks','SeasonSceneChecks','SeasonRiceChecks','SeasonPerformanceChecks')){
     $taskObj=Join-Path $taskOut ($taskName+'.obj')
     & $taskCl /nologo /c /std:c++20 /MT /O2 /EHsc /W4 $taskIncludes "/Fo$taskObj" (Join-Path $PSScriptRoot ($taskName+'.cpp'))
     if($LASTEXITCODE -ne 0){throw "$taskName compile failed."}
@@ -84,4 +84,4 @@ $taskManifestHashes=@{}
 foreach($taskFile in $taskFiles){$taskName=[IO.Path]::GetFileName($taskFile);Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskName) -ErrorAction Stop;$taskManifestHashes[$taskName]=$taskHashes[$taskFile]}
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
 if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant() -cne $taskGameProfileHash){throw 'Game build profile changed during Native build.'}
-[ordered]@{nativeBuild=67;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
+[ordered]@{nativeBuild=69;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'SeasonBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;gameCallbackVerified=$false;productionReady=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8

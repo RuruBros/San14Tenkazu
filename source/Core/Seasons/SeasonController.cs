@@ -3,7 +3,7 @@ namespace San14Tenkazu.Seasons;
 // Serializes the complete native lifecycle. The independent one-second source
 // reads the current world/date; map navigation never drives this controller.
 // No production renderer is substituted with a simulated success implementation.
-internal sealed class SeasonController(ISeasonDateSource dates, ISeasonNativeBackend backend,
+internal sealed partial class SeasonController(ISeasonDateSource dates, ISeasonNativeBackend backend,
     Func<ISeasonPulse>? pulses = null, SeasonScope scope = SeasonScope.Full) : IAsyncDisposable
 {
     private readonly SemaphoreSlim gate=new(1,1);

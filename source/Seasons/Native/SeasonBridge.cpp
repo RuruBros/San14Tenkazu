@@ -53,7 +53,7 @@ SRWLOCK dispatch=SRWLOCK_INIT,presentDispatch=SRWLOCK_INIT;std::mutex connection
 std::atomic<long> callbacks{0};
 thread_local unsigned callbackDepth=0;
 thread_local unsigned presentDepth=0;
-std::atomic<bool> hooked{false};
+std::atomic<bool> hooked{false};std::atomic<bool> performanceRunning{false};
 template<class T>T read(uint64_t p,size_t off=0) noexcept{
     T value{};if(!p)return value;
     __try{std::memcpy(&value,reinterpret_cast<void*>(p+off),sizeof(value));}__except(EXCEPTION_EXECUTE_HANDLER){}
@@ -73,6 +73,7 @@ struct Session {
     std::unique_ptr<SeasonSceneGpu> sceneGpu;
     std::unique_ptr<SeasonNoticeArt> noticeArt;
     std::unique_ptr<SeasonNoticeCausality> noticeCausality;
+    std::unique_ptr<season_perf::Trace> performance;std::atomic<season_perf::Trace*> performanceActive{nullptr};
     SeasonGroundSources groundSources;
     uint64_t fullEpoch=0;uint32_t fullClock=0,fullPasses=0;
     struct ShaderIdentity {uint64_t vo,po;uint32_t kind;ComPtr<ID3D11VertexShader> vs;ComPtr<ID3D11PixelShader> ps;bool accepted;};
@@ -115,17 +116,23 @@ void completedMaterialPass(Session& s,const TreeColorParameters& p,uint32_t pass
     s.fullPasses|=pass;
 }
 struct Scope {
-    DWORD error;unsigned csr;std::shared_ptr<Session> session;bool present=false;
+    DWORD error;unsigned csr;std::shared_ptr<Session> session;bool present=false;season_perf::Trace* previousPerf=nullptr;
     Scope(bool isPresent=false):error(GetLastError()),csr(_mm_getcsr()),present(isPresent){
-        callbacks.fetch_add(1);if((present?presentDepth++:callbackDepth++)==0)AcquireSRWLockShared(present?&presentDispatch:&dispatch);session=current.load();
+        previousPerf=season_perf::local;auto waitStart=performanceRunning.load()?season_perf::tick():0;callbacks.fetch_add(1);if((present?presentDepth++:callbackDepth++)==0)AcquireSRWLockShared(present?&presentDispatch:&dispatch);auto waitEnd=waitStart?season_perf::tick():0;session=current.load();
         // A late entry after Stop may call the original, but must not touch the
         // session's render resources while finish releases them after drain.
         if(session&&!session->admission.load())session.reset();
+        auto perf=session?session->performanceActive.load():nullptr;
+        if(perf&&!present&&session->thread==GetCurrentThreadId()&&session->context&&session->sameScene()){
+            season_perf::local=perf;
+            if(perf&&callbackDepth==1)perf->visit(session->context.Get(),GetCurrentThreadId());
+            if(perf&&waitStart&&perf->active())perf->add(season_perf::DispatchWait,waitEnd-waitStart,waitEnd-waitStart);
+        }else season_perf::local=nullptr;
         _mm_setcsr(csr);SetLastError(error);
     }
     void preserve(){error=GetLastError();csr=_mm_getcsr();}
     void restore(){_mm_setcsr(csr);SetLastError(error);}
-    ~Scope(){session.reset();if((present?--presentDepth:--callbackDepth)==0)ReleaseSRWLockShared(present?&presentDispatch:&dispatch);callbacks.fetch_sub(1);_mm_setcsr(csr);SetLastError(error);}
+    ~Scope(){season_perf::local=previousPerf;session.reset();if((present?--presentDepth:--callbackDepth)==0)ReleaseSRWLockShared(present?&presentDispatch:&dispatch);callbacks.fetch_sub(1);_mm_setcsr(csr);SetLastError(error);}
 };
 struct CausalTicket;
 thread_local CausalTicket* causalTicket=nullptr;
@@ -196,13 +203,14 @@ struct MaterialTicket {
     Scope* scope;void* driver;uint32_t count,start;bool swapped=false;
     std::shared_ptr<TreeColorParameters> parameters;ComPtr<ID3D11ShaderResourceView> saved;
     TreeColorParameters rendered{};
-    uint32_t path=0;SeasonSceneTicket scene;NoticeArtTicket notice;
+    uint32_t path=0;SeasonSceneTicket scene;NoticeArtTicket notice;bool performanceGeometry=false;
 };
 thread_local MaterialTicket* materialTicket=nullptr;
 #ifdef SEASON_BRIDGE_FIXTURE
 BOOL (WINAPI* fixtureReadNotice)(environment::WeatherSnapshot*)=nullptr;
 #endif
 void enterTree(MaterialTicket& ticket) noexcept {
+    season_perf::Cpu measured(season_perf::TreeEnter);
     auto s=ticket.scope->session;
     if(s&&treeCount(ticket.count)&&ticket.start==0)++s->selection[1];
     if(!s||!s->admission.load()||ticket.swapped||!treeCount(ticket.count)||ticket.start!=0||
@@ -270,6 +278,7 @@ void enterTree(MaterialTicket& ticket) noexcept {
     }catch(...){s->failure=ERROR_NOT_ENOUGH_MEMORY;s->admission=false;}
 }
 void leaveTree(MaterialTicket& ticket,uint32_t before) noexcept {
+    season_perf::Cpu measured(season_perf::TreeLeave);
     if(!ticket.swapped)return;auto s=ticket.scope->session;auto* context=s->context.Get();
     auto* saved=ticket.saved.Get();context->PSSetShaderResources(0,1,&saved);
     if(ticket.scene.changed&&!s->sceneGpu->leave(context,ticket.scene)){s->failure=ERROR_INVALID_STATE;s->admission=false;return;}
@@ -286,6 +295,7 @@ void leaveTree(MaterialTicket& ticket,uint32_t before) noexcept {
     }
 }
 void enterLand(MaterialTicket& ticket)noexcept{
+    season_perf::Cpu measured(season_perf::LandEnter);
     auto s=ticket.scope->session;
     if(!s||!s->admission||!s->context||s->thread!=GetCurrentThreadId()||!s->sameScene()||ticket.scene.changed)return;
     ticket.parameters=s->pending.load();if(!ticket.parameters||!ticket.parameters->full)return;
@@ -305,6 +315,7 @@ void enterLand(MaterialTicket& ticket)noexcept{
     }catch(...){s->failure=ERROR_NOT_ENOUGH_MEMORY;s->admission=false;}
 }
 void leaveLand(MaterialTicket& ticket,uint32_t before)noexcept{
+    season_perf::Cpu measured(season_perf::LandLeave);
     if(!ticket.scene.changed&&!ticket.scene.observed)return;auto s=ticket.scope->session;
     if(!s->sceneGpu->leave(s->context.Get(),ticket.scene)){s->failure=ERROR_INVALID_STATE;s->admission=false;return;}if(ticket.scene.changed)++s->restores;
     const auto& p=ticket.rendered;
@@ -325,6 +336,7 @@ void leaveLand(MaterialTicket& ticket,uint32_t before)noexcept{
 void afterScene(Scope& scope,void* driver,uint32_t start,uint32_t count,uint32_t before)noexcept{
     auto s=scope.session;if(!s||!s->admission||!s->sceneGpu||start||count!=3||!s->context||s->thread!=GetCurrentThreadId()||!s->sameScene())return;
     auto p=s->pending.load();TreeColorParameters rendered{};
+    if(auto* perf=s->performanceActive.load();perf&&perf->active()&&perf->date&&perf->date!=read<uint32_t>(s->input.state,0x34))perf->stop(6);
     if(!p||!p->full||!renderParameters(*s,p,rendered)||s->fullClock!=packedDate(rendered)||
         read<uint32_t>(reinterpret_cast<uint64_t>(driver),0x2ad0)!=before+1){
         if(sceneShader(*s,driver,4))s->sceneGpu->discardRiceFrame();return;
@@ -347,6 +359,7 @@ void afterScene(Scope& scope,void* driver,uint32_t start,uint32_t count,uint32_t
     }catch(...){s->failure=ERROR_NOT_ENOUGH_MEMORY;s->admission=false;}
 }
 void enterNotice(MaterialTicket& ticket,bool observationOnly=false,std::shared_ptr<Session> observedSession={},NoticeObservation* observation=nullptr)noexcept{
+    season_perf::Cpu measured(season_perf::Notice);
     // Geometry counts do not authenticate an image. Direct Draw and Batch paths
     // use different counts; the exact original sprite descriptor and full hash do.
     auto s=ticket.scope?ticket.scope->session:std::move(observedSession);if(!s||!s->noticeArt)return;s->noticeArt->record(0);
@@ -363,9 +376,14 @@ void enterNotice(MaterialTicket& ticket,bool observationOnly=false,std::shared_p
         auto env=GetModuleHandleW(L"EnvironmentBridge.dll");auto get=env?reinterpret_cast<BOOL(WINAPI*)(environment::WeatherSnapshot*)>(GetProcAddress(env,"EnvironmentReadWeather")):nullptr;
 #ifdef SEASON_BRIDGE_FIXTURE
         get=fixtureReadNotice;
+#else
+        // Only reject an absent picture here; a positive hint still requires
+        // the fresh full snapshot, reload, date, owner and original-art guards.
+        auto visual=env?reinterpret_cast<uint32_t(WINAPI*)()>(GetProcAddress(env,"EnvironmentNoticeVisual")):nullptr;
+        if(visual){auto kind=visual();if(kind<2||kind>5){if(observation)observation->kind=kind;gate(NoticeGate::Kind);return;}}
 #endif
         auto weather=std::make_unique<environment::WeatherSnapshot>();
-        gate(NoticeGate::Getter);if(!get)return;s->noticeArt->record(4);gate(NoticeGate::WeatherRead);if(!get(weather.get()))return;s->noticeArt->record(5);
+        gate(NoticeGate::Getter);if(!get)return;s->noticeArt->record(4);gate(NoticeGate::WeatherRead);if(!season_perf::readTimed(get,env,weather.get()))return;s->noticeArt->record(5);
         if(observation){observation->generation=weather->generation;observation->sequence=weather->sequence;observation->kind=weather->reserved;observation->date=weather->date;}
         gate(NoticeGate::WeatherHeader);if(weather->magic!=environment::WeatherMagic||weather->version!=environment::WeatherVersion||weather->size!=sizeof(*weather)||weather->generation==0||weather->sequence==0||weather->date!=packedDate(p))return;s->noticeArt->record(6);
         gate(NoticeGate::Kind);if(weather->reserved<2||weather->reserved>5)return;s->noticeArt->record(7);
@@ -386,7 +404,7 @@ uint8_t __fastcall onPrepare(void* driver,uint32_t mode){
     // lock recursively could deadlock behind an exclusive detach waiter.
     auto caller=reinterpret_cast<uint64_t>(_ReturnAddress());
     Scope scope;bool nested=materialTicket!=nullptr;scope.restore();
-    auto result=originalPrepare(driver,mode);scope.preserve();
+    uint8_t result;{season_perf::Cpu measured(season_perf::OriginalPrepare);result=originalPrepare(driver,mode);}scope.preserve();
     std::optional<CausalTicket> standalone;
     if(!causalTicket||causalTicket->driver!=driver)standalone.emplace(scope,driver,0);
     SeasonNoticeCausality::Row* causalRow=nullptr;
@@ -417,32 +435,34 @@ uint8_t __fastcall onPrepare(void* driver,uint32_t mode){
     }else if(event){event->gate=NoticeGate::PrepareFailed;s->noticeArt->observe(*event);}
     if(causalRow){causalRow->gate=event?static_cast<uint32_t>(event->gate):UINT32_MAX;causalRow->kind=event?event->kind:0;causalRow->date=event?event->date:0;
         causalRow->changed=materialTicket&&materialTicket->driver==driver&&materialTicket->notice.changed;s->noticeCausality->complete(causalRow);}
+    if(auto perf=season_perf::local;perf&&materialTicket&&materialTicket->driver==driver&&materialTicket->scene.observed&&!materialTicket->performanceGeometry)
+        materialTicket->performanceGeometry=perf->geometryBegin(s->context.Get(),materialTicket->scene.kind);
     return result;
 }
 void __fastcall onDraw(void* d,uint32_t mode,uint32_t start,uint32_t count){Scope s;CausalTicket causal{s,d,4};auto before=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);
     MaterialTicket ticket{&s,d,count,start};ticket.path=3;auto* previous=materialTicket;materialTicket=&ticket;s.restore();
-    originalDraw(d,mode,start,count);s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
+    {season_perf::Cpu originalTimer(season_perf::OriginalDraw);originalDraw(d,mode,start,count);}s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
     if(ticket.notice.changed&&s.session){if(s.session->noticeArt->leave(s.session->context.Get(),ticket.notice))++s.session->restores;
         else{s.session->failure=ERROR_INVALID_STATE;s.session->admission=false;}}
     causal.record(SeasonNoticeCausality::Restored);observed(s,d,before);afterScene(s,d,start,count,before);}
 void __fastcall onLand(void* d,uint32_t mode,uint32_t count,uint32_t unused){Scope s;CausalTicket causal{s,d,2};auto before=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);
     MaterialTicket ticket{&s,d,count,0};ticket.path=1;auto* previous=materialTicket;materialTicket=&ticket;s.restore();
-    originalLand(d,mode,count,unused);s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;leaveLand(ticket,before);causal.record(SeasonNoticeCausality::Restored);observed(s,d,before);}
+    {season_perf::Cpu originalTimer(season_perf::OriginalDraw);originalLand(d,mode,count,unused);}s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;leaveLand(ticket,before);if(ticket.performanceGeometry)season_perf::gpu(s.session->context.Get(),101+ticket.scene.kind*2);causal.record(SeasonNoticeCausality::Restored);observed(s,d,before);}
 void __fastcall onMesh(void* d,uint32_t mode,uint32_t a,uint32_t b,uint32_t start,uint32_t count,uint32_t instances){Scope s;CausalTicket causal{s,d,3};
     if(s.session&&treeCount(count)&&start==0)++s.session->selection[0];
     auto before=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);MaterialTicket ticket{&s,d,count,start};ticket.path=2;
     auto* previous=materialTicket;materialTicket=&ticket;s.restore();
-    originalMesh(d,mode,a,b,start,count,instances);s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
-    leaveTree(ticket,before);causal.record(SeasonNoticeCausality::Restored);observed(s,d,before);}
+    {season_perf::Cpu originalTimer(season_perf::OriginalDraw);originalMesh(d,mode,a,b,start,count,instances);}s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
+    leaveTree(ticket,before);if(ticket.performanceGeometry)season_perf::gpu(s.session->context.Get(),101+ticket.scene.kind*2);causal.record(SeasonNoticeCausality::Restored);observed(s,d,before);}
 void __fastcall onIndexed(void* d,uint32_t mode,uint32_t a,uint32_t b,uint32_t start,uint32_t count){Scope s;CausalTicket causal{s,d,1};
     auto before=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);MaterialTicket ticket{&s,d,count,start};ticket.path=3;
-    auto* previous=materialTicket;materialTicket=&ticket;s.restore();originalIndexed(d,mode,a,b,start,count);s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
+    auto* previous=materialTicket;materialTicket=&ticket;s.restore();{season_perf::Cpu originalTimer(season_perf::OriginalDraw);originalIndexed(d,mode,a,b,start,count);}s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
     if(ticket.notice.changed&&s.session){if(s.session->noticeArt->leave(s.session->context.Get(),ticket.notice))++s.session->restores;
         else{s.session->failure=ERROR_INVALID_STATE;s.session->admission=false;}}
     causal.record(SeasonNoticeCausality::Restored);observed(s,d,before);}
 struct Patch {PVOID* original;void* replacement;uint32_t rva;const BYTE* expected;size_t size;BYTE* target;DWORD protect;std::vector<BYTE> before,installed;};
 void __fastcall onBatch(void* d){Scope s;CausalTicket causal{s,d,9};MaterialTicket ticket{&s,d,0,0};ticket.path=4;
-    auto* previous=materialTicket;materialTicket=&ticket;s.restore();originalBatch(d);s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
+    auto* previous=materialTicket;materialTicket=&ticket;s.restore();{season_perf::Cpu originalTimer(season_perf::OriginalDraw);originalBatch(d);}s.preserve();causal.record(SeasonNoticeCausality::Returned);materialTicket=previous;
     // The verified batch body draws between Prepare and return; its counter is
     // incremented then decremented. Restore the texture after that owned call.
     if(ticket.notice.changed&&s.session){if(s.session->noticeArt->leave(s.session->context.Get(),ticket.notice))++s.session->restores;
@@ -458,7 +478,10 @@ uint64_t __fastcall onPresent(void* d,void* parameters){Scope s(true);
     auto presentId=s.session&&s.session->noticeCausality?s.session->noticeCausality->id():0;
     auto record=[&](uint32_t phase){if(auto session=s.session;session&&session->noticeCausality){auto& trace=*session->noticeCausality;
         auto* row=trace.begin(presentId,0,10,phase,d,read<uint64_t>(reinterpret_cast<uint64_t>(d),0x10),session->thread.load(),0,enteredQpc);trace.complete(row);}};
-    record(SeasonNoticeCausality::PresentEnter);s.restore();auto result=originalPresent(d,parameters);s.preserve();record(SeasonNoticeCausality::PresentReturn);return result;
+    auto* perf=s.session?s.session->performanceActive.load():nullptr;season_perf::Present* row=nullptr;
+    if(perf&&perf->active()){auto n=perf->presentCount.fetch_add(1);if(n<season_perf::Trace::Frames){row=&perf->presents[n];row->begin=season_perf::tick();row->thread=GetCurrentThreadId();row->depth=presentDepth;}else perf->stop(2);}
+    record(SeasonNoticeCausality::PresentEnter);s.restore();auto result=originalPresent(d,parameters);s.preserve();
+    if(row)row->end=season_perf::tick();record(SeasonNoticeCausality::PresentReturn);return result;
 }
 std::vector<Patch> patches(6);
 void initialize(bool diagnostic=false){using namespace season::frame;patches.resize(diagnostic?11:6);
@@ -476,7 +499,7 @@ void initialize(bool diagnostic=false){using namespace season::frame;patches.res
         patches[10]={reinterpret_cast<PVOID*>(&originalPresent),reinterpret_cast<void*>(onPresent),0x954730,PresentCode,sizeof(PresentCode)};
     }
 }
-LONG transaction(bool attach){
+LONG transaction(bool attach,size_t first=0){
     AcquireSRWLockExclusive(&presentDispatch);AcquireSRWLockExclusive(&dispatch);std::vector<HANDLE> threads;LONG result=NO_ERROR;
     auto snap=CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD,0);
     if(snap==INVALID_HANDLE_VALUE)result=GetLastError();
@@ -491,7 +514,7 @@ LONG transaction(bool attach){
     }
     if(!result){result=DetourTransactionBegin();if(!result){
         for(auto h:threads){DWORD exit{};if(GetExitCodeThread(h,&exit)&&exit!=STILL_ACTIVE)continue;result=DetourUpdateThread(h);if(result)break;}
-        if(!result)for(auto& p:patches){result=attach?DetourAttach(p.original,p.replacement):DetourDetach(p.original,p.replacement);if(result)break;}
+        if(!result)for(size_t i=first;i<patches.size();i++){auto& p=patches[i];result=attach?DetourAttach(p.original,p.replacement):DetourDetach(p.original,p.replacement);if(result)break;}
         if(!result)result=DetourTransactionCommit();else DetourTransactionAbort();
     }}
     for(auto h:threads)CloseHandle(h);ReleaseSRWLockExclusive(&dispatch);ReleaseSRWLockExclusive(&presentDispatch);return result;
@@ -501,9 +524,35 @@ bool restoreProtection(Patch& p){
     if(info.Protect!=p.protect){DWORD previous{};if(!VirtualProtect(p.target,p.size,p.protect,&previous)||!VirtualQuery(p.target,&info,sizeof(info)))return false;}
     return info.Protect==p.protect;
 }
+uint32_t performanceStart(const std::shared_ptr<Session>& s){
+    if(s->performance||s->noticeCausality||patches.size()!=6||!s->pending.load()||!s->pending.load()->full||!s->thread.load())return ERROR_INVALID_STATE;
+    auto trace=std::make_unique<season_perf::Trace>();trace->date=read<uint32_t>(s->input.state,0x34);trace->seasonal=s->pending.load()->seasonal;using namespace season::frame;
+    Patch extra{reinterpret_cast<PVOID*>(&originalPresent),reinterpret_cast<void*>(onPresent),0x954730,PresentCode,sizeof(PresentCode)};
+    extra.target=s->fixture?reinterpret_cast<BYTE*>(originalPresent):reinterpret_cast<BYTE*>(s->input.module+extra.rva);MEMORY_BASIC_INFORMATION info{};
+    if(!VirtualQuery(extra.target,&info,sizeof(info))||info.State!=MEM_COMMIT||info.Protect!=PAGE_EXECUTE_READ||(!s->fixture&&std::memcmp(extra.target,extra.expected,extra.size)))return ERROR_REVISION_MISMATCH;
+    for(auto& patch:patches)if(std::memcmp(patch.target,patch.installed.data(),patch.size))return ERROR_REVISION_MISMATCH;
+    extra.protect=info.Protect;extra.before.assign(extra.target,extra.target+extra.size);extra.installed.resize(extra.size);originalPresent=reinterpret_cast<Present>(extra.target);
+    patches.push_back(std::move(extra));auto error=transaction(true,6);if(error){patches.pop_back();return error;}
+    auto& installed=patches.back();std::memcpy(installed.installed.data(),installed.target,installed.size);
+    s->performance=std::move(trace);if(!restoreProtection(installed)){s->failure=ERROR_INVALID_STATE;return ERROR_INVALID_STATE;}
+    s->performanceActive.store(s->performance.get());performanceRunning=true;return 0;
+}
+uint32_t performanceDetach(const std::shared_ptr<Session>& s){
+    if(!s->performance)return ERROR_INVALID_STATE;s->performance->stop(3);
+    if(patches.size()!=7)return patches.size()==6?0:ERROR_INVALID_STATE;
+    {AcquireSRWLockExclusive(&dispatch);bool open=false;for(auto& slot:s->performance->slots)open|=slot.open;ReleaseSRWLockExclusive(&dispatch);if(open)return ERROR_IO_PENDING;}
+    auto& p=patches.back();if(std::memcmp(p.target,p.installed.data(),p.size))return ERROR_REVISION_MISMATCH;
+    auto error=transaction(false,6);if(error)return error;
+    if(std::memcmp(p.target,p.before.data(),p.size)||!restoreProtection(p)){s->failure=ERROR_INVALID_STATE;return ERROR_INVALID_STATE;}
+    // Both locks also wait out a late wrapper before the trace is read. Storage is retained until session drain.
+    AcquireSRWLockExclusive(&presentDispatch);AcquireSRWLockExclusive(&dispatch);
+    s->performanceActive.store(nullptr);performanceRunning=false;if(auto f=s->performance->frame())f->end=season_perf::tick();
+    for(auto& slot:s->performance->slots){slot.disjoint.Reset();for(auto& stamp:slot.stamps)stamp.Reset();}
+    ReleaseSRWLockExclusive(&dispatch);ReleaseSRWLockExclusive(&presentDispatch);patches.pop_back();return 0;
+}
 Recovery finish(const std::shared_ptr<Session>& s,bool attached){
     Recovery receipt{Magic,Version,sizeof(Recovery),0,s->input.generation,s->draws.load(),s->thread.load()};
-    s->admission=false;
+    s->admission=false;performanceRunning=false;
     if(attached){
         for(auto& p:patches)if(std::memcmp(p.target,p.installed.data(),p.size)){receipt.error=ERROR_INVALID_DATA;return receipt;}
         auto error=transaction(false);if(error){receipt.error=error;return receipt;}
@@ -534,9 +583,10 @@ bool clock(const Session& s,uint32_t& year,uint32_t& month,uint32_t& day){
 }
 struct Io {
     HANDLE pipe,controller;std::shared_ptr<Session> session;uint64_t beat;
-    bool attached;Recovery receipt{};bool ended=false;
+    bool attached;Recovery receipt{};bool ended=false,performanceRetireAttempted=false;
     void stop(){if(!ended){receipt=finish(session,attached);ended=true;}}
-    bool alive(){uint32_t y{},m{},d{};
+    bool alive(){uint32_t y{},m{},d{};if(session->performance){auto& perf=*session->performance;perf.active();
+        if(!performanceRetireAttempted&&perf.stopAt&&season_perf::tick()-perf.stopAt>=5*perf.frequency){performanceRetireAttempted=true;auto error=performanceDetach(session);if(error)perf.stop(8);}}
         return !ended&&session->admission.load()&&!session->failure.load()&&GetTickCount64()-beat<session->input.leaseMs&&
             WaitForSingleObject(controller,0)==WAIT_TIMEOUT&&session->sameScene()&&clock(*session,y,m,d);
     }
@@ -662,8 +712,12 @@ Recovery serve(const Bootstrap& input,bool fixture=false){
             parameters.seasonal=message.reserved==0;
             if(message.reserved>1||(message.reserved&&message.command!=Apply)||s->sources.bytes.size()!=TreeSourceBytes||!validTreeColor(parameters))reply.error=ERROR_INVALID_DATA;
             else if(message.year!=reply.year||message.month!=reply.month||message.day!=reply.day)reply.error=ERROR_RETRY;
-            else s->pending.store(std::make_shared<TreeColorParameters>(parameters));
-        }else if(message.command!=Heartbeat&&message.command!=Stop&&message.command!=TreeColorStatus&&message.command!=SceneStatus)reply.error=ERROR_INVALID_FUNCTION;
+            else {if(auto perf=s->performanceActive.load();perf&&perf->seasonal!=uint32_t(parameters.seasonal))perf->stop(6);s->pending.store(std::make_shared<TreeColorParameters>(parameters));}
+        }else if(message.command==8)reply.error=performanceStart(s);
+        else if(message.command==9){if(!s->performance)reply.error=ERROR_INVALID_STATE;else s->performance->stop(3);}
+        else if(message.command==10){if(!s->performance)reply.error=ERROR_INVALID_STATE;}
+        else if(message.command==11)reply.error=performanceDetach(s);
+        else if(message.command!=Heartbeat&&message.command!=Stop&&message.command!=TreeColorStatus&&message.command!=SceneStatus)reply.error=ERROR_INVALID_FUNCTION;
         if(auto pending=s->pending.load())reply.materialEpoch=pending->epoch;
         reply.completedEpoch=s->completedEpoch.load(std::memory_order_acquire);reply.treeDraws=s->treeDraws.load();
         reply.swaps=s->swaps.load();reply.restores=s->restores.load();reply.gpuBytes=s->gpuBytes.load();
@@ -678,7 +732,11 @@ Recovery serve(const Bootstrap& input,bool fixture=false){
         // A scoped color receipt never sets the full season Rendered flag.
         if(message.command==TreeColorStatus&&(!reply.materialEpoch||reply.completedEpoch!=reply.materialEpoch))reply.error=ERROR_IO_PENDING;
         if(message.command==SceneStatus&&!reply.rendered)reply.error=ERROR_IO_PENDING;
+        std::string performanceJson;
+        if(message.command==10&&s->performance){s->performance->active();reply.selection[0]=s->performance->collecting?1:0;reply.selection[1]=s->performance->reason;}
+        if(message.command==11&&!reply.error){performanceJson=s->performance->json();if(performanceJson.size()>8*1024*1024)reply.error=ERROR_BUFFER_OVERFLOW;else reply.selection[0]=uint32_t(performanceJson.size());}
         if(!io.exchange(&reply,sizeof(reply),true)||message.command==Stop||reply.error==ERROR_INVALID_DATA)break;
+        if(message.command==11&&!reply.error&&!io.exchange(performanceJson.data(),DWORD(performanceJson.size()),true))break;
     }
     io.stop();DisconnectNamedPipe(pipe);return io.receipt;
 }

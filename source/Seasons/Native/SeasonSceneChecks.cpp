@@ -307,12 +307,13 @@ void noticeArtChecks(ID3D11Device* device,ID3D11DeviceContext* context,const Sea
 }
 }
 int main(int argc,char** argv){try{
-    require(argc>=2&&argc<=5,"Usage: SeasonSceneChecks scene-data.bin [managed-calendar-vectors.txt] [flood-texture.bin] [observation.json]");SeasonSceneData data;
+    require(argc>=2&&argc<=6,"Usage: SeasonSceneChecks scene-data.bin [managed-calendar-vectors.txt] [flood-texture.bin] [observation.json]");SeasonSceneData data;
     std::ifstream input(argv[1],std::ios::binary);data.bytes.assign(std::istreambuf_iterator<char>(input),std::istreambuf_iterator<char>());
     auto started=std::chrono::steady_clock::now();auto prepared=data.prepare();if(!data.compileDiagnostic.empty())std::cerr<<data.compileDiagnostic;hr(prepared);
     ComPtr<ID3D11Device> device;ComPtr<ID3D11DeviceContext> context;
-    hr(D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_WARP,nullptr,0,nullptr,0,D3D11_SDK_VERSION,&device,nullptr,&context));
-    if(argc>=4)noticeArtChecks(device.Get(),context.Get(),data,argv[3],argc==5?argv[4]:nullptr);
+    wchar_t hardwareFlag[8]{};bool hardwarePerformance=argc==6&&GetEnvironmentVariableW(L"SAN14_PERF_FIXTURE_HARDWARE",hardwareFlag,8)>0;
+    hr(D3D11CreateDevice(nullptr,hardwarePerformance?D3D_DRIVER_TYPE_HARDWARE:D3D_DRIVER_TYPE_WARP,nullptr,0,nullptr,0,D3D11_SDK_VERSION,&device,nullptr,&context));
+    if(argc>=4&&std::string(argv[3])!="-")noticeArtChecks(device.Get(),context.Get(),data,argv[3],argc>=5?argv[4]:nullptr);
     constexpr UINT width=128,height=64;SeasonSceneGpu scene(data);
     BYTE gameState[0x80]{};Bootstrap calendarInput{};calendarInput.state=reinterpret_cast<uint64_t>(gameState);
     Session calendarSession(calendarInput,true);
@@ -521,6 +522,60 @@ o.a=float4(1000,0,0,1);o.t=float3(1,0,0);o.n=float3(0,1,0);o.uv=v;return o;})";
     require(rain0.first!=rain0.second&&snow0.first!=snow0.second&&rain0.second!=rain1.second&&snow0.second!=snow1.second,"Regional rain/snow failed actual animated GPU output");
     require(rain0.second!=snow0.second,"Rain and snowfall have identical appearance");
     std::cerr<<"PASS regional rain/snow animated GPU pixels, clear region, independent seasonal OFF, individual visual flags, original state restoration\n";
+    {
+        auto original=regional;scene.fixtureWeather(original);require(scene.updateWeather(context.Get(),weatherOnly),"cache baseline rejected");
+        auto before=scene.fixtureWeatherCounts();
+        for(unsigned i=0;i<1000;i++)require(scene.updateWeather(context.Get(),weatherOnly),"stable cache read rejected");
+        auto stable=scene.fixtureWeatherCounts();require(stable[0]==before[0]&&stable[1]==before[1]+1000,"identical validated weather must skip 1000 builds and 2000 uploads");
+        auto changed=[&](const environment::WeatherSnapshot& value){auto prior=scene.fixtureWeatherCounts();scene.fixtureWeather(value);require(scene.updateWeather(context.Get(),weatherOnly),"changed valid weather rejected");require(scene.fixtureWeatherCounts()[0]==prior[0]+1,"changed weather incorrectly reused");};
+        auto value=original;value.regions[environment::TileCount-1]^=1;changed(value);changed(original);
+        value=original;value.weather[0]^=2;changed(value);changed(original);
+        value=original;value.recentDates[0]=original.date;changed(value);changed(original);
+        value=original;value.flags^=64;changed(value);changed(original);
+        value=original;++value.generation;changed(value);changed(original);
+        value=original;++value.sequence;changed(value);changed(original);
+        value=original;value.date+=1u<<24;scene.fixtureWeather(value);auto prior=scene.fixtureWeatherCounts();
+        require(!scene.updateWeather(context.Get(),weatherOnly)&&scene.fixtureWeatherCounts()[0]==prior[0]+1,"invalid date must clear uploaded cells");
+        scene.fixtureWeatherUnavailable();require(!scene.updateWeather(context.Get(),weatherOnly)&&scene.fixtureWeatherCounts()[0]==prior[0]+1,"repeated invalid weather must retain empty cells without upload");
+        changed(original);value=original;++value.magic;scene.fixtureWeather(value);prior=scene.fixtureWeatherCounts();
+        require(!scene.updateWeather(context.Get(),weatherOnly)&&scene.fixtureWeatherCounts()[0]==prior[0]+1,"invalid header must not reuse previous weather");changed(original);
+        auto later=weatherOnly;++later.day;value=original;value.date+=1u<<24;scene.fixtureWeather(value);prior=scene.fixtureWeatherCounts();
+        require(scene.updateWeather(context.Get(),later)&&scene.fixtureWeatherCounts()[0]==prior[0]+1,"new matching date must refresh");changed(original);
+        auto cached=precipitation(2,.37f,64);prior=scene.fixtureWeatherCounts();auto repeated=precipitation(2,.37f,64);
+        require(cached.second==repeated.second&&scene.fixtureWeatherCounts()[0]==prior[0],"cached rain pixels differ or were reuploaded");
+        scene.fixtureRebuildWeather();auto rebuilt=precipitation(2,.37f,64);require(rebuilt.second==cached.second&&scene.fixtureWeatherCounts()[0]==prior[0]+1,"resource invalidation must upload identical pixels again");
+        auto snow=precipitation(8,.37f,128);prior=scene.fixtureWeatherCounts();require(precipitation(8,.37f,128).second==snow.second&&scene.fixtureWeatherCounts()[0]==prior[0],"cached snow pixels differ or were reuploaded");
+        std::array<std::vector<double>,2> costs;LARGE_INTEGER cacheFrequency{};QueryPerformanceFrequency(&cacheFrequency);
+        for(unsigned round=0;round<100;round++)for(unsigned step=0;step<2;step++){auto mode=(round+step)%2;if(!mode)scene.fixtureRebuildWeather();auto start=season_perf::tick();require(scene.updateWeather(context.Get(),weatherOnly),"cache benchmark rejected");costs[mode].push_back(double(season_perf::tick()-start)*1000/cacheFrequency.QuadPart);}
+        for(auto& samples:costs)std::sort(samples.begin(),samples.end());
+        std::cerr<<"{\"weatherRebuildMedianMs\":"<<costs[0][50]<<",\"weatherReuseMedianMs\":"<<costs[1][50]<<",\"samplesPerMode\":100,\"stableBuildsSkipped\":1000,\"stableUploadsSkipped\":2000,\"gameAccess\":false}\n";
+        regional=original;scene.fixtureWeather(regional);
+        std::cerr<<"PASS exact weather cache, all input mutations, invalidation/recovery, identical rain/snow pixels and uploads\n";
+    }
+    if(argc==6){
+        std::array<std::vector<double>,3> durations;
+        auto trace=std::make_unique<season_perf::Trace>();auto cpu=std::make_unique<season_perf::Trace>(false);
+        hr(trace->prepare(context.Get(),GetCurrentThreadId()));hr(cpu->prepare(context.Get(),GetCurrentThreadId()));
+        std::array<unsigned,3> ids{};
+        std::memset(regional.weather,0,sizeof(regional.weather));regional.weather[0]=2;regional.flags=64;scene.fixtureWeather(regional);scene.fixtureTime(.37f);
+        std::vector<BYTE> reference;
+        for(unsigned round=0;round<12;round++)for(unsigned step=0;step<3;step++){
+            unsigned mode=(round%2?2-step:step);season_perf::Trace* selected=mode==1?cpu.get():mode==2?trace.get():nullptr;
+            for(unsigned f=0;f<80;f++){
+                setup();context->Draw(3,0);SeasonSceneTicket ticket;hr(scene.enter(context.Get(),weatherOnly,3,0,ticket));context->Draw(3,0);require(scene.leave(context.Get(),ticket),"benchmark terrain restore");
+                context->OMSetRenderTargets(1,rtvs,nullptr);if(selected){selected->presentCount=++ids[mode];selected->visit(context.Get(),GetCurrentThreadId());}
+                season_perf::local=selected;auto begin=season_perf::tick();hr(scene.weather(context.Get(),weatherOnly,targets[0].Get()));auto end=season_perf::tick();season_perf::local=nullptr;
+                durations[mode].push_back(double(end-begin)*1000/trace->frequency);auto output=pixels();if(reference.empty())reference=output;else require(output==reference,"profiling changed actual rain pixels");
+                if(selected)selected->poll(context.Get());
+            }
+        }
+        require(trace->active()&&cpu->active(),"benchmark exceeded its diagnostic collection window");trace->stop(3);cpu->stop(3);trace->visit(context.Get(),GetCurrentThreadId());
+        double p95[3]{};for(unsigned mode=0;mode<3;mode++){std::sort(durations[mode].begin(),durations[mode].end());p95[mode]=durations[mode][size_t(std::ceil(durations[mode].size()*.95))-1];}
+        bool bounded=p95[1]-p95[0]<=.2&&p95[2]-p95[0]<=.2&&p95[1]<=p95[0]*1.05&&p95[2]<=p95[0]*1.05;
+        std::ofstream report(argv[5]);report<<"{\"hardware\":"<<(hardwarePerformance?"true":"false")<<",\"frameSamplesPerMode\":960,\"p95Ms\":["<<p95[0]<<','<<p95[1]<<','<<p95[2]<<"],\"overheadWithinBudget\":"<<(bounded?"true":"false")<<",\"pixelsEqual\":true,\"trace\":"<<trace->json()<<'}';
+        require(bounded,"performance diagnostic exceeds approved p95 overhead budget");
+        std::cerr<<"PASS actual weather OFF/CPU/CPU+GPU alternating workload overhead and pixels\n";
+    }
     for(UINT tile=0;tile<environment::TileCount;tile++)regional.regions[tile]=tile%220<155?51:50;
     auto addedRain=precipitation(2,.37f,192,51),addedSnow=precipitation(8,.37f,192,51);
     require(addedRain.first==addedRain.second&&addedSnow.first==addedSnow.second,"Excluded city 51 changed GPU pixels");

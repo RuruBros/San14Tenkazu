@@ -48,6 +48,8 @@ internal sealed partial class AiView : WC.DockPanel
     private readonly WC.DockPanel settingsNavigation = new();
     private readonly WC.DockPanel settingsActions = new();
     private bool loaded, writing;
+    internal OperationProgressSlot ProgressSlot { get; } = new();
+    internal bool ApplyShown => settingsActions.IsVisible;
 
     internal event Action<bool>? ExpandedChanged;
     internal event Action? CloseClicked;
@@ -140,7 +142,8 @@ internal sealed partial class AiView : WC.DockPanel
         WC.DockPanel.SetDock(apply, WC.Dock.Right);
         settingsActions.Children.Add(apply);
         defaults.HorizontalAlignment = W.HorizontalAlignment.Left;
-        settingsActions.Children.Add(defaults);
+        ProgressSlot.SetRestingContent(defaults);
+        settingsActions.Children.Add(ProgressSlot);
         settingsActions.Margin = new W.Thickness(0, 0, 0, 8);
         settingsActions.Visibility = W.Visibility.Collapsed;
         var footer = new WC.StackPanel();
