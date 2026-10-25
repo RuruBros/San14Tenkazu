@@ -9,14 +9,14 @@ namespace San14Tenkazu.Seasons;
 // A matching resident DLL uses its real path; the native path guard stays intact.
 internal static class SeasonNativeBundle
 {
-    internal const string DllHash="bacb74f5a5ef38772837918485631102745f4678e5aa2c794572a3ad7cf60020";
-    private const string ManifestHash="56279b7702a98b1759c57145d57aa11182559b712e1d7eb8a3ef52ae36aaca00";
+    internal const string DllHash="a221f1a3b5d99266e4a04fd72a04dbc385f0b5d34697e9f42fc7adc86a2ac113";
+    private const string ManifestHash="c8f3f28b2f7c48eac35d8f8bf561e8ca1b7984104f0128c8d0cea2c6c28c1394";
     private static readonly string[] SourceNames=["SeasonBridge.cpp","SeasonBridgeProtocol.h","SeasonBridgeChecks.cpp",
         "FrameSignatures.h","PrepareSignature.h","RuntimeGuard.h","SeasonTreeColorGpu.h","SeasonTreeColorSource.hlsl","BuildSeasonBridge.ps1",
         "SeasonSceneChecks.cpp","SeasonSceneGpu.h","SeasonWeatherCapture.h","SeasonWorldGpu.h","SeasonShaderTranslation.h","SeasonShaderProfiles.h","SeasonShaderAdmission.h","SeasonGroundSourceGpu.h","SeasonTreeCatalog.h",
         "SeasonRiceGpu.h","SeasonRiceChecks.cpp","SeasonGameRice.hlsl","SeasonVegetation.hlsli",
         "tree-catalog.json","season_tree_catalog.py","SeasonWorldMatrix.hlsl","SeasonWorldPosition.hlsli","SeasonGameTree.hlsl","SeasonGameTerrain.hlsli",
-        "SeasonGameWeather.hlsl","SeasonGameParameters.hlsli","SeasonCommon.hlsli","SeasonTreeCoverage.hlsli","SeasonWeather.hlsli","EnvironmentWeather.h","EnvironmentNoticeTrace.h","SeasonNoticeArt.h","SeasonNoticeCausality.h","GameBuildFacts.g.h"];
+        "SeasonGameWeather.hlsl","SeasonGameParameters.hlsli","SeasonCommon.hlsli","SeasonTreeCoverage.hlsli","SeasonWeather.hlsli","EnvironmentWeather.h","EnvironmentNoticeTrace.h","SeasonNoticeArt.h","SeasonNoticeCausality.h","SeasonPerformance.h","SeasonPerformanceChecks.cpp","SeasonPerformanceWeather.h","EnvironmentWeatherTiming.h","GameBuildFacts.g.h"];
     private static readonly object Gate=new();
     private static string Hash(byte[] bytes)=>Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
@@ -64,7 +64,7 @@ internal static class SeasonNativeBundle
         foreach(var name in SourceNames)
         {
             string folder=Path.GetExtension(name) switch{".hlsl" or ".hlsli"=>"Shaders",".json"=>"Assets",".py"=>Path.Combine("..","Reverse"),_=>"Native"};
-            string path=name is "EnvironmentWeather.h" or "EnvironmentNoticeTrace.h"?Path.Combine(seasonDirectory,"..","Environment","Native",name):Path.Combine(seasonDirectory,folder,name);
+            string path=name is "EnvironmentWeather.h" or "EnvironmentWeatherTiming.h" or "EnvironmentNoticeTrace.h"?Path.Combine(seasonDirectory,"..","Environment","Native",name):Path.Combine(seasonDirectory,folder,name);
             if(Hash(File.ReadAllBytes(path))!=Hash(files["sources/"+name]))
                 throw new InvalidDataException($"Native bundle is stale for checkout source: {name}");
         }

@@ -17,6 +17,8 @@ internal sealed class DisasterTestWindow:W.Window
     internal readonly WC.TextBlock Status=new(){TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,12,0,12)};
     internal readonly WC.TextBox Log=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto,MinHeight=150};
     internal readonly PlateButton ReadTraits=new(L.DeveloperUi.ReadTraits);
+    internal readonly PlateButton PerformanceStart=new("현재 렌더링 CPU·GPU 시간 수집"),PerformanceStop=new("시간 수집 중지"){IsEnabled=false};
+    internal readonly WC.TextBox PerformanceLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal readonly WC.TextBox TraitLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal readonly WC.TabControl Tabs=new(){Background=CardSkin.Parchment,BorderBrush=CardSkin.Gold,Padding=new W.Thickness(0)};
     internal readonly PlateButton ReadCompatibility=new(L.DeveloperUi.ReadCompatibility),CancelCompatibility=new(L.DeveloperUi.CancelDiagnostic);
@@ -43,6 +45,11 @@ internal sealed class DisasterTestWindow:W.Window
         ReadTraits.Margin = new W.Thickness(0, 0, 0, 14); instructions.Children.Add(ReadTraits);
         WC.DockPanel.SetDock(instructions, WC.Dock.Top); diagnostic.Children.Add(instructions); diagnostic.Children.Add(TraitLog);
         Tabs.Items.Add(new WC.TabItem { Header = L.DeveloperUi.TraitTab, Content = diagnostic, Background = CardSkin.Parchment, Foreground = CardSkin.Ink, Padding = new W.Thickness(12, 6, 12, 6) });
+        var performance=new WC.DockPanel{Margin=new W.Thickness(20)};var performanceActions=new WC.StackPanel();
+        performanceActions.Children.Add(new WC.TextBlock{Text="현재 활성 효과의 시간을 20초 수집합니다. 효과·날짜·카메라·게임 값은 바꾸지 않습니다. 중지는 계측만 해제하며 기존 효과는 유지됩니다.",TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,0,0,12)});
+        performanceActions.Children.Add(PerformanceStart);performanceActions.Children.Add(PerformanceStop);
+        WC.DockPanel.SetDock(performanceActions,WC.Dock.Top);performance.Children.Add(performanceActions);performance.Children.Add(PerformanceLog);
+
         var compatibility=new WC.DockPanel{Margin=new W.Thickness(20)};
         var heading=new WC.StackPanel();
         heading.Children.Add(new WC.TextBlock{Text=L.DeveloperUi.CompatibilityInstructions,TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,0,0,14)});
@@ -54,6 +61,7 @@ internal sealed class DisasterTestWindow:W.Window
         foreach(var b in new[]{ReadGeography,EditGeography}){b.Margin=new W.Thickness(0,0,0,14);geographyHeading.Children.Add(b);}
         WC.DockPanel.SetDock(geographyHeading,WC.Dock.Top);geography.Children.Add(geographyHeading);geography.Children.Add(GeographyLog);
         Tabs.Items.Add(new WC.TabItem{Header=L.DeveloperUi.GeographyTab,Content=geography,Background=CardSkin.Parchment,Foreground=CardSkin.Ink,Padding=new W.Thickness(12,6,12,6)});
+        Tabs.Items.Add(new WC.TabItem{Header="렌더링 성능",Content=performance,Background=CardSkin.Parchment,Foreground=CardSkin.Ink});
     }
     private bool available;
     private void SelectionChanged(){Preview.IsEnabled=Damage.IsEnabled=available&&Target is not null&&Kind.SelectedIndex>=0;}

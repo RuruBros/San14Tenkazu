@@ -32,7 +32,7 @@ internal sealed class SeasonNativeBackend(GameIdentity game,string buildDirector
     }
 }
 
-internal sealed class SeasonNativeSession(SeasonRenderIdentity identity,ulong generation,Action<string>? log):ISeasonNativeSession
+internal sealed partial class SeasonNativeSession(SeasonRenderIdentity identity,ulong generation,Action<string>? log):ISeasonNativeSession
 {
     private readonly SemaphoreSlim gate=new(1,1);
     private NamedPipeClientStream? pipe;

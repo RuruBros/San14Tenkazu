@@ -36,6 +36,9 @@ internal static partial class RenderChecks
         Require((typeof(EditorWindow).GetMethod("PrepareDeveloperNoticeScene",Hidden)!=null)==expected&&
             (typeof(EditorWindow).Assembly.GetType("San14Tenkazu.DeveloperNoticeDiagnostic")!=null)==expected,"Picture diagnostics leaked into public build");
         Require((typeof(EditorWindow).Assembly.GetType("San14Tenkazu.DeveloperNoticeCausality")!=null)==expected,"Causal diagnostic reader leaked into public build");
+        Require((typeof(EditorWindow).Assembly.GetType("San14Tenkazu.DeveloperPerformanceSummary")!=null)==expected&&
+            (typeof(EditorWindow).GetMethod("RunPerformanceDiagnostic",Hidden)!=null)==expected&&
+            (typeof(San14Tenkazu.Seasons.SeasonController).GetMethod("PerformanceAsync",Hidden)!=null)==expected,"Performance diagnostics leaked into public build");
         Require((typeof(LogPanel).GetMethod("SetDeveloperButton",Hidden)!=null)==expected,"Developer log-header entry leaked into public build");
 #if LOCAL_DEVELOPER
         CheckNoticeTypographyReader();
@@ -44,6 +47,7 @@ internal static partial class RenderChecks
         CheckDeveloperEntry();
         CheckDeveloperGeography();
         CheckDeveloperNoticeDiagnostic();
+        CheckPerformanceSummary();
         var fixture=new DeveloperFixture();var controller=new EnvironmentController(fixture,Console.WriteLine);
         try {
             controller.ApplyAsync(EnvironmentSettings.New(),keepEmptySession:true).GetAwaiter().GetResult();
@@ -55,7 +59,7 @@ internal static partial class RenderChecks
         }finally{controller.DisposeAsync().AsTask().GetAwaiter().GetResult();}
         Require(fixture.Stopped,"Developer controller must restore native ownership on disposal");
         var window=new DisasterTestWindow();window.SetCities(new TestGame().Build());window.SetAvailable(true,true);
-        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==4&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
+        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==5&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
             && window.Tabs.Items[1] is WC.TabItem{Header:"개성 목록 진단"}&&window.Tabs.Items[2] is WC.TabItem{Header:"호환성 진단"},"Developer tabs must separate approved actions");
         try {
             window.Show();window.UpdateLayout();
@@ -111,7 +115,7 @@ internal static partial class RenderChecks
             var bounds=button.TransformToAncestor(log).TransformBounds(new W.Rect(0,0,button.ActualWidth,button.ActualHeight));
             Require(bounds.Right>log.ActualWidth-24&&bounds.Top>=0&&bounds.Bottom<=log.ActualHeight,"Developer entry must sit at the right edge of the log header");
             Click(button);Pump();var first=Field<DisasterTestWindow>(editor,"developerMenu");
-            Require(first.IsVisible&&first.Tabs.Items.Count==4&&!log.Open,"One click must open the tabbed window without expanding the log");
+            Require(first.IsVisible&&first.Tabs.Items.Count==5&&!log.Open,"One click must open the tabbed window without expanding the log");
             Click(button);Pump();Require(ReferenceEquals(first,Field<DisasterTestWindow>(editor,"developerMenu")),"Repeated click must reuse the same tools window");
             first.Close();Pump();
             var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(log.ActualWidth),(int)Math.Ceiling(log.ActualHeight),96,96,System.Windows.Media.PixelFormats.Pbgra32);

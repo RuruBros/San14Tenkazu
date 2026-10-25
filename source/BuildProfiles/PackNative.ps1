@@ -24,7 +24,7 @@ if((Get-FileHash -LiteralPath (Join-Path $taskBuild $taskDll)).Hash.ToLowerInvar
 foreach($taskProperty in $taskManifest.hashes.PSObject.Properties){
     $taskName=$taskProperty.Name
     if($taskName -ne [IO.Path]::GetFileName($taskName)){throw 'Native source name is not a basename.'}
-    $taskCurrent=if($Kind -eq 'Season' -and $taskName -in @('EnvironmentWeather.h','EnvironmentNoticeTrace.h')){
+    $taskCurrent=if($Kind -eq 'Season' -and $taskName -in @('EnvironmentWeather.h','EnvironmentWeatherTiming.h','EnvironmentNoticeTrace.h')){
         Join-Path $taskSource ('Environment/Native/'+$taskName)
     }elseif($Kind -eq 'Environment'){
         Join-Path $taskSource ('Environment/Native/'+$taskName)

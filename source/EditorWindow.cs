@@ -39,8 +39,12 @@ internal sealed partial class EditorWindow : W.Window
     {
         ToolTip = L.Auto.StopTip
     };
-    private readonly WC.ProgressBar progress = new() { Height = 6, Foreground = CardSkin.Gold, Visibility = W.Visibility.Collapsed, Margin = new W.Thickness(0, 2, 0, 0) };
-    private readonly WC.TextBlock progressStatus = new() { Foreground = CardSkin.InkOnDark, TextTrimming = W.TextTrimming.CharacterEllipsis, Visibility = W.Visibility.Collapsed };
+    private readonly WC.ProgressBar progress = new() { Width = 48, Height = 6, Foreground = CardSkin.Gold, Visibility = W.Visibility.Collapsed, VerticalAlignment = W.VerticalAlignment.Center, Margin = new W.Thickness(8, 0, 0, 0) };
+    private readonly WC.TextBlock progressStatus = new() { Foreground = CardSkin.InkOnDark, TextTrimming = W.TextTrimming.CharacterEllipsis, Visibility = W.Visibility.Collapsed, VerticalAlignment = W.VerticalAlignment.Center };
+    private readonly WC.DockPanel progressRow = new() { Height = 20, MaxWidth = 320, HorizontalAlignment = W.HorizontalAlignment.Right, VerticalAlignment = W.VerticalAlignment.Center, Margin = new W.Thickness(0, 0, 8, 0) };
+    private readonly OperationProgressSlot toolbarProgressSlot = new() { Height = 20 };
+    private OperationProgressSlot? activeProgressSlot;
+    private bool progressScanning;
     private readonly WC.TextBlock status = new() { Foreground = CardSkin.InkOnDark, TextTrimming = W.TextTrimming.CharacterEllipsis, VerticalAlignment = W.VerticalAlignment.Center };
     private readonly LogPanel log = new();
     private readonly EditorLogFile logFile;
@@ -134,10 +138,12 @@ internal sealed partial class EditorWindow : W.Window
         WC.DockPanel.SetDock(tools, WC.Dock.Right);
         var middle = new WC.DockPanel { Margin = new W.Thickness(8, 0, 8, 0) };
         var messages = new WC.StackPanel { VerticalAlignment = W.VerticalAlignment.Center };
-        messages.Children.Add(status);
+        toolbarProgressSlot.SetRestingContent(status);
+        messages.Children.Add(toolbarProgressSlot);
         messages.Children.Add(seasonStatus);
-        messages.Children.Add(progressStatus);
-        messages.Children.Add(progress);
+        WC.DockPanel.SetDock(progress, WC.Dock.Right);
+        progressRow.Children.Add(progress);
+        progressRow.Children.Add(progressStatus);
         status.SetBinding(W.FrameworkElement.ToolTipProperty, new System.Windows.Data.Binding(nameof(WC.TextBlock.Text)) { Source = status });
         progressStatus.SetBinding(W.FrameworkElement.ToolTipProperty, new System.Windows.Data.Binding(nameof(WC.TextBlock.Text)) { Source = progressStatus });
         middle.Children.Add(messages);
@@ -155,7 +161,7 @@ internal sealed partial class EditorWindow : W.Window
         panelButton.Click += TogglePanel;
         registeredButton.Click += OpenRegisteredEditor;
         InitializeRegisteredAvailability();
-        map.PaneChanged += shown => panelButton.Selected = shown;
+        map.PaneChanged += shown => { panelButton.Selected = shown; UpdateProgressLocation(); };
         map.ListsSelected += () => { RememberLists(); FillLists(); FocusSearch(); };
         undoButton.Click += async () => await UndoAsync();
 
@@ -251,16 +257,43 @@ internal sealed partial class EditorWindow : W.Window
     {
         bool wasBusy = busy;
         busy = value || seasonClosing || seasonDisconnecting;
-        if (busy && !wasBusy) SetOperationProgress(scanning ? L.Connection.FindingData : L.OperationProgress.Working);
+        if (busy && !wasBusy)
+        {
+            progressScanning = scanning;
+            UpdateProgressLocation();
+            SetOperationProgress(scanning ? L.Connection.FindingData : L.OperationProgress.Working);
+        }
         progress.Visibility = progressStatus.Visibility = busy ? W.Visibility.Visible : W.Visibility.Collapsed;
         if (!busy)
         {
+            activeProgressSlot?.Clear(progressRow);
+            activeProgressSlot = null;
             progress.IsIndeterminate = false;
             progress.Value = 0;
             progressStatus.Text = "";
             W.Automation.AutomationProperties.SetName(progress, "");
         }
         UpdateControls();
+    }
+
+    private void UpdateProgressLocation()
+    {
+        if (!busy) return;
+        OperationProgressSlot slot = toolbarProgressSlot;
+        if (!progressScanning && map.PaneShown)
+        {
+            if (map.AiShown)
+            {
+                if (aiView is { ApplyShown: true }) slot = aiView.ProgressSlot;
+            }
+            else if (lists.Shown) slot = lists.ProgressSlot;
+            else if (OpenEditor is { } card) slot = card.ProgressSlot;
+        }
+        if (activeProgressSlot == slot) return;
+        activeProgressSlot?.Clear(progressRow);
+        activeProgressSlot = slot;
+        progressStatus.Foreground = slot == toolbarProgressSlot ? CardSkin.InkOnDark : CardSkin.Ink;
+        slot.Show(progressRow);
     }
 
     // Count only completed work. Operations without a measured total use the animated indicator.

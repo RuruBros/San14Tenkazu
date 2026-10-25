@@ -43,6 +43,7 @@ internal abstract class EditorCard : PanePage
     private readonly List<(PaneTab Tab, W.UIElement Page)> tabs = [];
     private readonly WC.ScrollViewer scroll = new() { VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = WC.ScrollBarVisibility.Disabled, Margin = new W.Thickness(12, 8, 8, 8), Padding = new W.Thickness(0, 0, 4, 0) };
     private readonly PlateButton apply = new(L.Card.Apply, primary: true, Icons.Apply, iconOnly: true) { ToolTip = L.Card.ApplyTip };
+    internal OperationProgressSlot ProgressSlot { get; } = new();
     // Buttons that fill in values, left of [변경 적용].
     protected readonly WC.WrapPanel Shortcuts = new() { VerticalAlignment = W.VerticalAlignment.Center };
     // [위치로 가기] under the close mark, on the cards of things with a place on the map (OffersGoTo).
@@ -85,7 +86,8 @@ internal abstract class EditorCard : PanePage
         WC.DockPanel.SetDock(apply, WC.Dock.Right);
         apply.Margin = new W.Thickness(8, 0, 0, 0);
         footer.Children.Add(apply);
-        footer.Children.Add(Shortcuts);
+        ProgressSlot.SetRestingContent(Shortcuts);
+        footer.Children.Add(ProgressSlot);
         var bottom = PaneChrome.Footer(footer);
         var topContent = new WC.StackPanel();
         topContent.Children.Add(header);

@@ -215,6 +215,7 @@ internal sealed partial class EditorWindow
         if (automaticGameChecking) { automaticGameCloseRequested = true; e.Cancel = true; return; }
         if (gamePreparationCancellation is { } preparation) { preparation.Cancel(); e.Cancel = true; return; }
 #if LOCAL_DEVELOPER
+        if(performanceCancellation is {} performance){performance.Cancel();e.Cancel=true;return;}
         if(compatibilityCancellation is {} diagnostic){diagnostic.Cancel();e.Cancel=true;return;}
         if(developerChanging){e.Cancel=true;return;}
 #endif

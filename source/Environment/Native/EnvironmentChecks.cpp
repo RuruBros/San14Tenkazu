@@ -385,11 +385,20 @@ void geographyReadChecks(){
     Fixture f;WeatherSnapshot snapshot{};
     require(!f.s->weatherSnapshot(snapshot),"weather has no unvalidated initial geography");
     f.s->frame();auto builds=f.s->topologyBuilds;
+    WeatherTiming timing;WeatherSnapshot plain,timed;
+    require(f.s->weatherSnapshot(plain)&&f.s->weatherSnapshot(timed,&timing)&&std::memcmp(&plain,&timed,sizeof(plain))==0,
+        "optional performance receipt preserves complete weather result");
+    require(timing.guard>0&&timing.copy>0,"performance receipt separates guard and copy cost");
+    auto owner=current.exchange(f.s);LARGE_INTEGER hz{},start{},end{};QueryPerformanceFrequency(&hz);QueryPerformanceCounter(&start);
+    for(int i=0;i<1000;i++)if(EnvironmentNoticeVisual()!=0)throw std::runtime_error("inactive notice hint differs");
+    QueryPerformanceCounter(&end);double hintUs=double(end.QuadPart-start.QuadPart)*1e6/hz.QuadPart/1000;current.store(owner);
+    QueryPerformanceCounter(&start);
     for(int i=0;i<1000;i++)if(!f.s->weatherSnapshot(snapshot))throw std::runtime_error("stable weather read failed");
+    QueryPerformanceCounter(&end);std::cout<<"{\"noticeHintMeanUs\":"<<hintUs<<",\"fullWeatherMeanUs\":"<<double(end.QuadPart-start.QuadPart)*1e6/hz.QuadPart/1000<<",\"samples\":1000,\"gameAccess\":false}\n";
     require(f.s->topologyBuilds==builds,"one thousand Draw weather reads do not rebuild topology");
     for(uint32_t tile:{100u,TileCount-1})for(uint32_t offset:{0u,1u,2u,3u,4u,5u,6u,7u,0x10u,0x12u,0x13u,0x1au,0x1bu}){
         auto address=f.tiles+tile*0x20+offset;auto before=read<uint8_t>(address);write<uint8_t>(address,before^1);
-        if(f.s->weatherSnapshot(snapshot))throw std::runtime_error("same-address tile input change escaped validation");
+        if(f.s->weatherSnapshot(snapshot)||f.s->weatherSnapshot(snapshot,&timing))throw std::runtime_error("same-address tile input change escaped validation");
         write<uint8_t>(address,before);
     }
     require(f.s->weatherSnapshot(snapshot)&&f.s->topologyBuilds==builds,"all consumed tile bytes including final tile reject before update without rebuilding");
@@ -409,14 +418,18 @@ void geographyReadChecks(){
     require(f.s->topologyBuilds==builds,"date advancement does not rebuild unchanged geography on Draw");
     f.s->presentation.layout=1;f.s->presentation.shown=true;f.s->presentation.kind=2;
     require(f.s->weatherSnapshot(snapshot)&&snapshot.reserved==3,"notice visual state is read fresh independently of cached geography");
+    require(f.s->noticeVisual()==3,"positive notice hint matches fresh visual kind");
+    auto beforeNotice=read<uint8_t>(f.tiles+100*0x20+0x10);write<uint8_t>(f.tiles+100*0x20+0x10,beforeNotice^1);
+    require(f.s->noticeVisual()==3&&!f.s->weatherSnapshot(snapshot),"positive hint cannot bypass same-address reload guard");write<uint8_t>(f.tiles+100*0x20+0x10,beforeNotice);
     f.s->presentation={};require(f.s->weatherSnapshot(snapshot)&&!snapshot.reserved,"notice reset immediately removes visual kind without another update");
+    require(f.s->noticeVisual()==0,"notice reset immediately removes negative-admission hint");
     f.s->admission=false;require(!f.s->weatherSnapshot(snapshot),"OFF does not return cached weather");f.s->admission=true;
     f.clock(10,23);f.s->frame();f.s->state.recentDates[2]=date(10);
     write<uint8_t>(f.tiles+100*0x20+0x10,13);require(!f.s->weatherSnapshot(snapshot),"terrain-only reload rejects old weather before update");
     f.clock(11,0);f.s->frame();require(f.s->weatherSnapshot(snapshot)&&!snapshot.recentDates[2]&&!f.s->state.lastEvent,"same-address terrain reload rebuilds baseline without stale history or retrospective damage");
     auto address=f.tiles+(TileCount-1)*0x20;auto page=address&~uint64_t(4095);DWORD old{};
     require(VirtualProtect(reinterpret_cast<void*>(page),4096,PAGE_NOACCESS,&old)!=0,"unreadable last tile fixture protected");
-    auto rejected=!f.s->weatherSnapshot(snapshot);DWORD ignored{};VirtualProtect(reinterpret_cast<void*>(page),4096,old,&ignored);
+    auto rejected=!f.s->weatherSnapshot(snapshot);require(f.s->noticeVisual()==0,"absent picture can reject without touching unreadable geography");DWORD ignored{};VirtualProtect(reinterpret_cast<void*>(page),4096,old,&ignored);
     require(rejected&&f.s->weatherSnapshot(snapshot),"unreadable topology input fails closed and readable input remains usable");
     std::atomic<bool> valid=true;std::thread reader([&]{for(int i=0;i<200;i++){WeatherSnapshot value{};if(!f.s->weatherSnapshot(value))valid=false;}});
     for(int i=0;i<80;i++)f.s->frame();reader.join();

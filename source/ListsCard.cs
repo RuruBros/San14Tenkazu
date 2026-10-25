@@ -20,6 +20,7 @@ internal sealed class ListsCard : PanePage
     private readonly PlateButton apply = new(L.Card.Apply, primary: true, icon: Icons.Apply) { ToolTip = L.Lists.DraftApplyTip };
     private readonly WC.TextBlock draftScope = new() { Text = L.Lists.DraftScope, Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap, VerticalAlignment = W.VerticalAlignment.Center };
     private bool canApply;
+    internal OperationProgressSlot ProgressSlot { get; } = new();
     internal TableDrafts TableDrafts { get; } = new();
     internal int Pending => TableDrafts.Pending;
     internal event Action? ApplyClicked;
@@ -56,7 +57,8 @@ internal sealed class ListsCard : PanePage
         pages.Margin = new W.Thickness(12, 8, 12, 12);
         var layout = new WC.DockPanel();
         var footer = new WC.DockPanel();
-        WC.DockPanel.SetDock(apply, WC.Dock.Right); footer.Children.Add(apply); footer.Children.Add(draftScope);
+        WC.DockPanel.SetDock(apply, WC.Dock.Right); footer.Children.Add(apply);
+        ProgressSlot.SetRestingContent(draftScope); footer.Children.Add(ProgressSlot);
         var bottom = PaneChrome.Footer(footer); WC.DockPanel.SetDock(bottom, WC.Dock.Bottom); layout.Children.Add(bottom);
         WC.DockPanel.SetDock(top, WC.Dock.Top);
         layout.Children.Add(top);

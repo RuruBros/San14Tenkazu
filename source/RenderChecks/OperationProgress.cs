@@ -27,6 +27,9 @@ internal static partial class RenderChecks
         var bar = Field<WC.ProgressBar>(editor, "progress");
         var label = Field<WC.TextBlock>(editor, "progressStatus");
         var status = Field<WC.TextBlock>(editor, "status");
+        var map = Field<MapView>(editor, "map");
+        var measurements = new List<object>();
+        W.Rect Bounds(W.FrameworkElement element) => new(element.TranslatePoint(new W.Point(), root), element.RenderSize);
         void Busy(bool value, bool scanning = false) { Call(editor, "SetBusy", value, scanning); host.UpdateLayout(); }
         void Progress(string text, int completed = 0, int total = 0) { Call(editor, "SetOperationProgress", text, completed, total); host.UpdateLayout(); }
         void Capture(string name)
@@ -45,7 +48,9 @@ internal static partial class RenderChecks
             host.Show(); host.UpdateLayout();
             Check(!bar.IsVisible && !label.IsVisible, "idle-hides-both-progress-controls");
             status.Text = L.Connection.Ready;
+            W.Rect idleMap = Bounds(map);
             Busy(true);
+            Check(Bounds(map) == idleMap, "starting-progress-preserves-map-bounds");
             Check(bar.IsVisible && bar.IsIndeterminate && label.IsVisible && label.Text == L.OperationProgress.Working,
                 "non-scan-work-shows-animated-progress-and-description");
             Check(!Field<PlateButton>(editor, "connectButton").IsEnabled, "progress-keeps-existing-busy-input-lock");
@@ -60,7 +65,7 @@ internal static partial class RenderChecks
             }
             Check((string)label.ToolTip == label.Text && W.Automation.AutomationProperties.GetName(bar) == label.Text,
                 "full-progress-description-is-accessible-and-in-tooltip");
-            Check(bar.ActualWidth > 100 && bar.ActualHeight >= 6 && label.ActualHeight > 0,
+            Check(bar.ActualWidth == 48 && bar.ActualHeight >= 6 && label.ActualHeight > 0,
                 "progress-fits-minimum-editor-width");
             Capture("batch-in-progress");
             Busy(true, scanning: true);
@@ -90,7 +95,62 @@ internal static partial class RenderChecks
             Check(bar.IsVisible && bar.IsIndeterminate, "disconnect-cleanup-keeps-progress-until-busy-really-ends");
             Set(editor, "seasonDisconnecting", false); Busy(false);
             Check(!bar.IsVisible && Field<PlateButton>(editor, "connectButton").IsEnabled, "idle-restores-input-after-cleanup");
-            File.WriteAllText(Path.Combine(output, "checks.json"), JsonSerializer.Serialize(new { gameAccess = false, checks },
+            foreach (int width in new[] { 1000, 1500 })
+            foreach (string location in new[] { "toolbar", "list", "card" })
+            {
+                host.Width = width;
+                if (location == "toolbar") map.HidePane();
+                else if (location == "list") map.ShowList(ListKind.Cities);
+                else map.ShowEditor(map.CityEditor);
+                host.UpdateLayout();
+                W.Rect before = Bounds(map);
+                var toolbar = (W.FrameworkElement)((WC.DockPanel)root).Children[0];
+                W.Rect toolbarBefore = Bounds(toolbar);
+                Busy(true);
+                var expectedSlot = location == "list" ? map.Lists.ProgressSlot
+                    : location == "card" ? map.CityEditor.ProgressSlot
+                    : Field<OperationProgressSlot>(editor, "toolbarProgressSlot");
+                Check(ReferenceEquals(Field<OperationProgressSlot>(editor, "activeProgressSlot"), expectedSlot),
+                    $"{location}-{width}-progress-uses-visible-action-row");
+                foreach (string stage in new[] { L.OperationProgress.Checking, L.Apply.Writing,
+                    L.OperationProgress.Synchronizing, L.OperationProgress.Reading, new string('가', 200) })
+                {
+                    Progress(stage);
+                    Check(Bounds(map) == before && Bounds(toolbar) == toolbarBefore,
+                        $"{location}-{width}-stage-{stage[..Math.Min(stage.Length, 12)]}-preserves-layout");
+                }
+                if (location != "toolbar")
+                {
+                    W.FrameworkElement owner = location == "list" ? map.Lists : map.CityEditor;
+                    var save = owner is EditorCard
+                        ? (PlateButton)typeof(EditorCard).GetField("apply", Hidden)!.GetValue(owner)!
+                        : Field<PlateButton>(owner, "apply");
+                    W.Rect row = Bounds(Field<WC.DockPanel>(editor, "progressRow")), button = Bounds(save);
+                    Check(label.IsVisible && row.Right <= button.Left && button.Left - row.Right <= 20
+                        && button.Left - Bounds(bar).Right <= 20
+                        && Math.Abs(row.Top + row.Height / 2 - button.Top - button.Height / 2) <= 1,
+                        $"{location}-{width}-progress-is-beside-save-button");
+                }
+                Progress(L.Apply.Writing);
+                Capture($"{location}-saving-{width}");
+                Busy(false);
+                Check(Bounds(map) == before && Bounds(toolbar) == toolbarBefore,
+                    $"{location}-{width}-finish-preserves-layout");
+                Check(expectedSlot.Children.Count == 1 && !bar.IsIndeterminate,
+                    $"{location}-{width}-finish-restores-row-and-stops-animation");
+                measurements.Add(new { location, width, mapBefore = before.ToString(), mapAfter = Bounds(map).ToString(),
+                    toolbarBefore = toolbarBefore.ToString(), toolbarAfter = Bounds(toolbar).ToString() });
+            }
+            map.ShowList(ListKind.Cities); host.UpdateLayout(); Busy(true);
+            Progress(L.OperationProgress.Reading);
+            map.HidePane(); host.UpdateLayout();
+            Check(bar.IsVisible && ReferenceEquals(Field<OperationProgressSlot>(editor, "activeProgressSlot"),
+                Field<OperationProgressSlot>(editor, "toolbarProgressSlot")), "hiding-pane-keeps-active-progress-visible-in-toolbar");
+            map.ShowPane(); host.UpdateLayout();
+            Check(bar.IsVisible && ReferenceEquals(Field<OperationProgressSlot>(editor, "activeProgressSlot"), map.Lists.ProgressSlot)
+                && label.Text == L.OperationProgress.Reading, "reopening-pane-restores-progress-beside-save-without-reset");
+            Busy(false);
+            File.WriteAllText(Path.Combine(output, "checks.json"), JsonSerializer.Serialize(new { gameAccess = false, checks, measurements },
                 new JsonSerializerOptions { WriteIndented = true }));
             Console.WriteLine($"PASS operation progress: {checks.Count} WPF checks; gameAccess=false");
         }

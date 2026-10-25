@@ -177,7 +177,7 @@ int main(int argc,char** argv){try{
         input.state=reinterpret_cast<uint64_t>(state);input.context=reinterpret_cast<uint64_t>(context);input.device=reinterpret_cast<uint64_t>(device.Get());
         swprintf_s(input.pipe,L"\\\\.\\pipe\\san14-seasons-own-%u-%llu-%u",GetCurrentProcessId(),GetTickCount64(),iteration);
         std::wcerr<<L"Owned client pipe: "<<input.pipe<<L"\n";
-        initialize(true);originalDraw=mockDraw;originalLand=mockLand;originalMesh=mockMesh;originalPrepare=mockPrepare;originalIndexed=mockIndexed;originalBatch=mockBatch;
+        initialize(mode!="performance");originalDraw=mockDraw;originalLand=mockLand;originalMesh=mockMesh;originalPrepare=mockPrepare;originalIndexed=mockIndexed;originalBatch=mockBatch;
         originalInstanced=mockInstanced;originalIndirect=mockIndirect;originalAuto=mockAuto;originalInline=mockInline;originalPresent=mockPresent;
         Recovery result{};std::atomic<bool> done=false;
         std::thread worker([&]{result=serve(input,true);done=true;});
@@ -212,6 +212,19 @@ int main(int argc,char** argv){try{
             auto hello=send(pipe,Hello,input.generation,2);valid=valid&&!hello.error&&hello.actualDraws==5&&hello.renderThread==GetCurrentThreadId();
             auto apply=send(pipe,Apply,input.generation,3);valid=valid&&apply.error==ERROR_NOT_SUPPORTED&&!apply.rendered&&!apply.capabilities;
             uint64_t sequence=4;
+            if(mode=="performance"){
+                auto owned=current.load();owned->pending.store(std::make_shared<TreeColorParameters>(TreeColorParameters{1,195,4,21,{1,0,0,0},true,false}));
+                auto begin=send(pipe,static_cast<Command>(8),input.generation,sequence++);valid=valid&&!begin.error&&patches.size()==7;
+                for(int frame=0;frame<20;frame++){mockPresent(driver,nullptr);mockDraw(driver,0,0,3);}
+                valid=valid&&mockPresent(driver,nullptr)==0x1234567812345678ull&&GetLastError()==4321;
+                auto stopping=send(pipe,static_cast<Command>(9),input.generation,sequence++);valid=valid&&!stopping.error;mockDraw(driver,0,0,3);
+                auto end=send(pipe,static_cast<Command>(11),input.generation,sequence++);std::vector<char> bytes(end.selection[0]);DWORD got=0;
+                valid=valid&&!end.error&&bytes.size()>0&&bytes.size()<8*1024*1024;
+                if(!bytes.empty())valid=valid&&ReadFile(pipe,bytes.data(),DWORD(bytes.size()),&got,nullptr)&&got==bytes.size();
+                valid=valid&&patches.size()==6&&std::string(bytes.begin(),bytes.end()).find("\"presents\"")!=std::string::npos;
+                valid=valid&&send(pipe,static_cast<Command>(8),input.generation,sequence++).error==ERROR_INVALID_STATE;
+                valid=valid&&!send(pipe,Stop,input.generation,sequence++).error;
+            }
             if(color){
                 TreeColorParameters parameters{sequence,195,4,21,{1,0,0,0}};
                 valid=valid&&!send(pipe,ApplyTreeColor,input.generation,sequence++,&parameters).error;

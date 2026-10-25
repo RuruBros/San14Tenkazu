@@ -10,10 +10,10 @@ namespace San14Tenkazu.EnvironmentRules;
 internal static class EnvironmentNativeBundle
 {
     // Updated only after native build/checks and exact source snapshot packaging.
-    internal const string DllHash="f946c9211da5a9efa3575b454e3d138c126e75532644a89115ce0ea5c6c4b94a";
-    internal const string ManifestHash="936f8de7d19da376a018715281151d481864279121756ef92b098da4e5dd4751";
+    internal const string DllHash="aae339e0a60b8e8ea2049dad880835ab1a83dcc50a7d2314dab22a4b2113c65d";
+    internal const string ManifestHash="4ca59103fd0bb88944cc6e2a03dad40d8bb30b2d8921197906f258963540d6bc";
     internal static readonly (ulong Rva,int Size,string Hash)[] Targets=GameBuildFacts.EnvironmentTargets();
-    internal static readonly string[] SourceNames=["EnvironmentBridge.cpp","EnvironmentProtocol.h","EnvironmentPolicy.h","EnvironmentSignatures.h","EnvironmentWeather.h","EnvironmentChecks.cpp","BuildEnvironmentBridge.ps1","EnvironmentNotification.h","EnvironmentNotificationSignatures.h","EnvironmentNoticeSound.h","EnvironmentNoticeTrace.h","EnvironmentNoticeTraceStore.h","GameBuildFacts.g.h"];
+    internal static readonly string[] SourceNames=["EnvironmentBridge.cpp","EnvironmentProtocol.h","EnvironmentPolicy.h","EnvironmentSignatures.h","EnvironmentWeather.h","EnvironmentWeatherTiming.h","EnvironmentChecks.cpp","BuildEnvironmentBridge.ps1","EnvironmentNotification.h","EnvironmentNotificationSignatures.h","EnvironmentNoticeSound.h","EnvironmentNoticeTrace.h","EnvironmentNoticeTraceStore.h","GameBuildFacts.g.h"];
     private static string Hash(byte[] value)=>Convert.ToHexString(SHA256.HashData(value)).ToLowerInvariant();
     private static Dictionary<string,byte[]> Read()
     {
