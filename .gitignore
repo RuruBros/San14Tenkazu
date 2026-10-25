@@ -30,6 +30,7 @@ source/RenderChecks/artifacts/
 /source/Reverse/notes/
 /source/RenderChecks/README.md
 /source/Seasons/README.md
+/source/Environment/README.md
 # Reverse-engineering tools: their venv and the dumped game image stay local
 source/Reverse/.venv/
 source/Reverse/.cache/
