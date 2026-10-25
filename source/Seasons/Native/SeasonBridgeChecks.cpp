@@ -9,6 +9,7 @@ namespace {
 ComPtr<ID3D11DeviceContext> fixtureContext;
 ID3D11ShaderResourceView* fixtureSource=nullptr;
 std::atomic<bool> hold{false},inside{false};
+std::atomic<bool> prepareTracked{false};
 void bump(void* d){auto* p=static_cast<BYTE*>(d)+0x2ad0;auto n=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0)+1;std::memcpy(p,&n,4);}
 __declspec(noinline) void __fastcall mockDraw(void* d,uint32_t,uint32_t,uint32_t){
     fixtureContext->Draw(3,0);inside=true;while(hold.load())Sleep(1);bump(d);
@@ -16,12 +17,18 @@ __declspec(noinline) void __fastcall mockDraw(void* d,uint32_t,uint32_t,uint32_t
 __declspec(noinline) void __fastcall mockLand(void* d,uint32_t,uint32_t,uint32_t){fixtureContext->Draw(3,0);bump(d);}
 __declspec(noinline) void __fastcall mockIndexed(void* d,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t){fixtureContext->Draw(3,0);bump(d);}
 __declspec(noinline) uint8_t __fastcall mockPrepare(void*,uint32_t mode){if(mode==99)return 0;
+    if(mode==98){prepareTracked=callbacks.load()>0&&callbackDepth>0;inside=true;while(hold.load())Sleep(1);SetLastError(1234);return 1;}
     if(fixtureSource)fixtureContext->PSSetShaderResources(0,1,&fixtureSource);return 1;}
 __declspec(noinline) void __fastcall mockBatch(void* d){auto counter=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);
     if(mockPrepare(d,0)){mockIndexed(d,0,0,0,0,6);std::memcpy(static_cast<BYTE*>(d)+0x2ad0,&counter,4);}}
 __declspec(noinline) void __fastcall mockMesh(void* d,uint32_t mode,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t){
     if(!mockPrepare(d,mode))return;fixtureContext->Draw(3,0);inside=true;while(hold.load())Sleep(1);bump(d);}
 void checked(HRESULT hr){if(FAILED(hr))throw std::runtime_error("Owned WARP API failed");}
+__declspec(noinline) void __fastcall mockInstanced(void* d,uint32_t m,uint32_t a,uint32_t b,uint32_t c,uint32_t e){mockIndexed(d,m,a,b,c,e);}
+__declspec(noinline) void __fastcall mockIndirect(void* d,uint32_t,void*,uint32_t){if(mockPrepare(d,0))fixtureContext->Draw(3,0);bump(d);}
+__declspec(noinline) void __fastcall mockAuto(void* d,uint32_t){if(mockPrepare(d,0))fixtureContext->Draw(3,0);bump(d);}
+__declspec(noinline) void __fastcall mockInline(void* d,uint32_t,uint32_t,const void*,uint32_t){if(mockPrepare(d,0))fixtureContext->Draw(3,0);bump(d);}
+__declspec(noinline) uint64_t __fastcall mockPresent(void*,void*){inside=true;while(hold.load())Sleep(1);SetLastError(4321);return 0x1234567812345678ull;}
 ComPtr<ID3D11ShaderResourceView> sourceFor(ID3D11Device* device,const std::vector<BYTE>& bytes,DXGI_FORMAT format,const TreeAsset* descriptor=nullptr){
     if(!descriptor&&bytes.size()!=174752&&bytes.size()!=349520)throw std::runtime_error("Original GPU payload size differs");
     UINT width=descriptor?descriptor->width:512,height=descriptor?descriptor->height:bytes.size()==174752?256:512,levels=descriptor?descriptor->mips:height==256?7:8;
@@ -170,7 +177,8 @@ int main(int argc,char** argv){try{
         input.state=reinterpret_cast<uint64_t>(state);input.context=reinterpret_cast<uint64_t>(context);input.device=reinterpret_cast<uint64_t>(device.Get());
         swprintf_s(input.pipe,L"\\\\.\\pipe\\san14-seasons-own-%u-%llu-%u",GetCurrentProcessId(),GetTickCount64(),iteration);
         std::wcerr<<L"Owned client pipe: "<<input.pipe<<L"\n";
-        initialize();originalDraw=mockDraw;originalLand=mockLand;originalMesh=mockMesh;originalPrepare=mockPrepare;originalIndexed=mockIndexed;originalBatch=mockBatch;
+        initialize(true);originalDraw=mockDraw;originalLand=mockLand;originalMesh=mockMesh;originalPrepare=mockPrepare;originalIndexed=mockIndexed;originalBatch=mockBatch;
+        originalInstanced=mockInstanced;originalIndirect=mockIndirect;originalAuto=mockAuto;originalInline=mockInline;originalPresent=mockPresent;
         Recovery result{};std::atomic<bool> done=false;
         std::thread worker([&]{result=serve(input,true);done=true;});
         HANDLE pipe=INVALID_HANDLE_VALUE;
@@ -191,9 +199,11 @@ int main(int argc,char** argv){try{
         // pipe alone does not authorize the fixture's first callback assertion.
         auto ready=send(pipe,Hello,input.generation,1);
         valid=valid&&ready.error==ERROR_IO_PENDING&&!ready.actualDraws;
-        const bool held=mode=="hold";hold=held;inside=false;bool early=false;
+        const bool prepareHeld=mode=="prepare-hold",presentHeld=mode=="present-hold",held=mode=="hold"||prepareHeld||presentHeld;hold=held;inside=false;bool early=false;
         std::thread release;if(held)release=std::thread([&]{while(!inside.load())Sleep(1);Sleep(1200);early=done.load();hold=false;});
-        mockDraw(driver,0,0,3);
+        if(prepareHeld){auto value=mockPrepare(driver,98);auto error=GetLastError();valid=valid&&value==1&&error==1234&&prepareTracked;}
+        else if(presentHeld){auto result=mockPresent(driver,nullptr);valid=valid&&result==0x1234567812345678ull&&GetLastError()==4321;}
+        else mockDraw(driver,0,0,3);
         if(release.joinable())release.join();
         if(!held){
             mockLand(driver,0,1,0);mockMesh(driver,0,0,0,0,3,1);mockIndexed(driver,0,0,0,0,6);

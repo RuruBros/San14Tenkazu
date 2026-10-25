@@ -1,3 +1,3 @@
 param([Parameter(Mandatory=$true)][string]$BuildDirectory)
 $ErrorActionPreference='Stop'
-& (Join-Path $PSScriptRoot '..\BuildProfiles\PackNative.ps1') -Kind Season -BuildDirectory $BuildDirectory -DllSha256 '42d2ed9d2b0640aedb45a92d64f62d1a081262de38e2c9b25b0859bb0d3214f0' -ManifestSha256 'bebbcd2ef29115e68c542a1b4144ce4276a55e4b6884b1e2febfbf8280d5b4d3'
+& (Join-Path $PSScriptRoot '..\BuildProfiles\PackNative.ps1') -Kind Season -BuildDirectory $BuildDirectory -DllSha256 'bacb74f5a5ef38772837918485631102745f4678e5aa2c794572a3ad7cf60020' -ManifestSha256 '56279b7702a98b1759c57145d57aa11182559b712e1d7eb8a3ef52ae36aaca00'

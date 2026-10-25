@@ -3217,6 +3217,11 @@ ImportSaved = 규칙 설정을 저장했습니다. 자동 적용은 꺼져 있�
 ImportConfirm = 현재 게임의 검증된 기준값은 유지하고 선택한 파일의 설정만 가져옵니다. 자동 적용은 끕니다. 계속할까요?
 
 [DeveloperUi]
+PictureDiagnostic = 표시 전용 실행의 그림 교체 진단 기록
+PictureDiagnosticTip = 표시 준비 조건을 집계하고 알림 Queue 호출 직전부터 최대 5초간 원본 그림 인증·GPU 교체·복구를 상세 기록합니다. 준비 포함 2분 제한과 취소를 유지하며 실제 피해는 발생시키지 않습니다. 진단은 계절·날씨 표시가 OFF인 상태에서 시작합니다.
+PictureDiagnosticRendererOff = 그림 진단을 시작하려면 계절·날씨·재해를 OFF로 복구한 뒤 다시 실행하세요.
+PictureDiagnosticPrepared = 그림 진단 기록 위치:
+PictureDiagnosticSaved = 그림 진단 결과 (화면 확인은 별도):
 ReadGeography = 로드 도시·날씨 receipt 기록 (읽기 전용)
 EditGeography = 추가 도시 금·성 내구도 왕복 검증
 GeographyTab = 도시·환경 검증

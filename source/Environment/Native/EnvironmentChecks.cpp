@@ -251,12 +251,11 @@ void soundChecks(){
 void developerChecks(){
     auto request=[](Fixture& f,unsigned mode,unsigned city=1,unsigned kind=0){auto r=std::make_shared<Message>();r->sequence=50;r->reserved=mode|(city<<8)|(kind<<16);f.s->testRequest.store(r);f.s->frame();};
     fixtureNoticeReady=false;
-    for(unsigned city=47;city<=CitySlots;city++){
-        Fixture f;f.s->frame();request(f,2,city,2);
-        require(f.s->state.testState==3&&f.s->state.testCity==city,"added city developer damage waits for boundary");
+    for(unsigned city=47;city<=CitySlots;city++)for(unsigned mode:{1u,2u}){
+        Fixture f;f.s->frame();request(f,mode,city,2);
+        require(f.s->state.testState==6&&!f.s->state.lastEvent,"added cities reject preview and damage requests");
         f.clock(11,0);f.s->frame();
-        require(f.s->state.testState==4&&read<int>(f.cities+city*0x168+0x38)==9400&&read<int>(f.cities+0x168+0x38)==10000&&f.s->state.recentDates[(city-1)*5+2]==date(11),"added city developer drought changes only its own live record and history");
-        auto count=f.s->state.lastEvent;f.s->frame();require(f.s->state.lastEvent==count,"added city developer damage is one shot");
+        require(read<int>(f.cities+city*0x168+0x38)==10000&&!f.s->state.recentDates[(city-1)*5+2],"rejected added city has no delayed damage or marker");
     }
     {Fixture f;write<uint8_t>(f.cities+51*0x168+0xce,0);f.s->frame();request(f,2,51,2);require(f.s->state.testState==6&&!f.s->state.lastEvent,"missing loaded geography rejects developer damage");}
     {Fixture f;f.s->frame();request(f,1,52,2);require(f.s->state.testState==6,"developer test rejects unsupported city without array access");}
@@ -313,21 +312,21 @@ void geographyChecks() {
         Fixture f;uint16_t county=city==49?345:352,home=city==49?23:29;auto tile=read<uint16_t>(f.buildings+city*0x20,0x10);
         write<uint16_t>(f.tiles+tile*0x20+0x12,county);write<uint8_t>(f.counties+county*0x200+0x34,static_cast<uint8_t>(home));
         f.s->frame();auto request=std::make_shared<Message>();request->sequence=50;request->reserved=2|(city<<8)|(2<<16);f.s->testRequest.store(request);f.s->frame();f.clock(11,0);f.s->frame();
-        require(f.s->state.testState==4&&read<int>(f.cities+city*0x168+0x38)==9400&&read<int>(f.cities+home*0x168+0x38)==10000,"cross-county added city drought writes its own city, never the county home city");
+        require(f.s->state.testState==6&&read<int>(f.cities+city*0x168+0x38)==10000&&read<int>(f.cities+home*0x168+0x38)==10000,"cross-county excluded city request writes neither its record nor county home");
     }
     constexpr uint64_t last=uint64_t(1)<<50;
     {
         Fixture f;f.climate(400,0);f.message->flags=Drought;f.message->values.droughtChance=1000;
         while(weather(f.message->seed,serial(date(11)),51,400,0))++f.message->seed;
         f.s->frame();f.clock(11,0);f.s->frame();
-        require(read<int>(f.cities+51*0x168+0x38)==9400&&f.s->state.recentDates[50*5+2]==date(11),"city 51 actual drought loss and event receipt use its own record");
+        require(read<int>(f.cities+51*0x168+0x38)==10000&&!f.s->state.recentDates[50*5+2],"city 51 excludes natural drought loss and history");
     }
     {
         Fixture f;f.message->flags=SnowMovement|SnowVisual;f.climate(-50,30000);
-        while(!weather(f.message->seed,serial(date(10)),51,-50,30000))++f.message->seed;
-        f.s->frame();require(f.s->state.availableCities==((uint64_t(1)<<51)-1)&&!f.s->state.unavailableCities,"all 51 loaded ordinary cities are eligible");
+        while(!weather(f.message->seed,serial(date(10)),46,-50,30000))++f.message->seed;
+        f.s->frame();require(f.s->state.availableCities==((uint64_t(1)<<51)-1)&&!f.s->state.unavailableCities,"all 51 loaded city records remain discoverable");
         WeatherSnapshot snapshot;
-        require(f.s->weatherSnapshot(snapshot)&&snapshot.regions[220*80+130]==51&&snapshot.weather[50]!=0,"added city shares current gameplay and visual weather");
+        require(f.s->weatherSnapshot(snapshot)&&snapshot.regions[220*80+130]==51&&snapshot.weather[50]==0&&snapshot.weather[45]!=0,"added city weather is zero while original city 46 retains weather");
         write<uint8_t>(f.cities+51*0x168+0xce,0);f.s->frame();
         require((f.s->state.unavailableCities&last)&&!(f.s->state.availableCities&last)&&!f.s->state.weather[50]&&f.s->admission,"missing state excludes only the affected city without inventing weather");
         write<uint8_t>(f.cities+51*0x168+0xce,1);
@@ -364,7 +363,135 @@ void geographyChecks() {
         require(read<int>(f.cities+51*0x168+0x38)==10000&&!f.s->state.recentDates[50*5+2],"same-address geography reload clears stale events and cannot trigger retrospective damage");
     }
 }
+void excludedEffectsChecks(){
+    for(uint32_t city=47;city<=51;city++)for(uint32_t kind=0;kind<5;kind++){
+        Fixture f;auto tile=uint16_t(220*80+80+city-1);f.unit(1,tile);f.message->flags=All;
+        f.s->frame();World world{};require(f.s->world(world),"excluded boundary fixture world is valid");
+        f.s->state.weather[city-1]=8;f.s->effects(world,*f.message,serial(world.date),city,kind);
+        require(read<int>(f.cities+city*0x168+0x38)==10000&&read<uint16_t>(f.units+0x200,0x16)==10000&&read<uint8_t>(f.units+0x200,0x1a)==100,
+            "all five forced disaster kinds and stale weather leave excluded city and unit unchanged");
+        require(f.s->speed(reinterpret_cast<void*>(f.units+0x200),100)==100,"excluded city movement stays original");
+        for(const auto& e:f.s->state.events)require(e.city!=city,"excluded city creates no damage event");
+        f.s->state.recentDates[(city-1)*5+kind]=date(10);WeatherSnapshot out;
+        require(f.s->weatherSnapshot(out)&&!out.weather[city-1]&&!out.recentDates[(city-1)*5+kind],"excluded stale weather and disaster history cannot reach renderer");
+    }
+    auto ownedStore=std::make_unique<notice_trace::Store>();auto& store=*ownedStore;require(store.arm(17,66),"diagnostic arm owns exact generations");store.start(100,2);
+    notice_trace::State state;state.phase=notice_trace::Poll;store.record(state);store.record(state);
+    notice_trace::Query q;q.season=66;q.environment=17;require(store.read(q)&&q.state.records==1,"identical diagnostic snapshots deduplicate without padding comparison");
+    for(unsigned i=0;i<notice_trace::EventCapacity+1;i++){state.phase=notice_trace::PictureBefore;store.record(state);}
+    require(store.read(q)&&q.state.records==notice_trace::EventCapacity&&q.state.dropped>0&&store.expired(),"event capacity produces incomplete and cancellation instead of overwriting evidence");
+}
+void geographyReadChecks(){
+    Fixture f;WeatherSnapshot snapshot{};
+    require(!f.s->weatherSnapshot(snapshot),"weather has no unvalidated initial geography");
+    f.s->frame();auto builds=f.s->topologyBuilds;
+    for(int i=0;i<1000;i++)if(!f.s->weatherSnapshot(snapshot))throw std::runtime_error("stable weather read failed");
+    require(f.s->topologyBuilds==builds,"one thousand Draw weather reads do not rebuild topology");
+    for(uint32_t tile:{100u,TileCount-1})for(uint32_t offset:{0u,1u,2u,3u,4u,5u,6u,7u,0x10u,0x12u,0x13u,0x1au,0x1bu}){
+        auto address=f.tiles+tile*0x20+offset;auto before=read<uint8_t>(address);write<uint8_t>(address,before^1);
+        if(f.s->weatherSnapshot(snapshot))throw std::runtime_error("same-address tile input change escaped validation");
+        write<uint8_t>(address,before);
+    }
+    require(f.s->weatherSnapshot(snapshot)&&f.s->topologyBuilds==builds,"all consumed tile bytes including final tile reject before update without rebuilding");
+    auto unrelated=f.tiles+100*0x20+0x1f;write<uint8_t>(unrelated,1);
+    require(f.s->weatherSnapshot(snapshot),"unconsumed tile state does not invalidate geography");
+    for(uint32_t offset:{0u,0x34u}){auto address=f.counties+500*0x200+offset;auto before=read<uint8_t>(address);write<uint8_t>(address,before^1);
+        require(!f.s->weatherSnapshot(snapshot),"same-address county class or home change rejects stale geography");write<uint8_t>(address,before);}
+    auto oldName=read<uint16_t>(f.cities+0x168+0x12);write<uint16_t>(f.cities+0x168+0x12,oldName^1);
+    require(!f.s->weatherSnapshot(snapshot),"same-address city identity change rejects cached geography");write<uint16_t>(f.cities+0x168+0x12,oldName);
+    auto oldTile=read<uint64_t>(f.root+0xdfe0);write<uint64_t>(f.root+0xdfe0,f.tiles+0x20);
+    require(!f.s->weatherSnapshot(snapshot),"changed tile table cannot reuse identical root and state");write<uint64_t>(f.root+0xdfe0,oldTile);
+    auto other=std::make_shared<Message>(*f.message);other->sequence++;f.s->pending.store(other);
+    require(!f.s->weatherSnapshot(snapshot),"unapplied configuration cannot reuse published weather");f.s->pending.store(f.message);
+    f.clock(11,0);require(f.s->weatherSnapshot(snapshot)&&snapshot.date==date(11),"fresh date before next update computes current weather without managed polling");
+    for(uint32_t city=1;city<=46;city++){int t{},p{};f.s->climate(*f.message,f.s->previous,city,date(11),t,p);
+        if(snapshot.weather[city-1]!=weather(f.message->seed,serial(date(11)),city,t,p))throw std::runtime_error("fresh-date weather mismatch");}
+    require(f.s->topologyBuilds==builds,"date advancement does not rebuild unchanged geography on Draw");
+    f.s->presentation.layout=1;f.s->presentation.shown=true;f.s->presentation.kind=2;
+    require(f.s->weatherSnapshot(snapshot)&&snapshot.reserved==3,"notice visual state is read fresh independently of cached geography");
+    f.s->presentation={};require(f.s->weatherSnapshot(snapshot)&&!snapshot.reserved,"notice reset immediately removes visual kind without another update");
+    f.s->admission=false;require(!f.s->weatherSnapshot(snapshot),"OFF does not return cached weather");f.s->admission=true;
+    f.clock(10,23);f.s->frame();f.s->state.recentDates[2]=date(10);
+    write<uint8_t>(f.tiles+100*0x20+0x10,13);require(!f.s->weatherSnapshot(snapshot),"terrain-only reload rejects old weather before update");
+    f.clock(11,0);f.s->frame();require(f.s->weatherSnapshot(snapshot)&&!snapshot.recentDates[2]&&!f.s->state.lastEvent,"same-address terrain reload rebuilds baseline without stale history or retrospective damage");
+    auto address=f.tiles+(TileCount-1)*0x20;auto page=address&~uint64_t(4095);DWORD old{};
+    require(VirtualProtect(reinterpret_cast<void*>(page),4096,PAGE_NOACCESS,&old)!=0,"unreadable last tile fixture protected");
+    auto rejected=!f.s->weatherSnapshot(snapshot);DWORD ignored{};VirtualProtect(reinterpret_cast<void*>(page),4096,old,&ignored);
+    require(rejected&&f.s->weatherSnapshot(snapshot),"unreadable topology input fails closed and readable input remains usable");
+    std::atomic<bool> valid=true;std::thread reader([&]{for(int i=0;i<200;i++){WeatherSnapshot value{};if(!f.s->weatherSnapshot(value))valid=false;}});
+    for(int i=0;i<80;i++)f.s->frame();reader.join();
+    require(valid&&!f.s->state.lastEvent,"concurrent update and Draw reads serialize complete geography without damage");
+}
+void noticeArmingChecks(){
+    using namespace notice_trace;
+    fixtureMilliseconds=1000;
+    {
+        auto ownedStore=std::make_unique<notice_trace::Store>();auto& store=*ownedStore;require(store.arm(17,67),"arming fixture owns generations");store.start(100,2);
+        for(unsigned i=0;i<70000;i++)store.gate(ForegroundPid,(i&1)!=0,i&1);
+        fixtureMilliseconds=120000;Query q;q.season=67;q.environment=17;q.command=2;
+        require(!store.expired()&&store.read(q)&&q.state.records==0&&!q.state.captureStartedMs&&q.gates[0].evaluated==70000&&q.gates[0].rejected==35000&&!q.gates[1].evaluated,
+            "119 second preparation with changing gates consumes no event budget and retains not-evaluated gates");
+        fixtureMilliseconds=121000;require(store.expired()&&store.read(q)&&q.state.stopReason==PreparationDeadline,"120 second preparation boundary cancels without capture");
+        store.stop(ManualCancel);require(store.read(q)&&q.state.stopReason==PreparationDeadline,"first stop cause survives later cleanup");
+    }
+    {
+        auto ownedStore=std::make_unique<notice_trace::Store>();auto& store=*ownedStore;fixtureMilliseconds=1000;store.arm(17,67);store.start(100,2);
+        fixtureMilliseconds=10000;State s;s.phase=QueueBefore;store.record(s);Query q;q.season=67;q.command=2;store.read(q);auto started=q.state.captureStartedQpc;
+        fixtureMilliseconds=11000;store.record(s);store.read(q);
+        require(q.state.startedMs==1000&&q.state.captureStartedMs==10000&&q.state.captureStartedQpc==started,"QueueBefore starts capture exactly once without replacing request time");
+        fixtureMilliseconds=14999;require(!store.expired(),"capture remains admitted through 4999ms");
+        fixtureMilliseconds=15000;require(store.expired()&&store.read(q)&&q.state.stopReason==CaptureDeadline,"capture cancels at 5000ms independently of preparation");
+    }
+    {
+        Fixture f;fixtureMilliseconds=1000;f.s->frame();f.s->noticeTrace->arm(17,67);
+        auto request=std::make_shared<Message>();request->sequence=100;request->reserved=1|(1<<8)|(2<<16);f.s->testRequest.store(request);f.s->frame();World w;require(f.s->world(w),"arming fixture loaded world");
+        auto tick=[&](uint64_t ms){fixtureMilliseconds=ms;f.s->testFrame(w,*f.message,23,true,false);};
+        f.s->fixtureForegroundPid=false;tick(1200);Query q;q.season=67;q.command=2;f.s->noticeTrace->read(q);
+        require(q.gates[ForegroundPid].rejected==1&&!q.gates[EngineForeground].evaluated,"foreign foreground PID rejects before reading engine gate");
+        f.s->fixtureForegroundPid=true;f.s->fixtureEngineForeground=false;tick(1300);f.s->noticeTrace->read(q);
+        require(q.gates[EngineForeground].rejected==1&&!q.gates[RequestAge].evaluated,"engine foreground rejects before age admission");
+        f.s->fixtureEngineForeground=true;tick(1400);tick(2199);f.s->noticeTrace->read(q);
+        require(q.gates[RequestAge].rejected==1&&q.gates[ForegroundAge].rejected==1&&!q.state.captureStartedMs,"request and continuous foreground ages retain independent 800ms guards");
+        f.s->fixtureForegroundPid=false;tick(2200);require(f.s->testForegroundSince==0,"foreground loss resets continuous wait");
+        f.s->fixtureForegroundPid=true;tick(2300);fixtureNoticeReady=false;tick(3100);f.s->noticeTrace->read(q);
+        require(q.gates[ReadyFixture].rejected==1&&!q.state.captureStartedMs,"not-ready notice never starts detailed capture");
+        f.s->presentation.state=42;tick(3200);f.s->noticeTrace->read(q);require(q.gates[NotBusy].rejected==1,"busy presentation records actual rejection");f.s->presentation.state=0;
+        fixtureNoticeReady=true;fixtureNoticeOwnership=true;tick(3300);f.s->noticeTrace->read(q);
+        require(q.state.captureStartedMs==3300&&f.s->state.testState==2&&!f.s->state.lastEvent,"eligible queue starts detail while preview remains no-damage");
+        fixtureNoticePending=false;fixtureNoticeActive=true;f.s->presentation.poll(f.module);
+        fixtureNoticeActive=false;f.s->presentation.poll(f.module);f.s->noticeTrace->read(q);
+        bool picture=false,hide=false,reset=false;for(unsigned first=0;first<q.state.records;first+=q.count){q.first=first;require(f.s->noticeTrace->read(q)&&q.count,"lifecycle event page readable");for(unsigned i=0;i<q.count;i++){auto phase=q.entries[i].state.phase;picture|=phase==PictureAfter;hide|=phase==HideAfter;reset|=phase==Reset;}}
+        require(picture&&hide&&reset&&!f.s->state.lastEvent,"queued preview records original picture hide reset without damage");
+        fixtureNoticeOwnership=fixtureNoticeActive=fixtureNoticePending=false;
+    }
+    // Exercise the production readiness evaluator, including its exact lazy read order.
+    for(uint32_t base:{uint32_t(ReadyFirst),uint32_t(ReadyQueue)})for(int failure=-1;failure<12;failure++){
+        auto ownedStore=std::make_unique<notice_trace::Store>();auto& store=*ownedStore;store.arm(17,67);store.start(100,2);
+        const uint64_t manager=0x1b620b0,items=1000,a=2000,b=3000;
+        auto r64=[&](uint64_t at)->uint64_t{
+            if(at==manager+0x10)return failure==0?0:failure==1?129:2;
+            if(at==manager+0x20)return failure==2?0:items;
+            if(at==manager+0x30)return failure==3?1:0;
+            if(at==manager)return failure==4?0:1;
+            if(at==manager+0x28)return failure==5?0:1;
+            if(at==items)return a;if(at==items+8)return b;
+            if(at==a)return failure==6?0x13acdb8:failure==7?99:0x13d68c0;
+            if(at==b)return failure==7||failure==11?99:0x13d68c0;throw std::runtime_error("unexpected readiness read");};
+        std::vector<uint64_t> untraced,traced;auto check=[&](Store* trace,std::vector<uint64_t>& reads){return noticeReadyRead(0,[&](uint64_t at){reads.push_back(at);return r64(at);},[&](uint64_t at){reads.push_back(at);return failure==9?1u:0u;},[&]{reads.push_back(444);return failure==8?0ull:4000ull;},[&](uint64_t){reads.push_back(555);return failure==10;},trace,base);};
+        auto expected=check(nullptr,untraced);auto actual=check(&store,traced);Query q;q.season=67;q.command=2;store.read(q);
+        require(actual==expected&&actual==(failure==-1)&&untraced==traced,"readiness diagnostics preserve exact admission and short-circuit reads");
+        if(failure>=0)require(q.gates[base+failure].rejected>0&&(failure==11||!q.gates[base+failure+1].evaluated),"readiness rejection distinguishes first and queue recheck stages without fabricated passes");
+    }
+    {
+        auto ownedStore=std::make_unique<notice_trace::Store>();auto& store=*ownedStore;store.arm(17,67);store.start(100,2);NoticePresentation p;p.trace=&store;fixtureNoticeReady=false;fixtureNoticeOwnership=true;
+        require(!p.begin(0,L"queue recheck",2,true),"failed queue readiness recheck rejects preview");Query q;q.season=67;q.command=2;store.read(q);
+        require(q.state.captureStartedMs&&q.state.stopReason==QueueFailure&&q.state.phase==QueueAfter&&!p.busy(),"queue failure retains detailed start and first stop cause without claiming a picture");
+        fixtureNoticeReady=true;fixtureNoticeOwnership=false;
+    }
+    fixtureMilliseconds=0;
+}
+
 int main(int argc,char** argv) {
-    try{geographyChecks();sessionChecks();migratingFrameChecks();eligibilityChecks();disasterChecks(Flood,200,30000,10,0,true);disasterChecks(Wildfire,300,0,11,5,false);disasterChecks(Drought,300,0,12,0,false);disasterChecks(Blizzard,-50,30000,13,0,false);disasterChecks(Heatwave,300,0,14,0,false);customChecks();noticePageChecks();notificationChecks();presentationChecks();soundChecks();developerChecks();dispatchChecks();hookChecks();if(argc==2)vectors(argv[1]);return 0;}
+    try{noticeArmingChecks();geographyReadChecks();excludedEffectsChecks();geographyChecks();sessionChecks();migratingFrameChecks();eligibilityChecks();disasterChecks(Flood,200,30000,10,0,true);disasterChecks(Wildfire,300,0,11,5,false);disasterChecks(Drought,300,0,12,0,false);disasterChecks(Blizzard,-50,30000,13,0,false);disasterChecks(Heatwave,300,0,14,0,false);customChecks();noticePageChecks();notificationChecks();presentationChecks();soundChecks();developerChecks();dispatchChecks();hookChecks();if(argc==2)vectors(argv[1]);return 0;}
     catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}
 }

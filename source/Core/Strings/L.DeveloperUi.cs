@@ -26,6 +26,11 @@ internal static partial class L
         internal static string UnknownSound => T();
         internal static string Preview => T();
         internal static string PreviewTip => T();
+        internal static string PictureDiagnostic => T();
+        internal static string PictureDiagnosticTip => T();
+        internal static string PictureDiagnosticRendererOff => T();
+        internal static string PictureDiagnosticPrepared => T()+" ";
+        internal static string PictureDiagnosticSaved => T()+" ";
         internal static string ScheduleDamage => T();
         internal static string CancelTest => T();
         internal static string RefreshCities => T();

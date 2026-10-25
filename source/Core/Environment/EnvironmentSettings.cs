@@ -96,6 +96,7 @@ internal sealed class EnvironmentSettingsFile(string path)
 // Exported vectors compare this reference with the native code that runs on the game's thread.
 internal static class EnvironmentPolicy
 {
+    internal static bool EffectCity(int city)=>city is >=1 and <=46;
     internal static ulong Random(ulong seed,uint date,uint city,uint kind)
     {
         unchecked
@@ -116,6 +117,7 @@ internal static class EnvironmentPolicy
     {
         if(city is <1 or >EnvironmentProtocol.CitySlots||temperatureTenths is < -600 or >600||precipitationTenths is <0 or >30000)
             throw new ArgumentOutOfRangeException(nameof(city));
+        if(!EffectCity((int)city))return 0;
         uint chance=(uint)Math.Clamp(precipitationTenths/5,50,650);
         if(temperatureTenths<=20)
         {

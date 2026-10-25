@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -74,7 +74,7 @@ internal sealed class EnvironmentNativeBackend(GameIdentity identity,byte[] clim
 #if LOCAL_DEVELOPER
         public async ValueTask<EnvironmentProtocol.Reply> TestAsync(int mode,int city,int kind,CancellationToken token)
         {
-            if(mode is <0 or >2||city is <1 or >EnvironmentProtocol.CitySlots||kind is <0 or >4)throw new ArgumentOutOfRangeException(nameof(mode));
+            if(mode is <0 or >2||!EnvironmentPolicy.EffectCity(city)||kind is <0 or >4)throw new ArgumentOutOfRangeException(nameof(mode));
             var reply=await Send(5,null,token,reserved:(uint)(mode|(city<<8)|(kind<<16))).ConfigureAwait(false);ulong requested=sequence;
             for(int i=0;i<60&&(reply.TestId!=requested||mode==0&&reply.TestState==7);i++){await Task.Delay(50,token).ConfigureAwait(false);reply=await QueryAsync(token).ConfigureAwait(false);}
             if(reply.TestId!=requested||mode==0&&reply.TestState==7)throw new IOException("Developer request/recovery was not acknowledged by the game frame");return reply;
@@ -196,6 +196,7 @@ internal sealed class EnvironmentController(IEnvironmentBackend backend,Action<s
 #if LOCAL_DEVELOPER
     internal async Task TestAsync(int mode,int city,int kind,CancellationToken token=default)
     {
+        if(mode is <0 or >2||!EnvironmentPolicy.EffectCity(city)||kind is <0 or >4)throw new ArgumentOutOfRangeException(nameof(city));
         await gate.WaitAsync(token).ConfigureAwait(false);
         try {
             if(session is not IEnvironmentDeveloperSession developer)throw new InvalidOperationException("Developer session is not ready");

@@ -67,7 +67,13 @@ internal sealed partial class EditorWindow
             $"Date read: pid={value.Identity.ProcessId}, date={value.Date.Year}/{value.Date.Month}/{value.Date.Day}, "+
             $"scene=0x{value.Identity.Scene:x}, device=0x{value.Identity.Device:x}, context=0x{value.Identity.Context:x}")),new SeasonPackagedBackend(identity,
             Path.Combine(seasonStorageRoot,"native"),RecordSeason,()=>GameSeasonSources.Read(identity,RecordSeason),
-            sceneFromSources:sources=>GameSeasonScene.Read(identity,sources,RecordSeason)),scope:SeasonScope.Full);
+            sceneFromSources:sources=>
+#if LOCAL_DEVELOPER
+                PrepareDeveloperNoticeScene(GameSeasonScene.Read(identity,sources,RecordSeason))
+#else
+                GameSeasonScene.Read(identity,sources,RecordSeason)
+#endif
+            ),scope:SeasonScope.Full);
         seasonController.StatusChanged+=OnSeasonStatusChanged;UpdateSeasonControls();
     }
 
@@ -210,6 +216,7 @@ internal sealed partial class EditorWindow
         if (gamePreparationCancellation is { } preparation) { preparation.Cancel(); e.Cancel = true; return; }
 #if LOCAL_DEVELOPER
         if(compatibilityCancellation is {} diagnostic){diagnostic.Cancel();e.Cancel=true;return;}
+        if(developerChanging){e.Cancel=true;return;}
 #endif
         if(runtimeRulesChanging){e.Cancel=true;return;}
         if(seasonCloseApproved){registeredEditor?.AllowOwnerClose();return;}
@@ -226,6 +233,9 @@ internal sealed partial class EditorWindow
             await System.Windows.Threading.Dispatcher.Yield();
             if(await StopEnvironmentAsync(true)&&await StopSeasonsAsync(true))
             {
+#if LOCAL_DEVELOPER
+                await CompleteDeveloperNoticeDiagnostic(ownerRestored:true);
+#endif
                 seasonCloseApproved=true;Close();
             }
             else{AddLog(L.Seasons.CloseBlocked);if(game is not null)liveTimer.Start();}

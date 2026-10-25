@@ -64,6 +64,9 @@ internal sealed partial class EditorWindow
     }
     private void OnEnvironmentStatus(EnvironmentStatus value)
     {
+#if LOCAL_DEVELOPER
+        if(!Dispatcher.HasShutdownStarted)Dispatcher.InvokeAsync(()=>developerNoticeDiagnostic?.Observe(value));
+#endif
         if(!Dispatcher.HasShutdownStarted)Dispatcher.InvokeAsync(()=>
         {
             if(value.Phase==EnvironmentPhase.Faulted){environmentFailure=game;environmentUiError=value.Error;}
@@ -72,6 +75,7 @@ internal sealed partial class EditorWindow
 #if LOCAL_DEVELOPER
         if(!Dispatcher.HasShutdownStarted)Dispatcher.InvokeAsync(async()=>{
             if(developerRendering&&!developerChanging&&(value.Phase is EnvironmentPhase.Off or EnvironmentPhase.Faulted||value.Receipt?.TestState is 5 or 6)){
+                if(developerNoticeDiagnostic is not null){await CancelDeveloperTest();return;}
                 developerRendering=false;try{await SyncWeatherRenderingAsync();}catch(Exception error){RecordEnvironment("Developer renderer recovery: "+error);}
             }
         });

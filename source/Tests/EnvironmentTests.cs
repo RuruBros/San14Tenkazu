@@ -5,6 +5,21 @@ namespace San14Tenkazu.Tests;
 
 public class EnvironmentTests
 {
+    [Fact]
+    public void AddedCitiesRemainInProtocolButHaveNoWeatherOrOverlayEffects()
+    {
+        Assert.Equal(51,EnvironmentProtocol.CitySlots);
+        foreach(int city in Enumerable.Range(47,5)){
+            foreach(int temperature in new[]{-100,20,300})foreach(uint day in new uint[]{1,10,100,365})
+                Assert.Equal(0u,EnvironmentPolicy.Weather(123,day,(uint)city,temperature,30000));
+            var reply=Reply(EnvironmentEffects.All);reply.TestState=2;reply.TestCity=(uint)city;reply.TestKind=2;
+            reply.Weather[city-1]=8;for(int k=0;k<5;k++)reply.RecentDates[(city-1)*5+k]=reply.Date;
+            var overlay=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.All,EnvironmentEffects.All,false,reply))!;
+            Assert.Empty(overlay.Marks(city));Assert.False(overlay.IsPreview(city,5));
+        }
+        Assert.True(EnvironmentPolicy.EffectCity(46));Assert.False(EnvironmentPolicy.EffectCity(47));
+        Assert.Contains(Enumerable.Range(1,100).Select(seed=>EnvironmentPolicy.Weather((ulong)seed,10,46,-100,30000)),w=>w!=0);
+    }
     private static EnvironmentProtocol.Reply Reply(EnvironmentEffects flags=EnvironmentEffects.RainMovement)=>new(){Magic=EnvironmentProtocol.Magic,
         Version=EnvironmentProtocol.Version,Size=(uint)Marshal.SizeOf<EnvironmentProtocol.Reply>(),Generation=7,Sequence=1,Applied=1,Date=192|(4u<<16)|(21u<<24),Flags=(uint)flags,Weather=new byte[EnvironmentProtocol.CitySlots],Events=new EnvironmentProtocol.Event[1024],RecentDates=new uint[EnvironmentProtocol.CitySlots*5]};
     private sealed class Session:IEnvironmentSession
@@ -86,7 +101,7 @@ public class EnvironmentTests
     {
         var reply=Reply(EnvironmentEffects.All);reply.Weather[50]=8;reply.RecentDates[254]=reply.Date;
         var overlay=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.All,EnvironmentEffects.All,false,reply))!;
-        Assert.Equal(2,overlay.WeatherKind(51));Assert.Equal(reply.Date,overlay.Recent(51,7));
+        Assert.Equal(0,overlay.WeatherKind(51));Assert.Equal(0u,overlay.Recent(51,7));Assert.Empty(overlay.Marks(51));
         reply.UnavailableCities=1UL<<50;
         var missing=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.All,EnvironmentEffects.All,false,reply))!;
         Assert.False(overlay.SameAs(missing));Assert.Equal(0,missing.WeatherKind(51));Assert.Equal(0u,missing.Recent(51,7));Assert.Empty(missing.Marks(51));

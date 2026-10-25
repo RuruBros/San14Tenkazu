@@ -180,6 +180,9 @@ internal sealed partial class EditorWindow
     private async Task<bool> DisconnectAsync(string? message)
     {
         if(seasonDisconnecting||seasonClosing||environmentChanging)return false;
+#if LOCAL_DEVELOPER
+        if(developerChanging)return false;
+#endif
         bool wasBusy=busy;
         seasonDisconnecting=true;
         SetBusy(true,scanning:false);
@@ -187,6 +190,9 @@ internal sealed partial class EditorWindow
         try
         {
             if(!await StopEnvironmentAsync(true)||!await StopSeasonsAsync(true)){AddLog(L.Seasons.DisconnectBlocked);return false;}
+#if LOCAL_DEVELOPER
+            await CompleteDeveloperNoticeDiagnostic(ownerRestored:true);
+#endif
             ResetRules();
             undoHistory.Clear();   // the records' addresses mean nothing in another game
             map.HideEditors();

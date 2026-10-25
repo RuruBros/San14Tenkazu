@@ -32,13 +32,28 @@ internal static partial class RenderChecks
         {
             root.Measure(new W.Size(720, 600)); root.Arrange(new W.Rect(0, 0, 720, 600)); root.UpdateLayout();
         }
-        static NumberField Begin(GameTable table, object tag, int column)
+        NumberField Begin(GameTable table, object tag, int column)
         {
             var list = Field<WC.ListBox>(table, "list");
+            void State(string stage, Exception? exception=null)
+            {
+                var input=Field<object?>(table,"input");
+                var scroll=Field<WC.ScrollViewer?>(table,"scroll");
+                var number=input?.GetType().GetProperty("Number")?.GetValue(input) as NumberField;
+                log.WriteLine(JsonSerializer.Serialize(new{diagnostic="table-cell-begin",stage,tag,column,table.IsVisible,
+                    inputPresent=input is not null,numberPresent=number is not null,focused=number?.Box.IsKeyboardFocused,
+                    keyboardFocus=WI.Keyboard.FocusedElement?.GetType().FullName,list.SelectedIndex,
+                    verticalOffset=scroll?.VerticalOffset,horizontalOffset=scroll?.HorizontalOffset,exception=exception?.ToString(),gameAccess=false}));
+            }
+            State("before-layout");
             list.ScrollIntoView(table.Rows.Single(r => Equals(r.Tag, tag))); list.UpdateLayout();
             object item = list.ItemContainerGenerator.ContainerFromItem(table.Rows.Single(r => Equals(r.Tag, tag)))!;
-            Require((bool)Call(table, "BeginInput", item, column)!, "Cannot begin fixture cell input");
+            State("before-begin");
+            try { Require((bool)Call(table, "BeginInput", item, column)!, "Cannot begin fixture cell input"); }
+            catch(Exception exception){State("begin-exception",exception);throw;}
+            State("after-begin");
             object input = Field<object>(table, "input");
+            if(input is null)throw new InvalidOperationException("BeginInput returned true but the input was cancelled; see table-cell-begin diagnostics");
             return (NumberField)input.GetType().GetProperty("Number")!.GetValue(input)!;
         }
         static void Click(PlateButton button) => ((Action)typeof(PlateButton).GetField("Click", Hidden)!.GetValue(button)!)();
@@ -48,7 +63,7 @@ internal static partial class RenderChecks
             .Officer(11, "장수", 1, 1, 4).With(11, OfficerFields.Leadership, 65)
             .With(11, OfficerFields.Strength, 60).Leading(11);
         GameSnapshot data = builder.Build();
-        var window = OfflineEditor();
+        var window = OfflineEditor(() => false, Path.Combine(output,"storage"), Path.Combine(output,"storage"), Path.Combine(output,"storage"));
         typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(window, data);
         var card = Field<CityEditorCard>(window, "cityEditor");
         var host = new W.Window { Width = 740, Height = 640, Opacity = 0, ShowActivated = false, ShowInTaskbar = false };

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <chrono>
+#include <thread>
 namespace {
 void require(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 ID3D11DeviceContext* noticeContext=nullptr;ID3D11ShaderResourceView* noticeOriginal=nullptr;uint32_t noticeKind=0;bool noticeNested=false;
@@ -12,12 +13,124 @@ void drawNoticeFixture(void* d){if(onPrepare(d,0))noticeContext->Draw(3,0);}
 void __fastcall batchNoticeFixture(void* d){if(noticeNested){auto count=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0);onIndexed(d,0,0,0,0,18);std::memcpy(static_cast<BYTE*>(d)+0x2ad0,&count,4);}else drawNoticeFixture(d);}
 void __fastcall directNoticeFixture(void* d,uint32_t,uint32_t,uint32_t){drawNoticeFixture(d);auto count=read<uint32_t>(reinterpret_cast<uint64_t>(d),0x2ad0)+1;std::memcpy(static_cast<BYTE*>(d)+0x2ad0,&count,4);}
 void __fastcall indexedNoticeFixture(void* d,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t){directNoticeFixture(d,0,0,3);}
+void __fastcall meshNoticeFixture(void* d,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t){directNoticeFixture(d,0,0,3);}
 void hr(HRESULT value){if(FAILED(value)){std::cerr<<"HRESULT="<<std::hex<<value<<std::dec<<"\n";throw std::runtime_error("Scene fixture GPU API failed");}}
+uint8_t __fastcall prepareWithoutBindings(void*,uint32_t mode){return mode==99?0:1;}
+__declspec(noinline) uint8_t observeCallerA(void* driver,uint32_t mode=0){volatile auto result=onPrepare(driver,mode);return result;}
+__declspec(noinline) uint8_t observeCallerB(void* driver,uint32_t mode=0){volatile auto result=onPrepare(driver,mode);return result;}
+uint64_t causalStart=0,causalCapture=0,causalCaptureQpc=0;uint32_t causalStop=0;bool causalUnavailable=false;
+BOOL WINAPI causalExchange(notice_trace::Query* q){
+    if(causalUnavailable)return FALSE;LARGE_INTEGER f{};QueryPerformanceFrequency(&f);
+    q->state={};q->state.environment=17;q->state.season=66;q->state.test=100;q->state.startedMs=causalStart;q->state.frequency=f.QuadPart;
+    if(q->command==4&&!causalStop)causalStop=q->reserved;
+    q->state.captureStartedMs=causalCapture;q->state.captureStartedQpc=causalCaptureQpc;q->state.stopReason=causalStop;
+    q->state.phase=notice_trace::Requested;q->state.records=1;q->state.ended=q->command==2||q->command==3;
+    q->count=q->command==2&&q->first==0?1:0;if(q->count)q->entries[0]={1,q->state};return TRUE;
+}
+void __fastcall causalIndirect(void* d,uint32_t,void*,uint32_t){drawNoticeFixture(d);}
+void __fastcall causalAuto(void* d,uint32_t){drawNoticeFixture(d);}
+void __fastcall causalInline(void* d,uint32_t,uint32_t,const void*,uint32_t){drawNoticeFixture(d);}
+uint64_t __fastcall causalPresent(void*,void*){SetLastError(7123);return 0x1234567887654321ull;}
+void causalChecks(const std::shared_ptr<Session>& owned,ID3D11DeviceContext* context,BYTE* driver){
+    ComPtr<ID3D11ShaderResourceView> keep=noticeOriginal;auto path=std::filesystem::temp_directory_path()/(L"San14-causal-"+std::to_wstring(GetCurrentProcessId())+L".bin");
+    auto reset=[&]{causalStart=notice_trace::milliseconds();causalCapture=causalStart;causalCaptureQpc=notice_trace::qpc();causalStop=0;owned->noticeCausality=std::make_unique<SeasonNoticeCausality>(66,path.wstring());owned->noticeCausality->fixtureExchange(causalExchange,17);};reset();
+    causalCapture=0;
+    for(unsigned n=0;n<70000;n++){auto& t=*owned->noticeCausality;auto* row=t.begin(t.id(),0,1,1,driver,owned->input.context,GetCurrentProcessId());t.bindings(row,context,true);t.complete(row);}
+    require(!owned->noticeCausality->fixtureCount()&&std::all_of(owned->noticeCausality->fixtureDescriptors().begin(),owned->noticeCausality->fixtureDescriptors().end(),[](auto& d){return !d.view&&!d.hashState;}),"preparation must not consume rows descriptors or GPU readbacks");reset();
+    originalPrepare=prepareNoticeFixture;originalInstanced=indexedNoticeFixture;originalIndirect=causalIndirect;originalAuto=causalAuto;originalInline=causalInline;originalPresent=causalPresent;
+    auto swaps=owned->swaps.load();noticeKind=0;
+    onDraw(driver,0,0,3);onLand(driver,0,3,0);onMesh(driver,0,0,0,0,3,1);onIndexed(driver,0,0,0,0,3);
+    noticeNested=true;onBatch(driver);noticeNested=false;
+    for(auto kind:{0u,3u}){noticeKind=kind;onInstanced(driver,0,3,1,0,0);onIndirect(driver,0,nullptr,0);onAuto(driver,0);onInline(driver,0,3,nullptr,0);}
+    require(owned->swaps==swaps,"diagnostic-only Draw wrappers must never substitute original art");
+    context->Flush(); // Fixture submission only. The product never flushes for diagnostics.
+    for(unsigned n=0;n<20;n++){auto& trace=*owned->noticeCausality;auto row=trace.begin(trace.id(),0,1,SeasonNoticeCausality::Returned,driver,owned->input.context,GetCurrentThreadId());trace.bindings(row,context,true);trace.complete(row);Sleep(1);}
+    bool paths[11]{},authenticated=false,linked=false;
+    const auto& trace=*owned->noticeCausality;
+    for(unsigned n=0;n<trace.fixtureCount();n++){const auto& row=trace.fixtureRows()[n];paths[row.path]=true;linked|=row.parent!=0;require(row.complete&&row.environment.test==100,"causal rows retain completed request identity");}
+    for(auto& d:trace.fixtureDescriptors())authenticated|=d.hashState==2;
+    for(unsigned i=1;i<=9;i++)require(paths[i],"causal trace omitted a known Draw wrapper");
+    require(authenticated&&linked,"kind-zero original authentication and nested parent evidence are required");
+    auto present=onPresent(driver,nullptr);auto error=GetLastError();require(present==0x1234567887654321ull&&error==7123,"Present result and LastError changed");
+    auto count=trace.fixtureCount();require(count>=2&&trace.fixtureRows()[count-2].id==trace.fixtureRows()[count-1].id,"Present entry and return must share identity");
+    std::thread other([&]{onPrepare(driver,0);});other.join();
+    bool excluded=false;for(unsigned n=0;n<trace.fixtureCount();n++)excluded|=trace.fixtureRows()[n].safety==2;
+    require(excluded,"foreign thread must be recorded without GPU observation");
+    // Use the no-binding original for rejected Prepare; it must not manufacture a draw.
+    originalPrepare=prepareWithoutBindings;require(onPrepare(driver,99)==0,"failed Prepare result changed");
+    owned->noticeCausality->saveAfterDrain();require(std::filesystem::file_size(path)>128,"causal binary evidence missing");
+    notice_trace::fixtureMilliseconds=1000;reset();auto& bounded=*owned->noticeCausality;
+    for(unsigned n=0;n<SeasonNoticeCausality::Capacity+2;n++){auto row=bounded.begin(bounded.id(),0,1,1,driver,0,0);bounded.complete(row);}
+    require(bounded.fixtureCount()==SeasonNoticeCausality::Capacity,"causal row capacity is not bounded");
+    require(causalStop==notice_trace::RowCapacity,"capacity cancellation must retain its explicit cause");
+    causalUnavailable=true;notice_trace::State state;require(!bounded.active(state),"unavailable snapshot must not produce evidence");causalUnavailable=false;
+    reset();causalStart=1;notice_trace::fixtureMilliseconds=5999;require(owned->noticeCausality->active(state),"capture age is independent of older request time");
+    notice_trace::fixtureMilliseconds=6000;require(!owned->noticeCausality->active(state)&&causalStop==notice_trace::CaptureDeadline,"causal deadline must reject additional observations");
+    reset();auto& boundary=*owned->noticeCausality;auto* row=boundary.begin(boundary.id(),0,1,SeasonNoticeCausality::Returned,driver,0,0,0,causalCaptureQpc-1);boundary.complete(row);
+    require(row&&row->boundary,"capture starting within an existing wrapper must remain a partial boundary");notice_trace::fixtureMilliseconds=0;
+    owned->noticeCausality.reset();originalPrepare=prepareWithoutBindings;
+    std::cerr<<"PASS causal original authentication before kind gate, nine Draw paths, nesting, observe-only extra wrappers, Present ABI, wrong-thread exclusion, bounded records and deadline; gameAccess=false\n";
+}
+void noticeObservationChecks(const std::shared_ptr<Session>& owned,ID3D11Device* device,ID3D11DeviceContext* context,BYTE* driver,const BYTE* payload,const char* output){
+    ComPtr<ID3D11ShaderResourceView> original=noticeOriginal;
+    auto path=output?std::filesystem::path(output):std::filesystem::temp_directory_path()/(L"San14Tenkazu-correlated-"+std::to_wstring(GetCurrentProcessId())+L".json");
+    require(!std::filesystem::exists(path),"Correlated evidence must not overwrite a previous run");
+    owned->noticeArt=std::make_unique<SeasonNoticeArt>(payload,path.wstring());auto& art=*owned->noticeArt;
+    owned->input.module=reinterpret_cast<uint64_t>(GetModuleHandleW(nullptr));originalPrepare=prepareWithoutBindings;
+    context->ClearState();noticeKind=3;const auto swaps=owned->swaps.load();
+    // First fill the unrelated-binding budget. Original candidates have their
+    // own budget and must still retain exact caller/slot pairs afterwards.
+    D3D11_TEXTURE2D_DESC desc{8,8,1,1,DXGI_FORMAT_R8G8B8A8_UNORM,{1,0},D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE,0,0};
+    ComPtr<ID3D11Texture2D> unrelated;hr(device->CreateTexture2D(&desc,nullptr,&unrelated));
+    std::vector<ComPtr<ID3D11ShaderResourceView>> keep;
+    for(uint32_t i=0;i<70;i++){ComPtr<ID3D11ShaderResourceView> view;hr(device->CreateShaderResourceView(unrelated.Get(),nullptr,&view));auto* raw=view.Get();context->PSSetShaderResources(0,1,&raw);observeCallerA(driver);keep.push_back(std::move(view));}
+    ID3D11ShaderResourceView* empty=nullptr;context->PSSetShaderResources(0,1,&empty);
+    auto* raw=original.Get();context->PSSetShaderResources(5,1,&raw);observeCallerA(driver);
+    context->PSSetShaderResources(5,1,&empty);context->PSSetShaderResources(127,1,&raw);observeCallerB(driver);
+    uint64_t callerA=0,callerB=0;
+    for(const auto& r:art.fixtureBindings())if(r.calls&&r.evidence.accepted){
+        require(r.first.gate==NoticeGate::Bindings&&r.first.driverContext==r.first.sessionContext&&r.first.thread==r.first.ownerThread&&r.first.generation==1&&r.first.sequence==1&&r.first.kind==3,
+            "Authenticated evidence lost its same-call ownership/weather context");
+        require(r.evidence.hash=="3bd4b1d2d18b50ad64613ca80dc06102b52f56877788767d10a618dfa9147bac"&&r.evidence.resource&&r.evidence.hashAttempted,"Correlated original must retain actual GPU authentication");
+        if(r.slot==5)callerA=r.first.caller;else if(r.slot==127)callerB=r.first.caller;else require(false,"Caller/slot association invented another slot");}
+    require(callerA&&callerB&&callerA!=callerB,"Distinct real Prepare return addresses were not associated with their own slots");
+    require(art.fixtureDropped()[3]>0&&art.fixtureDropped()[2]==0,"Unrelated observations consumed the original candidate budget");
+    // A source hash/readback fault remains a failed observation; no binding
+    // substitution or relaxed original hash is permitted even in this fixture.
+    ComPtr<ID3D11Resource> resource;original->GetResource(&resource);D3D11_SHADER_RESOURCE_VIEW_DESC srv{};original->GetDesc(&srv);
+    ComPtr<ID3D11ShaderResourceView> fresh;hr(device->CreateShaderResourceView(resource.Get(),&srv,&fresh));raw=fresh.Get();context->PSSetShaderResources(127,1,&raw);
+    art.fixtureReadbackError=E_OUTOFMEMORY;observeCallerB(driver);art.fixtureReadbackError=S_OK;
+    require(std::any_of(art.fixtureBindings().begin(),art.fixtureBindings().end(),[](const auto& r){return r.calls&&r.evidence.error==E_OUTOFMEMORY&&r.evidence.hashAttempted&&!r.evidence.accepted;}),"Readback failure HRESULT disappeared from its event");
+    raw=original.Get();context->PSSetShaderResources(127,1,&raw);
+    std::array<std::thread,4> readers;for(auto& thread:readers)thread=std::thread([&]{for(int i=0;i<100;i++)observeCallerA(driver);});for(auto& thread:readers)thread.join();
+    uint64_t rejectedThreads=0;for(const auto& r:art.fixtureGates())if(r.calls&&r.first.gate==NoticeGate::Thread)rejectedThreads+=r.calls;
+    require(rejectedThreads==400,"Rejected threads raced or disappeared from the bounded CPU diagnostics");
+    for(const auto& r:art.fixtureBindings())if(r.calls)require(r.first.thread==r.first.ownerThread,"Rejected thread reached GPU binding observation");
+    BYTE otherDriver[0x4000]{};auto contextPointer=reinterpret_cast<uint64_t>(context);std::memcpy(otherDriver+0x10,&contextPointer,8);
+    {Scope outer;MaterialTicket ticket{&outer,driver,1,0};ticket.path=3;auto* previous=materialTicket;materialTicket=&ticket;observeCallerA(otherDriver);materialTicket=previous;}
+    require(std::any_of(art.fixtureGates().begin(),art.fixtureGates().end(),[](const auto& r){return r.calls&&r.first.nestedMismatch&&r.first.gate==NoticeGate::Bindings;}),"Nested different-driver Prepare was silently omitted");
+    uint64_t wrongContext=0;std::memcpy(otherDriver+0x10,&wrongContext,8);observeCallerA(otherDriver);
+    require(std::any_of(art.fixtureGates().begin(),art.fixtureGates().end(),[](const auto& r){return r.calls&&r.first.gate==NoticeGate::Driver;}),"Different context was not rejected before GPU observation");
+    require(observeCallerA(driver,99)==0,"Prepare failure result was changed");
+    require(std::any_of(art.fixtureGates().begin(),art.fixtureGates().end(),[](const auto& r){return r.calls&&r.first.gate==NoticeGate::PrepareFailed;}),"Prepare result zero was not recorded");
+    auto get=fixtureReadNotice;fixtureReadNotice=nullptr;observeCallerA(driver);fixtureReadNotice=get;
+    require(std::any_of(art.fixtureGates().begin(),art.fixtureGates().end(),[](const auto& r){return r.calls&&r.first.gate==NoticeGate::Getter;}),"Missing environment getter was not distinguished");
+    for(uint32_t mode=200;mode<280;mode++)observeCallerA(driver,mode);
+    for(uint32_t i=0;i<20;i++){NoticeObservation event;event.id=art.nextObservation();event.caller=0x100+i;event.path=5;event.result=1;event.gate=NoticeGate::Thread;art.observe(event);}
+    require(art.fixtureDropped()[0]>0&&art.fixtureDropped()[1]>0&&art.fixtureDropped()[2]>0,"Gate/caller/candidate overflow must be explicit");
+    require(owned->swaps==swaps&&callbacks.load()==0&&callbackDepth==0,"Observation acquired Draw ownership or leaked callback tokens");
+    ComPtr<ID3D11ShaderResourceView> bound;context->PSGetShaderResources(127,1,&bound);require(bound==original,"Observation changed the original binding");
+    // Late callbacks remain counted but cannot acquire resources after Stop.
+    owned->admission=false;{Scope late;require(!late.session,"Stopped session resources leaked into a late callback");}owned->admission=true;
+    art.saveTraceAfterDrain();require(std::filesystem::file_size(path)<=256*1024,"Bounded trace exceeded the managed reader limit");
+    if(!output)std::filesystem::remove(path);originalPrepare=prepareNoticeFixture;
+    std::cerr<<"PASS correlated caller/slot/hash events; rejected-thread concurrency, nested driver, Prepare failure, readback fault, independent overflow and late callback admission\n";
+}
 ComPtr<ID3DBlob> compile(const char* source,const char* entry,const char* profile){
     ComPtr<ID3DBlob> code,errors;auto result=D3DCompile(source,strlen(source),nullptr,nullptr,nullptr,entry,profile,D3DCOMPILE_ENABLE_STRICTNESS,0,&code,&errors);
     if(errors)std::cerr<<static_cast<const char*>(errors->GetBufferPointer());hr(result);return code;
 }
-void noticeArtChecks(ID3D11Device* device,ID3D11DeviceContext* context,const SeasonSceneData& scene,const char* originalPath){
+void noticeArtChecks(ID3D11Device* device,ID3D11DeviceContext* context,const SeasonSceneData& scene,const char* originalPath,const char* observationOutput=nullptr){
     require(scene.header()[1]==5||scene.header()[1]==6,"Scene has no disaster art");
     const BYTE* payload=scene.bytes.data()+scene.header()[14];require(validNoticeArt(payload,scene.header()[15]),"Generated art failed authentication");
     std::ifstream file(originalPath,std::ios::binary);std::vector<BYTE> original{std::istreambuf_iterator<char>(file),std::istreambuf_iterator<char>()};
@@ -43,10 +156,12 @@ void noticeArtChecks(ID3D11Device* device,ID3D11DeviceContext* context,const Sea
     BYTE gameState[0x80]{},driver[0x4000]{};uint32_t date=195|(4u<<16)|(21u<<24);std::memcpy(gameState+0x34,&date,4);
     auto contextPointer=reinterpret_cast<uint64_t>(context);std::memcpy(driver+0x10,&contextPointer,8);
     Bootstrap input{};input.state=reinterpret_cast<uint64_t>(gameState);input.context=contextPointer;
-    auto owned=std::make_shared<Session>(input,true);owned->context=context;owned->device=device;owned->thread=GetCurrentThreadId();owned->noticeArt=std::make_unique<SeasonNoticeArt>(payload);
+    auto tracePath=std::filesystem::temp_directory_path()/(L"San14Tenkazu-notice-kinds-"+std::to_wstring(GetCurrentProcessId())+L"-"+std::to_wstring(GetTickCount64())+L".json");
+    require(!std::filesystem::exists(tracePath),"Trace fixture must never overwrite an existing file");
+    auto owned=std::make_shared<Session>(input,true);owned->context=context;owned->device=device;owned->thread=GetCurrentThreadId();owned->noticeArt=std::make_unique<SeasonNoticeArt>(payload,tracePath.wstring());
     owned->pending.store(std::make_shared<TreeColorParameters>(TreeColorParameters{1,195,4,21,{1,0,0,0},true,false}));
     current.store(owned);noticeContext=context;fixtureReadNotice=readNoticeFixture;
-    originalPrepare=prepareNoticeFixture;originalBatch=batchNoticeFixture;originalDraw=directNoticeFixture;originalIndexed=indexedNoticeFixture;
+    originalPrepare=prepareNoticeFixture;originalBatch=batchNoticeFixture;originalDraw=directNoticeFixture;originalIndexed=indexedNoticeFixture;originalMesh=meshNoticeFixture;originalLand=directNoticeFixture;
     for(UINT levels:{1u,9u})for(UINT gamma=0;gamma<2;gamma++){
         D3D11_TEXTURE2D_DESC d{1024,1024,levels,1,DXGI_FORMAT_BC3_TYPELESS,{1,0},D3D11_USAGE_IMMUTABLE,D3D11_BIND_SHADER_RESOURCE,0,0};
         std::array<std::vector<BYTE>,11> mipStorage;std::array<D3D11_SUBRESOURCE_DATA,11> data{};data[0]={original.data(),4096,1048576};
@@ -132,6 +247,52 @@ void noticeArtChecks(ID3D11Device* device,ID3D11DeviceContext* context,const Sea
         if(levels==9){desc.Texture2D.MostDetailedMip=1;desc.Texture2D.MipLevels=8;ComPtr<ID3D11ShaderResourceView> partial;hr(device->CreateShaderResourceView(texture.Get(),&desc,&partial));raw=partial.Get();context->PSSetShaderResources(0,1,&raw);
             require(art.enter(context,2,idle)==S_FALSE&&!idle.changed,"Nonzero base mip bypassed original-image authentication");}
     }
+    auto beforeObservation=owned->swaps.load();noticeKind=3;
+    context->PSSetShaderResources(5,1,&noticeOriginal);context->PSSetShaderResources(127,1,&noticeOriginal);
+    onMesh(driver,0,0,0,0,4,1);onLand(driver,0,4,0);
+    uint64_t differentContext=0;std::memcpy(driver+0x10,&differentContext,8);onMesh(driver,0,0,0,0,4,1);std::memcpy(driver+0x10,&contextPointer,8);
+    require(onPrepare(driver,0)==1,"Standalone original Prepare result changed during observation");
+    require(owned->swaps==beforeObservation,"Extra diagnostic paths must not substitute a texture");
+    for(UINT slot:{0u,5u,127u}){ComPtr<ID3D11ShaderResourceView> unchanged;context->PSGetShaderResources(slot,1,&unchanged);require(unchanged.Get()==noticeOriginal,"Binding observation mutated a GPU resource slot");}
+    owned->noticeArt->saveTraceAfterDrain();
+    std::ifstream traceInput(tracePath);std::string trace{std::istreambuf_iterator<char>(traceInput),std::istreambuf_iterator<char>()};traceInput.close();
+    for(auto name:{"kindCalls","kindSwaps","kindRestores"})require(trace.find(std::string("\"")+name+"\":[0,0,16,16,16,16]")!=std::string::npos,"Trace must distinguish all four actual GPU image kinds and their restored bindings");
+    require(trace.find("\"pathCalls\":[0,1,2,48,16,1]")!=std::string::npos&&trace.find("\"matchingDriverCalls\":[0,1,1,48,16,1]")!=std::string::npos&&
+        trace.find("\"otherDriverCalls\":[0,0,1,0,0,0]")!=std::string::npos&&trace.find("\"slots\":[33,9223372036854775808]")!=std::string::npos&&trace.find("\"traceLimitReached\":false")!=std::string::npos&&
+        trace.find("\"unscopedCallers\":[{\"rva\":0,\"calls\":1}]")!=std::string::npos,
+        "Diagnostic must distinguish the actual driver context, Mesh/Land and all 128 slots without changing substitution counts");
+    std::filesystem::remove(tracePath);
+    auto rejectedPath=tracePath;rejectedPath+=L".rejected";require(!std::filesystem::exists(rejectedPath),"Rejected trace must not overwrite evidence");
+    SeasonNoticeArt rejected(payload,rejectedPath.wstring());
+    D3D11_TEXTURE2D_DESC smallDesc{512,512,1,1,DXGI_FORMAT_BC3_UNORM,{1,0},D3D11_USAGE_IMMUTABLE,D3D11_BIND_SHADER_RESOURCE,0,0};
+    D3D11_SUBRESOURCE_DATA smallData{original.data(),2048,262144};ComPtr<ID3D11Texture2D> smallTexture;
+    hr(device->CreateTexture2D(&smallDesc,&smallData,&smallTexture));ComPtr<ID3D11ShaderResourceView> smallView;
+    hr(device->CreateShaderResourceView(smallTexture.Get(),nullptr,&smallView));auto* smallRaw=smallView.Get();context->PSSetShaderResources(0,1,&smallRaw);
+    for(int repeat=0;repeat<3;repeat++){NoticeArtTicket ticket;require(rejected.enter(context,3,ticket)==S_FALSE&&!ticket.changed,"Descriptor diagnostics must never admit a different-sized sprite");}
+    ComPtr<ID3D11ShaderResourceView> unchanged;context->PSGetShaderResources(0,1,&unchanged);require(unchanged==smallView,"Rejected diagnostic changed the original binding");
+    rejected.saveTraceAfterDrain();std::ifstream rejectedInput(rejectedPath);std::string rejectedTrace{std::istreambuf_iterator<char>(rejectedInput),std::istreambuf_iterator<char>()};rejectedInput.close();
+    require(rejectedTrace.find("\"sha256\":\"30b330c45b8a389572fe6aa8d5de25f5910bba5c27f5b6c3fec034e8aa211d84\"")!=std::string::npos&&
+        rejectedTrace.find("\"accepted\":false")!=std::string::npos&&rejectedTrace.find("\"hashAttempted\":true,\"readError\":0")!=std::string::npos,"Rejected BC3 trace must record real bounded GPU bytes without authenticating them");
+    std::filesystem::remove(rejectedPath);
+    auto descriptorsPath=tracePath;descriptorsPath+=L".descriptors";require(!std::filesystem::exists(descriptorsPath),"Descriptor trace must not overwrite evidence");
+    SeasonNoticeArt descriptors(payload,descriptorsPath.wstring());
+    D3D11_TEXTURE2D_DESC arrayDesc{32,16,1,2,DXGI_FORMAT_R8G8B8A8_UNORM,{1,0},D3D11_USAGE_DEFAULT,D3D11_BIND_SHADER_RESOURCE,0,0};
+    ComPtr<ID3D11Texture2D> arrayTexture;hr(device->CreateTexture2D(&arrayDesc,nullptr,&arrayTexture));ComPtr<ID3D11ShaderResourceView> arrayView;
+    hr(device->CreateShaderResourceView(arrayTexture.Get(),nullptr,&arrayView));auto* arrayRaw=arrayView.Get();context->PSSetShaderResources(0,1,&arrayRaw);
+    descriptors.observeBindings(context,3);NoticeArtTicket arrayTicket;
+    require(descriptors.enter(context,3,arrayTicket)==S_FALSE&&!arrayTicket.changed,"Uncompressed array descriptor must never admit a replacement");
+    context->PSGetShaderResources(0,1,unchanged.ReleaseAndGetAddressOf());require(unchanged==arrayView,"Descriptor observation changed an uncompressed array binding");
+    std::vector<ComPtr<ID3D11ShaderResourceView>> unrelatedViews;
+    for(UINT i=0;i<130;i++){ComPtr<ID3D11ShaderResourceView> extra;hr(device->CreateShaderResourceView(arrayTexture.Get(),nullptr,&extra));auto* ptr=extra.Get();context->PSSetShaderResources(0,1,&ptr);descriptors.observeBindings(context,3);unrelatedViews.push_back(std::move(extra));}
+    context->PSSetShaderResources(0,1,&smallRaw);NoticeArtTicket afterFull;
+    require(descriptors.enter(context,3,afterFull)==S_FALSE&&!afterFull.changed,"Full descriptor observation must never admit a rejected BC3 sprite");
+    descriptors.saveTraceAfterDrain();std::ifstream descriptorsInput(descriptorsPath);std::string descriptorTrace{std::istreambuf_iterator<char>(descriptorsInput),std::istreambuf_iterator<char>()};descriptorsInput.close();
+    require(descriptorTrace.find("\"viewFormat\":28,\"dimension\":5")!=std::string::npos&&descriptorTrace.find("\"width\":32,\"height\":16,\"textureFormat\":28,\"mips\":1,\"array\":2")!=std::string::npos&&
+        descriptorTrace.find("\"accepted\":false,\"sha256\":\"\",\"hashAttempted\":false,\"readError\":0")!=std::string::npos,"Unsupported format/array descriptors must be recorded without readback or source authentication");
+    require(descriptorTrace.find("\"bc3TraceLimitReached\":false,\"otherTraceLimitReached\":true")!=std::string::npos&&descriptorTrace.find("\"sha256\":\"30b330c45b8a389572fe6aa8d5de25f5910bba5c27f5b6c3fec034e8aa211d84\"")!=std::string::npos,"Unrelated descriptors must not exhaust the independent BC3 evidence budget");
+    std::filesystem::remove(descriptorsPath);
+    noticeObservationChecks(owned,device,context,driver,payload,observationOutput);
+    causalChecks(owned,context,driver);
     current.store(nullptr);fixtureReadNotice=nullptr;noticeContext=nullptr;noticeOriginal=nullptr;
     uint64_t mipBytes=0;for(UINT mip=0;mip<9;mip++)mipBytes+=uint64_t(1024>>mip)*(1024>>mip)*4;
     context->ClearState();require(art.gpuBytes()==8ull*(1024*1024*4+mipBytes),"Event art cache accounting differs");
@@ -139,15 +300,19 @@ void noticeArtChecks(ID3D11Device* device,ID3D11DeviceContext* context,const Sea
     std::cerr<<"PASS original BC3 flood pixels match independent CPU decoding; identical payload with BC7 descriptor rejected\n";
     std::cerr<<"PASS whole original GPU alpha versus BC3 decoding, all four paintings retain original irregular/feathered silhouette and RGB; lower mip alpha retains mask\n";
     std::cerr<<"PASS four authenticated paintings, both gamma variants, lower-mip GPU pixels, unknown sprite/nonzero base mip rejection and original binding restoration\n";
+    std::cerr<<"PASS rejected 512 BC3 GPU hash is diagnostic only; repeated entries preserve the original binding and remain unadmitted\n";
+    std::cerr<<"PASS diagnostic-only Mesh/Land and all 128 binding slots: authenticated source recorded, bindings and production swap counts unchanged\n";
+    std::cerr<<"PASS actual driver-context mismatch counters and uncompressed texture-array descriptors; no binding change, readback or admission for unsupported formats\n";
+    std::cerr<<"PASS unscoped Prepare observes authenticated original source without substitution; independent BC3 evidence survives unrelated descriptor saturation\n";
 }
 }
 int main(int argc,char** argv){try{
-    require(argc>=2&&argc<=4,"Usage: SeasonSceneChecks scene-data.bin [managed-calendar-vectors.txt] [flood-texture.bin]");SeasonSceneData data;
+    require(argc>=2&&argc<=5,"Usage: SeasonSceneChecks scene-data.bin [managed-calendar-vectors.txt] [flood-texture.bin] [observation.json]");SeasonSceneData data;
     std::ifstream input(argv[1],std::ios::binary);data.bytes.assign(std::istreambuf_iterator<char>(input),std::istreambuf_iterator<char>());
     auto started=std::chrono::steady_clock::now();auto prepared=data.prepare();if(!data.compileDiagnostic.empty())std::cerr<<data.compileDiagnostic;hr(prepared);
     ComPtr<ID3D11Device> device;ComPtr<ID3D11DeviceContext> context;
     hr(D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_WARP,nullptr,0,nullptr,0,D3D11_SDK_VERSION,&device,nullptr,&context));
-    if(argc==4)noticeArtChecks(device.Get(),context.Get(),data,argv[3]);
+    if(argc>=4)noticeArtChecks(device.Get(),context.Get(),data,argv[3],argc==5?argv[4]:nullptr);
     constexpr UINT width=128,height=64;SeasonSceneGpu scene(data);
     BYTE gameState[0x80]{};Bootstrap calendarInput{};calendarInput.state=reinterpret_cast<uint64_t>(gameState);
     Session calendarSession(calendarInput,true);
@@ -358,8 +523,15 @@ o.a=float4(1000,0,0,1);o.t=float3(1,0,0);o.n=float3(0,1,0);o.uv=v;return o;})";
     std::cerr<<"PASS regional rain/snow animated GPU pixels, clear region, independent seasonal OFF, individual visual flags, original state restoration\n";
     for(UINT tile=0;tile<environment::TileCount;tile++)regional.regions[tile]=tile%220<155?51:50;
     auto addedRain=precipitation(2,.37f,192,51),addedSnow=precipitation(8,.37f,192,51);
-    require(addedRain.first!=addedRain.second&&addedSnow.first!=addedSnow.second&&addedRain.second!=addedSnow.second,"Added city 51 rain/snow did not reach actual GPU output");
-    std::cerr<<"PASS city 51 regional rain/snow GPU pixels, adjacent clear city 50, original state restoration\n";
+    require(addedRain.first==addedRain.second&&addedSnow.first==addedSnow.second,"Excluded city 51 changed GPU pixels");
+    for(UINT city=47;city<=51;city++){
+        std::fill(std::begin(regional.regions),std::end(regional.regions),static_cast<uint8_t>(city));
+        for(UINT k=0;k<5;k++)regional.recentDates[(city-1)*5+k]=regional.date;
+        auto excluded=precipitation(10,.37f,1023,city);
+        require(excluded.first==excluded.second,"Excluded city weather/disaster marks changed actual GPU pixels");
+    }
+    std::memset(regional.recentDates,0,sizeof(regional.recentDates));
+    std::cerr<<"PASS cities 47-51 exclude rain/snow and all five disaster GPU outputs, original state restoration\n";
     for(UINT tile=0;tile<environment::TileCount;tile++)regional.regions[tile]=tile%220<155?1:2;
     std::memset(regional.weather,0,sizeof(regional.weather));
     // Indicators use actual receipt dates and render without precipitation or seasonal materials.
