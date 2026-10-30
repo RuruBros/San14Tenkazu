@@ -390,6 +390,8 @@ internal static partial class L
         internal static string RemoveTip => T();
         internal static string GameValue(object? value) => Format(T(), (nameof(value), value));
         internal static string UnnamedNumberTip => T();
+        internal static string ChoiceSearch => T();
+        internal static string ChoiceNoMatch => T();
         internal static string GoToTip => T();
         internal static string WentTo(object? place) => Format(T(), (nameof(place), place));
         internal static string NotWent(object? why) => Format(T(), (nameof(why), why));
@@ -588,7 +590,6 @@ internal static partial class L
         internal static string OfficeOf(object? office) => Format(T(), (nameof(office), office));
         internal static string TakenFrom(object? holder) => Format(T(), (nameof(holder), holder));
         internal static string GivenFromNone => T();
-        internal static string PickListedOfficer => T();
         internal static string OfficeTaken(object? holder) => Format(T(), (nameof(holder), holder));
         internal static string TacticsFull(object? max) => Format(T(), (nameof(max), max));
         internal static string WillLearn => T();

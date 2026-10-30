@@ -164,7 +164,7 @@ internal sealed partial class AiView : WC.DockPanel
         defaults.Click += () => { if (extensionSelected) ResetExtensions(); else _ = DefaultsAsync(); };
         PreviewKeyDown += (_, e) =>
         {
-            if (e.Key != WI.Key.Escape) return;
+            if (e.Key != WI.Key.Escape || CardSkin.InOpenChoice(e.OriginalSource)) return;
             e.Handled = true;
             if (Expanded) ShowSettings(); else CloseClicked?.Invoke();
         };

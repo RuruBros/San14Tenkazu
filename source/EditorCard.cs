@@ -103,7 +103,7 @@ internal abstract class EditorCard : PanePage
         apply.Click += () => ApplyClicked?.Invoke();
         PreviewKeyDown += (_, e) =>
         {
-            if (e.Key != WI.Key.Escape || TableDrafts.HasKeyboardFocus) return;
+            if (e.Key != WI.Key.Escape || TableDrafts.HasKeyboardFocus || CardSkin.InOpenChoice(e.OriginalSource)) return;
             e.Handled = true;
             CloseClicked?.Invoke();
         };
@@ -234,16 +234,6 @@ internal abstract class EditorCard : PanePage
             if (WM.VisualTreeHelper.GetParent(box) is W.UIElement parent)
                 parent.RaiseEvent(new WI.MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = W.UIElement.MouseWheelEvent, Source = box });
         };
-        return box;
-    }
-
-    // A box for picking one of some thousand officers: typing a name finds it (the list scrolls lazily).
-    internal static WC.ComboBox OfficerChoice()
-    {
-        WC.ComboBox box = Choice(196);
-        box.IsEditable = true;
-        box.IsTextSearchEnabled = true;
-        box.ItemsPanel = new WC.ItemsPanelTemplate(new W.FrameworkElementFactory(typeof(WC.VirtualizingStackPanel)));
         return box;
     }
 

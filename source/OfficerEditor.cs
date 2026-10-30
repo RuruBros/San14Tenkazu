@@ -65,11 +65,11 @@ internal sealed partial class OfficerEditorCard : EditorCard
     private readonly Dictionary<int, WC.Border> formationChips = [];
     private long currentFormations, pickedFormations;
     private GameCatalog names = GameCatalog.Empty;
-    private readonly WC.ComboBox spouse = OfficerChoice(), sworn = OfficerChoice();
+    private readonly WC.ComboBox spouse = Choice(196), sworn = Choice(196);
     private readonly WC.TextBlock swornMembers = new() { Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap, MaxWidth = 320, Margin = new W.Thickness(0, 0, 0, 2) };
     private readonly WC.DockPanel swornGroupLine;
     private readonly TieList likes, dislikes;
-    private readonly WC.ComboBox give = OfficerChoice();
+    private readonly WC.ComboBox give = Choice(196);
     private readonly WC.WrapPanel treasureChips = new();
     private readonly WC.Border treasureFrame = new() { BorderBrush = CardSkin.Rule, BorderThickness = new W.Thickness(1), Padding = new W.Thickness(3), MinHeight = 28 };
     private List<Treasure> treasures = [], offered = [];
@@ -258,7 +258,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
         page.Children.Add(treasureFrame);
         give.PreviewKeyDown += (_, e) =>
         {
-            if (e.Key != WI.Key.Enter) return;
+            if (e.Key != WI.Key.Enter || give.IsDropDownOpen) return;
             e.Handled = true;
             Give();
         };
@@ -493,7 +493,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
         offered = treasures.Where(t => t.Owner != officer.Id).ToList();
         give.ItemsSource = new List<string> { L.Terms.None }.Concat(offered.Select(t => $"{t.Name} · {(t.Holder.Length > 0 ? t.Holder : L.Item.NoOwner)}")).ToList();
         give.SelectedIndex = -1;
-        give.Text = "";
         given.Clear();
         RenderTreasures();
         ShowTransfers(officer, standing, forces);
@@ -554,7 +553,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
         {
             filling = true;
             give.SelectedIndex = -1;
-            give.Text = "";
             filling = false;
         });
         if (given.Contains(treasure.Index)) return;
@@ -597,12 +595,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
             if (!field.IsChanged) continue;
             if (!field.TryRead(out long value, out error)) return null;
             own.Add(new FieldChange(field.Field, value));
-        }
-        if (spouse.SelectedIndex < 0 || sworn.SelectedIndex < 0)
-        {
-            error = L.Officer.PickListedOfficer;
-            (spouse.SelectedIndex < 0 ? spouse : sworn).Focus();
-            return null;
         }
         Add(OfficerFields.Gender, gender.Picked);
         Add(OfficerFields.Ideology, ideology.Picked);
@@ -802,7 +794,7 @@ internal sealed partial class OfficerEditorCard : EditorCard
         internal readonly WC.StackPanel Panel = new() { Margin = new W.Thickness(0, 4, 0, 0) };
         private readonly WC.WrapPanel chips = new();
         private readonly WC.Border frame = new() { BorderBrush = CardSkin.Rule, BorderThickness = new W.Thickness(1), Padding = new W.Thickness(3), MinHeight = 28 };
-        private readonly WC.ComboBox add = OfficerChoice();
+        private readonly WC.ComboBox add = Choice(196);
         private readonly FieldDef[] fields;
         private readonly string name;
         private readonly Action<int> open;
@@ -823,11 +815,11 @@ internal sealed partial class OfficerEditorCard : EditorCard
             add.ToolTip = L.Officer.AddTieTip(name, MaxTies);
             Panel.Children.Add(Line(name, add));
             Panel.Children.Add(frame);
-            // Typing a name moves the pick from one match to the next ("조" finds 조광 before "조운" is typed), so
-            // an officer is added only when the pick is taken: Enter, or a click in the list.
+            // The arrows move the pick of a closed box from one name to the next, so an officer is added only when
+            // the pick is taken: Enter, or the list closing on it.
             add.PreviewKeyDown += (_, e) =>
             {
-                if (e.Key != WI.Key.Enter) return;
+                if (e.Key != WI.Key.Enter || add.IsDropDownOpen) return;
                 e.Handled = true;
                 Take();
             };
@@ -843,7 +835,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
             {
                 filling = true;
                 add.SelectedIndex = -1;
-                add.Text = "";
                 filling = false;
             });
             if (id == self || picked.Contains(id) || picked.Count >= MaxTies) return;
@@ -860,7 +851,6 @@ internal sealed partial class OfficerEditorCard : EditorCard
             values = others;
             add.ItemsSource = otherLabels;
             add.SelectedIndex = -1;
-            add.Text = "";
             current = fields.Select(f => (int)officer[f]).Where(id => id != 0).ToList();
             picked = [.. current];
             filling = false;
