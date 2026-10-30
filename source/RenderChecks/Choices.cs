@@ -171,7 +171,8 @@ internal static partial class RenderChecks
             guardedInput.Text = "개성 2";Pump();
             Record("typing-does-not-mark-a-refused-name", guardedRows.Items.OfType<ChoiceRow>().Any(r => r.Index == 1) && guardedRows.SelectedItem is ChoiceRow { Index: not 1 },
                 new { marked = (guardedRows.SelectedItem as ChoiceRow)?.Index });
-            guarded.Box.IsDropDownOpen = false;Pump();root.Children.Remove(guarded.Box);
+            // WPF re-evaluates focus after a focused box leaves the tree; let that finish, or it closes the next list.
+            guarded.Box.IsDropDownOpen = false;Pump();root.Children.Remove(guarded.Box);Pump();
             var members = EditorCard.Choice(196);
             members.DisplayMemberPath = "Name";
             members.ItemsSource = Enumerable.Range(0, 12).Select(i => new { Name = "거점 " + i, Force = i }).ToArray();
@@ -179,6 +180,8 @@ internal static partial class RenderChecks
             var memberRows = Part<WC.ListBox>(members, "searchRows");
             Part<WP.Popup>(members, "PART_Popup").Child.Opacity = 0;
             members.IsDropDownOpen = true;Pump();
+            Record("display-member-list-stays-open", members.IsDropDownOpen && memberRows.Items.Count == 12,
+                new { members.IsDropDownOpen, memberRows.Items.Count, focus = WI.Keyboard.FocusedElement?.GetType().Name, captured = WI.Mouse.Captured?.GetType().Name });
             Record("search-reads-display-member", ((ChoiceRow)memberRows.Items[3]).Label == "거점 3");
             members.IsDropDownOpen = false;Pump();root.Children.Remove(members);
             var fixedPopup = Part<WP.Popup>(choice.Box, "PART_Popup");
