@@ -25,7 +25,7 @@ internal static partial class GameMemory
 
     private static void RequireRevivalGame(GameIdentity identity, GameLayout layout)
     {
-        if (!identity.Verified) throw new InvalidOperationException(L.Calls.WhyUnverified);
+        if (!GameCommandProfile.Supports(identity, OfficerListAddRva)) throw new InvalidOperationException(L.Calls.WhyUnverified);
         if (!IsSameGame(identity) || !layout.SameStorage(ReadCurrentLayout(identity)))
             throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         if (ReadPace(identity, layout) != GamePace.Paused) throw new InvalidOperationException(L.Transfers.PauseRequired);
@@ -35,7 +35,7 @@ internal static partial class GameMemory
     internal static PreparedRevival PrepareRevival(IRecordMemory memory, GameIdentity identity, GameLayout layout,
         GameSnapshot data, OfficerRevival.Request request)
     {
-        if (!identity.Verified) throw new InvalidOperationException(L.Calls.WhyUnverified);
+        if (!GameCommandProfile.Supports(identity, OfficerListAddRva)) throw new InvalidOperationException(L.Calls.WhyUnverified);
         EditPlan plan = OfficerRevival.Plan(data, request);
         if (plan.Refused) throw new InvalidOperationException(plan.Refusal);
         OfficerRecord officer = data.OfficerById[request.Officer];
@@ -47,10 +47,10 @@ internal static partial class GameMemory
             guards.Add(new(address, expected));
         }
         ulong Q(ulong address) => BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(address, 8));
-        ulong raw = Q(identity.ModuleBase + BasePointerRva);
+        ulong raw = Q(CommandWorldSlot(identity));
         if (raw == 0 || Q(raw + 0x871E8) != layout.State || raw + 0xE270 != layout.Tables.Tile)
             throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        Guard(identity.ModuleBase + BasePointerRva, BitConverter.GetBytes(raw));
+        Guard(CommandWorldSlot(identity), BitConverter.GetBytes(raw));
         Guard(raw + 0x871E8, BitConverter.GetBytes(layout.State));
         // Guard the state header and clock; RequireRevivalGame independently checks pause before arming.
         byte[] clock = memory.Read(layout.State + 0x24, 0x18);
@@ -63,8 +63,10 @@ internal static partial class GameMemory
             Q(officer.Address) != identity.Classes.Officer || Q(raw + 0x73A50) == officer.Address)
             throw new InvalidOperationException(L.Transfers.StateChanged);
         Guard(raw + 0x158 + (ulong)officer.Id * 8, BitConverter.GetBytes(officer.Address));
-        Guard(identity.Classes.Officer + 0x18, BitConverter.GetBytes(identity.ModuleBase + 0x2341F0));
-        Guard(identity.ModuleBase + OfficerListAddRva, OfficerListAddStart);
+        Guard(identity.Classes.Officer + 0x18, BitConverter.GetBytes(CommandAt(identity, 0x2341F0)));
+        Guard(CommandAt(identity, OfficerListAddRva), CommandStart(identity, OfficerListAddRva, OfficerListAddStart));
+        if (GameCommandProfile.Find(identity) is { } profile)
+            Guard(CommandAt(identity, 0x2341F0), profile.Target(0x2341F0).Prefix);
 
         // The destination and its owner must still be the records used to make the plan.
         bool city = data.IsCity(request.Base);
@@ -92,16 +94,16 @@ internal static partial class GameMemory
             Guard(raw + 0xDF30 + (ulong)target.Force * 8, BitConverter.GetBytes(force.Address));
             Guard(force.Address, force.Data.AsSpan(0, 0x12).ToArray());
         }
-        var list = ReadRevivalOfficerList(memory, identity.ModuleBase, raw, guards);
+        var list = ReadRevivalOfficerList(memory, identity, raw, guards);
         if (list.Count(a => a == officer.Address) != 0) throw new InvalidOperationException(L.Revival.AlreadyListed);
         var changes = plan.Edits.Single().Changes.Select(c => (TransferStep)new TransferStore(
             officer.Address + (ulong)c.Field.Offset, c.Field.Encode(c.Value))).ToList();
         // The game's own add validates the officer and refuses a second alias. No native list nodes are fabricated.
-        changes.Add(new TransferCall(new(identity.ModuleBase + OfficerListAddRva, raw, officer.Address)));
+        changes.Add(new TransferCall(new(CommandAt(identity, OfficerListAddRva), raw, officer.Address)));
         return new(request, officer, plan, guards, changes);
     }
 
-    private static IReadOnlyList<ulong> ReadRevivalOfficerList(IRecordMemory memory, ulong exe, ulong raw,
+    private static IReadOnlyList<ulong> ReadRevivalOfficerList(IRecordMemory memory, GameIdentity identity, ulong raw,
         List<TransferGuard>? guards = null)
     {
         byte[] Read(ulong address, int length, bool guard = true)
@@ -114,7 +116,7 @@ internal static partial class GameMemory
         ulong wrapper = Q(raw + 0x100);
         if (wrapper == 0) throw new InvalidDataException(L.Revival.ListInvalid);
         uint index = BinaryPrimitives.ReadUInt32LittleEndian(Read(wrapper, 4));
-        ulong poolAddress = exe + 0x27D10E0;
+        ulong poolAddress = CommandGlobal(identity, 0x27D10E0);
         byte[] pool = Read(poolAddress, 0x88, guard: false);
         ulong P(int at) => BinaryPrimitives.ReadUInt64LittleEndian(pool.AsSpan(at));
         if (index >= P(0x40) || P(8) == 0 || P(0x10) == 0 || P(0x18) == 0 || P(0x28) == 0)
@@ -158,19 +160,22 @@ internal static partial class GameMemory
     {
         PreparedRevival prepared = PrepareRevival(identity, layout, data, request);
         RequireRevivalGame(identity, layout);
-        IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, OfficerListAddRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
             byte[] body = prepared.Body;
-            (string? why, int result) = RunOnFrame(handle, identity, _ => new(identity.ModuleBase + OfficerListAddRva,
-                OfficerListAddStart, 0, 0, [], NeedsPlayer: false, Body: body), codePages: (body.Length + 0x400 + StubPage - 1) / StubPage);
+            FrameFollowup[]? validators = GameCommandProfile.Find(identity) is null ? null
+                : [new(new(CommandAt(identity, 0x2341F0), 0, 0), [])];
+            (string? why, int result) = RunOnFrame(handle, identity, _ => new(CommandAt(identity, OfficerListAddRva),
+                CommandStart(identity, OfficerListAddRva, OfficerListAddStart), 0, 0, [],
+                NeedsPlayer: false, After: validators, Body: body), codePages: (body.Length + 0x400 + StubPage - 1) / StubPage);
             if (why is not null) throw new InvalidOperationException(L.Transfers.ExecutionUnconfirmed(why));
             if (result != 1) throw new InvalidOperationException(L.Transfers.WriteStateChanged);
             var memory = new ProcessMemory(handle);
             byte[] fresh = memory.Read(prepared.Officer.Address, prepared.Officer.Data.Length);
-            ulong raw = BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(identity.ModuleBase + BasePointerRva, 8));
-            int count = ReadRevivalOfficerList(memory, identity.ModuleBase, raw).Count(a => a == prepared.Officer.Address);
+            ulong raw = BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(CommandWorldSlot(identity), 8));
+            int count = ReadRevivalOfficerList(memory, identity, raw).Count(a => a == prepared.Officer.Address);
             if (count != 1 || prepared.Plan.Edits.Single().Changes.Any(c => c.Field.Read(fresh) != c.Value))
                 throw new InvalidOperationException(L.Revival.Unconfirmed);
             return [L.Revival.Evidence(prepared.Officer.Name, OfficerFields.StatusName(fresh[OfficerFields.StatusOffset]),

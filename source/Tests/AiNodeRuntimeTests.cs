@@ -8,7 +8,7 @@ public sealed class AiNodeRuntimeTests
     public void LoopParametersFollowTheNativeLoaderAndExcludeTheAgentCache()
     {
         AiTree tree = AiTreeFile.Read(AiFileFactAttribute.Folder)[1];
-        AiNode node = tree.Nodes[4143];
+        AiNode node = tree.Nodes[AiFileFactAttribute.Node(4143, 4255)];
         AiClass cls = AiCatalog.Class(node.Class)!;
         Assert.Equal("CLoopListElementNode", cls.Name);
         Assert.Equal(new[] { 0x28, 0x2C, 0x30, 0x40 }, cls.Offsets);
@@ -30,7 +30,9 @@ public sealed class AiNodeRuntimeTests
         Assert.All(verification.GetProperty("loop_agent_type").EnumerateArray(), row =>
             Assert.Equal(row[0].GetInt32(), row[1].GetInt32()));
         AiTree[] trees = AiTreeFile.Read(AiFileFactAttribute.Folder);
-        JsonElement liveParams = verification.GetProperty("live_loop_params");
+        using JsonDocument? newCapture = AiFileFactAttribute.November ? JsonDocument.Parse(File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Vectors", "AiLoopParameters20261105.json"))) : null;
+        JsonElement liveParams = newCapture?.RootElement ?? verification.GetProperty("live_loop_params");
         Assert.Equal(trees.Sum(t => t.Nodes.Count(n => n.Class == node.Class)), liveParams.GetArrayLength());
         foreach (JsonElement row in liveParams.EnumerateArray())
             Assert.Equal(trees[row[0].GetInt32()].Nodes[row[1].GetInt32()].Params,

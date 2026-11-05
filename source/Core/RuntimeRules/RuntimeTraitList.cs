@@ -11,6 +11,8 @@ internal static class RuntimeTraitList
     internal static readonly byte[] Original = Convert.FromHexString("488B4577488986500100004C8B6D7F");
     internal sealed record Block(uint Rva, string Bytes, int[] Fixups, int TraitIndex = -1, int TraitBase = 61);
     internal sealed record Layout(ulong OriginalBase, uint ImageSize, Block Columns, Block[] Tables, Block[] Guards);
+    internal sealed record Profile(uint Site, uint CodeStart, uint CodeEnd, uint World, uint AlternateValue,
+        uint Value, uint Name, uint EmptyName, uint Sort, Layout Layout);
     internal static readonly Layout Definition = Load();
     // The native list constructor (2BF138) stores callback results here. Everything else
     // remains a definition, including the callbacks, names, offsets and table pointers.
@@ -53,58 +55,61 @@ internal static class RuntimeTraitList
                     throw new InvalidDataException(L.RuntimeErrors.TraitRelocationMissing($"{block.Rva + at:X}"));
         }
     }
-    internal static byte[] Rebase(Block block, ulong module)
+    internal static byte[] Rebase(Block block, ulong module, Layout? layout = null)
     {
         byte[] bytes = Convert.FromHexString(block.Bytes);
         foreach (int at in block.Fixups)
-            BitConverter.TryWriteBytes(bytes.AsSpan(at), checked(BitConverter.ToUInt64(bytes, at) - Definition.OriginalBase + module));
+            BitConverter.TryWriteBytes(bytes.AsSpan(at), checked(BitConverter.ToUInt64(bytes, at) - (layout ?? Definition).OriginalBase + module));
         return bytes;
     }
     internal static byte[] Jump(ulong address) => [0xFF, 0x25, 0, 0, 0, 0, .. BitConverter.GetBytes(address), 0x90];
-    internal static void VerifyOriginalTables(Func<ulong, int, byte[]> read, ulong module, ulong active)
+    internal static void VerifyOriginalTables(Func<ulong, int, byte[]> read, ulong module, ulong active, Profile? profile = null)
     {
-        foreach (var block in new[] { Definition.Columns }.Concat(Definition.Tables).Concat(Definition.Guards))
+        var layout = profile?.Layout ?? Definition;
+        uint site = profile?.Site ?? Site;
+        foreach (var block in new[] { layout.Columns }.Concat(layout.Tables).Concat(layout.Guards))
         {
-            byte[] expected = Rebase(block, module);
-            if (active != 0 && block.Rva <= Site && Site < block.Rva + expected.Length)
-                Jump(active).CopyTo(expected, (int)(Site - block.Rva));
-            if (!Matches(read(module + block.Rva, expected.Length), expected, block.Rva == Definition.Columns.Rva ? 0 : -1))
+            byte[] expected = Rebase(block, module, layout);
+            if (active != 0 && block.Rva <= site && site < block.Rva + expected.Length)
+                Jump(active).CopyTo(expected, (int)(site - block.Rva));
+            if (!Matches(read(module + block.Rva, expected.Length), expected, block.Rva == layout.Columns.Rva ? 0 : -1))
                 throw new InvalidDataException(L.RuntimeErrors.TraitOriginalConflict($"{block.Rva:X}"));
         }
     }
-    internal static ulong Detect(Func<ulong, int, byte[]> read, ulong module)
+    internal static ulong Detect(Func<ulong, int, byte[]> read, ulong module, Profile? profile = null)
     {
-        byte[] site = read(module + Site, Original.Length);
+        byte[] site = read(module + (profile?.Site ?? Site), Original.Length);
         if (site.SequenceEqual(Original)) return 0;
         ulong address = BitConverter.ToUInt64(site, 6);
         if (address == 0 || (address & 4095) != 0 || !site.SequenceEqual(Jump(address)))
             throw new InvalidDataException(L.RuntimeErrors.TraitCodeChanged);
-        VerifyAllocation(read, module, address);
-        VerifyOriginalTables(read, module, address);
+        VerifyAllocation(read, module, address, profile);
+        VerifyOriginalTables(read, module, address, profile);
         return address;
     }
-    internal static void VerifyAllocation(Func<ulong, int, byte[]> read, ulong module, ulong address)
+    internal static void VerifyAllocation(Func<ulong, int, byte[]> read, ulong module, ulong address, Profile? profile = null)
     {
         if (address == 0 || (address & 4095) != 0 || address > 0x00007FFFFFFF0000UL - Size
-            || !Matches(read(address, Size), Build(module, address), ColumnsOffset))
+            || !Matches(read(address, Size), Build(module, address, profile: profile), ColumnsOffset))
             throw new InvalidDataException(L.RuntimeErrors.TraitAllocationChanged);
     }
-    internal static byte[] Build(ulong module, ulong address, byte[]? currentColumns = null)
+    internal static byte[] Build(ulong module, ulong address, byte[]? currentColumns = null, Profile? profile = null)
     {
+        var layout = profile?.Layout ?? Definition;
         byte[] result = new byte[Size];
-        Rebase(Definition.Columns, module).CopyTo(result, ColumnsOffset);
+        Rebase(layout.Columns, module, layout).CopyTo(result, ColumnsOffset);
         if (currentColumns is not null)
         {
-            if (!Matches(currentColumns, Rebase(Definition.Columns, module), 0))
+            if (!Matches(currentColumns, Rebase(layout.Columns, module, layout), 0))
                 throw new InvalidDataException(L.RuntimeErrors.TraitColumnsChanged);
             foreach (int column in MutableColumns)
                 currentColumns.AsSpan(column * RecordSize + 0x5C, 4).CopyTo(result.AsSpan(ColumnsOffset + column * RecordSize + 0x5C, 4));
         }
         int cursor = ColumnsOffset + 221 * RecordSize;
         var tables = new List<(uint Rva, int Offset)>();
-        foreach (var table in Definition.Tables)
+        foreach (var table in layout.Tables)
         {
-            byte[] bytes = Rebase(table, module);
+            byte[] bytes = Rebase(table, module, layout);
             tables.Add((table.Rva, cursor)); bytes.CopyTo(result, cursor); cursor += (bytes.Length + 7) & ~7;
         }
         int list = cursor;
@@ -115,13 +120,13 @@ internal static class RuntimeTraitList
             for (int i = 0; i < ids.Length; i++) BitConverter.TryWriteBytes(result.AsSpan(list + style * 44 + i * 4), ids[i]);
         }
         for (int i = 0; i < tables.Count; i++)
-            BitConverter.TryWriteBytes(result.AsSpan(tables[i].Offset + Definition.Tables[i].TraitIndex * 24),
-                address + (uint)(list + (Definition.Tables[i].TraitBase == 170 ? 44 : 0)));
+            BitConverter.TryWriteBytes(result.AsSpan(tables[i].Offset + layout.Tables[i].TraitIndex * 24),
+                address + (uint)(list + (layout.Tables[i].TraitBase == 170 ? 44 : 0)));
 
         var c = new Code();
         // Preserve flags and scratch registers: the overwritten MOVs changed neither.
         c.Emit("9C514153488B45774C8B6D7F");
-        c.Imm64("49BB", module + Definition.Columns.Rva); c.Emit("4D39DD"); int foreign = c.Branch("0F85");
+        c.Imm64("49BB", module + layout.Columns.Rva); c.Emit("4D39DD"); int foreign = c.Branch("0F85");
         var done = new List<int>();
         foreach (var table in tables)
         {
@@ -130,31 +135,31 @@ internal static class RuntimeTraitList
             c.Imm64("49BD", address + ColumnsOffset); done.Add(c.Branch("E9")); c.Target(next);
         }
         c.Target(foreign); foreach (int jump in done) c.Target(jump);
-        c.Emit("48898650010000415B599D"); c.Bytes.AddRange(Jump(module + Site + (uint)Original.Length));
+        c.Emit("48898650010000415B599D"); c.Bytes.AddRange(Jump(module + (profile?.Site ?? Site) + (uint)Original.Length));
         for (int style = 0; style < 2; style++) for (int slot = 5; slot < 9; slot++)
         {
             c.Align(); int value = c.Count;
             if (style == 1)
             {
                 // These variants prefer the base officer's traits when a matching base record exists.
-                c.Imm32("BA", slot); c.Bytes.AddRange(Jump(module + 0x35F020));
+                c.Imm32("BA", slot); c.Bytes.AddRange(Jump(module + (profile?.AlternateValue ?? 0x35F020)));
             }
             else
             {
-            c.Emit("534883EC20"); c.Imm64("48BB", module + GameBuildFacts.Memory.BasePointerRva); c.Emit("488B1B");
-            c.Imm32("BA", slot); c.Call(module + 0x2305D0);
+            c.Emit("534883EC20"); c.Imm64("48BB", module + (profile?.World ?? GameBuildFacts.Memory.BasePointerRva)); c.Emit("488B1B");
+            c.Imm32("BA", slot); c.Call(module + (profile?.Value ?? 0x2305D0));
             c.Emit("3D63010000"); int invalid = c.Branch("0F8F");
             c.Emit("4898488B9CC318DD0700"); int valid = c.Branch("E9"); c.Target(invalid);
-            c.Emit("488B9B18DD0700"); c.Target(valid); c.Emit("488BCB"); c.Call(module + 0x32F500);
+            c.Emit("488B9B18DD0700"); c.Target(valid); c.Emit("488BCB"); c.Call(module + (profile?.Name ?? 0x32F500));
             c.Emit("85C0488D4310"); int named = c.Branch("0F85");
-            c.Imm64("48B8", module + 0x1A47B98); c.Emit("488B00"); c.Target(named); c.Emit("4883C4205BC3");
+            c.Imm64("48B8", module + (profile?.EmptyName ?? 0x1A47B98)); c.Emit("488B00"); c.Target(named); c.Emit("4883C4205BC3");
             }
             int[] functions = [value, 0, 0];
             for (int order = 1; order >= 0; order--)
             {
                 c.Align(); functions[2 - order] = c.Count;
                 c.Emit("4883EC38"); c.Imm32("41B9", style); c.Imm32("C7442420", order); c.Imm32("41B8", slot);
-                c.Call(module + 0x353810); c.Emit("4883C438C3");
+                c.Call(module + (profile?.Sort ?? 0x353810)); c.Emit("4883C438C3");
             }
             int column = 213 + style * 4 + slot - 5;
             int offset = ColumnsOffset + column * RecordSize;

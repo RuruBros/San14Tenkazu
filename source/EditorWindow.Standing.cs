@@ -31,7 +31,8 @@ internal sealed partial class EditorWindow
             foreach (string line in prepared.Evidence) AddLog(line);
             if (!ConfirmWrite(plan.Summary)) return;
             AddLog(plan.Summary);
-            foreach (string line in await Task.Run(() => GameMemory.ApplyTransfer(identity, found, data, officer, kind, target, plan))) AddLog(line);
+            foreach (string line in await RunNativeCommandAsync(NativeCommandKind.Transfer, identity, found,
+                new { officer.Id, transfer = kind.ToString(), target }, () => GameMemory.ApplyTransfer(identity, found, data, officer, kind, target, plan))) AddLog(line);
             // Existing undo entries can refer to governors/policy slots changed by native succession.
             undoHistory.Clear();
             status.Text = L.Transfers.NativeCompleted;

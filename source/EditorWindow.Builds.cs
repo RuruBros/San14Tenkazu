@@ -19,6 +19,11 @@ internal sealed partial class EditorWindow
         List<GameChecks.Check> failed = checks.Where(c => !c.Passed).ToList();
         AddLog(failed.Count == 0 ? L.Builds.ChecksPassed(checks.Count) : L.Builds.ChecksFailed(checks.Count, failed.Count));
         foreach (GameChecks.Check check in failed) AddLog("  " + L.Builds.CheckFailed(check.Group, check));
+        if (identity.DataProfile is not null)
+        {
+            writesAllowed = !identity.DataProfile.Fields.IsEmpty;
+            return;
+        }
         if (identity.Verified)
         {
             writesAllowed = true;
@@ -48,7 +53,25 @@ internal sealed partial class EditorWindow
     // Why values of these groups may not be written to the game now, or null when they may.
     private string? WriteBlock(IEnumerable<string> groups) =>
         layoutRecovering || snapshot is null ? L.Connection.SessionWaiting :
+        game?.DataProfile is not null ? L.Compatibility.Unavailable :
         game is { } identity ? GameChecks.WriteBlock(identity.Verified, writesAllowed, checks, groups) : null;
+
+    private string? NativeWorldWriteBlock(GameIdentity identity) =>
+        GameCommandProfile.Find(identity) is null ? WriteBlock([GameChecks.World]) :
+        layoutRecovering || snapshot is null ? L.Connection.SessionWaiting :
+        GameChecks.WriteBlock(false, writesAllowed, checks, [GameChecks.World]);
+
+    private string? FieldWriteBlock(IEnumerable<FieldDef> fields)
+    {
+        if (game?.DataProfile is not { } profile) return WriteBlock(fields.Select(GameChecks.GroupOf));
+        if (layoutRecovering || snapshot is null) return L.Connection.SessionWaiting;
+        var requested = fields.ToArray();
+        if (requested.Length > 0 && requested.All(field => field.Record is RecordKind.AiNode or RecordKind.AiArgs) &&
+            game is { } identity && AiBuildProfile.IsNovember(identity) && aiStamp == AiBuildProfile.NovemberStock)
+            return GameChecks.WriteBlock(false, writesAllowed, checks, []);
+        return ProfiledEdits.Block(profile, requested)
+            ?? GameChecks.WriteBlock(false, writesAllowed, checks, ProfiledEdits.CheckedGroups(requested));
+    }
 
     // Saves what is kept about a build; a save that fails is only logged (the next connection asks or searches again).
     private void Keep(Action save, string failed)

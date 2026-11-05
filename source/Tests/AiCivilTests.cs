@@ -59,6 +59,7 @@ public partial class AiTreeTests
     public void CivilThresholdsKeepTheirFileValuesAndBoundaryOperators()
     {
         AiTree[] trees = GameTrees();
+        var pages = GamePages(trees);
         (AiDecision Decision, string Label, int Shown)[] expected =
         [
             (AiDecision.FriendForces, L.AiGuide.FriendRatio, 300), (AiDecision.FriendForces, L.AiGuide.FriendHardest, 200),
@@ -78,15 +79,15 @@ public partial class AiTreeTests
         ];
         foreach ((AiDecision decision, string label, int shown) in expected)
         {
-            AiGuideValue value = AiGuide.Pages.Single(p => p.Decision == decision).Sections.SelectMany(s => s.Values).Single(v => v.Label == label);
+            AiGuideValue value = pages.Single(p => p.Decision == decision).Sections.SelectMany(s => s.Values).Single(v => v.Label == label);
             Assert.Equal(shown, value.Shown(AiEdits.FileRaw(trees, value)!.Value));
             Assert.Equal(AiEdits.FileRaw(trees, value), AiEdits.Raw(value, shown));
         }
-        var recruit = AiCondition.Of(trees[1].Nodes[2491].Params).Terms[2];
+        var recruit = AiCondition.Of(trees[1].Nodes[AiFileFactAttribute.Node(2491, 2549)].Params).Terms[2];
         Assert.Equal((21, false, 3000), (recruit.Function, recruit.Negated, recruit.Args[1]));
-        var morale = AiCondition.Of(trees[1].Nodes[2542].Params).Terms[3];
+        var morale = AiCondition.Of(trees[1].Nodes[AiFileFactAttribute.Node(2542, 2600)].Params).Terms[3];
         Assert.Equal((21, true, 60), (morale.Function, morale.Negated, morale.Args[1]));
-        var loyalty = AiCondition.Of(trees[1].Nodes[796].Params).Terms[0];
+        var loyalty = AiCondition.Of(trees[1].Nodes[AiFileFactAttribute.Node(796, 806)].Params).Terms[0];
         Assert.Equal((21, true, 70), (loyalty.Function, loyalty.Negated, loyalty.Args[1]));
     }
 
@@ -96,6 +97,7 @@ public partial class AiTreeTests
     public void CivilRulesReachExactlyTheirExistingCopies()
     {
         AiTree[] trees = GameTrees();
+        var pages = GamePages(trees);
         (AiDecision Decision, string Label, int Count)[] expected =
         [
             (AiDecision.FriendForces, L.AiGuide.FriendRatio, 1), (AiDecision.Goodwill, L.AiGuide.GoodwillFriendship, 4),
@@ -104,16 +106,17 @@ public partial class AiTreeTests
             (AiDecision.Training, L.AiGuide.TrainingMorale, 6), (AiDecision.Development, L.AiGuide.DevelopmentCommerce, 6),
             (AiDecision.Trade, L.AiGuide.TradeGold, 3), (AiDecision.Search, L.AiGuide.SearchPolitics, 6),
             (AiDecision.Search, L.AiGuide.SearchExtraRoll, 6), (AiDecision.Schemes, L.AiGuide.SchemePoison, 2),
-            (AiDecision.Schemes, L.AiGuide.SchemePlayerShare, 14), (AiDecision.Schemes, L.AiGuide.SchemeGold, 1),
+            (AiDecision.Schemes, L.AiGuide.SchemePlayerShare, AiFileFactAttribute.Node(14, 16)),
+            (AiDecision.Schemes, L.AiGuide.SchemeGold, 1),
         ];
         foreach ((AiDecision decision, string label, int count) in expected)
         {
-            AiGuideValue value = AiGuide.Pages.Single(p => p.Decision == decision).Sections.SelectMany(s => s.Values).Single(v => v.Label == label);
+            AiGuideValue value = pages.Single(p => p.Decision == decision).Sections.SelectMany(s => s.Values).Single(v => v.Label == label);
             List<AiSlot> slots = AiEdits.Slots(trees, value);
             Assert.Equal(count, slots.Count);
             Assert.All(slots, s => Assert.Equal(AiEdits.FileRaw(trees, value), trees[(int)s.Tree].Nodes[s.Node].Params[s.Param]));
         }
-        AiGuideValue[] values = AiGuide.Pages.Skip(6).SelectMany(p => p.Sections).SelectMany(s => s.Values).ToArray();
+        AiGuideValue[] values = AiBuildProfile.Values(pages.Skip(6).ToArray()).ToArray();
         AiSlot[] all = values.SelectMany(v => AiEdits.Slots(trees, v)).ToArray();
         Assert.Equal(all.Length, all.Distinct().Count());
         Assert.Equal(values.Length, values.Select(AiAdjustments.Key).Distinct().Count());
@@ -125,28 +128,49 @@ public partial class AiTreeTests
     public void CivilValuesCanBeWrittenUndoneAndReappliedTogether()
     {
         AiTree[] trees = GameTrees();
-        var heap = new MadeUp.Heap(trees);
-        AiLiveTree[] live = AiMemory.Read(heap, MadeUp.Heap.ModuleBase, trees);
-        var requests = AiGuide.Pages.Skip(6).SelectMany(p => p.Sections).SelectMany(s => s.Values)
+        var pages = GamePages(trees);
+        var values = AiBuildProfile.Values(pages).ToArray();
+        bool november = AiFileFactAttribute.November;
+        ulong manager = november ? AiBuildProfile.NovemberManager : AiMemory.ManagerPointerRva;
+        var heap = new MadeUp.Heap(trees, manager);
+        AiLiveTree[] live = AiMemory.Read(heap, MadeUp.Heap.ModuleBase, trees, manager);
+        var requests = (november ? values : AiBuildProfile.Values(pages.Skip(6).ToArray()))
             .Select(v => (Value: v, Raw: AiEdits.FileRaw(trees, v)!.Value + 1)).ToList();
         EditPlan plan = AiEdits.Plan(heap, trees, live, "AI civil", requests);
         Assert.False(plan.Refused, plan.Refusal);
         Assert.Equal(requests.Sum(r => AiEdits.Slots(trees, r.Value).Count), plan.Edits.Sum(e => e.Changes.Count));
+        if (november)
+        {
+            var allowed = requests.SelectMany(r => AiEdits.Slots(trees, r.Value)
+                .Select(slot => (slot, Max: AiEdits.MaxRaw(AiEdits.FileRaw(trees, r.Value)!.Value))))
+                .ToDictionary(row => row.slot, row => row.Max);
+            void Require(IReadOnlyList<RecordEdit> edits) =>
+                GameMemory.RequireProfiledAiTargets(heap, MadeUp.Heap.ModuleBase, trees, allowed, edits);
+            Require(plan.Edits);
+            var args = plan.Edits.First(edit => edit.Kind == RecordKind.AiArgs);
+            Assert.Throws<InvalidDataException>(() => Require([args with { AiSlots = null }]));
+            var cell = new AiCell(args.Address + (ulong)args.Changes[0].Field.Offset, 4);
+            int before = AiMemory.Read(heap, cell);
+            heap.Poke(cell, before + 10);
+            Assert.Throws<StaleEditException>(() => Require([args]));
+            heap.Poke(cell, before);
+        }
         GameMemory.Apply(heap, TestGame.Classes, plan.Edits);
         foreach (var request in requests) Assert.Equal(request.Raw, AiEdits.GameRaw(heap, trees, live, request.Value));
-        Dictionary<string, int> kept = AiEdits.Changed(heap, trees, live);
+        Dictionary<string, int> kept = AiEdits.Changed(heap, trees, live, values);
         Assert.Equal(requests.Count, kept.Count);
 
         List<RecordEdit> undo = Undo.Of(plan.Edits);
         Assert.Empty(Undo.Compare(undo, e => heap.Read(e.Address, e.Expected.Length)).Moved);
         GameMemory.Apply(heap, TestGame.Classes, undo);
-        Assert.Empty(AiEdits.Changed(heap, trees, live));
-        var (write, other) = AiEdits.Reapply(heap, trees, live, kept);
+        Assert.All(plan.Edits, edit => Assert.Equal(edit.Expected, heap.Read(edit.Address, edit.Expected.Length)));
+        Assert.Empty(AiEdits.Changed(heap, trees, live, values));
+        var (write, other) = AiEdits.Reapply(heap, trees, live, kept, values);
         Assert.Empty(other);
         Assert.Equal(requests.Count, write.Count);
         EditPlan again = AiEdits.Plan(heap, trees, live, "AI civil", write);
         Assert.False(again.Refused, again.Refusal);
         GameMemory.Apply(heap, TestGame.Classes, again.Edits);
-        Assert.Equal(kept, AiEdits.Changed(heap, trees, live));
+        Assert.Equal(kept, AiEdits.Changed(heap, trees, live, values));
     }
 }

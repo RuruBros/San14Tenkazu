@@ -6,16 +6,20 @@ namespace San14Tenkazu.Tests;
 
 internal sealed class FormationFixture : IRecordMemory
 {
-    internal readonly GameIdentity Identity = new(0, DateTime.UnixEpoch, 0x140000000, new string('A', 64), true, TestGame.Classes);
+    internal readonly GameIdentity Identity;
     private readonly Dictionary<ulong, byte[]> segments = [];
     internal ulong Root = 0x300000000, Array = 0x301000000, Vectors = 0x302000000, State = 0x303000000;
     internal int Writes;
     internal int FailWrite { get; set; }
     internal Action<int>? OnWrite { get; set; }
-    internal FormationFixture(bool encoded = true) { Load(encoded); }
+    internal FormationFixture(bool encoded = true, GameIdentity? identity = null)
+    {
+        Identity = identity ?? new(0, DateTime.UnixEpoch, 0x140000000, new string('A', 64), true, TestGame.Classes);
+        Load(encoded);
+    }
     internal void Load(bool encoded = true)
     {
-        segments[Identity.ModuleBase + FormationMemory.RootRva] = BitConverter.GetBytes(Root);
+        segments[Identity.ModuleBase + (Identity.Verified ? FormationMemory.RootRva : 0x2780F60)] = BitConverter.GetBytes(Root);
         byte[] pointers = new byte[21 * 8];
         for (int i = 0; i <= 20; i++) BinaryPrimitives.WriteUInt64LittleEndian(pointers.AsSpan(i * 8), Array + (ulong)(i * 0xC8));
         segments[Root + FormationMemory.TableOffset] = pointers;

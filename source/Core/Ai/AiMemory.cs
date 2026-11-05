@@ -24,9 +24,9 @@ internal static class AiMemory
 
     // The four trees, each node checked to be of the class the file gives it; InvalidDataException when they are not
     // the file's (another build, or the game still starting).
-    internal static AiLiveTree[] Read(IRecordMemory memory, ulong moduleBase, AiTree[] file)
+    internal static AiLiveTree[] Read(IRecordMemory memory, ulong moduleBase, AiTree[] file, ulong managerRva = ManagerPointerRva)
     {
-        ulong manager = Pointer(memory, Pointer(memory, moduleBase + ManagerPointerRva) + ManagerOffset);
+        ulong manager = Pointer(memory, Pointer(memory, moduleBase + managerRva) + ManagerOffset);
         var trees = new AiLiveTree[file.Length];
         for (int k = 0; k < file.Length; k++)
         {
@@ -47,11 +47,51 @@ internal static class AiMemory
         return trees;
     }
 
+    internal static ulong ReadNode(IRecordMemory memory, ulong moduleBase, ulong managerRva, AiTree tree, int index)
+    {
+        ulong manager = Pointer(memory, Pointer(memory, moduleBase + managerRva) + ManagerOffset);
+        ulong root = Pointer(memory, manager + RootsOffset + (ulong)tree.Kind * 8);
+        ulong count = BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(root + RootCountOffset, 8));
+        if (count != (ulong)tree.Nodes.Length) throw new InvalidDataException(L.Ai.TreeChanged);
+        ulong table = Pointer(memory, root + RootNodesOffset);
+        if (Pointer(memory, table) != root) throw new InvalidDataException(L.Ai.TreeChanged);
+        ulong node = Pointer(memory, table + (ulong)index * 8);
+        if (BinaryPrimitives.ReadUInt32LittleEndian(memory.Read(node + NodeClassOffset, 4)) != tree.Nodes[index].Class)
+            throw new InvalidDataException(L.Ai.TreeChanged);
+        return node;
+    }
+
+    internal static (RecordKind Kind, ulong Address, int Length, int Offset) Locate(
+        IRecordMemory memory, AiNode node, ulong address, int param)
+    {
+        if (node.Class != AiCatalog.Condition)
+        {
+            if (Cell(memory, node, address, param) is not { Size: 4 } cell)
+                throw new InvalidDataException(L.Ai.TreeChanged);
+            return (RecordKind.AiNode, address, AiEdits.NodeRead, checked((int)(cell.Address - address)));
+        }
+        AiCondition condition = AiCondition.Of(node.Params);
+        if (condition.ArgAt(param) is not (int term, int arg)) throw new InvalidDataException(L.Ai.TreeChanged);
+        var original = condition.Terms[term];
+        if (!memory.Read(address + CompositeParams, AiCondition.HeadLength)
+                .SequenceEqual(node.Params.Take(AiCondition.HeadLength).Select(value => unchecked((byte)value))))
+            throw new InvalidDataException(L.Ai.TreeChanged);
+        ulong terms = Pointer(memory, address + ConditionTerms);
+        ulong at = terms + (ulong)(term * TermSize);
+        byte[] layout = memory.Read(at + 8, 8);
+        if (layout[0] != (int)original.Kind || layout[1] != (original.Negated ? 1 : 0) ||
+            layout[2] != original.Group || layout[3] != original.Args.Length ||
+            BinaryPrimitives.ReadInt32LittleEndian(layout.AsSpan(4)) != original.Function)
+            throw new InvalidDataException(L.Ai.TreeChanged);
+        return (RecordKind.AiArgs, Pointer(memory, at + TermArgs), sizeof(int) * original.Args.Length, sizeof(int) * arg);
+    }
+
     // Where a param of a node lives; null where the node keeps it its own way (a leaf whose loader is its own).
     internal static AiCell? Cell(IRecordMemory memory, AiLiveTree tree, int node, int param)
+        => Cell(memory, tree.File.Nodes[node], tree.Nodes[node], param);
+
+    private static AiCell? Cell(IRecordMemory memory, AiNode n, ulong at, int param)
     {
-        AiNode n = tree.File.Nodes[node];
-        ulong at = tree.Nodes[node];
         if (param < 0 || param >= n.Params.Length) return null;
         if (n.Class == AiCatalog.Condition)
         {

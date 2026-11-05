@@ -15,7 +15,10 @@ internal sealed partial class EditorWindow
 
     private void ObserveSession(GameIdentity identity, GameSessionObservation session)
     {
-        string evidence = $"Game session: PID={identity.ProcessId}, startUtc={identity.StartTimeUtc:O}, {session.Evidence}";
+#if LOCAL_DEVELOPER
+        ObserveNativeSuiteSession(identity, session);
+#endif
+        string evidence = $"Game session: PID={identity.ProcessId}, startUtc={identity.StartTimeUtc:O}, SHA-256={identity.ExeHash}, {session.Evidence}";
         if (sessionEvidence == evidence) return;
         sessionEvidence = evidence;
         AddLog(evidence);
@@ -91,18 +94,19 @@ internal sealed partial class EditorWindow
             if (runtimeRulesWindow is { } rulesWindow)
             {
                 bool preserve = rulesWindow.HasPendingChanges;
-                runtimeRulesIdentity = identity; rulesWindow.SetOffline(false);
+                runtimeRulesIdentity = identity; rulesWindow.SetOffline(!RuntimeRuleBuildProfile.Supports(identity) && identity.DataProfile is not null);
                 rulesWindow.ShowSettings(data.RuntimeRules, preserve);
-                if (!preserve && runtimeRuleFile.Read() is { } savedRules) rulesWindow.ShowSaved(savedRules, select: true);
+                if (!preserve && runtimeRuleFile.For(identity).Read() is { } savedRules) rulesWindow.ShowSaved(savedRules, select: true);
             }
             layoutRecovering = false;
-            AttachSeasons(identity);
+            SelectEnvironmentProfile(identity);
+            if (GameCapabilities.Inspect(identity, GameFeature.Seasons).CanAttempt) AttachSeasons(identity);
             map.SetSnapshot(data);
             FillLists();
             TrustBuild(identity, found, data);
             if (aiView is not null) await aiView.RereadAsync();
             liveTimer.Start();
-            status.Text = writesAllowed ? L.Connection.Ready
+            status.Text = identity.DataProfile is not null ? (writesAllowed ? L.Connection.ProfileEditing : L.Connection.ProfileReadOnly) : writesAllowed ? L.Connection.Ready
                 : L.Connection.ReadyReadOnly;
             AddLog(status.Text);
             if (found.State == 0) AddLog(L.Connection.NoGameState);
@@ -149,7 +153,8 @@ internal sealed partial class EditorWindow
         SetOperationProgress(L.OperationProgress.Reading);
         try
         {
-            if (identity.Verified) found = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
+            if (identity.Verified || identity.DataProfile is not null)
+                found = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
             snapshot = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
             if (!layout.SameStorage(found)) undoHistory.RemoveAll(h => h.Rule is null);
             layout = found;
@@ -187,7 +192,8 @@ internal sealed partial class EditorWindow
         bool replaced = false; // a load swapped the world: retry rules/environment that failed or self-stopped meanwhile
         try
         {
-            if (identity.Verified) found = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
+            if (identity.Verified || identity.DataProfile is not null)
+                found = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
             GameSnapshot? before = snapshot;
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found, before));
             if (busy || game != identity) return;
@@ -195,21 +201,36 @@ internal sealed partial class EditorWindow
             replaced = !layout.SameStorage(found);
             if (replaced) undoHistory.RemoveAll(h => h.Rule is null);
             layout = found;
+            bool resumedProfiledRefresh = identity.DataProfile is not null && layoutRecovering && status.Text == L.Connection.SessionWaiting;
+            if (resumedProfiledRefresh)
+                status.Text = writesAllowed ? L.Connection.ProfileEditing : L.Connection.ProfileReadOnly;
             layoutRecovering = false;
             snapshot = data;
             map.SetSnapshot(data);
             MergeSnapshot();
+            if (resumedProfiledRefresh) UpdateControls();
             ObservePlayerForce(data);
         }
         catch (GameSessionUnavailableException ex)
         {
-            if (game == identity) await WaitForSessionAsync(identity, ex.Observation);
+            if (game != identity) return;
+            // A modal notice can enqueue a child while the authenticated game stack is intact.
+            // Keep ownership for one refresh interval and continue to reject all profiled writes.
+            if (!layoutRecovering && identity.DataProfile is { } profile && snapshot?.Session is { } previous &&
+                ex.Observation.HasPendingChangeOn(previous, profile.Session))
+            {
+                ObserveSession(identity, ex.Observation);
+                layoutRecovering = true;
+                status.Text = L.Connection.SessionWaiting;
+                UpdateControls();
+            }
+            else await WaitForSessionAsync(identity, ex.Observation);
         }
         catch (Exception ex)
         {
             if (game == identity)
             {
-                if (identity.Verified && GameMemory.IsSameGame(identity))
+                if ((identity.Verified || identity.DataProfile is not null) && GameMemory.IsSameGame(identity))
                 {
                     if (!layoutRecovering) AddLog(L.Rules.Rechecking + " " + ex.Message);
                     layoutRecovering = true;
@@ -246,6 +267,7 @@ internal sealed partial class EditorWindow
             if(!await StopEnvironmentAsync(true)||!await StopSeasonsAsync(true)){AddLog(L.Seasons.DisconnectBlocked);return false;}
 #if LOCAL_DEVELOPER
             await CompleteDeveloperNoticeDiagnostic(ownerRestored:true);
+            CompleteProfiledRenderCheck("disconnect");
 #endif
             ResetRules();
             undoHistory.Clear();   // the records' addresses mean nothing in another game
@@ -263,6 +285,10 @@ internal sealed partial class EditorWindow
             snapshot = null;
             layoutRecovering = false;
             aiView?.Disconnect();
+            if (aiView is not null) map.HideAi();
+            aiView = null;
+            aiTrees = null;
+            aiStamp = "";
             checks = [];
             writesAllowed = false;
             map.SetSnapshot(null);
@@ -306,18 +332,17 @@ internal sealed partial class EditorWindow
             demoNoticed = true;
             AddLog(L.Auto.Detected);
         }
-        if (playButton.IsEnabled != (!busy && data.IsDemoPlay)) UpdateControls();
+        if (playButton.IsEnabled != (!busy && data.IsDemoPlay && (game?.DataProfile is null || writesAllowed))) UpdateControls();
     }
 
     private async Task ResumePlayAsync()
     {
-        if (busy || layoutRecovering || game is null || layout is null || snapshot is not { IsDemoPlay: true } data) return;
-        if (WriteBlock([GameChecks.World]) is { } blocked)
+        if (busy || layoutRecovering || game is not { } running || layout is null || snapshot is not { IsDemoPlay: true } data) return;
+        if (NativeWorldWriteBlock(running) is { } blocked)
         {
             ReportError(new InvalidOperationException(blocked));
             return;
         }
-        GameIdentity running = game.Value;
         GameLayout where = layout;
         if (await Task.Run(() => GameMemory.ReadPace(running, where)) == GamePace.Running)
         {
@@ -331,7 +356,8 @@ internal sealed partial class EditorWindow
         try
         {
             AddLog(L.Auto.Request((data.PlayerForce > 0 ? data.ForceName(data.PlayerForce) : L.Terms.None), data.ForceName(force)));
-            DemoEnd end = await Task.Run(() => GameMemory.EndDemoPlay(identity, found, force));
+            DemoEnd end = await RunNativeCommandAsync(NativeCommandKind.Demo, identity, found, new { force },
+                () => GameMemory.EndDemoPlay(identity, found, force));
             GameSnapshot fresh = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
             snapshot = fresh;
             map.SetSnapshot(fresh);

@@ -22,6 +22,9 @@ internal sealed record RuntimeRulePreference(int Version, string Build, RuntimeR
 internal sealed class RuntimeRulePreferenceFile(string directory)
 {
     internal string PathName => Path.Combine(directory, "settings.json");
+    internal RuntimeRulePreferenceFile For(GameIdentity? identity) =>
+        identity is { } connected && RuntimeRuleBuildProfile.Find(connected) is { } profile
+            ? new(Path.Combine(directory, profile.ExeHash)) : this;
     internal string ReceiptPath(GameIdentity identity) => Path.Combine(directory, $"{identity.ProcessId}-{identity.StartTimeUtc.Ticks}.json");
     internal RuntimeRulePreference? Read()
     {
@@ -52,7 +55,7 @@ internal sealed class RuntimeRulePreferenceFile(string directory)
     {
         var existing = Read(); if (existing is not null) return existing;
         var receipt = new RuntimeRuleJournal(ReceiptPath(identity)).Read();
-        if (receipt is null || !identity.Verified || !receipt.Owns(identity) || receipt.Phase != "committed" || receipt.After != current) return null;
+        if (receipt is null || !RuntimeRuleBuildProfile.Supports(identity) || !receipt.Owns(identity) || receipt.Phase != "committed" || receipt.After != current) return null;
         var value = new RuntimeRulePreference(1, identity.ExeHash, receipt.After, true);
         Save(value); return value;
     }

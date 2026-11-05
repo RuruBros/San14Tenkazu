@@ -71,11 +71,12 @@ internal static class OfficerEdits
             if (item[ItemFields.Place] != 0) moves.Add(new FieldChange(ItemFields.Place, 0));
             edits.Add(new RecordEdit(RecordKind.Item, item.Address, item.Data, L.Edits.ItemLabel(item.Name), moves));
         }
-        if (data.RuntimeRules is null && request.Own.Any(c => OfficerFields.Abilities.Contains(c.Field) || OfficerFields.Personalities.Contains(c.Field)))
+        if (data.ExperienceGrowth is null && request.Own.Any(c => OfficerFields.Abilities.Contains(c.Field)) ||
+            data.RuntimeRules is null && request.Own.Any(c => OfficerFields.Personalities.Contains(c.Field)))
             return EditPlan.Refuse(L.RuntimeErrors.RuntimeStateUnknown);
-        return new EditPlan(WithExperience(edits, data.RuntimeRules?.Growth ?? false)
+        return new EditPlan(WithExperience(edits, data.ExperienceGrowth ?? false)
             .Select(e => e with { ExpectedRuntimeRules = e.Changes.Any(c => OfficerFields.Abilities.Contains(c.Field)
-                || OfficerFields.Personalities.Contains(c.Field)) ? data.RuntimeRules : null }).ToList(), self.Name);
+                || OfficerFields.IsExperience(c.Field) || OfficerFields.Personalities.Contains(c.Field)) ? data.RuntimeRules : null }).ToList(), self.Name);
     }
 
     // The 습득 전법 slots for the common tactics picked: those he learned beyond the common ones stay first, in their

@@ -75,16 +75,20 @@ public sealed class RuntimeTraitListTests
             Seed(change.Address, bytes);
         }
     }
-    private static Memory Create(RuntimeRuleSettings settings)
+    private static RuntimeRuleBuildProfile November => RuntimeRuleBuildProfile.Find(
+        new(1, DateTime.UnixEpoch, Module, GameBuildProfiles.NovemberNative.ExeSha256, false, TestGame.Classes))!;
+    private static Memory Create(RuntimeRuleSettings settings, RuntimeRuleBuildProfile? profile = null)
     {
         var m = new Memory();
-        var def = RuntimeTraitList.Definition;
+        var traits = profile?.Traits;
+        var def = traits?.Layout ?? RuntimeTraitList.Definition;
         foreach (var block in new[] { def.Columns }.Concat(def.Tables).Concat(def.Guards))
-            m.Seed(Module + block.Rva, RuntimeTraitList.Rebase(block, Module));
-        foreach (var p in RuntimeRulePatches.All) m.Seed(Module + p.GuardRva, Convert.FromHexString(p.Guard));
-        foreach (var p in RuntimeRulePatches.All) m.Seed(Module + p.Rva, p.Bytes(settings));
-        m.Seed(Allocation, RuntimeTraitList.Build(Module, Allocation));
-        m.Seed(Module + RuntimeTraitList.Site, settings.TraitList9 ? RuntimeTraitList.Jump(Allocation) : RuntimeTraitList.Original);
+            m.Seed(Module + block.Rva, RuntimeTraitList.Rebase(block, Module, def));
+        var patches = profile?.Patches ?? RuntimeRulePatches.All;
+        foreach (var p in patches) m.Seed(Module + p.GuardRva, Convert.FromHexString(p.Guard));
+        foreach (var p in patches) m.Seed(Module + p.Rva, p.Bytes(settings));
+        m.Seed(Allocation, RuntimeTraitList.Build(Module, Allocation, profile: traits));
+        m.Seed(Module + (traits?.Site ?? RuntimeTraitList.Site), settings.TraitList9 ? RuntimeTraitList.Jump(Allocation) : RuntimeTraitList.Original);
         return m;
     }
     private static IEnumerable<RuntimeRuleSettings> Modes()
@@ -96,44 +100,48 @@ public sealed class RuntimeTraitListTests
             yield return new(true, ability, true);
         }
     }
-    [Fact]
-    public void AllNineModesTransitionAndRetainOldScreenStorage()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AllNineModesTransitionAndRetainOldScreenStorage(bool november)
     {
+        var profile = november ? November : null;
         foreach (var before in Modes()) foreach (var after in Modes())
         {
-            var m = Create(before);
-            Assert.Equal(before, RuntimeRulePatches.DetectFull(m.Read, Module));
-            var writes = RuntimeRulePatches.All.Select(p => new RuntimeRuleWrite(Module + p.Rva, p.Bytes(before), p.Bytes(after), true))
-                .Where(w => !w.Before.SequenceEqual(w.After)).ToList();
-            if (before.TraitList9 != after.TraitList9) writes.Add(new(Module + RuntimeTraitList.Site,
+            var m = Create(before, profile);
+            Assert.Equal(before, RuntimeRulePatches.DetectFull(m.Read, Module, profile));
+            var writes = RuntimeRulePatches.Plan(Module, before, after, profile);
+            if (before.TraitList9 != after.TraitList9) writes.Add(new(Module + (profile?.Traits.Site ?? RuntimeTraitList.Site),
                 before.TraitList9 ? RuntimeTraitList.Jump(Allocation) : RuntimeTraitList.Original,
                 after.TraitList9 ? RuntimeTraitList.Jump(Allocation) : RuntimeTraitList.Original, true));
-            RuntimeRuleTransaction.Apply(m, writes, () => { }, () => RuntimeRulePatches.VerifyFull(m.Read, Module, after));
-            Assert.Equal(after, RuntimeRulePatches.DetectFull(m.Read, Module));
-            Assert.Equal(RuntimeTraitList.Build(Module, Allocation), m.Read(Allocation, RuntimeTraitList.Size));
+            RuntimeRuleTransaction.Apply(m, writes, () => { }, () => RuntimeRulePatches.VerifyFull(m.Read, Module, after, profile));
+            Assert.Equal(after, RuntimeRulePatches.DetectFull(m.Read, Module, profile));
+            Assert.Equal(RuntimeTraitList.Build(Module, Allocation, profile: profile?.Traits), m.Read(Allocation, RuntimeTraitList.Size));
         }
     }
-    [Fact]
-    public void FailureAtEveryWriteIncludingHookRestoresEffectsAndList()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FailureAtEveryWriteIncludingHookRestoresEffectsAndList(bool november)
     {
+        var profile = november ? November : null;
         foreach (bool enabling in new[] { true, false })
         {
             var before = enabling ? RuntimeRuleSettings.Original : new(true, AbilityRuleMode.Growth200, true);
             var after = enabling ? new(true, AbilityRuleMode.Growth200, true) : RuntimeRuleSettings.Original;
-            var writes = RuntimeRulePatches.All.Select(p => new RuntimeRuleWrite(Module + p.Rva, p.Bytes(before), p.Bytes(after), true))
-                .Where(w => !w.Before.SequenceEqual(w.After)).Append(new(Module + RuntimeTraitList.Site,
+            var writes = RuntimeRulePatches.Plan(Module, before, after, profile).Append(new(Module + (profile?.Traits.Site ?? RuntimeTraitList.Site),
                     enabling ? RuntimeTraitList.Original : RuntimeTraitList.Jump(Allocation),
                     enabling ? RuntimeTraitList.Jump(Allocation) : RuntimeTraitList.Original, true)).ToArray();
             for (int failure = 1; failure <= writes.Length; failure++)
             {
-                var m = Create(before); m.Fail = failure;
+                var m = Create(before, profile); m.Fail = failure;
                 Assert.Throws<IOException>(() => RuntimeRuleTransaction.Apply(m, writes, () => { }, () => { }));
-                RuntimeRulePatches.VerifyFull(m.Read, Module, before);
-                RuntimeTraitList.VerifyAllocation(m.Read, Module, Allocation);
+                RuntimeRulePatches.VerifyFull(m.Read, Module, before, profile);
+                RuntimeTraitList.VerifyAllocation(m.Read, Module, Allocation, profile?.Traits);
             }
-            var commit = Create(before);
+            var commit = Create(before, profile);
             Assert.Throws<IOException>(() => RuntimeRuleTransaction.Apply(commit, writes, () => { }, () => throw new IOException("commit")));
-            RuntimeRulePatches.VerifyFull(commit.Read, Module, before);
+            RuntimeRulePatches.VerifyFull(commit.Read, Module, before, profile);
         }
     }
     [Fact]

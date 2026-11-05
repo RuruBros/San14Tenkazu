@@ -5,6 +5,97 @@ namespace San14Tenkazu;
 
 internal sealed partial class EditorWindow
 {
+    private bool CanRunProfiledFieldsEdit => !developerChanging && !busy && !refreshing && !HasPendingEdits &&
+        game is { DataProfile.Fields.IsEmpty: false } && layout is not null && snapshot is { Pace: GamePace.Paused, PlayerForce: > 0 };
+
+    private async Task RunProfiledFieldsEdit()
+    {
+        if (!CanRunProfiledFieldsEdit || developerMenu is not { } window ||
+            game is not { } identity || layout is not { } found ||
+            !Confirm(L.DeveloperUi.ProfiledFieldsConfirm, defaultNo: true) ||
+            !CanRunProfiledFieldsEdit || game != identity || layout is not { } current || !current.SameStorage(found))
+            return;
+        developerChanging = true;
+        SetBusy(true, scanning: false);
+        UpdateDeveloperControls();
+        string? path = null;
+        try
+        {
+            string directory = Path.Combine(seasonStorageRoot, "compatibility");
+            Directory.CreateDirectory(directory);
+            path = Path.Combine(directory, $"profiled-fields-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.jsonl");
+            using var output = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) { AutoFlush = true };
+            void Record(object row) => output.WriteLine(JsonSerializer.Serialize(row));
+            try
+            {
+                var result = await Task.Run(() => GameMemory.RoundTripProfiledFields(identity, found, Record));
+                window.AppendGeography(L.DeveloperUi.ProfiledFieldsResult(result.Passed, result.Missing) + " " + path);
+            }
+            catch (Exception error)
+            {
+                Record(new { stage = "failed", error = error.ToString() });
+                throw;
+            }
+        }
+        catch (Exception error)
+        {
+            window.AppendGeography(L.DeveloperUi.ExecutionFailed + error.Message + (path is null ? "" : " · " + path));
+            AddLog($"Profiled field edits: {error}; journal={path}");
+        }
+        finally
+        {
+            developerChanging = false;
+            SetBusy(false, scanning: false);
+            UpdateDeveloperControls();
+        }
+    }
+
+    private CityRecord? ProfiledCityTarget() => snapshot is { PlayerForce: > 0 } data
+        ? data.Cities.FirstOrDefault(city => data.IsCity(city.CityId) && data.ForceOfCity(city.CityId) == data.PlayerForce
+            && city[CityFields.Gold] > 0) : null;
+
+    private async Task RunProfiledCityEdit()
+    {
+        if (developerChanging || busy || refreshing || HasPendingEdits || developerMenu is not { } window ||
+            game is not { DataProfile: not null } identity || layout is not { } found || ProfiledCityTarget() is not { } city)
+            return;
+        if (!Confirm(L.DeveloperUi.ProfiledEditConfirm(city.Name), defaultNo: true) ||
+            game != identity || layout is not { } current || !current.SameStorage(found) || ProfiledCityTarget()?.Address != city.Address)
+            return;
+        developerChanging = true;
+        SetBusy(true, scanning: false);
+        string? path = null;
+        try
+        {
+            string directory = Path.Combine(seasonStorageRoot, "compatibility");
+            Directory.CreateDirectory(directory);
+            path = Path.Combine(directory, $"city-edit-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}-{Guid.NewGuid():N}.jsonl");
+            using var output = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) { AutoFlush = true };
+            try
+            {
+                await Task.Run(() => GameMemory.RoundTripProfiledCityGold(identity, found, city.CityId,
+                    row => output.WriteLine(JsonSerializer.Serialize(row))));
+            }
+            catch (Exception error)
+            {
+                output.WriteLine(JsonSerializer.Serialize(new { stage = "failed", error = error.ToString() }));
+                throw;
+            }
+            window.AppendGeography(L.DeveloperUi.GeographyRoundTripDone + path);
+        }
+        catch (Exception error)
+        {
+            window.AppendGeography(L.DeveloperUi.ExecutionFailed + error.Message);
+            AddLog($"Profiled city edit: {error}; journal={path}");
+        }
+        finally
+        {
+            developerChanging = false;
+            SetBusy(false, scanning: false);
+            UpdateDeveloperControls();
+        }
+    }
+
     private async Task RunDeveloperGeography(bool edit)
     {
         if(developerChanging||busy||refreshing||rulePolling||runtimeRulesChecking||environmentChecking||seasonStarting||seasonStopping||HasPendingEdits||developerMenu is not {} window)return;

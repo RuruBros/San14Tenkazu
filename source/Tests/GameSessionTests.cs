@@ -5,6 +5,8 @@ namespace San14Tenkazu.Tests;
 
 public sealed class GameSessionTests
 {
+    internal const string UpdateHash = "782CF229A56CDDE2B95399E0E7536740B3F5E96BEA702679365E4DAD061ABDCE";
+
     private sealed class Capture
     {
         internal readonly ulong Module, Stack = 0x70000000;
@@ -19,9 +21,18 @@ public sealed class GameSessionTests
             Header = new byte[0x28];
             Put(Header, 0, (ulong)rows.Length); Put(Header, 8, root.GetProperty("capacity").GetUInt64());
             Put(Header, 0x10, Stack); Put(Header, 0x20, root.GetProperty("pending").GetUInt64());
-            Memory[Module + GameSessionReader.ManagerRva + 0x10] = Header;
-            Memory[Module + 0x11154] = (byte[])GameSessionReader.GetterCode.Clone();
-            Memory[Module + 0x56FE90] = (byte[])GameSessionReader.ContainsCode.Clone();
+            bool hasCapturedGuards = root.TryGetProperty("managerRva", out var manager);
+            Memory[Module + (hasCapturedGuards ? manager.GetUInt64() : GameSessionReader.ManagerRva) + 0x10] = Header;
+            if (hasCapturedGuards)
+            {
+                Memory[Module + root.GetProperty("getterRva").GetUInt64()] = Convert.FromHexString(root.GetProperty("getterCode").GetString()!);
+                Memory[Module + root.GetProperty("containsRva").GetUInt64()] = Convert.FromHexString(root.GetProperty("containsCode").GetString()!);
+            }
+            else
+            {
+                Memory[Module + 0x11154] = (byte[])GameSessionReader.GetterCode.Clone();
+                Memory[Module + 0x56FE90] = (byte[])GameSessionReader.ContainsCode.Clone();
+            }
             var pointers = new byte[rows.Length * 8];
             for (int i = 0; i < rows.Length; i++)
             {
@@ -52,6 +63,19 @@ public sealed class GameSessionTests
     {
         var capture = new Capture(file);
         Assert.Equal((GameSessionPhase)expected, capture.Observe().Phase);
+    }
+
+    [Theory]
+    [InlineData("GameSession20261105-title.json", (int)GameSessionPhase.Title)]
+    [InlineData("GameSession20261105-playing.json", (int)GameSessionPhase.Playing)]
+    public void UpdatedGameUsesOnlyItsOwnCapturedSessionLayout(string file, int expected)
+    {
+        var capture = new Capture(file);
+        var profile = Assert.IsType<GameDataProfile>(GameBuildProfiles.FindData(UpdateHash));
+        Assert.Equal(GameSessionPhase.Unknown, capture.Observe().Phase);
+        Assert.Equal((GameSessionPhase)expected, GameSessionReader.Read(capture.Read, capture.Module, profile.Session).Phase);
+        capture.Memory[capture.Module + profile.Session.Contains][0] ^= 1;
+        Assert.Equal(GameSessionPhase.Unknown, GameSessionReader.Read(capture.Read, capture.Module, profile.Session).Phase);
     }
 
     [Fact]
@@ -85,6 +109,30 @@ public sealed class GameSessionTests
         ulong game = BinaryPrimitives.ReadUInt64LittleEndian(capture.Memory[capture.Stack].AsSpan(16));
         capture.Memory[game][0x68] = 1;
         Assert.Equal(GameSessionPhase.Transition, capture.Observe().Phase);
+    }
+
+    [Fact]
+    public void OnlySinglePendingChangeOnSameAuthenticatedGameCanDeferRefreshDisconnect()
+    {
+        var capture = new Capture("GameSession20261105-playing.json");
+        var profile = Assert.IsType<GameDataProfile>(GameBuildProfiles.FindData(UpdateHash));
+        GameSessionObservation Read() => GameSessionReader.Read(capture.Read, capture.Module, profile.Session);
+        var before = Read();
+        Put(capture.Header, 0x20, 1);
+        var pending = Read();
+        Assert.Equal(GameSessionPhase.Transition, pending.Phase);
+        Assert.True(pending.HasPendingChangeOn(before, profile.Session));
+        Assert.False((pending with { Pending = 2 }).HasPendingChangeOn(before, profile.Session));
+        Assert.False((pending with { Stack = before.Stack + 8 }).HasPendingChangeOn(before, profile.Session));
+        Assert.False((pending with { Error = "World storage changed during snapshot read" }).HasPendingChangeOn(before, profile.Session));
+        Assert.False((pending with { Entries = pending.Entries.Append(new(0x90000000, 0, "CLoadState", 0)).ToArray() })
+            .HasPendingChangeOn(before, profile.Session));
+        Put(capture.Header, 0x20, 0);
+        ulong game = BinaryPrimitives.ReadUInt64LittleEndian(capture.Memory[capture.Stack].AsSpan(16));
+        capture.Memory[game][0x68] = 1;
+        Assert.Equal(GameSessionPhase.Transition, Read().Phase);
+        Put(capture.Header, 0x20, 1);
+        Assert.False(Read().HasPendingChangeOn(before, profile.Session));
     }
 
     [Theory]

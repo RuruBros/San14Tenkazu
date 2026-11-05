@@ -31,7 +31,7 @@ internal static partial class GameMemory
         OfficerRecord officer, Transfer kind, int home, EditPlan plan)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        if (!identity.Verified) throw new InvalidOperationException(L.Calls.WhyUnverified);
+        if (!GameCommandProfile.Supports(identity, 0x240CB0)) throw new InvalidOperationException(L.Calls.WhyUnverified);
         if (ReadPace(identity, layout) != GamePace.Paused)
             throw new InvalidOperationException(L.Transfers.PauseRequired);
         IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead, false, identity.ProcessId);
@@ -49,7 +49,6 @@ internal static partial class GameMemory
         var checks = new List<TransferStep>();
         var changes = new List<TransferStep>();
         var evidence = new List<string>();
-        ulong exe = identity.ModuleBase;
         ulong Q(ulong address) => BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(address, 8));
         void Guard(ulong address, byte[] expected)
         {
@@ -59,7 +58,8 @@ internal static partial class GameMemory
         }
         void RecordGuard(ulong address, byte[] bytes, int offset, int size) => Guard(address + (ulong)offset, bytes.AsSpan(offset, size).ToArray());
         void Store(ulong address, byte[] value) => changes.Add(new TransferStore(address, value));
-        void Call(ulong rva, ulong rcx, ulong rdx, params ulong[] more) => changes.Add(new TransferCall(new(exe + rva, rcx, rdx, more)));
+        void Call(ulong rva, ulong rcx, ulong rdx, params ulong[] more) =>
+            changes.Add(new TransferCall(new(CommandAt(identity, rva), rcx, rdx, more)));
         foreach (RecordEdit edit in plan.Edits)
         {
             ValidateSameRecord(identity.Classes, edit, memory.Read(edit.Address, edit.Expected.Length));
@@ -69,10 +69,10 @@ internal static partial class GameMemory
             foreach (FieldDef field in LinkedFields.Of(edit.Kind).Concat(edit.Changes.Select(c => c.Field)).Distinct())
                 RecordGuard(edit.Address, edit.Expected, field.Offset, field.Size);
         }
-        ulong raw = Q(exe + BasePointerRva);
+        ulong raw = Q(CommandWorldSlot(identity));
         if (raw == 0 || raw + (ulong)Tables.Tiles != layout.Tables.Tile || Q(raw + 0x871E8) != layout.State)
             throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        Guard(exe + BasePointerRva, BitConverter.GetBytes(raw));
+        Guard(CommandWorldSlot(identity), BitConverter.GetBytes(raw));
         Guard(raw + 0x871E8, BitConverter.GetBytes(layout.State));
         Guard(layout.State + 0x24, memory.Read(layout.State + 0x24, 0x18));
         World world = TransferRouting.Read(memory, raw);
@@ -118,7 +118,7 @@ internal static partial class GameMemory
             RecordGuard(unit.Address, unit.Data, 0x13E, 0x1C);
             if (unit.Data[0x25] != 0 || unit.Data[0x56] != 0 || unit.Data[0x140] != 0)
                 throw new InvalidOperationException(L.Transfers.UnitBusy(officer.Name));
-            checks.Add(new TransferCall(new(exe + 0x233440, unit.Address, 0), MustReturnZero: true));
+            checks.Add(new TransferCall(new(CommandAt(identity, 0x233440), unit.Address, 0), MustReturnZero: true));
             IReadOnlyList<int> route = TransferRouting.Find(world, unit, force, home);
             if (route.Count == 0)
                 throw new InvalidOperationException(L.Transfers.NoRoute(officer.Name, data.BaseName(home)));
@@ -162,7 +162,7 @@ internal static partial class GameMemory
             if (corps != officer.Corps) Call(0x240C90, destination.NativeAddress, (ulong)officer.Corps);
             Call(0x240CB0, officer.Address, (ulong)officer.Corps, 0);
         }
-        else changes.Add(new TransferCall(new(exe + 0x240CB0, officer.Address, (ulong)corps, [0]), CorpsAt: destination.NativeAddress + 0x30));
+        else changes.Add(new TransferCall(new(CommandAt(identity, 0x240CB0), officer.Address, (ulong)corps, [0]), CorpsAt: destination.NativeAddress + 0x30));
         foreach (RecordEdit edit in plan.Edits.Where(e => e.Kind == RecordKind.Officer))
             foreach (FieldChange change in edit.Changes.Where(c => c.Field != OfficerFields.CorpsField))
                 Store(edit.Address + (ulong)change.Field.Offset, change.Field.Encode(change.Value));
@@ -177,7 +177,7 @@ internal static partial class GameMemory
                 RecordGuard(post.NativeAddress, post.Bytes, 0, 8);
                 RecordGuard(post.NativeAddress, post.Bytes, 0x2E, 4);
                 Call(0x2827C0, post.NativeAddress, 0);
-                changes.Add(new TransferCall(new(exe + 0x26CC10, post.NativeAddress, 0), RdxFromReturn: true));
+                changes.Add(new TransferCall(new(CommandAt(identity, 0x26CC10), post.NativeAddress, 0), RdxFromReturn: true));
             }
             foreach (Rec district in world.Table(Tables.Corps).Skip(1).Where(c => c.U8(0x10) == force && Objects.CorpsValid(c)))
             {
@@ -197,13 +197,13 @@ internal static partial class GameMemory
                 Guard(troop, troopData);
                 if (BinaryPrimitives.ReadUInt16LittleEndian(troopData.AsSpan(0x2C)) == officer.Id)
                 {
-                    UnitRecord? next = ActiveUnits(memory, exe, raw).FirstOrDefault(u => u.Address != unit.Address &&
+                    UnitRecord? next = ActiveUnits(memory, identity, raw).FirstOrDefault(u => u.Address != unit.Address &&
                         BinaryPrimitives.ReadUInt16LittleEndian(u.Data.AsSpan(0x58)) == group);
                     if (next is not null)
                     {
                         RecordGuard(next.Address, next.Data, 0, 0x14);
                         RecordGuard(next.Address, next.Data, 0x58, 2);
-                        checks.Add(new TransferCall(new(exe + 0x233440, next.Address, 0), MustReturnZero: true));
+                        checks.Add(new TransferCall(new(CommandAt(identity, 0x233440), next.Address, 0), MustReturnZero: true));
                         if (next.Commander < 6000) Store(troop + 0x2C, BitConverter.GetBytes((ushort)next.Commander));
                     }
                 }
@@ -216,14 +216,14 @@ internal static partial class GameMemory
         return new(officer, home, force, plan, units, guards, checks, changes, evidence);
     }
 
-    private static IEnumerable<UnitRecord> ActiveUnits(IRecordMemory memory, ulong exe, ulong raw)
+    private static IEnumerable<UnitRecord> ActiveUnits(IRecordMemory memory, GameIdentity identity, ulong raw)
     {
         ulong Q(ulong at) => BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(at, 8));
         ulong wrapper = Q(raw + 0x60);
         if (wrapper == 0) throw new InvalidDataException(L.Transfers.UnitListMissing);
         uint index = BinaryPrimitives.ReadUInt32LittleEndian(memory.Read(wrapper, 4));
-        uint count = BinaryPrimitives.ReadUInt32LittleEndian(memory.Read(exe + 0x27D1120, 4));
-        ulong heads = Q(exe + 0x27D10F0);
+        uint count = BinaryPrimitives.ReadUInt32LittleEndian(memory.Read(CommandGlobal(identity, ListCountRva), 4));
+        ulong heads = Q(CommandGlobal(identity, ListFirstsRva));
         if (index >= count || heads == 0) throw new InvalidDataException(L.Transfers.UnitListChanged);
         var visited = new HashSet<ulong>();
         for (ulong node = Q(heads + index * 8); node != 0; node = Q(node + 8))
@@ -240,18 +240,31 @@ internal static partial class GameMemory
     {
         // Repeat the read-only route check after confirmation, immediately before arming the native frame.
         PreparedTransfer prepared = PrepareTransfer(identity, layout, data, officer, kind, home, plan);
-        IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, 0x240CB0);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
-            ulong exe = identity.ModuleBase;
+            var profiled = GameCommandProfile.Find(identity);
             FrameFollowup[] functions = prepared.Checks.Concat(prepared.Changes).OfType<TransferCall>()
-                .Select(c => c.Invocation.Function).Distinct().Select(f => new FrameFollowup(new(f, 0, 0), TransferStarts[f - exe])).ToArray();
-            (string? why, int result) = RunOnFrame(handle, identity, _ => new(exe + 0x240CB0, TransferStarts[0x240CB0],
-                0, 0, [], NeedsPlayer: false, After: functions, Body: prepared.Body), codePages: 8);
+                .Select(c => c.Invocation.Function).Distinct().Select(f => new FrameFollowup(new(f, 0, 0),
+                    profiled is null ? TransferStarts[f - identity.ModuleBase] : [])).ToArray();
+            byte[] body = prepared.Body;
+            (string? why, int result) = RunOnFrame(handle, identity, _ => new(CommandAt(identity, 0x240CB0),
+                CommandStart(identity, 0x240CB0, TransferStarts[0x240CB0]), 0, 0, [],
+                NeedsPlayer: false, After: functions, Body: body), codePages: Math.Max(8, (body.Length + 0x400 + StubPage - 1) / StubPage));
             if (why is not null) throw new InvalidOperationException(L.Transfers.ExecutionUnconfirmed(why));
             if (result != 1) throw new InvalidOperationException(L.Transfers.WriteStateChanged);
             byte[] fresh = ReadBytes(handle, officer.Address, officer.Data.Length);
+            if (profiled is not null && officer.Status != 1)
+            {
+                int corps = fresh[OfficerFields.CorpsOffset];
+                var plannedOfficer = prepared.Plan.Edits.Single(edit => edit.Kind == RecordKind.Officer);
+                if (corps <= 0 || corps >= layout.Corps.Length ||
+                    ReadBytes(handle, layout.Corps[corps] + 0x10, 1)[0] != prepared.Force ||
+                    plannedOfficer.Changes.Any(change => change.Field != OfficerFields.CorpsField &&
+                        change.Field.Read(fresh) != change.Value))
+                    throw new InvalidOperationException(L.Transfers.ExecutionUnconfirmed(L.Transfers.StateChanged));
+            }
             if (officer.Status == 1 && (fresh[OfficerFields.StatusOffset] != 1 || fresh[OfficerFields.CorpsOffset] != officer.Corps ||
                 OfficerFields.BaseField.Read(fresh) != home ||
                 prepared.Units.Count == 0 && OfficerFields.PlaceField.Read(fresh) != home ||

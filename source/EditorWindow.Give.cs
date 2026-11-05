@@ -17,7 +17,7 @@ internal sealed partial class EditorWindow
     private async Task GiveAsync(int baseId)
     {
         if (busy || game is not { } identity || layout is not { } found || snapshot is not { } data || baseId == 0) return;
-        if (WriteBlock([GameChecks.World]) is { } blocked)
+        if (NativeWorldWriteBlock(identity) is { } blocked)
         {
             ReportError(new InvalidOperationException(blocked));
             return;
@@ -38,6 +38,9 @@ internal sealed partial class EditorWindow
         if (!ConfirmDiscard() || !Confirm(L.Give.Confirm(place, forceName), W.MessageBoxImage.Warning, defaultNo: true, title: L.Give.Button)) return;
         EditPlan kept;
         SetBusy(true, scanning: false);
+#if LOCAL_DEVELOPER
+        NativeCommandSuite? trial = null;
+#endif
         try
         {
             AddLog(L.Give.Request(place, forceName));
@@ -46,7 +49,10 @@ internal sealed partial class EditorWindow
             if (BaseGrants.Refusal(before, baseId, force) is { } refused) throw new InvalidOperationException(refused);
             OfficerRecord ruler = BaseGrants.Ruler(before, force)!;
             ulong address = BaseGrants.Address(before, baseId);
-            await Task.Run(() => GameMemory.GiveBase(identity, baseId, address, ruler.Id, ruler.Address));
+#if LOCAL_DEVELOPER
+            trial = await BeginNativeCommandTrialAsync(NativeCommandKind.Give, identity, found, new { baseId, force, ruler = ruler.Id });
+#endif
+            await Task.Run(() => GameMemory.GiveBase(identity, found, baseId, address, ruler.Id, ruler.Address));
             GameSnapshot after = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
             snapshot = after;
             map.SetSnapshot(after);
@@ -55,6 +61,9 @@ internal sealed partial class EditorWindow
         }
         catch (Exception ex)
         {
+#if LOCAL_DEVELOPER
+            if (trial is not null) FailNativeCommandTrial(trial, ex);
+#endif
             ReportError(ex);
             AfterWrite();
             return;
@@ -64,8 +73,22 @@ internal sealed partial class EditorWindow
         if (back.Count > 0)
         {
             AddLog(L.Give.KeepValues);
-            await WriteAsync(back, undoable: false);
+            bool restored = await WriteAsync(back, undoable: false, restoreGivenBaseValues: true);
+#if LOCAL_DEVELOPER
+            if (trial is not null && !restored)
+            {
+                FailNativeCommandTrial(trial, new InvalidOperationException(L.Give.Unconfirmed(place)));
+                return;
+            }
+#endif
         }
+#if LOCAL_DEVELOPER
+        if (trial is not null)
+        {
+            try { await FinishNativeCommandTrialAsync(trial, identity, found); }
+            catch (Exception error) { FailNativeCommandTrial(trial, error); }
+        }
+#endif
         AfterWrite();
         status.Text = L.Give.Done(place, forceName);
         AddLog(status.Text);

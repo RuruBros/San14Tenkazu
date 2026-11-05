@@ -99,13 +99,18 @@ internal sealed partial class AiView : WC.DockPanel
         ExpandedChanged?.Invoke(true);
     }
 
+    private readonly IReadOnlyList<AiGuidePage> pages;
+    private readonly string? stockStamp;
+
     internal AiView(AiTree[] trees, Func<GameIdentity?> game, Func<string, IReadOnlyList<(AiGuideValue Value, int Raw)>, Task<bool>> write,
-        AiExtensionSettings? extensions = null, Func<AiExtensionSettings, Task<bool>>? writeExtensions = null)
+        AiExtensionSettings? extensions = null, Func<AiExtensionSettings, Task<bool>>? writeExtensions = null, string? stockStamp = null)
     {
         this.trees = trees;
         this.game = game;
         this.write = write;
         this.writeExtensions = writeExtensions;
+        this.stockStamp = stockStamp;
+        pages = stockStamp is null ? AiGuide.Pages : AiBuildProfile.Pages(stockStamp, trees);
         extensionSaved = extensions ?? AiExtensionSettings.Default;
         tree = trees[(int)AiTreeKind.Corps];
         Background = CardSkin.Parchment;
@@ -116,7 +121,7 @@ internal sealed partial class AiView : WC.DockPanel
         UseLayoutRounding = true;
 
         // Settings fit the pane; the original tree gets the full workspace when requested.
-        foreach (AiGuidePage page in AiGuide.Pages) pageList.Items.Add(AiLabels.Decision(page.Decision));
+        foreach (AiGuidePage page in pages) pageList.Items.Add(AiLabels.Decision(page.Decision));
         pageList.SelectionChanged += (_, _) => ShowPage();
         guidePage = new WC.ScrollViewer { VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = WC.ScrollBarVisibility.Disabled, Content = guide, Background = CardSkin.Paper };
         BuildExtensions();
@@ -176,10 +181,10 @@ internal sealed partial class AiView : WC.DockPanel
     {
         int index = pageList.SelectedIndex;
         if (index < 0) return;
-        if (index < AiGuide.Pages.Count)
+        if (index < pages.Count)
         {
             host.Child = guidePage;
-            ShowGuide(AiGuide.Pages[index]);
+            ShowGuide(pages[index]);
         }
     }
 
@@ -197,9 +202,14 @@ internal sealed partial class AiView : WC.DockPanel
         {
             (AiLiveTree[] read, int differ, AiExtensionStatus? extensions, string? extensionError) = await Task.Run(() =>
             {
-                AiLiveTree[] read = GameMemory.ReadAiTrees(identity, trees);
+                AiLiveTree[] read = GameMemory.ReadAiTrees(identity, trees, stockStamp);
                 int differ = GameMemory.ReadAi(identity, memory => read.Sum(t => AiMemory.Differences(memory, t).Count));
-                try { return (read, differ, (AiExtensionStatus?)GameMemory.ReadAiExtensions(identity, trees), (string?)null); }
+                try
+                {
+                    AiExtensionStatus state = AiBuildProfile.IsNovember(identity)
+                        ? GameMemory.ReadNovemberAiExtensions(identity, trees, stockStamp!) : GameMemory.ReadAiExtensions(identity, trees);
+                    return (read, differ, (AiExtensionStatus?)state, (string?)null);
+                }
                 catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or System.ComponentModel.Win32Exception)
                 { return (read, differ, (AiExtensionStatus?)null, ex.Message); }
             });
@@ -333,7 +343,7 @@ internal sealed partial class AiView : WC.DockPanel
                 !InRange(value, raw, file))
             {
                 status.Text = L.Ai.NotAStep(value.Label, value.Scale);
-                int index = AiGuide.Pages.ToList().FindIndex(p => p.Sections.Any(s => s.Values.Contains(value)));
+                int index = pages.ToList().FindIndex(p => p.Sections.Any(s => s.Values.Contains(value)));
                 if (index >= 0) pageList.SelectedIndex = index;
                 input.Box.Focus();
                 return;

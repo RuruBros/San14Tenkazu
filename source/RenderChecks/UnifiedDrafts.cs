@@ -113,15 +113,27 @@ internal static partial class RenderChecks
             host.Width = 620; host.Content = card; card.Visibility = W.Visibility.Visible; Call(card, "ShowPage", 1); Layout(card, 600, 680); Capture(card, "county-bulk");
             host.Content = null;
 
-            // Actual AI controls use supplied fixture raw values; the writer is an in-memory spy, never GameMemory.
-            string folder = FaceLibrary.FindGameDirectory(null) ?? throw new DirectoryNotFoundException("AI fixture file not installed");
-            var trees = AiTreeFile.Read(folder); int writes = 0; bool succeed = false;
+            // Two guide pages exercise the same draft controls regardless of the installed game's AI data.
+            var first = AiGuide.Pages[0].Sections.SelectMany(s => s.Values).First(v => v.Anchors is [{ Term: < 0 }]);
+            var second = AiGuide.Pages[1].Sections.SelectMany(s => s.Values).First(v => v.Anchors is [{ Term: < 0 }]);
+            var anchors = new[] { first.Anchors[0], second.Anchors[0] };
+            var trees = Enum.GetValues<AiTreeKind>().Select(kind =>
+            {
+                var local = anchors.Where(a => a.Tree == kind).ToDictionary(a => a.Node);
+                int count = local.Count == 0 ? 1 : local.Keys.Max() + 1;
+                var nodes = Enumerable.Range(0, count).Select(index =>
+                {
+                    int[] values = local.TryGetValue(index, out var anchor) ? new int[anchor.Arg + 1] : [];
+                    if (values.Length > 0) values[anchor.Arg] = 10;
+                    return new AiNode(index, 1, 0, null, -1, 0, values, null, null);
+                }).ToArray();
+                return new AiTree(kind, 0, 0, nodes);
+            }).ToArray();
+            int writes = 0; bool succeed = false;
             IReadOnlyList<(AiGuideValue Value, int Raw)> last = [];
             var ai = new AiView(trees, () => null, (_, requests) => { writes++; last = requests; return Task.FromResult(succeed); });
             var picker = Field<WC.ComboBox>(ai, "pageList");
             var aiBoxes = Field<Dictionary<AiGuideValue, (WC.TextBox Box, int? Now, int? File)>>(ai, "boxes");
-            var first = AiGuide.Pages[0].Sections.SelectMany(s => s.Values).First();
-            var second = AiGuide.Pages[1].Sections.SelectMany(s => s.Values).First();
             WC.TextBox Attach(AiGuideValue value)
             {
                 var grid = new WC.Grid(); int file = AiEdits.FileRaw(trees, value)!.Value;

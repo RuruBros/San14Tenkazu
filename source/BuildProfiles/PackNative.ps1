@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory=$true)][ValidateSet('Season','Environment')][string]$Kind,
     [Parameter(Mandatory=$true)][string]$BuildDirectory,
     [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$DllSha256,
-    [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ManifestSha256
+    [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ManifestSha256,
+    [switch]$November2026
 )
 $ErrorActionPreference='Stop'
 & (Join-Path $PSScriptRoot 'Validate.ps1')
@@ -14,8 +15,9 @@ $taskBuild=[IO.Path]::GetFullPath($BuildDirectory)
 $taskManifestPath=Join-Path $taskBuild 'build.json'
 if((Get-FileHash -LiteralPath $taskManifestPath).Hash.ToLowerInvariant() -cne $ManifestSha256){throw 'Native manifest differs from the explicitly verified pin.'}
 $taskManifest=Get-Content -LiteralPath $taskManifestPath -Raw | ConvertFrom-Json
-$taskProfile=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'current.json') -Raw | ConvertFrom-Json
-$taskProfileHash=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'current.json')).Hash.ToLowerInvariant()
+$taskProfilePath=Join-Path $PSScriptRoot $(if($November2026){'november2026.json'}else{'current.json'})
+$taskProfile=Get-Content -LiteralPath $taskProfilePath -Raw | ConvertFrom-Json
+$taskProfileHash=(Get-FileHash -LiteralPath $taskProfilePath).Hash.ToLowerInvariant()
 $taskProtocol=6
 if($taskManifest.protocolVersion -ne $taskProtocol -or $taskManifest.dllSha256 -cne $DllSha256 -or
     $taskManifest.gameProfileId -cne $taskProfile.id -or $taskManifest.gameProfileSha256 -cne $taskProfileHash -or
@@ -32,10 +34,14 @@ foreach($taskProperty in $taskManifest.hashes.PSObject.Properties){
         $taskPart=switch([IO.Path]::GetExtension($taskName)){'.hlsl'{'Seasons/Shaders'} '.hlsli'{'Seasons/Shaders'} '.json'{'Seasons/Assets'} '.py'{'Reverse'} default{'Seasons/Native'}}
         Join-Path $taskSource ($taskPart+'/'+$taskName)
     }
+    if($November2026 -and $taskName -in @('GameBuildFacts.g.h','FrameSignatures.h','PrepareSignature.h','EnvironmentSignatures.h','EnvironmentNoticeSignatures.g.h')){
+        $taskCurrent=Join-Path $PSScriptRoot ('November2026/'+$taskFolder+'/Native/'+$taskName)
+    }
     if((Get-FileHash -LiteralPath $taskCurrent).Hash.ToLowerInvariant() -cne $taskProperty.Value -or
         (Get-FileHash -LiteralPath (Join-Path $taskBuild ('sources/'+$taskName))).Hash.ToLowerInvariant() -cne $taskProperty.Value){throw ('Native source differs: '+$taskName)}
 }
-$taskOutput=Join-Path $taskSource ($taskFolder+'/Bundle/'+$Kind+'Bridge.zip')
+$taskSuffix=if($November2026){'.November2026'}else{''}
+$taskOutput=Join-Path $taskSource ($taskFolder+'/Bundle/'+$Kind+'Bridge'+$taskSuffix+'.zip')
 $taskStaging=$taskOutput+'.'+[Guid]::NewGuid().ToString('N')+'.tmp'
 Add-Type -AssemblyName System.IO.Compression
 try{

@@ -25,14 +25,15 @@ public sealed class AiScriptTests
     {
         AiNode[] nodes = AiTreeFile.Read(AiFileFactAttribute.Folder)[1].Nodes;
         AiNode[] callers = nodes.Where(n => n.Class == 0x72E99C29 && n.Params[0] == 4).ToArray();
-        Assert.Equal(new[] { 915, 1617, 4488, 5190, 7780, 8482 }, callers.Select(n => n.Index));
+        Assert.Equal(AiFileFactAttribute.Nodes([915, 1617, 4488, 5190, 7780, 8482], [925, 1629, 4716, 5420, 8218, 8922]),
+            callers.Select(n => n.Index));
         Assert.All(callers, n => Assert.Equal(8, n.Params.Length));
-        foreach (int index in new[] { 915, 4488, 7780 })
+        foreach (int index in AiFileFactAttribute.Nodes([915, 4488, 7780], [925, 4716, 8218]))
         {
             Assert.Equal(new[] { nodes[index - 6].Params[2], nodes[index - 3].Params[2],
                 nodes[index - 2].Params[2], nodes[index - 1].Params[2], 0, 0 }, nodes[index].Params.Skip(2));
         }
-        foreach (int index in new[] { 1617, 5190, 8482 })
+        foreach (int index in AiFileFactAttribute.Nodes([1617, 5190, 8482], [1629, 5420, 8922]))
         {
             Assert.Equal(new[] { nodes[index - 9].Params[2], nodes[index - 1].Params[2], 0, 0, 0, 0 }, nodes[index].Params.Skip(2));
         }
@@ -55,7 +56,7 @@ public sealed class AiScriptTests
     public void EmployFocusCombinesTheTwoPersonalityFieldsInEveryCorpsType()
     {
         AiNode[] nodes = AiTreeFile.Read(AiFileFactAttribute.Folder)[1].Nodes;
-        foreach (int index in new[] { 779, 4352, 7644 })
+        foreach (int index in AiFileFactAttribute.Nodes([779, 4352, 7644], [789, 4580, 8082]))
         {
             Assert.Equal(10, nodes[index].Params[0]);
             Assert.Equal(19, nodes[index - 2].Params[1]);
@@ -89,7 +90,7 @@ public sealed class AiScriptTests
     {
         AiNode[] nodes = AiTreeFile.Read(AiFileFactAttribute.Folder)[1].Nodes;
         AiNode[] callers = nodes.Where(n => n.Class == 0x72E99C29 && n.Params[0] == 13).ToArray();
-        Assert.Equal(new[] { 519, 1957, 2092 }, callers.Select(n => n.Index));
+        Assert.Equal(AiFileFactAttribute.Nodes([519, 1957, 2092], [530, 1991, 2134]), callers.Select(n => n.Index));
         foreach (AiNode caller in callers)
         {
             Assert.Equal(caller.Params[1], caller.Params[2]);

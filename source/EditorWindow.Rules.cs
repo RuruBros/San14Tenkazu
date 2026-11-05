@@ -63,6 +63,7 @@ internal sealed record RuleReadState(FormationSnapshot Formation, TacticSnapshot
 internal sealed partial class EditorWindow
 {
     private readonly RuleProfileFile ruleFile;
+    private (string Build, RuleProfileFile File)? profiledRuleFile;
     private readonly RuleGameAccess ruleAccess;
     private RuleProfileRead? ruleKept;
     private FormationSnapshot? ruleSnapshot;
@@ -75,6 +76,18 @@ internal sealed partial class EditorWindow
     private bool rulePolling;
     private long ruleRevision;
     private string ruleNotice = "";
+
+    private static bool SupportsRuleTables(GameIdentity identity) =>
+        identity.Verified || identity.DataProfile is { RuleGuards.IsDefaultOrEmpty: false };
+
+    private RuleProfileFile RuleFileFor(GameIdentity identity)
+    {
+        if (identity.DataProfile is not { } profile) return ruleFile;
+        if (profiledRuleFile is { } current && current.Build == profile.ExeSha256) return current.File;
+        var file = ruleFile.ForBuild(profile);
+        profiledRuleFile = (profile.ExeSha256, file);
+        return file;
+    }
 
     private void WireRules()
     {
@@ -139,7 +152,8 @@ internal sealed partial class EditorWindow
     // values in place both reach this path; unchanged values never trigger another write.
     private async Task PollRulesAsync()
     {
-        if (busy || refreshing || layoutRecovering || rulePolling || game is not { Verified: true } identity || layout is null) return;
+        if (busy || refreshing || layoutRecovering || rulePolling || game is not { } identity || !SupportsRuleTables(identity) || layout is null) return;
+        RuleProfileFile file = RuleFileFor(identity);
         rulePolling = true;
         long revision = ruleRevision;
         GameLayout currentLayout = layout;
@@ -158,7 +172,7 @@ internal sealed partial class EditorWindow
             RuleReadState state = await Task.Run(() => ReadRules(identity));
             FormationSnapshot fresh = state.Formation;
             if (!Current()) return;
-            RuleProfileRead read = await Task.Run(ruleFile.Read);
+            RuleProfileRead read = await Task.Run(file.Read);
             if (!Current()) return;
             if (read.Profile is null && ruleKept?.Profile is not null) throw new InvalidOperationException(L.Rules.ProfileMoved);
             bool addingTactics = state.Tactic is not null && read.Profile?.Table("tactic") is null;
@@ -187,7 +201,7 @@ internal sealed partial class EditorWindow
                 if (checkedState.Doctrine is { } doctrines) baseline=baseline.AddPlain(doctrines);
                 BeginWrite();
                 string previousStamp = read.Stamp;
-                read = await Task.Run(() => ruleFile.Save(baseline, read.Stamp));
+                read = await Task.Run(() => file.Save(baseline, read.Stamp));
                 if ((addingTactics || addingPolicies || addingOffices || addingRanks || addingDoctrines) && ruleKept?.Stamp == previousStamp)
                 {
                     int latest = undoHistory.FindLastIndex(h => h.Rule is not null);
@@ -215,7 +229,7 @@ internal sealed partial class EditorWindow
                     BeginWrite();
                     // Auto-reapply uses the same before/after file guard and recovery as an explicit edit.
                     RuleReadState? written = null;
-                    read = await Task.Run(() => ruleFile.Commit(profile, read.Stamp,
+                    read = await Task.Run(() => file.Commit(profile, read.Stamp,
                         () => written = ApplyRules(identity, state, plan.Apply),
                         () => ApplyRules(identity, written!, Reverse(plan.Apply))));
                     state = written!; fresh = state.Formation;
@@ -280,7 +294,8 @@ internal sealed partial class EditorWindow
 
     private async Task<bool> WriteRuleAsync(RuleChange[] changes, RuleProfile after, string summary, bool undoable = true)
     {
-        if (busy || game is not { Verified: true } identity || layout is null || ruleSnapshot is not { } expected || ruleKept?.Profile is not { } before) return false;
+        if (busy || game is not { } identity || !SupportsRuleTables(identity) || layout is null || ruleSnapshot is not { } expected || ruleKept?.Profile is not { } before) return false;
+        RuleProfileFile file = RuleFileFor(identity);
         string stamp = ruleKept.Stamp;
         if (changes.All(c => c.Before == c.After) && before.SameAs(after))
         { status.Text = L.Window.NothingChanged; ReopenEditor(); return true; }
@@ -294,7 +309,7 @@ internal sealed partial class EditorWindow
             if (changes.Any(c => c.Before != c.After) && await Task.Run(() => ruleAccess.Pace(identity, layout with { State = expected.State })) != GamePace.Paused)
                 throw new InvalidOperationException(L.Rules.PauseFirst);
             RuleReadState? written = null;
-            ruleKept = await Task.Run(() => ruleFile.Commit(after, stamp,
+            ruleKept = await Task.Run(() => file.Commit(after, stamp,
                 () => written = ApplyRules(identity, expectedState, changes),
                 () => ApplyRules(identity, written!, Reverse(changes))));
             ruleSnapshot = written!.Formation; tacticRuleSnapshot = written.Tactic; policyRuleSnapshot = written.Policy; officeRuleSnapshot = written.Office; rankRuleSnapshot=written.Rank; doctrineRuleSnapshot=written.Doctrine;
@@ -325,10 +340,11 @@ internal sealed partial class EditorWindow
         SetBusy(true, scanning: false);
         try
         {
-            RuleProfileRead current = ruleFile.Read();
+            GameIdentity identity = game!.Value;
+            RuleProfileRead current = RuleFileFor(identity).Read();
             if (current.Stamp != undo.Stamp) throw new InvalidOperationException(L.Rules.UndoMoved);
-            RuleReadState fresh = await Task.Run(() => ReadRules(game!.Value));
-            fresh.Check(undo.After, game!.Value.ExeHash);
+            RuleReadState fresh = await Task.Run(() => ReadRules(identity));
+            fresh.Check(undo.After, identity.ExeHash);
             if (undo.Changes.Any(c => fresh.Values[c.Key] != c.After)) throw new InvalidOperationException(L.Rules.UndoMoved);
             if (!Confirm(L.Undo.Ask(entry.Summary))) return;
             ruleSnapshot = fresh.Formation; tacticRuleSnapshot = fresh.Tactic; policyRuleSnapshot = fresh.Policy; officeRuleSnapshot = fresh.Office; rankRuleSnapshot=fresh.Rank; doctrineRuleSnapshot=fresh.Doctrine;

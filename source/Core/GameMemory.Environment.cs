@@ -50,7 +50,7 @@ internal static partial class GameMemory
     internal static int ReadEnvironmentMovement(GameIdentity identity,GameLayout layout,UnitRecord unit,bool environment)
     {
         if(!identity.Verified||!IsSameGame(identity)||!layout.SameStorage(ReadCurrentLayout(identity)))throw new InvalidOperationException(L.Errors.StateMoved);
-        IntPtr handle=OpenProcess(ProcessQueryInformation|ProcessVmRead|ProcessVmWrite|ProcessVmOperation,false,identity.ProcessId);
+        IntPtr handle=OpenGameWrite(ProcessQueryInformation|ProcessVmRead|ProcessVmWrite|ProcessVmOperation, identity);
         if(handle==IntPtr.Zero)throw AccessError(L.Errors.NoWriteAccess);
         try
         {

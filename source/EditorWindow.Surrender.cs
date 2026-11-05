@@ -19,7 +19,7 @@ internal sealed partial class EditorWindow
         int completed = 0, total = 0, to = 0;
         try
         {
-            if (WriteBlock([GameChecks.World]) is { } blocked) throw new InvalidOperationException(blocked);
+            if (NativeWorldWriteBlock(identity) is { } blocked) throw new InvalidOperationException(blocked);
             if (!batch && from == data.PlayerForce) { Tell(L.Surrender.PlayerForce); return; }
             if (await Task.Run(() => GameMemory.ReadPace(identity, found)) != GamePace.Paused)
                 throw new InvalidOperationException(L.Surrender.PauseFirst);
@@ -53,8 +53,8 @@ internal sealed partial class EditorWindow
                 if (completed > 0) fresh = await ReadSurrenderSnapshotAsync(identity, found);
                 ForceSurrenders.Validate(fresh, request);
                 AddLog(L.Surrender.Request(data.ForceName(request.From), toName));
-                called = true;
-                await Task.Run(() => GameMemory.SurrenderForce(identity, found, request));
+                await RunNativeCommandAsync(NativeCommandKind.Surrender, identity, found, request,
+                    () => { called = true; GameMemory.SurrenderForce(identity, found, request); }, single: total == 1);
                 completed++;
                 SetOperationProgress(L.Surrender.Completed(completed, total), completed, total);
                 AddLog(L.Surrender.Done(data.ForceName(request.From), toName));

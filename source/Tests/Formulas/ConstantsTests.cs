@@ -1,41 +1,53 @@
+using System.Globalization;
 using System.Reflection;
+using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
+using System.Text.Json;
 using San14Tenkazu.Formulas;
 
 namespace San14Tenkazu.Tests.Formulas;
 
 public class ConstantsTests
 {
-    // Every [Rva] constant of the formulas equals the int the installed exe holds there. The rule block sits in
-    // .data, which the Steam stub leaves readable on disk (only .text is encrypted), so a patch that retunes a rule
-    // fails here.
+    // The Steam stub leaves .data readable on disk. Select the verified locations by executable hash, then
+    // compare each value with the shared formula constant so relocations and retuning are checked separately.
     [GameExeFact]
     public void MatchTheExe()
     {
         byte[] exe = File.ReadAllBytes(GameFiles.Exe);
-        int pe = BitConverter.ToInt32(exe, 0x3C);
-        int sections = BitConverter.ToUInt16(exe, pe + 6), optional = BitConverter.ToUInt16(exe, pe + 20);
-        int FileOffset(int rva)
+        string hash = Convert.ToHexString(SHA256.HashData(exe));
+        Dictionary<string, string>? relocated = null;
+        var checkedLocations = new HashSet<string>();
+        if (hash != GameBuildFacts.ExeSha256)
         {
-            for (int k = 0; k < sections; k++)
-            {
-                int o = pe + 24 + optional + k * 40;
-                int va = BitConverter.ToInt32(exe, o + 12), raw = BitConverter.ToInt32(exe, o + 16), at = BitConverter.ToInt32(exe, o + 20);
-                if (rva >= va && rva < va + raw) return at + rva - va;
-            }
-            throw new InvalidOperationException($"rva {rva:X} is in no section");
+            using var profile = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Vectors", "FormulaRvas20261105.json")));
+            Assert.Equal(profile.RootElement.GetProperty("exeSha256").GetString(), hash);
+            relocated = profile.RootElement.GetProperty("rvas").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString()!);
         }
 
+        using var stream = new MemoryStream(exe, writable: false);
+        using var pe = new PEReader(stream);
         var wrong = new List<string>();
         int n = 0;
         foreach (Type t in typeof(World).Assembly.GetTypes().Where(t => t.Namespace == typeof(World).Namespace))
             foreach (FieldInfo f in t.GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))
             {
                 if (f.GetCustomAttribute<RvaAttribute>() is not { } rva) continue;
+                string name = $"{t.Name}.{f.Name}";
+                int address = rva.Rva;
+                if (relocated is not null)
+                {
+                    string previous = address.ToString("X", CultureInfo.InvariantCulture);
+                    Assert.True(relocated.TryGetValue(previous, out string? entry), $"Missing formula location for {name}");
+                    checkedLocations.Add(previous);
+                    address = int.Parse(entry!, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                }
                 int expected = Convert.ToInt32(f.GetRawConstantValue() ?? f.GetValue(null));
-                int actual = BitConverter.ToInt32(exe, FileOffset(rva.Rva));
+                int actual = pe.GetSectionData(address).GetReader(0, sizeof(int)).ReadInt32();
                 n++;
-                if (actual != expected) wrong.Add($"{t.Name}.{f.Name} (rva {rva.Rva:X}): {expected}, exe {actual}");
+                if (actual != expected) wrong.Add($"{name} (rva {address:X}): {expected}, exe {actual}");
             }
+        if (relocated is not null) Assert.Equal(relocated.Count, checkedLocations.Count);
         Assert.True(n > 0);
         Assert.True(wrong.Count == 0, string.Join("\n", wrong));
     }

@@ -266,8 +266,12 @@ internal sealed class ForceEditorCard : EditorCard
             members.FillsEnabled = value;
             cities.EditingEnabled = gates.EditingEnabled = units.EditingEnabled = value;
             heal.IsEnabled = morale.IsEnabled = value;
-            surrenderButton.IsEnabled = value;
         }
+    }
+
+    internal bool SurrenderEnabled
+    {
+        set => surrenderButton.IsEnabled = value;
     }
 
     // The portraits of the officers and of the units' commanders, by face number (null until decoded: RefreshFaces).

@@ -22,7 +22,7 @@ internal sealed partial class EditorWindow
 
     private bool CanEditCell(EditorTarget target, FieldDef field)
     {
-        if (snapshot is not { } data || WriteBlock([GameChecks.GroupOf(field)]) is not null) return false;
+        if (snapshot is not { } data || FieldWriteBlock([field]) is not null) return false;
         return target switch
         {
             CityTarget(int id) => data.IsCity(id) && (field == CityFields.Troops || field == CityFields.Gold || field == CityFields.Food),

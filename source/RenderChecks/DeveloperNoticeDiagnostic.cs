@@ -64,6 +64,14 @@ internal static partial class RenderChecks
             !parsed.RootElement.GetProperty("recordSetComplete").GetBoolean()&&parsed.RootElement.GetProperty("stopReason").GetString()=="PreparationDeadline","Preparation-only shutdown retains reasons without fabricating complete Draw evidence");
         var missing=Create();using(var result=Complete(missing,GeographyFixture.Create(51)))
             Require(!result.RootElement.GetProperty("imageSwapped").GetBoolean()&&result.RootElement.GetProperty("traceError").ValueKind==JsonValueKind.String,"Missing trace must never be a successful image substitution");
+        var repeatable=new DeveloperNoticeDiagnostic(directory,identity,GeographyFixture.Create(51),1,2,captureTrace:false);
+        byte[] scene=[];
+        Require(ReferenceEquals(scene,repeatable.PrepareScene(scene)),"Repeatable preview must not arm the process-once native trace");
+        using(var result=Complete(repeatable,GeographyFixture.Create(51))){var r=result.RootElement;
+            Require(!r.GetProperty("captureTrace").GetBoolean()&&r.GetProperty("traceError").ValueKind==JsonValueKind.Null&&
+                !r.GetProperty("imageSwapped").GetBoolean()&&r.GetProperty("gameplayUnchanged").GetBoolean()&&
+                r.GetProperty("environmentRestored").GetBoolean()&&r.GetProperty("rendererRestored").GetBoolean(),
+                "Repeatable preview must still record gameplay and recovery without claiming an image trace");}
         var wrong=Create();Trace(wrong,2,4,4);using(var result=Complete(wrong,GeographyFixture.Create(51)))
             Require(!result.RootElement.GetProperty("imageSwapped").GetBoolean(),"Another disaster's successful draws cannot verify the selected drought");
         var unrestored=Create();Trace(unrestored,3,4,3);using(var result=Complete(unrestored,GeographyFixture.Create(51)))

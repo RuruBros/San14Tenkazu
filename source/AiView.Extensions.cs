@@ -74,7 +74,8 @@ internal sealed partial class AiView
         }
         apply.Text = L.Ai.Apply;
         apply.Badge = ExtensionPending ? 1 : 0;
-        apply.IsEnabled = !writing && writeExtensions is not null && game() is { Verified: true } && extensionRuntime is not null
+        apply.IsEnabled = !writing && writeExtensions is not null && game() is { } identity &&
+            (identity.Verified || AiBuildProfile.IsNovember(identity)) && extensionRuntime is not null
             && (ExtensionPending || ExtensionDraft != extensionRuntime.Settings);
     }
 

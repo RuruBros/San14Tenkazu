@@ -59,4 +59,29 @@ public sealed class AiExtensionTests
         Assert.True(replacements > 10);
         Assert.Equal(expected, AiExtensionStub.Build(relocated, movedData));
     }
+
+    [Fact]
+    public void NovemberWrapperChangesOnlyTheAuthenticatedBuildAddresses()
+    {
+        const ulong exe = 0x140000000, data = 0x20000000000;
+        var expected = AiExtensionStub.Build(exe, data);
+        var moved = new Dictionary<ulong, ulong>
+        {
+            [0xB2BC40] = 0xB2E510, [0xB6070] = 0xB7100, [0x32F500] = 0x331780,
+            [0x22BAE0] = 0x22D520, [0x233960] = 0x235300, [0x20060] = 0x20040,
+            [0x201E0] = 0x201C0, [0x61120] = 0x61C90, [0x304700] = 0x306AF0,
+            [0x277DF18] = 0x2780F60,
+        };
+        int remapped = 0;
+        for (int offset = 0; offset + 8 <= expected.Length; offset++)
+        {
+            ulong address = BitConverter.ToUInt64(expected, offset);
+            if (address < exe || !moved.TryGetValue(address - exe, out var replacement)) continue;
+            BitConverter.TryWriteBytes(expected.AsSpan(offset), exe + replacement);
+            offset += 7;
+            remapped++;
+        }
+        Assert.Equal(12, remapped);
+        Assert.Equal(expected, AiExtensionStub.Build(exe, data, AiExtensionStub.November));
+    }
 }

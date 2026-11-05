@@ -95,10 +95,11 @@ internal static partial class GameMemory
         Table(GameFeature.Offices, () => { var s=ReadOffices(identity); return JsonHash(new {s.Root,s.State,s.Array,s.Catalog,values=s.Values.OrderBy(v=>v.Key.Record).ThenBy(v=>v.Key.Field)}); });
         Table(GameFeature.Ranks, () => { var s=ReadRanks(identity); return JsonHash(new {s.Root,s.State,s.Array,s.Catalog,values=s.Values.OrderBy(v=>v.Key.Record).ThenBy(v=>v.Key.Field)}); });
         Table(GameFeature.Doctrines, () => { var s=ReadDoctrines(identity); return JsonHash(new {s.Root,s.State,s.Array,s.Catalog,values=s.Values.OrderBy(v=>v.Key.Record).ThenBy(v=>v.Key.Field)}); });
-        Table(GameFeature.Seasons, () => { SeasonNativeBundle.VerifyEmbedded(); return SeasonNativeBundle.DllHash; });
-        Table(GameFeature.Environment, () => { EnvironmentNativeBundle.VerifyEmbedded(); return EnvironmentNativeBundle.DllHash; });
+        var nativeProfile = GameBuildProfiles.FindNative(identity);
+        Table(GameFeature.Seasons, () => { var selected=GameBuildProfiles.RequireNative(identity); SeasonNativeBundle.VerifyEmbedded(selected); return SeasonNativeBundle.DllHashFor(selected); });
+        Table(GameFeature.Environment, () => { var selected=GameBuildProfiles.RequireNative(identity); EnvironmentNativeBundle.VerifyEmbedded(selected); return EnvironmentNativeBundle.DllHashFor(selected); });
         var engine = new List<CompatibilityEngineRead>();
-        if (identity.Verified && GameBuildProfiles.Find(identity.ExeHash) is {} profile)
+        if (nativeProfile is {} profile)
         {
             IntPtr handle=OpenRead(identity.ProcessId);
             try

@@ -255,6 +255,7 @@ internal sealed partial class MapView
 
     internal void HideAi()
     {
+        if (!showingAi) return;
         showingAi = false;
         showingEditor = editorBeforeAi && Editors.Any(editor => editor.Shown);
         section = sectionBeforeAi;

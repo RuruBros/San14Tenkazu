@@ -16,6 +16,8 @@ internal sealed partial class EditorWindow
     private AiView? aiView;
     private AiTree[]? aiTrees;
     private string aiStamp = "";
+    private AiAdjustments ActiveAiAdjustments => aiStamp == AiBuildProfile.NovemberStock ? aiKept.ForNovember() : aiKept;
+    private AiExtensionSettingsFile ActiveAiExtensions => aiStamp == AiBuildProfile.NovemberStock ? aiExtensionKept.ForNovember() : aiExtensionKept;
 
     private void WireAi()
     {
@@ -35,13 +37,13 @@ internal sealed partial class EditorWindow
         }
         if (LoadAiTrees() is not { } trees) return;
         AiExtensionSettings extensions;
-        try { extensions = aiExtensionKept.Load(aiStamp); }
+        try { extensions = ActiveAiExtensions.Load(aiStamp); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             ReportError(ex);
             return;
         }
-        aiView = new AiView(trees, () => game, WriteAiAsync, extensions, WriteAiExtensionsAsync);
+        aiView = new AiView(trees, () => game, WriteAiAsync, extensions, WriteAiExtensionsAsync, aiStamp);
         aiView.ExpandedChanged += _ => map.ShowAi(aiView);
         aiView.CloseClicked += () => map.HideAi();
         map.ShowAi(aiView);
@@ -56,8 +58,13 @@ internal sealed partial class EditorWindow
             string folder = FaceLibrary.FindGameDirectory(game is { } identity ? GameMemory.ExecutablePath(identity) : null)
                 ?? throw new DirectoryNotFoundException(AiTreeFile.RelativePath);
             byte[] data = File.ReadAllBytes(Path.Combine(folder, AiTreeFile.RelativePath));
-            aiTrees = AiTreeFile.Parse(data);
-            aiStamp = AiTreeFile.Stamp(data);
+            string stamp = AiTreeFile.Stamp(data);
+            if (game is { } attached && AiBuildProfile.IsNovember(attached) != (stamp == AiBuildProfile.NovemberStock))
+                throw new InvalidDataException(L.Ai.TreeChanged);
+            var parsed = AiTreeFile.Parse(data);
+            _ = AiBuildProfile.Pages(stamp, parsed);
+            aiStamp = stamp;
+            aiTrees = parsed;
             return aiTrees;
         }
         catch (Exception ex) when (KtglArchive.IsUnreadable(ex))
@@ -77,7 +84,7 @@ internal sealed partial class EditorWindow
         {
             plan = await Task.Run(() =>
             {
-                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees);
+                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees, aiStamp);
                 return GameMemory.ReadAi(identity, memory => AiEdits.Plan(memory, trees, live, L.Ai.EditLabel(decision), requests));
             });
         }
@@ -87,6 +94,7 @@ internal sealed partial class EditorWindow
             return false;
         }
         if (!plan.Refused && plan.Edits.Count > 0 && !ConfirmWrite(plan.Summary)) return false;
+        if (game != identity || !ReferenceEquals(aiTrees, trees)) return false;
         if (plan.Refused) { status.Text = plan.Refusal; return false; }
         bool written = plan.Edits.Count == 0 || await WriteAsync([.. plan.Edits]);
         if (written) MergeSnapshot();
@@ -98,14 +106,17 @@ internal sealed partial class EditorWindow
     private async Task KeepAiAsync()
     {
         if (game is not { } identity || aiTrees is not { } trees) return;
+        string stamp = aiStamp;
+        var adjustments = ActiveAiAdjustments;
         try
         {
             Dictionary<string, int> changed = await Task.Run(() =>
             {
-                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees);
-                return GameMemory.ReadAi(identity, memory => AiEdits.Changed(memory, trees, live));
+                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees, stamp);
+                return GameMemory.ReadAi(identity, memory => AiEdits.Changed(memory, trees, live,
+                    AiBuildProfile.Values(AiBuildProfile.Pages(stamp, trees))));
             });
-            aiKept.Save(aiStamp, changed);
+            if (game == identity && ReferenceEquals(aiTrees, trees)) adjustments.Save(stamp, changed);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or InvalidOperationException
             or System.ComponentModel.Win32Exception)
@@ -120,9 +131,10 @@ internal sealed partial class EditorWindow
     {
         aiRetry.Stop();
         if (aiView?.Pending == true) { aiRetry.Start(); return; }
-        if (game is not { Verified: true } identity || LoadAiTrees(quiet: true) is not { } trees) return;
-        Dictionary<string, int> kept = aiKept.Load(aiStamp);
-        try { await ReapplyAiExtensionsAsync(identity, trees); }
+        if (game is not { } identity || !GameCapabilities.Inspect(identity, GameFeature.AiTrees).CanAttempt ||
+            LoadAiTrees(quiet: true) is not { } trees) return;
+        Dictionary<string, int> kept = ActiveAiAdjustments.Load(aiStamp);
+        try { if (identity.Verified || AiBuildProfile.IsNovember(identity)) await ReapplyAiExtensionsAsync(identity, trees); }
         catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or System.ComponentModel.Win32Exception)
         {
             AddLog(L.AiExtensions.Failed(ex.Message));
@@ -136,10 +148,17 @@ internal sealed partial class EditorWindow
         (List<(AiGuideValue Value, int Raw)> Write, List<(AiGuideValue Value, int? Now, int Kept)> Other) decided;
         try
         {
+            if (AiBuildProfile.IsNovember(identity) && (layout is not { } found ||
+                await Task.Run(() => GameMemory.ReadPace(identity, found)) != GamePace.Paused))
+            {
+                aiRetry.Start();
+                return;
+            }
             decided = await Task.Run(() =>
             {
-                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees);
-                return GameMemory.ReadAi(identity, memory => AiEdits.Reapply(memory, trees, live, kept));
+                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees, aiStamp);
+                return GameMemory.ReadAi(identity, memory => AiEdits.Reapply(memory, trees, live, kept,
+                    AiBuildProfile.Values(AiBuildProfile.Pages(aiStamp, trees))));
             });
         }
         catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException or System.ComponentModel.Win32Exception)
@@ -156,7 +175,7 @@ internal sealed partial class EditorWindow
         {
             plan = await Task.Run(() =>
             {
-                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees);
+                AiLiveTree[] live = GameMemory.ReadAiTrees(identity, trees, aiStamp);
                 return GameMemory.ReadAi(identity, memory => AiEdits.Plan(memory, trees, live, L.Ai.EditLabel(L.Ai.Title), decided.Write));
             });
         }
@@ -165,6 +184,7 @@ internal sealed partial class EditorWindow
             aiRetry.Start();
             return;
         }
+        if (game != identity || !ReferenceEquals(aiTrees, trees)) return;
         if (plan.Refused) AddLog(plan.Refusal);
         else if (plan.Edits.Count > 0) await WriteAsync([.. plan.Edits]);
     }
@@ -173,14 +193,16 @@ internal sealed partial class EditorWindow
 
     private async Task<bool> WriteAiExtensionsAsync(AiExtensionSettings settings)
     {
-        if (busy || game is not { Verified: true } identity || aiTrees is not { } trees) return false;
+        if (busy || layoutRecovering || game is not { } identity || aiTrees is not { } trees || layout is not { } found ||
+            !identity.Verified && !AiBuildProfile.IsNovember(identity)) return false;
         SetBusy(true, scanning: false);
+        var stamp = aiStamp;
         AiExtensionSettings? before = null;
         try
         {
-            before = await Task.Run(() => GameMemory.ReadAiExtensions(identity, trees).Settings);
-            AiExtensionStatus result = await Task.Run(() => GameMemory.ApplyAiExtensions(identity, trees, settings));
-            aiExtensionKept.Save(aiStamp, settings);
+            before = await Task.Run(() => ReadAiExtensionSettings(identity, trees, stamp).Settings);
+            AiExtensionStatus result = await Task.Run(() => ApplyAiExtensionSettings(identity, found, trees, stamp, settings));
+            ActiveAiExtensions.Save(stamp, settings);
             AddLog(L.AiExtensions.Applied);
             AddLog(L.AiExtensions.Counts(result.Checks, result.RecoveryPlans, result.Returns, result.Holds));
             return true;
@@ -193,8 +215,8 @@ internal sealed partial class EditorWindow
                 {
                     await Task.Run(() =>
                     {
-                        if (GameMemory.ReadAiExtensions(identity, trees).Settings != before)
-                            GameMemory.ApplyAiExtensions(identity, trees, before);
+                        if (ReadAiExtensionSettings(identity, trees, stamp).Settings != before)
+                            ApplyAiExtensionSettings(identity, found, trees, stamp, before);
                     });
                 }
                 catch (Exception restore) when (restore is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
@@ -208,15 +230,25 @@ internal sealed partial class EditorWindow
 
     private async Task ReapplyAiExtensionsAsync(GameIdentity identity, AiTree[] trees)
     {
-        AiExtensionSettings settings = aiExtensionKept.Load(aiStamp);
-        AiExtensionStatus current = await Task.Run(() => GameMemory.ReadAiExtensions(identity, trees));
-        if (current.Settings == settings) return;
+        if (layout is not { } found) return;
+        var stamp = aiStamp;
+        AiExtensionSettings settings = ActiveAiExtensions.Load(stamp);
+        AiExtensionStatus current = await Task.Run(() => ReadAiExtensionSettings(identity, trees, stamp));
+        if (game != identity || current.Settings == settings) return;
+        if (AiBuildProfile.IsNovember(identity) && await Task.Run(() => GameMemory.ReadPace(identity, found)) != GamePace.Paused)
+        { aiRetry.Start(); return; }
         SetBusy(true, scanning: false);
         try
         {
-            AiExtensionStatus result = await Task.Run(() => GameMemory.ApplyAiExtensions(identity, trees, settings));
+            AiExtensionStatus result = await Task.Run(() => ApplyAiExtensionSettings(identity, found, trees, stamp, settings));
             AddLog(result.Settings.SupplyProtection ? L.AiExtensions.On : L.AiExtensions.Off);
         }
         finally { SetBusy(false, scanning: false); }
     }
+
+    private static AiExtensionStatus ReadAiExtensionSettings(GameIdentity identity, AiTree[] trees, string stamp) =>
+        AiBuildProfile.IsNovember(identity) ? GameMemory.ReadNovemberAiExtensions(identity, trees, stamp) : GameMemory.ReadAiExtensions(identity, trees);
+
+    private static AiExtensionStatus ApplyAiExtensionSettings(GameIdentity identity, GameLayout layout, AiTree[] trees, string stamp, AiExtensionSettings settings) =>
+        AiBuildProfile.IsNovember(identity) ? GameMemory.ApplyNovemberAiExtensions(identity, layout, trees, stamp, settings) : GameMemory.ApplyAiExtensions(identity, trees, settings);
 }

@@ -154,6 +154,8 @@ internal sealed class RuleProfileFile(string path)
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
     private bool opened;
+    internal RuleProfileFile ForBuild(GameDataProfile build) =>
+        new(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path))!, $"rule_profiles.{build.ExeSha256}.json"));
     private static string Stamp(byte[]? bytes) => bytes is null ? "" : Convert.ToHexString(SHA256.HashData(bytes));
     internal RuleProfileRead Read()
     {

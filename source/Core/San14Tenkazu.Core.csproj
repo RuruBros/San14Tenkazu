@@ -10,8 +10,12 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\BuildProfiles\current.json" LogicalName="BuildProfiles.current.json" />
+    <EmbeddedResource Include="..\BuildProfiles\november2026.json" LogicalName="BuildProfiles.november2026.json" />
+    <EmbeddedResource Include="BuildProfiles\NovemberCommands.json" LogicalName="BuildProfiles.NovemberCommands.json" />
+    <EmbeddedResource Include="Ai\November2026.json" LogicalName="Ai.November2026.json" />
     <EmbeddedResource Include="RuntimeRules\patches.json" LogicalName="RuntimeRules.patches.json" />
     <EmbeddedResource Include="RuntimeRules\trait-list.json" LogicalName="RuntimeRules.trait-list.json" />
+    <EmbeddedResource Include="RuntimeRules\November2026.json" LogicalName="RuntimeRules.November2026.json" />
     <!-- Its types stay internal: only the editor and its tests use them. -->
     <InternalsVisibleTo Include="San14Tenkazu" />
     <InternalsVisibleTo Include="San14Tenkazu.Tests" />
@@ -24,6 +28,8 @@
     <EmbeddedResource Include="..\Seasons\Assets\tree-catalog.json" LogicalName="Seasons.tree-catalog.json" />
     <EmbeddedResource Include="..\Seasons\Bundle\SeasonBridge.zip" LogicalName="Seasons.SeasonBridge.zip" />
     <EmbeddedResource Include="..\Environment\Bundle\EnvironmentBridge.zip" LogicalName="Environment.EnvironmentBridge.zip" />
+    <EmbeddedResource Include="..\Seasons\Bundle\SeasonBridge.November2026.zip" LogicalName="Seasons.SeasonBridge.November2026.zip" WithCulture="false" />
+    <EmbeddedResource Include="..\Environment\Bundle\EnvironmentBridge.November2026.zip" LogicalName="Environment.EnvironmentBridge.November2026.zip" WithCulture="false" />
     <EmbeddedResource Include="..\Environment\Assets\event-art-v2.bin.gz" LogicalName="Environment.event-art-v2.bin.gz" WithCulture="false" />
   </ItemGroup>
 </Project>

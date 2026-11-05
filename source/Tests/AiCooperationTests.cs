@@ -24,7 +24,7 @@ public sealed class AiCooperationTests
     public void TheExchangeBranchesAskForModeThreeInEveryCorpsType()
     {
         AiNode[] nodes = AiTreeFile.Read(AiFileFactAttribute.Folder)[1].Nodes;
-        foreach (int index in new[] { 1161, 4734, 8026 })
+        foreach (int index in AiFileFactAttribute.Nodes([1161, 4734, 8026], [1171, 4962, 8464]))
         {
             AiTerm term = Assert.Single(AiCondition.Of(nodes[index].Params).Terms, t => t.Function == 160);
             Assert.False(term.Negated);

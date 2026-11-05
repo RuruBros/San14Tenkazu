@@ -204,6 +204,11 @@ internal sealed partial class EditorWindow
     private bool ShowAtOrigin(EditorTarget target, ListKind? origin)
     {
         if (snapshot is not { } data) return false;
+        void ShowDataCard(EditorCard card)
+        {
+            card.SetDataProfile(game?.DataProfile);
+            map.ShowEditor(card, origin);
+        }
         switch (target)
         {
             case PlainRuleTarget(string table,int id) when PlainSnapshot(table) is { } plain && ruleKept?.Profile is { } profile && profile.Table(table) is not null
@@ -232,35 +237,35 @@ internal sealed partial class EditorWindow
                 return true;
             case ForceTarget(int force) when data.ForceRecords.ContainsKey(force) && data.Forces.ContainsKey(force):
                 forceEditor.Open(ForceView(data, force));
-                map.ShowEditor(forceEditor, origin);
+                ShowDataCard(forceEditor);
                 map.HighlightForce = force;
                 return true;
             case CityTarget(int city) when data.IsCity(city):
                 cityEditor.Open(CityView(data, city));
-                map.ShowEditor(cityEditor, origin);
+                ShowDataCard(cityEditor);
                 map.SelectedCity = city;
                 map.HighlightForce = 0;
                 return true;
             case GateTarget(int gate) when data.Gates.Any(g => g.Id == gate):
                 gateEditor.Open(GateView(data, gate));
-                map.ShowEditor(gateEditor, origin);
+                ShowDataCard(gateEditor);
                 map.SelectedGate = gate;
                 map.HighlightForce = 0;
                 return true;
             case FacilityTarget facility when facility.Find(data) is { } found:
                 facilityEditor.Open(FacilityView(data, found));
-                map.ShowEditor(facilityEditor, origin);
+                ShowDataCard(facilityEditor);
                 map.SelectedFacility = facility;
                 map.HighlightForce = 0;
                 return true;
             case OfficerTarget(int id) when data.OfficerById.TryGetValue(id, out OfficerRecord? officer):
                 ShowOfficer(data, officer);
-                map.ShowEditor(officerEditor, origin);
+                ShowDataCard(officerEditor);
                 map.HighlightForce = 0;
                 return true;
             case UnitTarget(int slot, int commander) when data.Unit(slot, commander) is { } unit:
                 unitEditor.Open(UnitView(data, unit));
-                map.ShowEditor(unitEditor, origin);
+                ShowDataCard(unitEditor);
                 map.SelectedUnit = (slot, commander);
                 map.HighlightForce = 0;
                 return true;

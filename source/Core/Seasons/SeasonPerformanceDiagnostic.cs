@@ -31,7 +31,7 @@ internal sealed partial class SeasonController
         await gate.WaitAsync(token).ConfigureAwait(false);
         try{
             if(!requested||status.Phase!=SeasonPhase.On||session is not SeasonNativeSession native)
-                throw new InvalidOperationException("현재 활성화된 Native 렌더러가 필요합니다. 설정은 자동 변경하지 않습니다.");
+                throw new InvalidOperationException(L.DeveloperUi.PerformanceActiveRenderer);
             var current=await dates.ReadAsync(token).ConfigureAwait(false);current.Validate();
             if(current.Identity!=native.Identity)throw new InvalidDataException("Renderer identity changed");
             return await native.PerformanceAsync(command,token).ConfigureAwait(false);

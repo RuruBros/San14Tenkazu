@@ -1,11 +1,11 @@
-#include "GameBuildFacts.g.h"
+#include <GameBuildFacts.g.h>
 extern "C" __declspec(dllexport) const char San14BuildProfileIdentity[]=SAN14_BUILD_PROFILE_IDENTITY;
 // Product connection/lifetime layer. No command table or D3D11 vtable patch.
 // Material/weather rendering is not published as successful by this layer.
 #define NOMINMAX
 #include "SeasonBridgeProtocol.h"
-#include "FrameSignatures.h"
-#include "PrepareSignature.h"
+#include <FrameSignatures.h>
+#include <PrepareSignature.h>
 #include <windows.h>
 #include <tlhelp32.h>
 #include <d3d11.h>
@@ -31,6 +31,13 @@ using namespace seasons::bridge;
 #include "SeasonGroundSourceGpu.h"
 #include "SeasonNoticeCausality.h"
 namespace {
+#if defined(SAN14_NOVEMBER_2026)
+using gamebuild::Engine::AutoRva,gamebuild::Engine::InstancedRva,gamebuild::Engine::IndirectRva,
+    gamebuild::Engine::InlineRva,gamebuild::Engine::PresentRva,gamebuild::Engine::ExecutableLimit;
+#else
+constexpr uint64_t AutoRva=0x960e20,InstancedRva=0x960fe0,IndirectRva=0x961040,InlineRva=0x961090,
+    PresentRva=0x954730,ExecutableLimit=0x1340000;
+#endif
 struct OwnedHandle {HANDLE value;~OwnedHandle(){if(value&&value!=INVALID_HANDLE_VALUE)CloseHandle(value);}};
 struct OwnedLocal {void* value=nullptr;~OwnedLocal(){if(value)LocalFree(value);}};
 bool copyBootstrap(Bootstrap* destination,const Bootstrap* source) noexcept{
@@ -413,7 +420,7 @@ uint8_t __fastcall onPrepare(void* driver,uint32_t mode){
     auto s=scope.session;NoticeObservation observation;NoticeObservation* event=nullptr;
     if(s&&s->noticeArt&&s->noticeArt->tracing()){
         observation.id=s->noticeArt->nextObservation();observation.tick=GetTickCount64();
-        observation.caller=caller>=s->input.module&&caller-s->input.module<0x1340000?caller-s->input.module:0;
+        observation.caller=caller>=s->input.module&&caller-s->input.module<ExecutableLimit?caller-s->input.module:0;
         observation.driver=reinterpret_cast<uint64_t>(driver);observation.driverContext=read<uint64_t>(observation.driver,0x10);
         observation.sessionContext=s->input.context;observation.thread=GetCurrentThreadId();observation.ownerThread=s->thread.load();
         observation.nestedMismatch=nested&&materialTicket->driver!=driver;observation.path=nested&&!observation.nestedMismatch?materialTicket->path:5;
@@ -492,11 +499,11 @@ void initialize(bool diagnostic=false){using namespace season::frame;patches.res
     patches[4]={reinterpret_cast<PVOID*>(&originalIndexed),reinterpret_cast<void*>(onIndexed),gamebuild::Engine::IndexedRva,IndexedCode,sizeof(IndexedCode)};
     patches[5]={reinterpret_cast<PVOID*>(&originalBatch),reinterpret_cast<void*>(onBatch),gamebuild::Engine::BatchRva,BatchCode,sizeof(BatchCode)};
     if(diagnostic){
-        patches[6]={reinterpret_cast<PVOID*>(&originalInstanced),reinterpret_cast<void*>(onInstanced),0x960fe0,InstancedCode,sizeof(InstancedCode)};
-        patches[7]={reinterpret_cast<PVOID*>(&originalIndirect),reinterpret_cast<void*>(onIndirect),0x961040,IndirectCode,sizeof(IndirectCode)};
-        patches[8]={reinterpret_cast<PVOID*>(&originalAuto),reinterpret_cast<void*>(onAuto),0x960e20,AutoCode,sizeof(AutoCode)};
-        patches[9]={reinterpret_cast<PVOID*>(&originalInline),reinterpret_cast<void*>(onInline),0x961090,InlineCode,sizeof(InlineCode)};
-        patches[10]={reinterpret_cast<PVOID*>(&originalPresent),reinterpret_cast<void*>(onPresent),0x954730,PresentCode,sizeof(PresentCode)};
+        patches[6]={reinterpret_cast<PVOID*>(&originalInstanced),reinterpret_cast<void*>(onInstanced),InstancedRva,InstancedCode,sizeof(InstancedCode)};
+        patches[7]={reinterpret_cast<PVOID*>(&originalIndirect),reinterpret_cast<void*>(onIndirect),IndirectRva,IndirectCode,sizeof(IndirectCode)};
+        patches[8]={reinterpret_cast<PVOID*>(&originalAuto),reinterpret_cast<void*>(onAuto),AutoRva,AutoCode,sizeof(AutoCode)};
+        patches[9]={reinterpret_cast<PVOID*>(&originalInline),reinterpret_cast<void*>(onInline),InlineRva,InlineCode,sizeof(InlineCode)};
+        patches[10]={reinterpret_cast<PVOID*>(&originalPresent),reinterpret_cast<void*>(onPresent),PresentRva,PresentCode,sizeof(PresentCode)};
     }
 }
 LONG transaction(bool attach,size_t first=0){
@@ -527,7 +534,7 @@ bool restoreProtection(Patch& p){
 uint32_t performanceStart(const std::shared_ptr<Session>& s){
     if(s->performance||s->noticeCausality||patches.size()!=6||!s->pending.load()||!s->pending.load()->full||!s->thread.load())return ERROR_INVALID_STATE;
     auto trace=std::make_unique<season_perf::Trace>();trace->date=read<uint32_t>(s->input.state,0x34);trace->seasonal=s->pending.load()->seasonal;using namespace season::frame;
-    Patch extra{reinterpret_cast<PVOID*>(&originalPresent),reinterpret_cast<void*>(onPresent),0x954730,PresentCode,sizeof(PresentCode)};
+    Patch extra{reinterpret_cast<PVOID*>(&originalPresent),reinterpret_cast<void*>(onPresent),PresentRva,PresentCode,sizeof(PresentCode)};
     extra.target=s->fixture?reinterpret_cast<BYTE*>(originalPresent):reinterpret_cast<BYTE*>(s->input.module+extra.rva);MEMORY_BASIC_INFORMATION info{};
     if(!VirtualQuery(extra.target,&info,sizeof(info))||info.State!=MEM_COMMIT||info.Protect!=PAGE_EXECUTE_READ||(!s->fixture&&std::memcmp(extra.target,extra.expected,extra.size)))return ERROR_REVISION_MISMATCH;
     for(auto& patch:patches)if(std::memcmp(patch.target,patch.installed.data(),patch.size))return ERROR_REVISION_MISMATCH;

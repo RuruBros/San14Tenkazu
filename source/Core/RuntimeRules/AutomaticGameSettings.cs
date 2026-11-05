@@ -28,7 +28,13 @@ internal sealed class AutomaticGameSettings(AutomaticGameAccess access)
         if (observed is not { } cached || !access.Same(cached))
         { observed = access.Find(); prepared = null; }
         if (observed is not { } identity) return new(null, AutomaticGamePhase.Absent);
-        if (!identity.Verified) return new(identity, AutomaticGamePhase.Unsupported);
+        if (!identity.Verified)
+        {
+            if (identity.DataProfile is null) return new(identity, AutomaticGamePhase.Unsupported);
+            var readOnlySession = access.Session?.Invoke(identity);
+            if (readOnlySession is not { IsPlaying: true }) return new(identity, AutomaticGamePhase.SessionWaiting, readOnlySession);
+            return new(identity, access.DataReady(identity) ? AutomaticGamePhase.Connect : AutomaticGamePhase.Starting, readOnlySession);
+        }
         preference?.CheckBuild(identity.ExeHash);
         var session = access.Session?.Invoke(identity);
         AutomaticGameObservation Ready() => new(identity,

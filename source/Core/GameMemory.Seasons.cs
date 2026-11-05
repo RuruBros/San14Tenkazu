@@ -10,8 +10,7 @@ internal static partial class GameMemory
     internal static SeasonSnapshot ReadSeasonSnapshot(GameIdentity identity)
     {
         GameCapabilities.Require(identity,GameFeature.Seasons);
-        if (!identity.Verified || !identity.ExeHash.Equals(VerifiedExeHash,StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The season renderer requires the verified executable");
+        var profile=GameBuildProfiles.RequireNative(identity);
         if (!IsSameGame(identity)) throw new InvalidOperationException("The season game process changed");
         IntPtr handle=OpenRead(identity.ProcessId);
         try
@@ -23,17 +22,17 @@ internal static partial class GameMemory
                     ulong value=ReadPointers(handle,address,1)[0];
                     if (value==0) throw new InvalidDataException("Season world/render pointer is unavailable");return value;
                 }
-                ulong world=checked(Pointer(identity.ModuleBase+BasePointerRva)+BaseAdjust);
+                ulong world=checked(Pointer(identity.ModuleBase+profile.WorldPointerRva)+BaseAdjust);
                 ulong state=Pointer(world+StatePointer);
                 if (!HasVtable(handle,state,identity.Classes.World)) throw new InvalidDataException("Season world class changed");
                 byte[] clock=ReadBytes(handle,state+StateYearOffset,5);
                 if (!SeasonDate.TryCreate(BinaryPrimitives.ReadUInt16LittleEndian(clock),clock[2],clock[3],out var date))
                     throw new InvalidDataException("Season game calendar is invalid");
-                ulong manager=Pointer(identity.ModuleBase+GameBuildFacts.Scene.ManagerRva);
+                ulong manager=Pointer(identity.ModuleBase+profile.SceneManagerRva);
                 if (BinaryPrimitives.ReadInt32LittleEndian(ReadBytes(handle,manager+GameBuildFacts.Scene.ManagerStateOffset,4))!=0)
                     throw new InvalidDataException("A loaded season scene is required");
                 ulong scene=Pointer(manager+GameBuildFacts.Scene.SceneOffset),parent=Pointer(scene+GameBuildFacts.Scene.ParentOffset),driver=Pointer(parent+GameBuildFacts.Scene.DriverOffset);
-                if (!HasVtable(handle,driver,identity.ModuleBase+GameBuildFacts.Scene.DriverClassRva))
+                if (!HasVtable(handle,driver,identity.ModuleBase+profile.SceneDriverClassRva))
                     throw new InvalidDataException("Season scene driver class changed");
                 var result=new SeasonSnapshot(new(identity.ProcessId,identity.StartTimeUtc,identity.ModuleBase,
                     world,state,manager,scene,driver,Pointer(driver+GameBuildFacts.Scene.DeviceOffset),Pointer(driver+GameBuildFacts.Scene.ContextOffset)),date);

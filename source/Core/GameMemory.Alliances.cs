@@ -19,15 +19,20 @@ internal static partial class GameMemory
     private static void ValidateForceAgreementCalls(IntPtr handle, GameIdentity identity, IReadOnlyList<RecordEdit> edits)
     {
         if (!edits.Any(e => e.Changes.Any(c => ForceFields.IsAgreement(c.Field)))) return;
-        if (!identity.Verified) throw new InvalidOperationException(L.Force.AllianceNotRun(L.Calls.WhyUnverified));
+        if (!GameCommandProfile.Supports(identity, AgreementSetRva))
+            throw new InvalidOperationException(L.Force.AllianceNotRun(L.Calls.WhyUnverified));
         foreach ((ulong rva, byte[] start) in new (ulong, byte[])[]
         {
-            (AppUpdateRva, AppUpdateStart), (AgreementSetRva, AgreementSetStart), (AgreementBeginRva, AgreementBeginStart),
+            (AgreementSetRva, AgreementSetStart), (AgreementBeginRva, AgreementBeginStart),
             (AgreementEndRva, AgreementEndStart), (AgreementOrdersRva, AgreementOrdersStart), (AgreementMapRva, AgreementMapStart)
         })
-            if (!CodeIs(handle, identity.ModuleBase + rva, start))
+            if (!CommandCodeMatches(handle, identity, rva, start))
                 throw new InvalidOperationException(L.Force.AllianceNotRun(L.Calls.WhyCode));
-        if (ReadPointers(handle, identity.ModuleBase + AppUpdateSlotRva, 1)[0] != identity.ModuleBase + AppUpdateRva)
+        var native = GameBuildProfiles.RequireNative(identity);
+        ulong update = identity.ModuleBase + native.UpdateRva, slot = identity.ModuleBase + native.UpdateSlotRva;
+        bool validUpdate = identity.Verified ? CodeIs(handle, update, AppUpdateStart)
+            : ProfiledFrameCodeMatches(handle, identity, native);
+        if (!validUpdate || ReadPointers(handle, slot, 1)[0] != update)
             throw new InvalidOperationException(L.Force.AllianceNotRun(L.Calls.WhyCode));
     }
 
@@ -72,7 +77,7 @@ internal static partial class GameMemory
         List<AgreementPair> pairs = AgreementPairs(layout.Forces, edits);
         if (pairs.Count == 0) return [];
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, AgreementSetRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
@@ -91,15 +96,18 @@ internal static partial class GameMemory
                 Check(pair.Other, pair.OtherChange);
                 (string? why, _) = RunOnFrame(handle, identity, data =>
                 {
-                    ulong own = pair.Own.Address, other = pair.Other.Address, exe = identity.ModuleBase;
+                    ulong own = pair.Own.Address, other = pair.Other.Address;
                     var after = new List<FrameFollowup>();
+                    void Next(ulong rva, byte[] start, ulong rcx, ulong rdx, ulong[]? more = null) =>
+                        after.Add(new(new(CommandAt(identity, rva), rcx, rdx, more), CommandStart(identity, rva, start)));
                     if (pair.Before == 0 && pair.Months > 0)
-                        after.Add(new(new(exe + AgreementBeginRva, own, other, [data + StubArgs]), AgreementBeginStart));
+                        Next(AgreementBeginRva, AgreementBeginStart, own, other, [data + StubArgs]);
                     else if (pair.Before > 0 && pair.Months == 0)
-                        after.Add(new(new(exe + AgreementEndRva, own, other, [0]), AgreementEndStart));
-                    after.Add(new(new(exe + AgreementOrdersRva, 0, 0), AgreementOrdersStart));
-                    after.Add(new(new(exe + AgreementMapRva, 0, 0), AgreementMapStart));
-                    return new FrameCall(exe + AgreementSetRva, AgreementSetStart, own, other, new byte[4], NeedsPlayer: false,
+                        Next(AgreementEndRva, AgreementEndStart, own, other, [0]);
+                    Next(AgreementOrdersRva, AgreementOrdersStart, 0, 0);
+                    Next(AgreementMapRva, AgreementMapStart, 0, 0);
+                    return new FrameCall(CommandAt(identity, AgreementSetRva), CommandStart(identity, AgreementSetRva, AgreementSetStart),
+                        own, other, new byte[4], NeedsPlayer: false,
                         More: [(ulong)pair.Months], After: after.ToArray(), Stores:
                         [new(own + (ulong)pair.OwnChange.Field.Offset, (byte)pair.OwnChange.Value),
                          new(other + (ulong)pair.OtherChange.Field.Offset, (byte)pair.OtherChange.Value)]);

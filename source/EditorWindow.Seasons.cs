@@ -103,7 +103,7 @@ internal sealed partial class EditorWindow
         bool stop=NeedsSeasonStop(value);
         // Ordinary editor work does not disable OFF or recovery retry.
         bool available=!seasonStopping&&!seasonDisconnecting&&!seasonClosing&&!environmentChanging;
-        bool connected=game is {Verified:true}&&snapshot is not null;
+        bool connected=seasonController is not null&&snapshot is not null&&!layoutRecovering;
         seasonOn.IsEnabled=available&&!seasonStarting&&!busy&&connected&&(!stop||value.Requested);
         seasonOff.IsEnabled=available&&(stop||(!seasonStarting&&!busy&&connected));
         // The selected radio reports the user's request. The adjacent phase and receipt
@@ -144,7 +144,7 @@ internal sealed partial class EditorWindow
         string dated=value.Date is {} date?L.Seasons.Dated(SeasonName(date),date.Year,date.Month,date.Day):"";
         return value.Phase switch
         {
-            SeasonPhase.Off=>game is null?L.Seasons.ConnectFirst:game.Value.Verified?L.Seasons.OffStatus:L.Seasons.VerifiedOnly,
+            SeasonPhase.Off=>game is null?L.Seasons.ConnectFirst:seasonController is not null?L.Seasons.OffStatus:L.Seasons.VerifiedOnly,
             SeasonPhase.Connecting=>L.Seasons.Connecting,
             SeasonPhase.Applying=>L.Seasons.Applying(dated),
             SeasonPhase.PartialOn=>L.Seasons.TreeApplied(dated),
@@ -172,7 +172,7 @@ internal sealed partial class EditorWindow
             if(EnvironmentRenderingActive&&controller.Status.Requested){await controller.SetSeasonalAsync(false);UpdateSeasonControls();}
             else if(NeedsSeasonStop(controller.Status))await StopSeasonsAsync(false);return;
         }
-        if(seasonStarting||(busy&&!environmentChanging)||game is not {Verified:true}||snapshot is null)return;
+        if(seasonStarting||(busy&&!environmentChanging)||game is null||snapshot is null||layoutRecovering)return;
         if(controller.Status.Requested){await controller.SetSeasonalAsync(true);UpdateSeasonControls();return;}
         if(NeedsSeasonStop(controller.Status))return;
         seasonUiError=null;seasonStarting=true;UpdateSeasonControls();
@@ -236,6 +236,7 @@ internal sealed partial class EditorWindow
             {
 #if LOCAL_DEVELOPER
                 await CompleteDeveloperNoticeDiagnostic(ownerRestored:true);
+                CompleteProfiledRenderCheck("close");
 #endif
                 seasonCloseApproved=true;Close();
             }

@@ -78,19 +78,77 @@ internal static partial class GameMemory
     private sealed record FrameCall(ulong Function, byte[] Start, ulong Rcx, ulong Rdx, byte[] Args, bool NeedsPlayer,
         ulong[]? More = null, FrameFollowup[]? After = null, FrameStore[]? Stores = null, byte[]? Body = null);
 
+    private static IntPtr OpenCommandWrite(GameIdentity identity, ulong legacyRva)
+    {
+        const uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
+        if (identity.DataProfile is null) return OpenGameWrite(access, identity);
+        if (!GameCommandProfile.Supports(identity, legacyRva))
+            throw new InvalidOperationException(L.Calls.WhyUnverified);
+        RequirePlayingSession(identity);
+        return OpenProcess(access | 0x0002, false, identity.ProcessId);
+    }
+
+    private static ulong CommandAt(GameIdentity identity, ulong legacyRva) =>
+        identity.ModuleBase + (GameCommandProfile.Find(identity)?.Target(legacyRva).Rva ?? legacyRva);
+
+    private static byte[] CommandStart(GameIdentity identity, ulong legacyRva, byte[] legacy) =>
+        GameCommandProfile.Find(identity)?.Target(legacyRva).Prefix ?? legacy;
+
+    private static ulong CommandGlobal(GameIdentity identity, ulong legacyRva) =>
+        identity.ModuleBase + (GameCommandProfile.Find(identity)?.Global(legacyRva) ?? legacyRva);
+
+    private static ulong CommandWorldSlot(GameIdentity identity) =>
+        identity.ModuleBase + (identity.DataProfile?.WorldPointerRva ?? BasePointerRva);
+
+    private static bool CommandCodeMatches(IntPtr handle, GameIdentity identity, GameCommandProfile profile, ulong address)
+    {
+        var target = profile.Functions.Values.SingleOrDefault(entry => identity.ModuleBase + entry.Rva == address);
+        if (target is null) return false;
+        RequireEditPage(handle, address, target.Length, PageExecuteRead, identity.ModuleBase);
+        return target.Matches(ReadBytes(handle, address, target.Length));
+    }
+
+    private static bool CommandCodeMatches(IntPtr handle, GameIdentity identity, ulong legacyRva, byte[] legacy) =>
+        GameCommandProfile.Find(identity) is { } profile
+            ? CommandCodeMatches(handle, identity, profile, CommandAt(identity, legacyRva))
+            : CodeIs(handle, identity.ModuleBase + legacyRva, legacy);
+
+    private static FrameFollowup[]? CommandValidators(GameIdentity identity, params ulong[] rvas) =>
+        GameCommandProfile.Find(identity) is null ? null :
+            rvas.Select(rva => new FrameFollowup(new(CommandAt(identity, rva), 0, 0), [])).ToArray();
+
+    private static bool ProfiledFrameCodeMatches(IntPtr handle, GameIdentity identity, GameBuildProfile native)
+    {
+        ulong slot = identity.ModuleBase + native.UpdateSlotRva, update = identity.ModuleBase + native.UpdateRva;
+        RequireEditPage(handle, slot, sizeof(ulong), 0x02, identity.ModuleBase);
+        var (_, length, hash) = native.EnvironmentTargets.Single(guard => guard.Rva == native.UpdateRva);
+        RequireEditPage(handle, update, length, PageExecuteRead, identity.ModuleBase);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(ReadBytes(handle, update, length)))
+            .Equals(hash, StringComparison.OrdinalIgnoreCase);
+    }
+
     // Runs the call once on the game's next frame; `call` is given where the stub's data page is. Why is null when it
     // ran (Result is its eax); otherwise it says why not.
-    private static (string? Why, int Result) RunOnFrame(IntPtr handle, GameIdentity identity, Func<ulong, FrameCall> call, int codePages = 1)
+    private static (string? Why, int Result) RunOnFrame(IntPtr handle, GameIdentity identity, Func<ulong, FrameCall> call,
+        int codePages = 1, CameraCallBuild? camera = null)
     {
-        FrameDispatchGate.Wait();try{return RunOnFrameLocked(handle,identity,call,codePages);}finally{FrameDispatchGate.Release();}
+        FrameDispatchGate.Wait();try{return RunOnFrameLocked(handle,identity,call,codePages,camera);}finally{FrameDispatchGate.Release();}
     }
     internal static readonly SemaphoreSlim FrameDispatchGate=new(1);
-    private static (string? Why, int Result) RunOnFrameLocked(IntPtr handle, GameIdentity identity, Func<ulong, FrameCall> call, int codePages)
+    private static (string? Why, int Result) RunOnFrameLocked(IntPtr handle, GameIdentity identity, Func<ulong, FrameCall> call,
+        int codePages, CameraCallBuild? camera)
     {
-        if (!identity.Verified || !GameCapabilities.Inspect(identity,GameFeature.GameCalls).CanAttempt) return (L.Calls.WhyUnverified, 0);
-        ulong slot = identity.ModuleBase + AppUpdateSlotRva, originalUpdate = identity.ModuleBase + AppUpdateRva;
+        var commands = GameCommandProfile.Find(identity);
+        if (camera is null && commands is null && (!identity.Verified || !GameCapabilities.Inspect(identity,GameFeature.GameCalls).CanAttempt))
+            return (L.Calls.WhyUnverified, 0);
+        var native = camera is not null || commands is not null ? GameBuildProfiles.RequireNative(identity) : null;
+        var session = native is null ? null : RequirePlayingSession(identity);
+        ulong slot = identity.ModuleBase + (native?.UpdateSlotRva ?? AppUpdateSlotRva);
+        ulong originalUpdate = identity.ModuleBase + (native?.UpdateRva ?? AppUpdateRva);
+        if (native is not null && !ProfiledFrameCodeMatches(handle, identity, native))
+            return (L.Calls.WhyCode, 0);
         ulong update=EnvironmentRules.EnvironmentNativeBundle.FrameEntry(identity,ReadPointers(handle,slot,1)[0]);
-        if(update==0||!CodeIs(handle,originalUpdate,AppUpdateStart))return(L.Calls.WhyCode,0);
+        if(update==0||native is null&&!CodeIs(handle,originalUpdate,AppUpdateStart))return(L.Calls.WhyCode,0);
         if(update!=originalUpdate&&!CodeIs(handle,update,EnvironmentRules.EnvironmentNativeBundle.Export(identity,"EnvironmentFrame").Code))return(L.Calls.WhyCode,0);
 
         int codeSize = checked(codePages * StubPage);
@@ -99,8 +157,13 @@ internal static partial class GameMemory
         using var allocation = new FrameAllocation(handle, page);
         ulong code = (ulong)page.ToInt64(), data = code + (ulong)codeSize;
         FrameCall c = call(data);
-        if (!CodeIs(handle, c.Function, c.Start) || c.Args.Length > StubPage - StubArgs
-            || (c.After ?? []).Any(next => !CodeIs(handle, next.Call.Function, next.Start)))
+        bool Verified(ulong address, byte[] start) => commands is null
+            ? CodeIs(handle, address, start) : CommandCodeMatches(handle, identity, commands, address);
+        bool validTarget = camera is null ? Verified(c.Function, c.Start)
+            : c.Function == identity.ModuleBase + camera.Function && c.Body is null && !c.NeedsPlayer &&
+                c.After is null && c.Stores is null;
+        if (!validTarget || c.Args.Length > StubPage - StubArgs
+            || (c.After ?? []).Any(next => !Verified(next.Call.Function, next.Start)))
         {
             return (L.Calls.WhyCode, 0);
         }
@@ -108,7 +171,7 @@ internal static partial class GameMemory
         if (c.Args.Length > 0) WriteBytes(handle, data + StubArgs, c.Args);
         const int BodyOffset = 0x400;
         byte[] stub = FrameStub(code, data, c.Body is null ? c.Function : code + BodyOffset, c.Rcx, c.Rdx,
-            c.NeedsPlayer ? identity.ModuleBase + BasePointerRva : 0, c.More,
+            c.NeedsPlayer ? CommandWorldSlot(identity) : 0, c.More,
             c.Body is null ? c.After?.Select(next => next.Call).ToArray() : [], c.Stores);
         if (c.Body is { } body)
         {
@@ -129,6 +192,13 @@ internal static partial class GameMemory
         if (!FlushInstructionCache(handle, page, (UIntPtr)codeSize))
             return (L.Calls.WhyNoPage(Marshal.GetLastWin32Error()), 0);
 
+        if (native is not null)
+        {
+            if (camera?.Check(handle, identity) is { } changed) return (changed, 0);
+            if (ReadPointers(handle, slot, 1)[0] != update || !IsSameGame(identity) ||
+                RequirePlayingSession(identity).Entries[2].Address != session!.Entries[2].Address)
+                return (L.Calls.WhyCode, 0);
+        }
         if (!VirtualProtectEx(handle, (IntPtr)unchecked((long)slot), (UIntPtr)8, PageReadWrite, out uint slotProtect))
             return (L.Calls.WhyNoPage(Marshal.GetLastWin32Error()), 0);
         byte reached = StubArmed;
@@ -149,8 +219,22 @@ internal static partial class GameMemory
         }
         finally
         {
-            try { if(update==originalUpdate)WriteBytes(handle,slot,BitConverter.GetBytes(update));else RestoreEnvironmentDispatch(handle,identity,code); }
-            finally { VirtualProtectEx(handle, (IntPtr)unchecked((long)slot), (UIntPtr)8, slotProtect, out _); }
+            try
+            {
+                if (update != originalUpdate) RestoreEnvironmentDispatch(handle, identity, code);
+                else if (native is null) WriteBytes(handle, slot, BitConverter.GetBytes(update));
+                else
+                {
+                    ulong observed = ReadPointers(handle, slot, 1)[0];
+                    if (observed == code) WriteBytes(handle, slot, BitConverter.GetBytes(update));
+                    if (ReadPointers(handle, slot, 1)[0] != update) throw new InvalidOperationException(L.Calls.WhyCode);
+                }
+            }
+            finally
+            {
+                bool restored = VirtualProtectEx(handle, (IntPtr)unchecked((long)slot), (UIntPtr)8, slotProtect, out _);
+                if (native is not null && !restored) throw AccessError(L.Connection.EditPageChanged);
+            }
         }
         return reached switch
         {
@@ -166,7 +250,8 @@ internal static partial class GameMemory
     // Has the game run its demo play switch with 0 on its next frame. Null when it ran; otherwise why not (the
     // values written so far stay as they are).
     private static string? RunDemoSwitchOff(IntPtr handle, GameIdentity identity) =>
-        RunOnFrame(handle, identity, _ => new FrameCall(identity.ModuleBase + DemoSwitchRva, DemoSwitchStart, 0, 0, [], NeedsPlayer: true)).Why;
+        RunOnFrame(handle, identity, _ => new FrameCall(CommandAt(identity, DemoSwitchRva),
+            CommandStart(identity, DemoSwitchRva, DemoSwitchStart), 0, 0, [], NeedsPlayer: true)).Why;
 
     // Has force `from` surrender to force `to` through the edit mode's 세력 항복 on the game's next frame. Both are
     // forces with a ruler (not tribes) and `from` is not the player's; the game checks that too. Throws when it was
@@ -177,8 +262,7 @@ internal static partial class GameMemory
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         if (from == to || from is < 1 or > MaxPlayerForce || to is < 1 or > MaxPlayerForce) throw new ArgumentOutOfRangeException(nameof(from));
         if (ReadPace(identity, layout) != GamePace.Paused) throw new InvalidOperationException(L.Surrender.PauseFirst);
-        uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
-        IntPtr handle = OpenProcess(access, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, SurrenderRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
@@ -196,7 +280,8 @@ internal static partial class GameMemory
                 BitConverter.TryWriteBytes(args.AsSpan(0), data + StubArgs + Event);
                 BitConverter.TryWriteBytes(args.AsSpan(Event + 0xC), fromRuler);
                 BitConverter.TryWriteBytes(args.AsSpan(Event + 0x10), toRuler);
-                return new FrameCall(identity.ModuleBase + SurrenderRva, SurrenderStart, 0, data + StubArgs, args, NeedsPlayer: false);
+                return new FrameCall(CommandAt(identity, SurrenderRva), CommandStart(identity, SurrenderRva, SurrenderStart),
+                    0, data + StubArgs, args, NeedsPlayer: false);
             });
             if (why is not null) throw new InvalidOperationException(L.Surrender.NotRun(why));
             if (result == 0) throw new InvalidOperationException(L.Surrender.Refused);
@@ -211,13 +296,14 @@ internal static partial class GameMemory
     // game looks the base up by its ID among its bases and falls back to the first one when none has it, and takes an
     // officer it does not find for none (which empties a base), so both are checked here. Throws when it was not run;
     // the game's change cannot be undone by the editor.
-    internal static void GiveBase(GameIdentity identity, int baseId, ulong baseAddress, int ruler, ulong rulerAddress)
+    internal static void GiveBase(GameIdentity identity, GameLayout layout, int baseId, ulong baseAddress, int ruler, ulong rulerAddress)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         bool city = baseId is >= 1 and <= TribeLast;
         if (!city && baseId is < GateFirst or > GateLast) throw new ArgumentOutOfRangeException(nameof(baseId));
-        uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
-        IntPtr handle = OpenProcess(access, false, identity.ProcessId);
+        if (GameCommandProfile.Find(identity) is not null && !layout.SameStorage(ReadCurrentLayout(identity)))
+            throw new InvalidOperationException(L.Errors.StateMoved);
+        IntPtr handle = OpenCommandWrite(identity, GiveBaseRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
@@ -239,7 +325,8 @@ internal static partial class GameMemory
                 BitConverter.TryWriteBytes(args.AsSpan(0), data + StubArgs + Event);
                 BitConverter.TryWriteBytes(args.AsSpan(Event + 0xC), baseId);
                 BitConverter.TryWriteBytes(args.AsSpan(Event + 0x10), ruler);
-                return new FrameCall(identity.ModuleBase + GiveBaseRva, GiveBaseStart, 0, data + StubArgs, args, NeedsPlayer: false);
+                return new FrameCall(CommandAt(identity, GiveBaseRva), CommandStart(identity, GiveBaseRva, GiveBaseStart),
+                    0, data + StubArgs, args, NeedsPlayer: false);
             });
             if (why is not null) throw new InvalidOperationException(L.Give.NotRun(why));
         }
@@ -270,6 +357,25 @@ internal static partial class GameMemory
     private const int MainCamera = 0x50, OtherCamera = 0x280, MainCameraHeld = MainCamera + 0x188;
     internal const int CameraFlight = 500;
 
+    private sealed record CameraCallBuild(ulong Function, ulong Keeper, ulong Vtable, int Length, string CodeHash)
+    {
+        internal string? Check(IntPtr handle, GameIdentity identity, bool requireIdle = true)
+        {
+            if (!IsSameGame(identity) || !ReadSession(identity).IsPlaying) return L.Calls.WhyNoCamera;
+            ulong function = identity.ModuleBase + Function, keeper = identity.ModuleBase + Keeper;
+            RequireEditPage(handle, function, Length, PageExecuteRead, identity.ModuleBase);
+            if (Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(ReadBytes(handle, function, Length))) != CodeHash)
+                return L.Calls.WhyCode;
+            if (TryReadPointer(handle, keeper + MainCamera) != identity.ModuleBase + Vtable) return L.Calls.WhyNoCamera;
+            if (TryReadPointer(handle, keeper + OtherCamera) is not 0UL) return L.Calls.WhyOtherCamera;
+            if (!requireIdle) return null;
+            byte[] held = new byte[4];
+            return !TryRead(handle, keeper + MainCameraHeld, held) || BitConverter.ToInt32(held) != 0 ? L.Calls.WhyCameraHeld : null;
+        }
+    }
+    private static readonly CameraCallBuild NovemberCamera = new(0x453570, 0x1B654A0, 0x13456F8, 0x14A,
+        "9AA02BEFC4A0E23BFD02C1A3976F43253E4E31F5B081F7FAB0AD8CEAEFBEB1F1");
+
     // Has the game's camera fly to a hex. Null when it flies; otherwise why not.
     internal static string? ShowTileInGame(GameIdentity identity, int tile)
     {
@@ -277,10 +383,21 @@ internal static partial class GameMemory
         ArgumentOutOfRangeException.ThrowIfNegative(tile);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(tile, TileCount);
         uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
-        IntPtr handle = OpenProcess(access, false, identity.ProcessId);
+        var camera = !identity.Verified && identity.DataProfile is not null &&
+            GameBuildProfiles.FindNative(identity) == GameBuildProfiles.NovemberNative ? NovemberCamera : null;
+        // A registered environment bridge may own the frame slot and its restoration worker needs CREATE_THREAD.
+        IntPtr handle = camera is null ? OpenGameWrite(access, identity) : OpenProcess(access | 0x0002, false, identity.ProcessId);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
+            if (camera is not null)
+            {
+                if (camera.Check(handle, identity) is { } refused) return refused;
+                ulong function = identity.ModuleBase + camera.Function;
+                ulong keepDistance = (ulong)BitConverter.DoubleToInt64Bits(-1.0);
+                return RunOnFrame(handle, identity, _ => new(function, [], (ulong)tile, 0, [], NeedsPlayer: false,
+                    More: [CameraFlight, keepDistance, keepDistance, 1]), camera: camera).Why;
+            }
             if (!identity.Verified || !GameCapabilities.Inspect(identity,GameFeature.GameCalls).CanAttempt) return L.Calls.WhyUnverified;
             ulong keeper = identity.ModuleBase + CameraKeeperRva;
             byte[] held = new byte[4];
@@ -313,6 +430,20 @@ internal static partial class GameMemory
         _ => null,
     };
 
+    private static void ValidateProfiledOwnedItemCalls(IntPtr handle, GameIdentity identity, IReadOnlyList<RecordEdit> edits)
+    {
+        if (!edits.Any(edit => edit.Kind == RecordKind.Item)) return;
+        var native = GameBuildProfiles.RequireNative(identity);
+        if (!ProfiledFrameCodeMatches(handle, identity, native) ||
+            !CommandCodeMatches(handle, identity, OwnedItemAddRva, OwnedItemAddStart) ||
+            !CommandCodeMatches(handle, identity, OwnedItemRemoveRva, OwnedItemRemoveStart) ||
+            EnvironmentRules.EnvironmentNativeBundle.FrameEntry(identity, ReadPointers(handle, identity.ModuleBase + native.UpdateSlotRva, 1)[0]) == 0)
+            throw new InvalidOperationException(L.Calls.WhyCode);
+        ulong world = ReadPointers(handle, CommandWorldSlot(identity), 1)[0];
+        if (world == 0 || ReadOwnedItems(handle, identity, world) is null)
+            throw new InvalidOperationException(L.Calls.WhyNoList);
+    }
+
     // After a write of 명품 records: has the game add each held one missing from its list and remove each listed one
     // no longer held, one call a frame. Returns a line for each it could not; the write itself stays, and the game
     // puts the list right when a save is loaded.
@@ -321,13 +452,13 @@ internal static partial class GameMemory
         List<RecordEdit> items = [.. edits.Where(e => e.Kind == RecordKind.Item && e.Changes.Count > 0).DistinctBy(e => e.Address)];
         if (items.Count == 0) return [];
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
-        IntPtr handle = OpenProcess(access, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, OwnedItemAddRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
-            ulong world = identity.Verified && TryReadPointer(handle, identity.ModuleBase + BasePointerRva) is ulong w ? w : 0;
-            HashSet<ulong>? listed = world == 0 ? null : ReadOwnedItems(handle, identity.ModuleBase, world);
+            bool supported = GameCommandProfile.Supports(identity, OwnedItemAddRva);
+            ulong world = supported && TryReadPointer(handle, CommandWorldSlot(identity)) is ulong w ? w : 0;
+            HashSet<ulong>? listed = world == 0 ? null : ReadOwnedItems(handle, identity, world);
             var lines = new List<string>();
             foreach (RecordEdit item in items)
             {
@@ -336,14 +467,20 @@ internal static partial class GameMemory
                 // Without the list, the one this write took across 발견 is the one it does not agree with.
                 bool on = listed?.Contains(item.Address) ?? ItemFields.State.Read(item.Expected) == ItemFields.Found;
                 if (OwnedListFix(state[0], on) is not bool add) continue;
-                string? why = listed is not null ? null : identity.Verified ? L.Calls.WhyNoList : L.Calls.WhyUnverified;
+                string? why = listed is not null ? null : supported ? L.Calls.WhyNoList : L.Calls.WhyUnverified;
                 if (why is null)
                 {
-                    (why, int result) = RunOnFrame(handle, identity, _ => add
-                        ? new FrameCall(identity.ModuleBase + OwnedItemAddRva, OwnedItemAddStart, world, item.Address, [], NeedsPlayer: false)
-                        : new FrameCall(identity.ModuleBase + OwnedItemRemoveRva, OwnedItemRemoveStart, world, item.Address, [], NeedsPlayer: false));
-                    if (why is null && ReadOwnedItems(handle, identity.ModuleBase, world)?.Contains(item.Address) != add)
+                    ulong rva = add ? OwnedItemAddRva : OwnedItemRemoveRva;
+                    byte[] legacy = add ? OwnedItemAddStart : OwnedItemRemoveStart;
+                    (why, int result) = RunOnFrame(handle, identity, _ =>
+                        new FrameCall(CommandAt(identity, rva), CommandStart(identity, rva, legacy), world, item.Address, [], NeedsPlayer: false));
+                    if (why is null && ReadOwnedItems(handle, identity, world)?.Contains(item.Address) != add)
                         why = L.Calls.WhyListUnchanged(result);
+                    else if (why is null)
+                    {
+                        if (add) listed!.Add(item.Address);
+                        else listed!.Remove(item.Address);
+                    }
                 }
                 if (why is not null) lines.Add(add ? L.Apply.ItemNotCounted(item.Label, why) : L.Apply.ItemStillListed(item.Label, why));
             }
@@ -353,12 +490,12 @@ internal static partial class GameMemory
     }
 
     // The records on the game's list of held 명품; null when it does not read as one.
-    private static HashSet<ulong>? ReadOwnedItems(IntPtr handle, ulong exe, ulong world)
+    private static HashSet<ulong>? ReadOwnedItems(IntPtr handle, GameIdentity identity, ulong world)
     {
         byte[] number = new byte[4], count = new byte[4], node = new byte[16];
         if (TryReadPointer(handle, world + OwnedItemsList) is not ulong list || list == 0 || !TryRead(handle, list, number) ||
-            !TryRead(handle, exe + ListCountRva, count) || BitConverter.ToUInt32(number) >= BitConverter.ToUInt32(count) ||
-            TryReadPointer(handle, exe + ListFirstsRva) is not ulong firsts || firsts == 0 ||
+            !TryRead(handle, CommandGlobal(identity, ListCountRva), count) || BitConverter.ToUInt32(number) >= BitConverter.ToUInt32(count) ||
+            TryReadPointer(handle, CommandGlobal(identity, ListFirstsRva)) is not ulong firsts || firsts == 0 ||
             TryReadPointer(handle, firsts + BitConverter.ToUInt32(number) * 8UL) is not ulong next)
             return null;
         var items = new HashSet<ulong>();

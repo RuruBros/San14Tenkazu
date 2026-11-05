@@ -59,7 +59,7 @@ public sealed class AiTraitTests
     {
         Assert.Equal(0x9300703Fu, AiCatalog.NameHash("Personalityfame"));
         AiNode[] nodes = AiTreeFile.Read(AiFileFactAttribute.Folder)[1].Nodes;
-        foreach (int index in new[] { 778, 4351, 7643 })
+        foreach (int index in AiFileFactAttribute.Nodes([778, 4351, 7643], [788, 4579, 8081]))
         {
             Assert.Equal(15, nodes[index].Params[1]);
             Assert.Equal(unchecked((int)0x9300703F), nodes[index].Params[2]);

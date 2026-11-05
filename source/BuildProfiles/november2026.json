@@ -1,0 +1,742 @@
+{
+  "schemaVersion": 1,
+  "id": "san14ce-ko-782cf229a56c",
+  "exeSha256": "782CF229A56CDDE2B95399E0E7536740B3F5E96BEA702679365E4DAD061ABDCE",
+  "processName": "SAN14CE_KO",
+  "layoutId": "san14ce-ko-layout-v1",
+  "nativeContractId": "san14ce-ko-native-20261105",
+  "groups": {
+    "Memory": {
+      "BasePointerRva": {
+        "type": "ulong",
+        "value": 41422688
+      },
+      "BaseAdjust": {
+        "type": "ulong",
+        "value": 656
+      },
+      "CityTable": {
+        "type": "ulong",
+        "value": 55976
+      },
+      "ForceTable": {
+        "type": "ulong",
+        "value": 56480
+      },
+      "CorpsTable": {
+        "type": "ulong",
+        "value": 56896
+      },
+      "TileTable": {
+        "type": "ulong",
+        "value": 57312
+      },
+      "CountyTable": {
+        "type": "ulong",
+        "value": 444512
+      },
+      "BuildingTable": {
+        "type": "ulong",
+        "value": 448520
+      },
+      "OfficerTable": {
+        "type": "ulong",
+        "value": 473024
+      },
+      "UnitTable": {
+        "type": "ulong",
+        "value": 517544
+      },
+      "MaxCounties": {
+        "type": "int",
+        "value": 501
+      },
+      "MaxBuildings": {
+        "type": "int",
+        "value": 3063
+      },
+      "MaxOfficers": {
+        "type": "int",
+        "value": 4096
+      },
+      "ForceCount": {
+        "type": "int",
+        "value": 52
+      },
+      "UnitSlots": {
+        "type": "int",
+        "value": 501
+      },
+      "MapColumns": {
+        "type": "int",
+        "value": 220
+      },
+      "MapRows": {
+        "type": "int",
+        "value": 220
+      },
+      "StatePointer": {
+        "type": "ulong",
+        "value": 552792
+      },
+      "StateRead": {
+        "type": "int",
+        "value": 64
+      },
+      "StatePlayerForceOffset": {
+        "type": "int",
+        "value": 58
+      },
+      "StateFlagsOffset": {
+        "type": "int",
+        "value": 5800
+      },
+      "StateYearOffset": {
+        "type": "int",
+        "value": 52
+      },
+      "StateHourOffset": {
+        "type": "int",
+        "value": 56
+      },
+      "DemoPlayFlag": {
+        "type": "uint",
+        "value": 256
+      },
+      "MaxPlayerForce": {
+        "type": "int",
+        "value": 45
+      },
+      "CityStride": {
+        "type": "int",
+        "value": 360
+      },
+      "CountyStride": {
+        "type": "int",
+        "value": 152
+      },
+      "OfficerStride": {
+        "type": "int",
+        "value": 496
+      },
+      "TileStride": {
+        "type": "int",
+        "value": 32
+      },
+      "BuildingStride": {
+        "type": "int",
+        "value": 32
+      },
+      "UnitStride": {
+        "type": "int",
+        "value": 512
+      },
+      "TileCountyOffset": {
+        "type": "int",
+        "value": 18
+      },
+      "ForceRead": {
+        "type": "int",
+        "value": 288
+      },
+      "ForceCountryOffset": {
+        "type": "int",
+        "value": 72
+      },
+      "ForceColorOffset": {
+        "type": "int",
+        "value": 73
+      },
+      "CorpsLeaderOffset": {
+        "type": "int",
+        "value": 18
+      },
+      "TribeFirst": {
+        "type": "int",
+        "value": 47
+      },
+      "TribeLast": {
+        "type": "int",
+        "value": 51
+      },
+      "GateFirst": {
+        "type": "int",
+        "value": 52
+      },
+      "GateLast": {
+        "type": "int",
+        "value": 61
+      },
+      "BaseSlots": {
+        "type": "int",
+        "value": 63
+      },
+      "GateSlot": {
+        "type": "int",
+        "value": 53
+      },
+      "GateRead": {
+        "type": "int",
+        "value": 192
+      },
+      "TileLandmarkOffset": {
+        "type": "int",
+        "value": 30
+      },
+      "TileBaseOffset": {
+        "type": "int",
+        "value": 26
+      },
+      "BuildingTileOffset": {
+        "type": "int",
+        "value": 16
+      },
+      "BuildingTypeOffset": {
+        "type": "int",
+        "value": 18
+      },
+      "BuildingForceOffset": {
+        "type": "int",
+        "value": 19
+      },
+      "BuildingDurabilityOffset": {
+        "type": "int",
+        "value": 20
+      },
+      "BuildingBuiltOffset": {
+        "type": "int",
+        "value": 22
+      },
+      "CountryTable": {
+        "type": "ulong",
+        "value": 491224
+      },
+      "ItemTable": {
+        "type": "ulong",
+        "value": 489608
+      },
+      "ItemSlots": {
+        "type": "int",
+        "value": 202
+      },
+      "ItemStride": {
+        "type": "int",
+        "value": 128
+      },
+      "CountryCount": {
+        "type": "int",
+        "value": 101
+      },
+      "CountryRead": {
+        "type": "int",
+        "value": 48
+      },
+      "CountryNameOffset": {
+        "type": "int",
+        "value": 16
+      },
+      "PersonalityTableOffset": {
+        "type": "ulong",
+        "value": 514696
+      },
+      "TacticTableOffset": {
+        "type": "ulong",
+        "value": 488000
+      },
+      "PolicyTableOffset": {
+        "type": "ulong",
+        "value": 494272
+      },
+      "IdeologyTableOffset": {
+        "type": "ulong",
+        "value": 494184
+      },
+      "OfficeTableOffset": {
+        "type": "ulong",
+        "value": 492136
+      },
+      "RankTableOffset": {
+        "type": "ulong",
+        "value": 492032
+      },
+      "FormationTableOffset": {
+        "type": "ulong",
+        "value": 487832
+      },
+      "FormationMobilityOffset": {
+        "type": "int",
+        "value": 127
+      },
+      "TableNameOffset": {
+        "type": "int",
+        "value": 16
+      },
+      "CityCount": {
+        "type": "int",
+        "value": 46
+      }
+    },
+    "Scene": {
+      "ManagerRva": {
+        "type": "ulong",
+        "value": 28978112
+      },
+      "ManagerStateOffset": {
+        "type": "ulong",
+        "value": 8
+      },
+      "SceneOffset": {
+        "type": "ulong",
+        "value": 528
+      },
+      "ParentOffset": {
+        "type": "ulong",
+        "value": 80
+      },
+      "DriverOffset": {
+        "type": "ulong",
+        "value": 24
+      },
+      "DriverClassRva": {
+        "type": "ulong",
+        "value": 21757688
+      },
+      "DeviceOffset": {
+        "type": "ulong",
+        "value": 12408
+      },
+      "ContextOffset": {
+        "type": "ulong",
+        "value": 16
+      },
+      "VertexOwnerClassRva": {
+        "type": "ulong",
+        "value": 21765048
+      },
+      "PixelOwnerClassRva": {
+        "type": "ulong",
+        "value": 21765104
+      }
+    },
+    "Engine": {
+      "UpdateRva": {
+        "type": "ulong",
+        "value": 1361376
+      },
+      "UpdateSlotRva": {
+        "type": "ulong",
+        "value": 20490056
+      },
+      "MoveSpeedRva": {
+        "type": "ulong",
+        "value": 2534144
+      },
+      "AddMoraleRva": {
+        "type": "ulong",
+        "value": 2563696
+      },
+      "ForegroundRva": {
+        "type": "ulong",
+        "value": 27677508
+      },
+      "DrawRva": {
+        "type": "ulong",
+        "value": 9844608
+      },
+      "LandRva": {
+        "type": "ulong",
+        "value": 9844432
+      },
+      "MeshRva": {
+        "type": "ulong",
+        "value": 9844352
+      },
+      "PrepareRva": {
+        "type": "ulong",
+        "value": 9856080
+      },
+      "IndexedRva": {
+        "type": "ulong",
+        "value": 9844288
+      },
+      "BatchRva": {
+        "type": "ulong",
+        "value": 9850336
+      },
+      "InstancedRva": {
+        "type": "ulong",
+        "value": 9844688
+      },
+      "IndirectRva": {
+        "type": "ulong",
+        "value": 9844784
+      },
+      "AutoRva": {
+        "type": "ulong",
+        "value": 9844240
+      },
+      "InlineRva": {
+        "type": "ulong",
+        "value": 9844864
+      },
+      "PresentRva": {
+        "type": "ulong",
+        "value": 9793312
+      },
+      "NoticeQueueRva": {
+        "type": "ulong",
+        "value": 2380992
+      },
+      "NoticeHeadRva": {
+        "type": "ulong",
+        "value": 2111456
+      },
+      "NoticeNodeRva": {
+        "type": "ulong",
+        "value": 1920912
+      },
+      "NoticeFreeRva": {
+        "type": "ulong",
+        "value": 4166000
+      },
+      "NoticePictureRva": {
+        "type": "ulong",
+        "value": 8671088
+      },
+      "NoticeHideRva": {
+        "type": "ulong",
+        "value": 8615696
+      },
+      "NoticeAnimationRva": {
+        "type": "ulong",
+        "value": 8851856
+      },
+      "NoticeSoundRva": {
+        "type": "ulong",
+        "value": 4217664
+      },
+      "NoticeSoundAllocateRva": {
+        "type": "ulong",
+        "value": 4218144
+      },
+      "NoticeSoundStopRva": {
+        "type": "ulong",
+        "value": 4227552
+      },
+      "NoticeSoundResourceRva": {
+        "type": "ulong",
+        "value": 20740576
+      },
+      "NoticeAudioRva": {
+        "type": "ulong",
+        "value": 41768728
+      },
+      "NoticeManagerRva": {
+        "type": "ulong",
+        "value": 28725504
+      },
+      "NoticeStateClassRva": {
+        "type": "ulong",
+        "value": 20643368
+      },
+      "GameStateClassRva": {
+        "type": "ulong",
+        "value": 20814160
+      },
+      "GameLayoutClassRva": {
+        "type": "ulong",
+        "value": 20812000
+      },
+      "NoticeLayoutClassRva": {
+        "type": "ulong",
+        "value": 20811600
+      },
+      "StrategyStateClassRva": {
+        "type": "ulong",
+        "value": 20816824
+      },
+      "UserStrategyStateClassRva": {
+        "type": "ulong",
+        "value": 20812848
+      },
+      "NoticeDialogClassRva": {
+        "type": "ulong",
+        "value": 21435216
+      },
+      "ExecutableLimit": {
+        "type": "ulong",
+        "value": 20197376
+      }
+    }
+  },
+  "resources": [
+    {
+      "path": "Core/RuntimeRules/patches.json",
+      "name": "RuntimeRules.patches.json",
+      "sha256": "05b5a612e395627c636b1dd270d3d33e55e27a9d9d81096a308a07ca2c5e24f4"
+    },
+    {
+      "path": "Core/RuntimeRules/trait-list.json",
+      "name": "RuntimeRules.trait-list.json",
+      "sha256": "664166ac94b2223456ddb0916c1d702bc14fbaccac65964e90fc4b41d48d7036"
+    }
+  ],
+  "guards": {
+    "Season": [
+      {
+        "rva": 9844608,
+        "size": 70,
+        "sha256": "782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"
+      },
+      {
+        "rva": 9844432,
+        "size": 82,
+        "sha256": "dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"
+      },
+      {
+        "rva": 9844352,
+        "size": 67,
+        "sha256": "ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"
+      },
+      {
+        "rva": 9856080,
+        "size": 533,
+        "sha256": "98560a99cb0cccfce2610c664132b8dfa046ac9c5490ed5c3674b4825ebf346c"
+      },
+      {
+        "rva": 9844288,
+        "size": 52,
+        "sha256": "4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"
+      },
+      {
+        "rva": 9850336,
+        "size": 443,
+        "sha256": "75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b"
+      }
+    ],
+    "Environment": [
+      {
+        "rva": 1361376,
+        "size": 835,
+        "sha256": "3b69adebe07f6dc6bdac3e32fb1af7c7245ac542691cb8cce663765b3c9a970c"
+      },
+      {
+        "rva": 2534144,
+        "size": 131,
+        "sha256": "32361f62b167e4c6d2a30103a88637876568a26eb8ccfd2db6b78bb7edc855e8"
+      },
+      {
+        "rva": 2563696,
+        "size": 2209,
+        "sha256": "29e99a777bb531460f7e4905c65cbb4b9a73ae03b6ce5f34c472c767880f93a5"
+      },
+      {
+        "rva": 2380992,
+        "size": 361,
+        "sha256": "1e1ca36980b94a96fac15ffeabec2630ac7fbcf9b011064f1af4500e7f123d52"
+      },
+      {
+        "rva": 2111456,
+        "size": 93,
+        "sha256": "963d76daf34f72c4fdd5f65a9c3c008d3e420c67c5b6a2ca8e356952674f912f"
+      },
+      {
+        "rva": 1920912,
+        "size": 49,
+        "sha256": "24b2bc5ee67e748ed72803b22dbc2770a733adac7a7fd842d7fba33a28db96ff"
+      },
+      {
+        "rva": 4166000,
+        "size": 88,
+        "sha256": "b8b43318d5c5c5a9708590462e26f009e0151c1ba4d92092fe34f356ec863cf6"
+      },
+      {
+        "rva": 8671088,
+        "size": 213,
+        "sha256": "704018074c3d02e788a9a44761a33a0b710fc4fc79f8681627d7c69fe26b53ce"
+      },
+      {
+        "rva": 8615696,
+        "size": 144,
+        "sha256": "92e1da5825bd43e1ee08e1489a6b1ddd3f459202808e0802e11e41ae77ad3301"
+      },
+      {
+        "rva": 8851856,
+        "size": 56,
+        "sha256": "b7f6369e8df0d35cc2e2d050a08ae9550bbb3a103562103dd8bfe295afb315ca"
+      },
+      {
+        "rva": 4217664,
+        "size": 12,
+        "sha256": "616e92ef8d274f03c334cf958e04431a0cb0ac904424a6adb0962fde2cc3c20a"
+      },
+      {
+        "rva": 4218144,
+        "size": 265,
+        "sha256": "71bfd14a5bcb41ba96fa140d1fa97860c17cf5d20a0ae08848f0b4f99f622567"
+      },
+      {
+        "rva": 4227552,
+        "size": 305,
+        "sha256": "cab8f5f21e7d3c7a9e12a65bec035e17e351422e58e8ed0aa64d7e040c018584"
+      }
+    ]
+  },
+  "signatures": {
+    "Seasons/Native/FrameSignatures.h": {
+      "namespace": "season::frame",
+      "arrays": [
+        {
+          "name": "IndexedCode",
+          "bytes": "40534883ec20488bd9e8022e000084c0741c488b4b104533c9448b4424508b542458488b01ff5060ff83d02a00004883c4205bc3",
+          "sha256": "4a1653de5006945e8945504e51158704032d997f08c4c2b03ed0b8a7ff705fdf"
+        },
+        {
+          "name": "LandCode",
+          "bytes": "48895c2408574883ec30418bf8488bd9e86b2d000084c0742e488b4b1033d2488b83900000004533c989542428448bc7895424204c8b118b501c41ff92a0000000ff83d02a0000488b5c24404883c4305fc3",
+          "sha256": "dae9d45952c317094fd857fbce61bfd7e3f40696404ac5cfb213d0569a4a18b2"
+        },
+        {
+          "name": "MeshCode",
+          "bytes": "40534883ec30488bd9e8c22d000084c0742b488b4b1033d2448b4c2460448b44247089542428488b01895424208b542468ff90a0000000ff83d02a00004883c4305bc3",
+          "sha256": "ed619f25c921d2e81ce43933df8798febdac7bdd432a3378c4163fc562c8f5ff"
+        },
+        {
+          "name": "DrawCode",
+          "bytes": "48895c24084889742410574883ec20418bf9418bf0488bd9e8b32c000084c07415488b4b10448bc68bd7488b01ff5068ff83d02a0000488b5c2430488b7424384883c4205fc3",
+          "sha256": "782647f22a91f452bddacbef5c8d341bef5f2bea7d22584162ae1a0c213fe41b"
+        },
+        {
+          "name": "InstancedCode",
+          "bytes": "48895c24084889742410574883ec30418bf9418bf0488bd9e8632c000084c07426488b4b10448bc78b4424688bd6448b4c2460894424204c8b1141ff92a8000000ff83d02a0000488b5c2440488b7424484883c4305fc3",
+          "sha256": "f1661504d65a5e54580f6ee42476f2483b0fb08887998fa646659f250264f7b6"
+        },
+        {
+          "name": "IndirectCode",
+          "bytes": "48895c24084889742410574883ec20418bf9498bf0488bd9e8032c000084c0741a488b4b10448bc7488b5618488b01ff9040010000ff83d02a0000488b5c2430488b7424384883c4205fc3",
+          "sha256": "d055bb98fb245ec048b9285499f0ca0b12cd4d76c14ea7d7d88cc83faa012bb1"
+        },
+        {
+          "name": "AutoCode",
+          "bytes": "40534883ec20488bd9e8322e000084c07413488b4b10488b01ff9030010000ff83d02a00004883c4205bc3",
+          "sha256": "5cd336ea9cc3e3beb543c86eb6adad0b7903f95b503994afc96ae6d91ad3e266"
+        },
+        {
+          "name": "InlineCode",
+          "bytes": "89542410555657415541574883ec40418bc04d8be90faf842490000000418be8448b89182a0000488bf9448bf84c8d501748b8abaaaaaaaaaaaaaa49f7e2488bf248c1ee04413bf10f87290100008b89302a00004533c003ce4c89a42480000000413bc97607448987302a0000488b87082a0000488d542430488b4f10458bc8443987302a000048895424284c8b6010410f95c1488b014183c104498bd44489442420ff507085c07931488b0de7bde701488b89402f00004885c90f84ae00000089842490000000488d942490000000488b01ff5008e9940000008b87302a00004d8bc748895c2470498bd58d1c40c1e3038bcb48034c2430e8629d6b00488b4f104533c0498bd4488b01ff507801b7302a000033d28b87302a0000488bcf448b8c24900000004c8b87082a0000c7442428010000008987382a0000895c2420e8eb5500008b542478488bcfe87f2a0000488b5c247084c07415488b4f104533c08bd5488b01ff5068ff87d02a00004c8ba424800000004883c440415f415d5f5e5dc3",
+          "sha256": "3c12e8894de99b11dfcaf216edefbdc8c36d053efd9d11bf8a0a8962c3e0e12c"
+        },
+        {
+          "name": "BatchCode",
+          "bytes": "48895c240848896c24104889742418574883ec30488b5910488bf1488bb9082a00004533c0488ba9102a0000488bcb488b03488b5710ff5078488b034533c0488b5510488bcbff507833c0c7442428010000004c8bc7488986202a000033d2488986282a0000488bce89442420448d4818e85a4100004839ae90000000741f488b4e104533c94889ae90000000448b4518488b5510488b01ff90980000008b96402a000083fa010f85a30000008bbee4010000488b9ec000000085ff741c4883be202a0000007408488bcee830ffffffc786e40100000000000048399ec0000000740e48899ec000000048899eb029000080be7829000000740f488b9688290000488bcee8873300008b9e382a0000ba010000008bae302a0000488bce2bdde84c15000084c07415488b4e10448bc58bd3488b01ff5068ff86d02a00004c8b86c00000008bd7488bcee852280000eb328b9e3c2a0000488bce8bbe342a00002bdfe80a15000084c07418488b4e104533c9448bc78bd3488b01ff5060ff86d02a00008b86382a0000ff86d42a0000ff8ed02a0000488b5c2440488b6c24488986302a00008b863c2a00008986342a0000488b7424504883c4305fc3",
+          "sha256": "75f7fe6b0e9c27de55869454f1e20c533b8e34615c2872a2e95df949062e009b"
+        },
+        {
+          "name": "PrepareCode",
+          "bytes": "48895c240848896c24104889742418574883ec30488b7910488bd9488ba9a80000004863f23bb1d0270000743a83fe08750b8b919828000083c220eb0d488d0d04a7b500488bc68b14b185d2750732c0e9ab010000488b07488bcfff90c000000089b3d02700008b839c28000085c00f84e7000000a8087448488b054892e7014c8d8bb0040000488b93980000004c8bc5488b4d404c8b90f83000004c89542420e83a570000488bd04885c074a0488b07488bcfff908800000083a39c280000f7f6839c280000017426488d9390270000488bcbe847e6ffff4c8b07488bd0488bcf41ff905801000083a39c280000fef6839c28000002742d488d9398270000488bcbe888e3ffff4c8b174183c9ff4533c0488bd0488bcf41ff921801000083a39c280000fdf6839c28000004742d488d93c8270000488bcbe8b2e4ffff4c8b0f488bd0448b8318010000488bcf41ff912001000083a39c280000fb83bb282600000074114c8b83a800000033d2488bcbe8dae9ffff4c8b83c80000004d85c0741683bb2c26000000740dba01000000488bcbe8b8e9ffff4c8b83d00000004d85c0741683bb3026000000740dba02000000488bcbe896e9ffff4c8b83d80000004d85c0741683bb3426000000740dba03000000488bcbe874e9ffff4c8b83b80000004d85c0741683bb3826000000740dba04000000488bcbe852e9ffffb001488b5c2440488b6c2448488b7424504883c4305fc3",
+          "sha256": "98560a99cb0cccfce2610c664132b8dfa046ac9c5490ed5c3674b4825ebf346c"
+        },
+        {
+          "name": "PresentCode",
+          "bytes": "48895c240848896c24104889742418574883ec20488bea488bf9e87148feffb201488bcf488bf0e8e45300008b9f202b00004c8d8fa82e000041b001488bcf488d93b40200004803d28b14d7e88f5100008b8fb82e00008b87e42f00000faf87982e0000898fbc2e0000488b8f582b0000c787b82e000000000000482b8cdf302b000048c1f9028d14888b87b42e00003bc28997b02e0000488bcf0f43d08997b42e000033d2e8e55e0000488bcfe8ede7ffff4885ed7507488dafc02f0000488b4f304885c9740a4883c110ff1536c39e00488b4f10488b01ff9078030000807d00007421488b4d084885c9740433d2eb26488b8f803000004885c9742333d2448d4201eb15488b8f803000004885c9740f8b975c3000004533c0488b01ff5040488b4f304885c9740a4883c110ff1584c09e00e85747fefff30f1015272ba400482bc6482bb7f03200000f57c0488987e0320000f3480f2ac67904f30f58c2488b056986e8010f57c9f30f5905e2eb9e00488b4818f3480f2ac94885c97904f30f58caf30f5ec1f30f1187f8320000e8fb46feff488b5c2430488b6c2438488b742440488987f03200004883c4205fc3",
+          "sha256": "68f705f4806d227c47b6eb4785cced89f2803a9be99f13c27aa440ca97870aa7"
+        }
+      ]
+    },
+    "Seasons/Native/PrepareSignature.h": {
+      "namespace": "",
+      "arrays": [
+        {
+          "name": "ExpectedPrepareCode",
+          "bytes": "48895c240848896c24104889742418574883ec30488b7910488bd9488ba9a80000004863f23bb1d0270000743a83fe08750b8b919828000083c220eb0d488d0d04a7b500488bc68b14b185d2750732c0e9ab010000488b07488bcfff90c000000089b3d02700008b839c28000085c00f84e7000000a8087448488b054892e7014c8d8bb0040000488b93980000004c8bc5488b4d404c8b90f83000004c89542420e83a570000488bd04885c074a0488b07488bcfff908800000083a39c280000f7f6839c280000017426488d9390270000488bcbe847e6ffff4c8b07488bd0488bcf41ff905801000083a39c280000fef6839c28000002742d488d9398270000488bcbe888e3ffff4c8b174183c9ff4533c0488bd0488bcf41ff921801000083a39c280000fdf6839c28000004742d488d93c8270000488bcbe8b2e4ffff4c8b0f488bd0448b8318010000488bcf41ff912001000083a39c280000fb83bb282600000074114c8b83a800000033d2488bcbe8dae9ffff4c8b83c80000004d85c0741683bb2c26000000740dba01000000488bcbe8b8e9ffff4c8b83d00000004d85c0741683bb3026000000740dba02000000488bcbe896e9ffff4c8b83d80000004d85c0741683bb3426000000740dba03000000488bcbe874e9ffff4c8b83b80000004d85c0741683bb3826000000740dba04000000488bcbe852e9ffffb001488b5c2440488b6c2448488b7424504883c4305fc3",
+          "sha256": "98560a99cb0cccfce2610c664132b8dfa046ac9c5490ed5c3674b4825ebf346c"
+        }
+      ]
+    },
+    "Environment/Native/EnvironmentSignatures.h": {
+      "namespace": "",
+      "arrays": [
+        {
+          "name": "AppUpdateCode",
+          "bytes": "48895c241048896c241848897424205741544155415641574883ec30448ba9c8020000498bf0488bea488bf94585ed740d4881c1a0020000ff150a6d1f01b901000000ff15f76a1f01b902000000ff15ec6a1f014533ff33c0f0440fb17f0c448be033c0f0440fb17f1089442460e85df17e00488b9f500100004c8db7c8000000498bce4889442420e8022f9f004d8b462048b8cdcccccccccccccc49f7e048c1ea038d0c9203c9442bc1488b4c2420482bcb4b894cc630493b4e10760449894e10493b4e18730449894e1849ff46204585c0750e498bcee813150000f2410f114628498bcee825319f00488b44242048898750010000410fbae41e73534c8b05737b6802488bd6488bcd4d8b4078e8ec08ffff4c8b055d7b6802488bd6488bcd4d8b8080000000e8d308ffff33c0f0440fb17f0c6666660f1f8400000000008bc88bd00fbaf11ef00fb14f0c3bc275ef4585e47910488b4508488b4808488b41404c897808e8d547ecff488bc8e81deb7200448b4c24604c8bc6488bd5488bcfe8bae5ffff85c00f85000100008b471485c075254439bf180200007418e84d49ecff488bc84c8bc6488bd5e8af8becffe98200000085c0747ee83149ecff488bc84c8bc6488bd5e8938becff488b05a47a6802488b48784885c97414488b05fc63a5014c39b81002000074044c8b7920e84a26ecff488bc84d8bcf4c8bc5488bd6e869462300e83426ecff488bc8488bd6e8c93b2300488b0d52a5a6014885c97408488bd6e865f80300e8c048ecff488bc8e8885aecffe82348ecff488bc84c8bcf4c8bc6488bd5e812684200837f14007414488b0d15a5a6014885c97408488bd6e8980e0400488b0dc98e68024c8bc6488bd5e8d6c02b00e8214aecff488bc8488b10ff5218ff15ca721f01e8ad46ecff488bc8e885f47100e8a046ecff488bc8e8c8ca7100e89346ecff488bc8488bd6e878777200e88346ecff488bc8488bd6e898e37200e8537c0000488bc8e8dbd37200488b0d24ab6802488bd6e85c167600e85746ecff488bc8488bd6e8ac897200e8d70e7200488bc8488bd6e83ce67200e8c70e7200488bc8488bd6e89c8b72004585ed740d488d8fa0020000ff15d2671f01488b5c2468488b6c2470488b7424784883c430415f415e415d415c5fc3",
+          "sha256": "3b69adebe07f6dc6bdac3e32fb1af7c7245ac542691cb8cce663765b3c9a970c"
+        },
+        {
+          "name": "MoveSpeedCode",
+          "bytes": "40534883ec40488bd9e8726c0c00488bcbe83ac904003d0fbd0000760833c04883c4405bc3488bcb0f29742430e89e1ffcff4533c948c744242000000000488bd0488bcb458d4101e8037a0400660f6e354f117e0133d20f5bf6488bcbf30f59f0e85ad0040083c064660f6ec00f5bc0f30f5ef0f30f2cc60f287424304883c4405bc3",
+          "sha256": "32361f62b167e4c6d2a30103a88637876568a26eb8ccfd2db6b78bb7edc855e8"
+        },
+        {
+          "name": "AddMoraleCode",
+          "bytes": "4055565741544155415641574881ecc002000048c78424a0000000feffffff48899c2418030000488b0502cd81014833c448898424b002000044894c2444498bf04c894424588bfa4c8be1e8c0f80b0085c00f841c08000033ed85ff796c896c24204533c94c8d8424b000000033d2498bcce8f99cffff8b8c24e400000085c974488bc79933c22bc20fafc10faf0549a17d01660f6ec80f5bc9f30f5e0d3a3d0d01f30f2cc185c0751a0f57c00f2fc1760af30f100db23d0d01eb08f30f100d643c0d01f30f2cc103f8498bcce81ee5fbff410fb65c241a3bd80f4fd8498bcce80be5fbff03df79048bddeb053bd80f4fd88bd3498bcce85410fdff85db0f85700700004c8bfd48896c24384c8bed488bcee8f9f70b008d7b0385c00f8429010000488bcee806f6fbff488bd8488bc8e8dbf70b0085c00f8487000000488bcbe83b20fcff85c0750c488bcbe8af25fcff85c0746f488bcbe82320fcff488bcb85c07427e857d9fbff83f833770583f8347c028bc58bd0488b0d72ef5002e8bdc30b004c8be8e9c2050000e830d9fbff8d48cc8bd583f9090f96c28d48cd85d20f44cd8d41ff83f8098d513376028bd5488b0d39ef5002e884c30b004c8be8e989050000488bcee8f4d7fbff3d0fbd000077144863c8488b0513ef5002488b9cc870e20000eb0e488b0502ef5002488b9870e20000488bcbe813f70b0085c00f8448050000488bcbe8e30efcffffc83df30100000f8733050000488b1dcfee5002488bcee8c70efcff3df40100007f0f48984c8bbcc338e80700e90e0500004c8bbb38e80700e902050000488d1dae450d0148895c2448392d33205602740d488d0d32205602ff154c120d01488b05c5205602483905c6205602750748896c2450eb164533c033d2488d0d79205602e8bc69daff4889442450392df11f5602740e488d0df01f5602ff15ba0f0d019048895c2460833dd51f560200740d488d0dd41f5602ff15ee110d01488b056720560248390568205602750a4c8bf548896c2468eb194533c033d2488d0d18205602e85b69daff4c8bf04889442468833d8c1f560200740e488d0d8b1f5602ff15550f0d0190410fb74c242a488b05cfed500281f90fbd0000770a488b8cc870e20000eb07488b8870e200004c8d4424488bd7e8da7a0300488b7424504885f6742648833d701f560200741c8b06488b0d6d1f56024885c9740e3b05921f56027306488b1cc1eb03488bdd41bf004001004885db0f84410100000f1f840000000000488b33c7442430ff000000896c24404c8bc6488d542440488d4c2430e81fd8efff8b44243083f81b740c83c0fb83f8010f87f1000000488bcee862f3fbff488bf8488bc8e837f50b0085c0742c0fb747103d0fbd000077138bc8488b05ffec5002488bb4c870e20000eb0e488b05eeec5002488bb070e200004d85f67405418b06eb03498bc7488b0db31e56024885c974283b05d81e560273208bc0488b0cc14885c97415483931740b488b49084885c975f2eb054885c9756d410fb77c242a488bcee868d5fbff8bc88bd7e8bfa4050085c07452833d241e560200740d488d0d231e5602ff153d100d014d85f67405418b06eb03498bc741b0018bd0488d0d2c1e5602e8476adaff4885c07403488930833de81d560200740d488d0de71d5602ff15b10d0d01488b5b084885db0f85ccfeffff488b7424504d85f67403458b3e418bcf488b050d1e560248833cc8000f86a5010000410fb744242a3d0fbd000077138bc8488b05f4eb5002488b9cc870e20000eb0e488b05e3eb5002488b9870e200004d85f6746f48833da71d5602007465833d661d5602007423488d0d651d5602ff157f0f0d01833d501d560200740d488d0d4f1d5602ff15190d0d014c8bc3418b16488d0d641d5602e88faffdff48833d5f1d560200741d418b06488b0d5b1d56024885c9740e3b05801d56027306488b14c1eb03488bd5488b3a488bcfe89af1fbff488bd8488bc8e86ff30b0085c0745e488bcbe8d31bfcff488bcb85c07418e807d5fbff83f833770583f8347c028bc58bd0e9b0000000e82f21fcff85c00f84b2000000488bcbe8dfd4fbff8d48cc8bd583f9090f96c28d48cd85d20f44cd8d41ff83f8098d5133767d8bd5eb79488bcfe8b5d3fbff3d0fbd000077144863c8488b05d4ea5002488b9cc870e20000eb0e488b05c3ea5002488b9870e20000488bcbe8d4f20b0085c0744b488bcbe8a80afcffffc83df3010000773a488b1d98ea5002488bcfe8900afcff3df40100007f0c48984c8bbcc338e80700eb1d4c8bbb38e80700eb14488b0d6dea5002e8b8be0b004c8be84c8b7c24384d85f6745548833d2b1c560200744b833dea1b560200740d488d0de91b5602ff15030e0d01418b16488d0d011c5602e89c61daff498bd6488d0d3a1c5602e84d62daff833db61b560200740e488d0db51b5602ff157f0b0d01904885f6745448833dd11b560200744a833d901b560200740d488d0d8f1b5602ff15a90d0d018b16488d0da81b5602e84361daff488bd6488d0de11b5602e8f461daff833d5d1b560200740e488d0d5c1b5602ff15260b0d0190bf03000000488b742458837c2444000f45fd897c2430e88223f6ff4885c07479e87823f6ffe8c315f6ff83f8ff746a488b0577e95002488b88e8710800e89be50b00488bf84885c07425498bcce88bc0fbff8bd8488b17488bcfff52608bc88bd3e817a0050085c07405e8bef30b00498bcce896adfbff4885c07419498bcce889adfbff488bc8e8c12cfcff85c07405e808f40b008b7c243083bc242003000000745048896c247889ac24900000004c896424704c89bc24800000004c89ac2488000000c78424940000000100000089bc2498000000488d542470488b0dcbe85002e886e40a0085c0753f4d8bc5498bd7eb25488bcee8d2f00b00488bdd85c0490f45dd488bcee8c1f00b0085c0490f45ef4c8bc3488bd5897c242041b901000000498bcce8a381feffb801000000eb0233c0488b8c24b00200004833cce8aa9fd800488b9c24180300004881c4c0020000415f415e415d415c5f5e5dc3",
+          "sha256": "29e99a777bb531460f7e4905c65cbb4b9a73ae03b6ce5f34c472c767880f93a5"
+        }
+      ]
+    },
+    "Environment/Native/EnvironmentNoticeSignatures.g.h": {
+      "namespace": "",
+      "arrays": [
+        {
+          "name": "NoticeQueueCode",
+          "bytes": "488bc44c894820555657415641574881ec9000000048c7442420feffffff48895810498bf1498bd8488bea488bf94533f644897088c7442430300000004c897080488b09488b014c8d4c2430ba90040000458d4610ff504048898424c000000048894424284885c07410488bd3488bc8e8abce0000488bd8eb03498bde48895c24484885db744e4c8bc5488bd3488bcfe89bd93200488d44245048898424c00000004c89b42488000000488b4e384885c97412488b01488d542450ff1048898424880000004c8d442450488bd3488bcfe8abd83200488b473048ffc02b473885c07e3e4863d84883c33f4883e3c04c8b47384c03c349c1e004c7442430300000004c89742438488b4f28488b014c8d4c2430488b5740ff504848015f3848894740488b473048c1e004480347400f104424400f110048ff4730488b4e384885c97410488b01483bce0f95c2ff50204c897638488b9c24c80000004881c490000000415f415e5f5e5dc3",
+          "sha256": "1e1ca36980b94a96fac15ffeabec2630ac7fbcf9b011064f1af4500e7f123d52"
+        },
+        {
+          "name": "NoticeHeadCode",
+          "bytes": "48894c2408574883ec3048c7442420feffffff48895c2448498bf8488bdab918000000e8d8581f0048894424404885c07506e859c5e100cc4885db7506488bd8488bf8488918488d48084885c97403488939488b5c24484883c4305fc3",
+          "sha256": "963d76daf34f72c4fdd5f65a9c3c008d3e420c67c5b6a2ca8e356952674f912f"
+        },
+        {
+          "name": "NoticeNodeCode",
+          "bytes": "40534883ec3048c7442420feffffff498bd9e839e802004889442440488d50104885d27406488b0b48890a4883c4305bc3",
+          "sha256": "24b2bc5ee67e748ed72803b22dbc2770a733adac7a7fd842d7fba33a28db96ff"
+        },
+        {
+          "name": "NoticeFreeCode",
+          "bytes": "40574883ec3048c7442420feffffff48895c24404889742448488bf1e81f4c000090488bd8488d4868ff1589a1f400904c8b03488bd6488bcb41ff505890488d4b68488b5c2440488b7424484883c4305f48ff25109ff400",
+          "sha256": "b8b43318d5c5c5a9708590462e26f009e0151c1ba4d92092fe34f356ec863cf6"
+        },
+        {
+          "name": "NoticePictureCode",
+          "bytes": "40534883ec40488b057323f401488bd94885c0740d83b8b0010000000f85ad0000004585c0741583b9840100000d750c3991880100000f8493000000899188010000448bcac744243801000000ba01000000c781840100000d0000004881c130010000c744243000000000c744242801000000448d420c48895c2420e84fdd0e00488d152036c200488bcbe890c1020085c074124533c0488d150a36c200488bcbe89a420300f30f101d7a0bb000488d150336c2004533c0c7837801000001000000488bcb4883c4405be951f802004883c4405bc3",
+          "sha256": "704018074c3d02e788a9a44761a33a0b710fc4fc79f8681627d7c69fe26b53ce"
+        },
+        {
+          "name": "NoticeHideCode",
+          "bytes": "40534883ec20488b05d3fbf401488bd94885c0740983b8b001000000756c83b978010000007463488d15ea0ec300e84d9a030085c074124533c0488d15d70ec300488bcbe8571b0400f30f101d37e4b000488d15b00ec3004533c0c7837801000000000000488bcbe813d1030083bb840100000d7514c78384010000ffffffffc78388010000000000804883c4205bc3",
+          "sha256": "92e1da5825bd43e1ee08e1489a6b1ddd3f459202808e0802e11e41ae77ad3301"
+        },
+        {
+          "name": "NoticeAnimationCode",
+          "bytes": "4883ec284881c1a8000000e8e0beffff4885c0741c8b481c8d41ffa9fcffffff750f83f903740ab8010000004883c428c333c04883c428c3",
+          "sha256": "b7f6369e8df0d35cc2e2d050a08ae9550bbb3a103562103dd8bfe295afb315ca"
+        },
+        {
+          "name": "NoticeSoundCode",
+          "bytes": "4881c1a0020000e9d4010000",
+          "sha256": "616e92ef8d274f03c334cf958e04431a0cb0ac904424a6adb0962fde2cc3c20a"
+        },
+        {
+          "name": "NoticeSoundAllocateCode",
+          "bytes": "48896c2418574883ec40488b05bf1538028bea0f297424300f28f30f297c24200f28fa488bf94885c0740e83b8b001000000740583c8ffeb7d81fddb00000077f34889742458488d87ec07000033f68bce3968fc75058338027e7048ffc14883c0184883f93e7ce948895c24500f1f0048631f8d430125070000807d07ffc883c8f8ffc08bd38907488bcfe830efffff85c0750e8bd3488bcfe8a2eeffff85c0742effc683fe087cc783c8ff488b5c2450488b742458488b6c24600f287424300f287c24204883c4405fc383c8ffebe183fbff74d483bf180100000074cb83fb3d77c6396c9f087404896c9f080f28de0f28d78bd3488bcfe833fdffff83c9ff85c00f44d98bc3eba3",
+          "sha256": "71bfd14a5bcb41ba96fa140d1fa97860c17cf5d20a0ae08848f0b4f99f622567"
+        },
+        {
+          "name": "NoticeSoundStopCode",
+          "bytes": "40534883ec2083b91801000000488bd9750833c04883c4205bc383fa3d77f348897c24384863fa83bcb918050000000f84ef000000488974243033f64839b1100100000f849600000039b4b9280200000f8489000000e825caffff85c0488b8310010000488b483874304885c97413488b010f57d28b94bb28020000ff9020040000488b8310010000488b48384885c9742341b801000000eb084885c974164533c0488b010f57db8b94bb28020000ff90f8030000488b8310010000488b48384885c97413488b014533c08b94bb28020000ff90e803000089b4bb28020000488d0c7fb801000000488b7c243889b4cbec0700004889b4cbf407000089b4cbfc070000488b742430c784cbe8070000ffffffffc784cbf0070000ffffffff4883c4205bc333c0488b7c24384883c4205bc3",
+          "sha256": "cab8f5f21e7d3c7a9e12a65bec035e17e351422e58e8ed0aa64d7e040c018584"
+        }
+      ]
+    }
+  },
+  "abi": {
+    "Draw": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t)",
+    "Mesh": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t)",
+    "Indexed": "void(__fastcall*)(void*,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t)",
+    "Batch": "void(__fastcall*)(void*)",
+    "Prepare": "uint8_t(__fastcall*)(void*,uint32_t)",
+    "Update": "void(__fastcall*)(void*,void*,void*)",
+    "Speed": "int(__fastcall*)(void*)",
+    "AddMorale": "void(__fastcall*)(void*,int,void*,int,int)"
+  }
+}

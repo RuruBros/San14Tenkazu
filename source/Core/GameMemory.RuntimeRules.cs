@@ -8,10 +8,10 @@ internal static partial class GameMemory
 
     internal static RuntimeRuleSettings? ReadRuntimeRules(GameIdentity identity)
     {
-        if (!identity.Verified || !IsSameGame(identity)) return null;
+        if (!RuntimeRuleBuildProfile.Supports(identity) || !IsSameGame(identity)) return null;
         GameCapabilities.Require(identity, GameFeature.RuntimeTraits);
         IntPtr handle = OpenRead(identity.ProcessId);
-        try { return RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase); }
+        try { return RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase, RuntimeRuleBuildProfile.Find(identity)); }
         finally { CloseHandle(handle); }
     }
 
@@ -83,9 +83,11 @@ internal static partial class GameMemory
     private static RuntimeRuleApplyCounts? ApplyRuntimeRulesCore(GameIdentity identity, RuntimeRuleSettings wanted, string journalPath, bool convertExperience, bool reapply, bool beforeLoad, bool requireNoData = false)
     {
         wanted.Validate();
-        if (!identity.Verified || !IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
+        if (!RuntimeRuleBuildProfile.Supports(identity) || !IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         GameCapabilities.Require(identity, GameFeature.RuntimeAbilities);
         if (wanted.TraitList9) GameCapabilities.Require(identity, GameFeature.TraitList);
+        var profile = RuntimeRuleBuildProfile.Find(identity);
+        var traits = profile?.Traits;
         lock (RuntimeRuleLock)
         {
             var journal = new RuntimeRuleJournal(journalPath);
@@ -100,16 +102,13 @@ internal static partial class GameMemory
             if (!beforeLoad && ReadPace(identity, layout!) != GamePace.Paused) throw new InvalidOperationException(L.RuntimeErrors.PauseRequired);
             // Located before the freeze (file reads); every record is matched again under it before any write.
             GameSaveOfficers? save = !beforeLoad && (wanted.Traits9 || wanted.Expanded) ? FindLoadedSave(identity, layout!) : null;
-            IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation | 0x0800, false, identity.ProcessId);
+            const uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation | 0x0800;
+            IntPtr handle = profile is null ? OpenGameWrite(access, identity) : OpenProcess(access, false, identity.ProcessId);
             if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
             bool newListAllocation = false, retainListAllocation = false;
             try
             {
-                var ranges = RuntimeRulePatches.All.Where(p => !p.Bytes(previous).SequenceEqual(p.Bytes(wanted))
-                        || (previous.Growth || wanted.Growth) && p.CodeStart == GameBuildFacts.Runtime.AbilityCodeStart)
-                    .Select(p => (identity.ModuleBase + p.CodeStart, identity.ModuleBase + p.CodeEnd)).ToList();
-                if (previous.TraitList9 || wanted.TraitList9)
-                    ranges.Add((identity.ModuleBase + RuntimeTraitList.CodeStart, identity.ModuleBase + RuntimeTraitList.CodeEnd));
+                var ranges = RuntimeRuleExecutingRanges(identity.ModuleBase, previous, wanted, profile);
                 if (listAllocation != 0) ranges.Add((listAllocation, listAllocation + RuntimeTraitList.CodeSize));
                 using var freeze = RuntimeProcessFreeze.Acquire(handle, identity.ProcessId,
                     ranges.ToArray());
@@ -118,28 +117,32 @@ internal static partial class GameMemory
                 // observation, defer to the connected transaction so XP is not bypassed.
                 if (requireNoData && TryReadCurrentLayout(identity) is not null) return null;
                 using var memory = new RuntimeProcessMemory(handle);
-                RuntimeRulePatches.VerifyFull(memory.Read, identity.ModuleBase, previous);
-                ulong activeList = RuntimeTraitList.Detect(memory.Read, identity.ModuleBase);
+                RuntimeRulePatches.VerifyFull(memory.Read, identity.ModuleBase, previous, profile);
+                ulong activeList = RuntimeTraitList.Detect(memory.Read, identity.ModuleBase, traits);
                 if (activeList != 0 && activeList != listAllocation)
                     throw new InvalidDataException(L.RuntimeErrors.TraitOwnershipChanged);
                 if (listAllocation != 0)
                 {
-                    RuntimeTraitList.VerifyAllocation(memory.Read, identity.ModuleBase, listAllocation);
+                    RuntimeTraitList.VerifyAllocation(memory.Read, identity.ModuleBase, listAllocation, traits);
                 }
                 if (previous.TraitList9 || wanted.TraitList9)
-                    RuntimeTraitList.VerifyOriginalTables(memory.Read, identity.ModuleBase, activeList);
+                    RuntimeTraitList.VerifyOriginalTables(memory.Read, identity.ModuleBase, activeList, traits);
                 GameLayout? current = null;
                 if (!beforeLoad)
                 {
-                    ulong root = ReadPointers(handle, identity.ModuleBase + BasePointerRva, 1)[0];
-                    current = root == 0 ? null : TryBuildLayout(handle, identity, VerifiedTables(root + BaseAdjust));
+                    current = ReadCurrentLayout(identity);
                     if (current is null || !layout!.SameStorage(current)) throw new InvalidOperationException(L.RuntimeErrors.Loading);
                     if (ReadPace(identity, current) != GamePace.Paused) throw new InvalidOperationException(L.RuntimeErrors.PaceChanged);
                 }
                 if (listAllocation != 0) ProtectRuntimeTraitList(handle, listAllocation);
-                var writes = RuntimeRulePatches.All.Select(p => new RuntimeRuleWrite(identity.ModuleBase + p.Rva,
-                    p.Bytes(previous), p.Bytes(wanted), p.Rva < GameBuildFacts.Runtime.ExecutableLimit))
-                    .Where(p => !p.Before.SequenceEqual(p.After)).ToList();
+                var writes = RuntimeRulePatches.Plan(identity.ModuleBase, previous, wanted, profile);
+                if (profile is not null)
+                {
+                    RequireRuntimeRulePages(handle, identity, writes, previous, wanted, traits!);
+                    if ((previous.Expanded || wanted.Expanded) && identity.DataProfile?.AbilityTable is { } abilityTable &&
+                        !ReadOriginalAbilityTable(memory.Read, identity.ModuleBase, abilityTable, profile, previous))
+                        throw new InvalidDataException(L.Compatibility.CurveUnknown);
+                }
                 int conversions = 0, restorations = 0, traitRestorations = 0;
                 var history = current is null ? null : new SaveRestoreEdits(SaveRestoreEdits.PathFor(journalPath), identity, current);
                 history?.Observe(address => memory.Read(address, OfficerStride));
@@ -163,12 +166,13 @@ internal static partial class GameMemory
                 }
                 if (wanted.TraitList9 && listAllocation == 0)
                 {
+                    var columns = (traits?.Layout ?? RuntimeTraitList.Definition).Columns;
                     listAllocation = AllocateRuntimeTraitList(handle, identity.ModuleBase,
-                        memory.Read(identity.ModuleBase + RuntimeTraitList.Definition.Columns.Rva, RuntimeTraitList.Definition.Columns.Bytes.Length / 2));
+                        memory.Read(identity.ModuleBase + columns.Rva, columns.Bytes.Length / 2), traits);
                     newListAllocation = true;
                 }
                 if (previous.TraitList9 != wanted.TraitList9)
-                    writes.Add(new(identity.ModuleBase + RuntimeTraitList.Site,
+                    writes.Add(new(identity.ModuleBase + (traits?.Site ?? RuntimeTraitList.Site),
                         previous.TraitList9 ? RuntimeTraitList.Jump(listAllocation) : RuntimeTraitList.Original,
                         wanted.TraitList9 ? RuntimeTraitList.Jump(listAllocation) : RuntimeTraitList.Original, true));
                 var transaction = new RuntimeRuleReceipt(identity.ProcessId, identity.StartTimeUtc, identity.ModuleBase,
@@ -177,7 +181,7 @@ internal static partial class GameMemory
                 {
                     RuntimeRuleTransaction.Apply(memory, writes, () => { journal.Save(transaction); retainListAllocation = true; }, () =>
                     {
-                        RuntimeRulePatches.VerifyFull(memory.Read, identity.ModuleBase, wanted);
+                        RuntimeRulePatches.VerifyFull(memory.Read, identity.ModuleBase, wanted, profile);
                         journal.Save(transaction with { Phase = "committed" });
                     });
                 }
@@ -205,21 +209,52 @@ internal static partial class GameMemory
         }
     }
 
-    internal static ulong AllocateRuntimeTraitList(IntPtr handle, ulong module, byte[]? currentColumns = null)
+    private static List<(ulong Start, ulong End)> RuntimeRuleExecutingRanges(ulong module, RuntimeRuleSettings previous,
+        RuntimeRuleSettings wanted, RuntimeRuleBuildProfile? profile)
+    {
+        var ranges = (profile?.Patches ?? RuntimeRulePatches.All).Where(p =>
+                !p.Bytes(previous).SequenceEqual(p.Bytes(wanted)) ||
+                (previous.Growth || wanted.Growth) && p.CodeStart == (profile is null ? GameBuildFacts.Runtime.AbilityCodeStart : 0x2BC0D0))
+            .Select(p => (module + p.CodeStart, module + p.CodeEnd)).Distinct().ToList();
+        if (previous.TraitList9 || wanted.TraitList9)
+            ranges.Add((module + (profile?.Traits.CodeStart ?? RuntimeTraitList.CodeStart),
+                module + (profile?.Traits.CodeEnd ?? RuntimeTraitList.CodeEnd)));
+        return ranges;
+    }
+
+    private static void RequireRuntimeRulePages(IntPtr handle, GameIdentity identity, IReadOnlyList<RuntimeRuleWrite> writes,
+        RuntimeRuleSettings previous, RuntimeRuleSettings wanted, RuntimeTraitList.Profile traits)
+    {
+        foreach (var write in writes)
+            RequireEditPage(handle, write.Address, write.Before.Length, write.Executable ? PageExecuteRead : 0x02, identity.ModuleBase);
+        if (previous.TraitList9 != wanted.TraitList9)
+            RequireEditPage(handle, identity.ModuleBase + traits.Site, RuntimeTraitList.Original.Length, PageExecuteRead, identity.ModuleBase);
+        if (wanted.Growth && identity.DataProfile?.AbilityTable is { } table)
+            foreach (var guard in table.Guards.Take(2))
+            {
+                ulong address = identity.ModuleBase + guard.Rva;
+                RequireEditPage(handle, address, guard.Length, PageExecuteRead, identity.ModuleBase);
+                if (Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(ReadBytes(handle, address, guard.Length))) != guard.Sha256)
+                    throw new InvalidDataException(L.Connection.EditCodeChanged);
+            }
+    }
+
+    internal static ulong AllocateRuntimeTraitList(IntPtr handle, ulong module, byte[]? currentColumns = null,
+        RuntimeTraitList.Profile? traits = null)
     {
         IntPtr allocation = VirtualAllocEx(handle, IntPtr.Zero, (UIntPtr)RuntimeTraitList.Size, MemCommit | MemReserve, PageReadWrite);
         if (allocation == IntPtr.Zero) throw AccessError(L.RuntimeErrors.AllocationFailed);
         ulong address = unchecked((ulong)allocation.ToInt64());
         try
         {
-            byte[] bytes = RuntimeTraitList.Build(module, address, currentColumns);
+            byte[] bytes = RuntimeTraitList.Build(module, address, currentColumns, traits);
             WriteBytes(handle, address, bytes);
             if (!VirtualProtectEx(handle, allocation, (UIntPtr)RuntimeTraitList.Size, 0x02, out _)
                 || !VirtualProtectEx(handle, allocation, (UIntPtr)RuntimeTraitList.CodeSize, PageExecuteRead, out _)
                 || !FlushInstructionCache(handle, allocation, (UIntPtr)RuntimeTraitList.CodeSize))
                 throw AccessError(L.RuntimeErrors.AllocationProtectionFailed);
             ProtectRuntimeTraitList(handle, address);
-            RuntimeTraitList.VerifyAllocation((at, length) => ReadBytes(handle, at, length), module, address);
+            RuntimeTraitList.VerifyAllocation((at, length) => ReadBytes(handle, at, length), module, address, traits);
             return address;
         }
         catch

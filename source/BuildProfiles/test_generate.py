@@ -35,6 +35,16 @@ class GenerationTests(unittest.TestCase):
         self.assertIn(self.digest, files['Core/BuildProfiles/GameBuildFacts.g.cs'])
         self.assertIn(self.digest, files['Seasons/Native/GameBuildFacts.g.h'])
 
+    def test_november_notice_guards_bind_original_bytes(self):
+        profile, digest = generate.load(generate.NOVEMBER)
+        self.assertNotEqual(self.digest, digest)
+        profile['guards']['Environment'][-1]['rva'] += 1
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / generate.NOVEMBER.name
+            path.write_text(json.dumps(profile), encoding='utf-8')
+            with self.assertRaises(ValueError):
+                generate.load(path)
+
     def test_changed_guard_bytes_size_hash_and_rva_are_rejected(self):
         for field, value in [('rva', 1), ('size', 1), ('sha256', '0' * 64)]:
             with self.subTest(field=field):
@@ -49,10 +59,12 @@ class GenerationTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which('powershell'), 'Windows PowerShell is required for the MSBuild validator')
     def test_msbuild_validator_rejects_each_changed_generated_input_without_touching_checkout(self):
         lock = json.loads((generate.HERE / 'generated.lock.json').read_bytes())
-        paths = list(lock['files']) + [r['path'] for r in self.profile['resources']] + ['BuildProfiles/current.json']
+        november_lock = json.loads((generate.HERE / 'november2026.lock.json').read_bytes())
+        paths = list(lock['files']) + list(november_lock['files']) + [r['path'] for r in self.profile['resources']]
+        paths += ['BuildProfiles/current.json', 'BuildProfiles/november2026.json']
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / 'source'
-            for name in paths + ['BuildProfiles/generated.lock.json', 'BuildProfiles/Validate.ps1']:
+            for name in paths + ['BuildProfiles/generated.lock.json', 'BuildProfiles/november2026.lock.json', 'BuildProfiles/Validate.ps1']:
                 target = source / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(generate.SOURCE / name, target)

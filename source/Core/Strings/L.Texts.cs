@@ -106,6 +106,14 @@ internal static partial class L
         internal static string NoNameLists => T();
         internal static string Ready => T();
         internal static string ReadyReadOnly => T();
+        internal static string ProfileReadOnly => T();
+        internal static string ProfileEditing => T();
+        internal static string EditPauseRequired => T();
+        internal static string EditCodeChanged => T();
+        internal static string EditPageChanged => T();
+        internal static string EditOriginalAbility(object? field) => Format(T(), (nameof(field), field));
+        internal static string FieldNotVerified(object? field) => Format(T(), (nameof(field), field));
+        internal static string BuildUnsupported => T();
         internal static string NoGameState => T();
         internal static string SearchCancelled => T();
         internal static string Reread => T();

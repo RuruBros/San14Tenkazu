@@ -1,4 +1,4 @@
-#include "GameBuildFacts.g.h"
+#include <GameBuildFacts.g.h>
 extern "C" __declspec(dllexport) const char San14BuildProfileIdentity[]=SAN14_BUILD_PROFILE_IDENTITY;
 #define NOMINMAX
 #include <windows.h>
@@ -14,7 +14,7 @@ extern "C" __declspec(dllexport) const char San14BuildProfileIdentity[]=SAN14_BU
 #include "detours.h"
 #include "EnvironmentProtocol.h"
 #include "EnvironmentPolicy.h"
-#include "EnvironmentSignatures.h"
+#include <EnvironmentSignatures.h>
 #include "EnvironmentWeather.h"
 #include "EnvironmentWeatherTiming.h"
 #include "EnvironmentNoticeTraceStore.h"

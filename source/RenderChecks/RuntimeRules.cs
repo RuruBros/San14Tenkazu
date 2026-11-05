@@ -14,8 +14,10 @@ internal static partial class RenderChecks
         string output = args.First(a => !a.StartsWith("--")); Directory.CreateDirectory(output);
         ulong module = Convert.ToUInt64(args.Single(a => a.StartsWith("--module="))[9..], 16);
         ulong allocation = 0x20000000000;
-        File.WriteAllBytes(Path.Combine(output, "payload.bin"), RuntimeTraitList.Build(module, allocation));
-        File.WriteAllText(Path.Combine(output, "payload.json"), JsonSerializer.Serialize(new { module, allocation, site = RuntimeTraitList.Site, size = RuntimeTraitList.Size,
+        var traits = args.Contains("--november") ? RuntimeRuleBuildProfile.Find(new GameIdentity(0, DateTime.UnixEpoch,
+            module, GameBuildProfiles.NovemberNative.ExeSha256, false, null!))!.Traits : null;
+        File.WriteAllBytes(Path.Combine(output, "payload.bin"), RuntimeTraitList.Build(module, allocation, profile: traits));
+        File.WriteAllText(Path.Combine(output, "payload.json"), JsonSerializer.Serialize(new { module, allocation, site = traits?.Site ?? RuntimeTraitList.Site, size = RuntimeTraitList.Size,
             writablePages = RuntimeTraitList.WritablePages, mutableColumns = RuntimeTraitList.MutableColumns }));
         Console.WriteLine("Exported product-generated Native payload; gameAccess=false");
     }

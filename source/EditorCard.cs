@@ -120,6 +120,18 @@ internal abstract class EditorCard : PanePage
         set => apply.IsEnabled = value;
     }
 
+    internal void SetDataProfile(GameDataProfile? profile)
+    {
+        void Visit(W.DependencyObject element)
+        {
+            if (element is WC.TextBox { Tag: FieldDef field } input)
+                input.IsReadOnly = profile is not null && !profile.Supports(field);
+            foreach (var child in W.LogicalTreeHelper.GetChildren(element).OfType<W.DependencyObject>())
+                Visit(child);
+        }
+        Visit(pages);
+    }
+
     internal void SetHistory(bool canGoBack, bool canGoForward)
     {
         back.IsEnabled = canGoBack;
@@ -322,6 +334,7 @@ internal sealed class NumberField
     {
         Field = field;
         Box = CardSkin.NumberBox(width);
+        Box.Tag = field;
         Box.Margin = new W.Thickness(0, 2, 6, 2);
         Box.TextChanged += (_, _) =>
         {

@@ -18,7 +18,7 @@ internal static partial class GameMemory
 
     private static void RequireCaptivityGame(GameIdentity identity, GameLayout layout)
     {
-        if (!identity.Verified) throw new InvalidOperationException(L.Calls.WhyUnverified);
+        if (!GameCommandProfile.Supports(identity, OfficerCaptureRva)) throw new InvalidOperationException(L.Calls.WhyUnverified);
         if (!IsSameGame(identity) || !layout.SameStorage(ReadCurrentLayout(identity)))
             throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         if (ReadPace(identity, layout) != GamePace.Paused) throw new InvalidOperationException(L.Transfers.PauseRequired);
@@ -37,7 +37,7 @@ internal static partial class GameMemory
     internal static PreparedCaptivity PrepareCaptivity(IRecordMemory memory, GameIdentity identity, GameLayout layout,
         GameSnapshot data, OfficerCaptivity.Request request)
     {
-        if (!identity.Verified) throw new InvalidOperationException(L.Calls.WhyUnverified);
+        if (!GameCommandProfile.Supports(identity, OfficerCaptureRva)) throw new InvalidOperationException(L.Calls.WhyUnverified);
         EditPlan plan = OfficerCaptivity.Plan(data, request);
         if (plan.Refused) throw new InvalidOperationException(plan.Refusal);
         var guards = new List<TransferGuard>();
@@ -48,17 +48,17 @@ internal static partial class GameMemory
                 throw new InvalidOperationException(L.Transfers.StateChanged);
             guards.Add(new(address, bytes));
         }
-        ulong raw = Q(identity.ModuleBase + BasePointerRva);
+        ulong raw = Q(CommandWorldSlot(identity));
         if (raw == 0 || raw + (ulong)Tables.Tiles != layout.Tables.Tile || Q(raw + 0x871E8) != layout.State)
             throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        Guard(identity.ModuleBase + BasePointerRva, BitConverter.GetBytes(raw));
+        Guard(CommandWorldSlot(identity), BitConverter.GetBytes(raw));
         Guard(raw + 0x871E8, BitConverter.GetBytes(layout.State));
         byte[] clock = memory.Read(layout.State + 0x24, 0x18);
         if (data.Date is not { } date || BinaryPrimitives.ReadUInt16LittleEndian(clock.AsSpan(0x10)) != date.Year
             || clock[0x12] != date.Month || clock[0x13] != date.Day)
             throw new InvalidOperationException(L.Transfers.StateChanged);
         Guard(layout.State + 0x24, clock);
-        Guard(identity.ModuleBase + OfficerCaptureRva, OfficerCaptureStart);
+        Guard(CommandAt(identity, OfficerCaptureRva), CommandStart(identity, OfficerCaptureRva, OfficerCaptureStart));
         OfficerRecord officer = data.OfficerById[request.Officer];
         OfficerCaptivity.Target target = OfficerCaptivity.Targets(data).Single(t => t.Force == request.Force);
         ForceRecord captor = data.ForceRecords[target.Force];
@@ -129,7 +129,7 @@ internal static partial class GameMemory
             if (centerData[0x14] != target.Force) throw new InvalidOperationException(L.Transfers.DestinationChanged);
             Guard(centerAddress, centerData);
         }
-        TransferStep[] changes = [new TransferCall(new(identity.ModuleBase + OfficerCaptureRva, officer.Address, 0,
+        TransferStep[] changes = [new TransferCall(new(CommandAt(identity, OfficerCaptureRva), officer.Address, 0,
             [0, 0, captor.Address, 0]))];
         return new(request, officer, target, place, plan, guards, changes);
     }
@@ -137,13 +137,14 @@ internal static partial class GameMemory
     internal static IReadOnlyList<string> ApplyCaptivity(GameIdentity identity, GameLayout layout, PreparedCaptivity prepared)
     {
         RequireCaptivityGame(identity, layout);
-        IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, OfficerCaptureRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
             byte[] body = prepared.Body;
-            (string? why, int result) = RunOnFrame(handle, identity, _ => new(identity.ModuleBase + OfficerCaptureRva,
-                OfficerCaptureStart, 0, 0, [], NeedsPlayer: false, Body: body), codePages: (body.Length + 0x400 + StubPage - 1) / StubPage);
+            (string? why, int result) = RunOnFrame(handle, identity, _ => new(CommandAt(identity, OfficerCaptureRva),
+                CommandStart(identity, OfficerCaptureRva, OfficerCaptureStart), 0, 0, [], NeedsPlayer: false, Body: body),
+                codePages: (body.Length + 0x400 + StubPage - 1) / StubPage);
             if (why is not null) throw new InvalidOperationException(L.Transfers.ExecutionUnconfirmed(why));
             if (result != 1) throw new InvalidOperationException(L.Transfers.WriteStateChanged);
             byte[] fresh = ReadBytes(handle, prepared.Officer.Address, prepared.Officer.Data.Length);

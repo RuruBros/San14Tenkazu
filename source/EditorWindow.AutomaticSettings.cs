@@ -51,16 +51,12 @@ internal sealed partial class EditorWindow
                     AutomaticNotice(L.AutomaticSettings.RulesApplied); break;
                 case AutomaticGamePhase.SessionWaiting:
                     automaticGameFailure = null;
-                    AutomaticNotice(observation.Session!.WaitingMessage); break;
+                    AutomaticNotice(observation.Session?.WaitingMessage ?? L.Connection.SessionWaiting); break;
                 case AutomaticGamePhase.Unsupported:
-                    // No rules can be prepared for an unknown build, but the editor still connects to it once (read-only
-                    // until its self-checks pass), as it did at startup before the automatic settings existed.
-                    AutomaticNotice(L.Preparation.Unsupported);
+                    if (candidate is {} unsupported)
+                        AddLog($"Unsupported game executable: PID={unsupported.ProcessId}, SHA-256={unsupported.ExeHash}");
+                    AutomaticNotice(L.Connection.BuildUnsupported);
                     automaticGameFailure = candidate; automaticFailedPreference = preference;
-                    if (HasPendingEdits || registeredEditor?.HasPending == true) break;
-                    automaticGameConnecting = true;
-                    try { await ConnectAsync(); }
-                    finally { automaticGameConnecting = false; }
                     break;
                 case AutomaticGamePhase.Connect:
                     if (HasPendingEdits || registeredEditor?.HasPending == true) { AutomaticNotice(L.AutomaticSettings.PendingEdits); break; }

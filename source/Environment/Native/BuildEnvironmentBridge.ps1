@@ -1,10 +1,16 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$November2026)
 $ErrorActionPreference='Stop'
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
-$taskGameProfile=Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json') -Raw | ConvertFrom-Json
-$taskGameProfileHash=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant()
+$taskManifest=if($November2026){'november2026.json'}else{'current.json'}
+$taskProfileHeaders=if($November2026){'..\..\BuildProfiles\November2026\Environment\Native'}else{'.'}
+$taskGameProfile=Get-Content -LiteralPath (Join-Path $PSScriptRoot ("..\..\BuildProfiles\"+$taskManifest)) -Raw | ConvertFrom-Json
+$taskGameProfileHash=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot ("..\..\BuildProfiles\"+$taskManifest))).Hash.ToLowerInvariant()
 $taskFiles=@('EnvironmentBridge.cpp','EnvironmentProtocol.h','EnvironmentPolicy.h','EnvironmentSignatures.h','EnvironmentWeather.h','EnvironmentChecks.cpp','BuildEnvironmentBridge.ps1','EnvironmentNotification.h','EnvironmentNotificationSignatures.h','EnvironmentNoticeSound.h','GameBuildFacts.g.h')
 $taskFiles+=@('EnvironmentWeatherTiming.h','EnvironmentNoticeTrace.h','EnvironmentNoticeTraceStore.h')
+$taskHeaders=@('GameBuildFacts.g.h','EnvironmentSignatures.h','EnvironmentNoticeSignatures.g.h')
+if($November2026){
+    $taskFiles=@($taskFiles|Where-Object{$_ -cnotin $taskHeaders})+@($taskHeaders|ForEach-Object{Join-Path $taskProfileHeaders $_})
+}
 $taskHashes=@{};foreach($taskFile in $taskFiles){$taskHashes[$taskFile]=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $taskFile)).Hash.ToLower()}
 $taskSourceRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $taskZip=Join-Path $taskSourceRoot 'Reverse\.cache\tools\detours-4.0.1.zip'
@@ -18,11 +24,13 @@ $taskSdk=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10'
 $taskSdkVersion=(Get-ChildItem -LiteralPath (Join-Path $taskSdk 'Include') -Directory | Sort-Object Name -Descending | Select-Object -First 1).Name
 $taskCl=Join-Path $taskVc 'bin\Hostx64\x64\cl.exe';$taskLink=Join-Path $taskVc 'bin\Hostx64\x64\link.exe'
 $taskOut=[IO.Path]::GetFullPath($OutputDirectory);New-Item -ItemType Directory -Path $taskOut -ErrorAction Stop | Out-Null
-$taskIncludes=@("/I$taskVendor",('/I'+(Join-Path $taskVc 'include')))
+$taskProfileInclude=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot $taskProfileHeaders))
+$taskIncludes=@("/I$taskProfileInclude","/I$taskVendor",('/I'+(Join-Path $taskVc 'include')))
 foreach($taskPart in @('ucrt','um','shared','winrt')){$taskIncludes+=('/I'+(Join-Path $taskSdk "Include\$taskSdkVersion\$taskPart"))}
 $taskLibs=@(('/LIBPATH:'+(Join-Path $taskVc 'lib\x64')))
 foreach($taskPart in @('ucrt','um')){$taskLibs+=('/LIBPATH:'+(Join-Path $taskSdk "Lib\$taskSdkVersion\$taskPart\x64"))}
 $taskObjects=@()
+$taskProfileDefines=@();if($November2026){$taskProfileDefines=@('/D','SAN14_NOVEMBER_2026')}
 foreach($taskName in @('detours','modules','disasm','image','creatwth')) {
     $taskObj=Join-Path $taskOut ($taskName+'.obj')
     & $taskCl /nologo /c /MT /O2 /EHsc /W3 $taskIncludes "/Fo$taskObj" (Join-Path $taskVendor ($taskName+'.cpp'))
@@ -30,7 +38,7 @@ foreach($taskName in @('detours','modules','disasm','image','creatwth')) {
 }
 foreach($taskName in @('EnvironmentBridge','EnvironmentChecks')) {
     $taskObj=Join-Path $taskOut ($taskName+'.obj')
-    & $taskCl /nologo /c /std:c++20 /utf-8 /MT /O2 /EHsc /W4 $taskIncludes "/Fo$taskObj" (Join-Path $PSScriptRoot ($taskName+'.cpp'))
+    & $taskCl /nologo /c /std:c++20 /utf-8 /MT /O2 /EHsc /W4 $taskIncludes $taskProfileDefines "/Fo$taskObj" (Join-Path $PSScriptRoot ($taskName+'.cpp'))
     if($LASTEXITCODE -ne 0){throw "$taskName compile failed."}
     $taskArgs=@('/nologo','/OPT:NOICF',$taskObj)+$taskObjects+$taskLibs+@('kernel32.lib','user32.lib','advapi32.lib')
     if($taskName -eq 'EnvironmentChecks'){$taskArgs+=('/OUT:'+(Join-Path $taskOut ($taskName+'.exe')))}else{$taskArgs+=@('/DLL',('/OUT:'+(Join-Path $taskOut ($taskName+'.dll'))))}
@@ -40,7 +48,12 @@ foreach($taskName in @('EnvironmentBridge','EnvironmentChecks')) {
 if($LASTEXITCODE -ne 0){throw 'Native environment checks failed; see checks.log.'}
 foreach($taskFile in $taskFiles){if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot $taskFile)).Hash.ToLower() -ne $taskHashes[$taskFile]){throw "Source changed during build: $taskFile"}}
 $taskSnapshot=Join-Path $taskOut 'sources';New-Item -ItemType Directory -Path $taskSnapshot -ErrorAction Stop | Out-Null
-foreach($taskFile in $taskFiles){Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskFile) -ErrorAction Stop}
+$taskManifestHashes=@{}
+foreach($taskFile in $taskFiles){
+    $taskName=[IO.Path]::GetFileName($taskFile)
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot $taskFile) -Destination (Join-Path $taskSnapshot $taskName) -ErrorAction Stop
+    $taskManifestHashes[$taskName]=$taskHashes[$taskFile]
+}
 & (Join-Path $PSScriptRoot '..\..\BuildProfiles\Validate.ps1')
-if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot '..\..\BuildProfiles\current.json')).Hash.ToLowerInvariant() -cne $taskGameProfileHash){throw 'Game build profile changed during Native build.'}
-[ordered]@{nativeBuild=28;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'EnvironmentBridge.dll')).Hash.ToLower();hashes=$taskHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;nativeFixtureVerified=$true;liveGameVerified=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8
+if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot ("..\..\BuildProfiles\"+$taskManifest))).Hash.ToLowerInvariant() -cne $taskGameProfileHash){throw 'Game build profile changed during Native build.'}
+[ordered]@{nativeBuild=29;dllSha256=(Get-FileHash -LiteralPath (Join-Path $taskOut 'EnvironmentBridge.dll')).Hash.ToLower();hashes=$taskManifestHashes;protocolVersion=6;gameProfileId=$taskGameProfile.id;gameProfileSha256=$taskGameProfileHash;nativeContractId=$taskGameProfile.nativeContractId;nativeFixtureVerified=$true;liveGameVerified=$false} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $taskOut 'build.json') -Encoding UTF8

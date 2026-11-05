@@ -14,19 +14,19 @@ internal sealed record RuntimePatch(uint Rva, string Before, uint GuardRva, stri
 
 internal static class RuntimeRulePatches
 {
-    internal static void VerifyFull(Func<ulong, int, byte[]> read, ulong module, RuntimeRuleSettings settings)
+    internal static void VerifyFull(Func<ulong, int, byte[]> read, ulong module, RuntimeRuleSettings settings, RuntimeRuleBuildProfile? profile = null)
     {
-        Verify(read, module, settings);
-        if ((RuntimeTraitList.Detect(read, module) != 0) != settings.TraitList9)
+        Verify(read, module, settings, profile);
+        if ((RuntimeTraitList.Detect(read, module, profile?.Traits) != 0) != settings.TraitList9)
             throw new InvalidDataException(L.RuntimeErrors.TraitRuleStateChanged);
     }
-    internal static RuntimeRuleSettings? DetectFull(Func<ulong, int, byte[]> read, ulong module)
+    internal static RuntimeRuleSettings? DetectFull(Func<ulong, int, byte[]> read, ulong module, RuntimeRuleBuildProfile? profile = null)
     {
-        var state = Detect(read, module);
+        var state = Detect(read, module, profile);
         if (state is null) return null;
         try
         {
-            state = state with { TraitList9 = RuntimeTraitList.Detect(read, module) != 0 };
+            state = state with { TraitList9 = RuntimeTraitList.Detect(read, module, profile?.Traits) != 0 };
             state.Validate(); return state;
         }
         catch (InvalidDataException) { return null; }
@@ -38,10 +38,10 @@ internal static class RuntimeRulePatches
         return JsonSerializer.Deserialize<RuntimePatch[]>(GameBuildProfiles.Current.ReadResource("RuntimeRules.patches.json"))!;
     }
 
-    internal static byte[] Guard(RuntimePatch site, RuntimeRuleSettings settings)
+    internal static byte[] Guard(RuntimePatch site, RuntimeRuleSettings settings, RuntimeRuleBuildProfile? profile = null)
     {
         byte[] result = Convert.FromHexString(site.Guard);
-        foreach (var patch in All)
+        foreach (var patch in profile?.Patches ?? All)
         {
             byte[] bytes = patch.Bytes(settings);
             for (int i = 0; i < bytes.Length; i++)
@@ -53,27 +53,50 @@ internal static class RuntimeRulePatches
         return result;
     }
 
-    internal static void Verify(Func<ulong, int, byte[]> read, ulong module, RuntimeRuleSettings settings)
+    internal static void Verify(Func<ulong, int, byte[]> read, ulong module, RuntimeRuleSettings settings, RuntimeRuleBuildProfile? profile = null)
     {
         settings.Validate();
-        foreach (var site in All)
+        foreach (var site in profile?.Patches ?? All)
         {
-            byte[] expected = Guard(site, settings);
+            byte[] expected = Guard(site, settings, profile);
             if (!read(module + site.GuardRva, expected.Length).SequenceEqual(expected))
                 throw new InvalidDataException(L.RuntimeErrors.PatchConflict($"{site.Rva:X}"));
         }
     }
 
-    internal static RuntimeRuleSettings? Detect(Func<ulong, int, byte[]> read, ulong module)
+    internal static RuntimeRuleSettings? Detect(Func<ulong, int, byte[]> read, ulong module, RuntimeRuleBuildProfile? profile = null)
     {
         foreach (bool traits in new[] { false, true })
             foreach (var ability in Enum.GetValues<AbilityRuleMode>())
             {
                 var settings = new RuntimeRuleSettings(traits, ability);
-                try { Verify(read, module, settings); return settings; }
+                try { Verify(read, module, settings, profile); return settings; }
                 catch (InvalidDataException) { }
             }
         return null;
+    }
+
+    internal static List<RuntimeRuleWrite> Plan(ulong module, RuntimeRuleSettings previous, RuntimeRuleSettings wanted,
+        RuntimeRuleBuildProfile? profile) => (profile?.Patches ?? All)
+            .Select(p => new RuntimeRuleWrite(module + p.Rva, p.Bytes(previous), p.Bytes(wanted),
+                p.Rva < (profile?.ExecutableLimit ?? GameBuildFacts.Runtime.ExecutableLimit)))
+            .Where(p => !p.Before.SequenceEqual(p.After)).ToList();
+
+    // Check the exact active instructions before hashing the full original function.
+    internal static bool Normalize(ulong rva, byte[] bytes, RuntimeRuleBuildProfile profile, RuntimeRuleSettings settings)
+    {
+        foreach (var patch in profile.Patches)
+        {
+            int length = patch.Before.Length / 2;
+            ulong start = Math.Max(rva, patch.Rva);
+            ulong end = Math.Min(rva + (ulong)bytes.Length, patch.Rva + (ulong)length);
+            if (start >= end) continue;
+            int offset = (int)(start - patch.Rva), count = (int)(end - start);
+            var observed = bytes.AsSpan((int)(start - rva), count);
+            if (!observed.SequenceEqual(patch.Bytes(settings).AsSpan(offset, count))) return false;
+            Convert.FromHexString(patch.Before).AsSpan(offset, count).CopyTo(observed);
+        }
+        return true;
     }
 }
 

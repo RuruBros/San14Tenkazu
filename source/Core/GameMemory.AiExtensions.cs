@@ -19,13 +19,19 @@ internal static partial class GameMemory
     private static ulong AiExtensionNode(AiTree[] file, AiLiveTree[] live)
     {
         if (file.Length != 4 || live.Length != 4) throw new InvalidDataException(L.AiExtensions.UnsupportedTree);
+        RequireAiExtensionTree(file);
+        return live[(int)AiTreeKind.Unit].Nodes[7];
+    }
+
+    private static void RequireAiExtensionTree(AiTree[] file)
+    {
+        if (file.Length != 4) throw new InvalidDataException(L.AiExtensions.UnsupportedTree);
         AiNode[] units = file[(int)AiTreeKind.Unit].Nodes, troops = file[(int)AiTreeKind.Troops].Nodes;
         if (units.Length <= 102 || troops.Length <= 347 || units[7].Class != AiCatalog.Sequential
             || !units[7].Params.SequenceEqual(new[] { 0, 0, 1 }) || units[7].Parent != 1
             || units[102].Class != 0x8AEA0861 || units[8].Params is not [115104829]
             || units[2].Params is not [115104829] || troops[347].Params is not [115104829])
             throw new InvalidDataException(L.AiExtensions.UnsupportedTree);
-        return live[(int)AiTreeKind.Unit].Nodes[7];
     }
 
     // A private vtable for this one node, never the shared SequentialNode vtable. RTTI and every other slot match.
@@ -78,7 +84,7 @@ internal static partial class GameMemory
         if (!identity.Verified || !IsSameGame(identity)) throw new InvalidOperationException(L.Ai.Unverified);
         lock (AiExtensionLock)
         {
-            IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
+            IntPtr handle = OpenGameWrite(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, identity);
             if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
             try
             {
@@ -136,7 +142,7 @@ internal static partial class GameMemory
         lock (AiExtensionLock)
         {
             if (!identity.Verified || !IsSameGame(identity)) throw new InvalidOperationException(L.Ai.Unverified);
-            IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
+            IntPtr handle = OpenGameWrite(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, identity);
             if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
             try
             {

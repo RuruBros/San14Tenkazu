@@ -103,6 +103,8 @@ internal static partial class RenderChecks
             Record("verified-date-toolbar-enabled", button.IsEnabled);
             Set("busy", true); Update(); Record("busy-date-toolbar-disabled", !button.IsEnabled); Set("busy", false);
             Set("game", game with { Verified = false }); Update(); Record("unknown-build-date-toolbar-disabled", !button.IsEnabled); Set("game", game);
+            Set("game", game with { Verified = false, ExeHash = GameBuildProfiles.NovemberNative.ExeSha256 });
+            Update(); Record("november-profile-date-toolbar-enabled", button.IsEnabled); Set("game", game);
             Set("layout", layout with { State = 0 }); Update(); Record("missing-state-date-toolbar-disabled", !button.IsEnabled); Set("layout", layout);
             Update(false); Record("recovering-layout-date-toolbar-disabled", !button.IsEnabled); Update();
             var root = (W.FrameworkElement)editor.Content;

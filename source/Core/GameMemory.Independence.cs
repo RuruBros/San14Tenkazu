@@ -4,6 +4,7 @@ internal static partial class GameMemory
 {
     private const ulong NewForceForEditRva = 0x3BF120, NewForceEventRva = 0x39FD00, NewForceBodyRva = 0x2D7C80;
     private const ulong NewForceEventSlotRva = 0x13BAEF8;
+    internal static bool SupportsIndependence(GameIdentity identity) => GameCommandProfile.Supports(identity, NewForceForEditRva);
     private static readonly byte[] NewForceForEditStart = Convert.FromHexString(
         "48895C2410564883EC204C8B02488BF2488B0DE1ED3B024963400C3D701700007F0A488B9CC158010000EB07488B99503A07004963401048897C243083F8337F0A488BBC");
     private static readonly byte[] NewForceEventStart = Convert.FromHexString(
@@ -20,44 +21,46 @@ internal static partial class GameMemory
     internal static GameSnapshot MakeCityIndependent(GameIdentity identity, GameLayout layout, CityIndependence.Request request)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
-        if (!identity.Verified) throw new InvalidOperationException(L.Independence.NotRun(L.Calls.WhyUnverified));
+        if (!SupportsIndependence(identity)) throw new InvalidOperationException(L.Independence.NotRun(L.Calls.WhyUnverified));
         if (!layout.SameStorage(Resolve(identity, null, CancellationToken.None)))
             throw new InvalidOperationException(L.Independence.Changed);
         if (ReadPace(identity, layout) != GamePace.Paused) throw new InvalidOperationException(L.Independence.PauseFirst);
         GameSnapshot before = ReadSnapshot(identity, layout);
         if (CityIndependence.Prepare(before, request.City) != request) throw new InvalidOperationException(L.Independence.Changed);
-        IntPtr handle = OpenProcess(ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, NewForceForEditRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
-            ulong exe = identity.ModuleBase;
             if (request.RequestedSlot != 0)
             {
                 byte[] body = PrepareExplicitIndependence(new ProcessMemory(handle), identity, layout, before, request);
-                (string? explicitWhy, int explicitResult) = RunOnFrame(handle, identity, _ => new FrameCall(exe + NewForceBodyRva,
-                    NewForceBodyStart, 0, 0, [], NeedsPlayer: false, Body: body),
+                var validators = CommandValidators(identity, AgreementMapRva, 0x232400, 0x233110);
+                (string? explicitWhy, int explicitResult) = RunOnFrame(handle, identity, _ => new FrameCall(
+                    CommandAt(identity, NewForceBodyRva), CommandStart(identity, NewForceBodyRva, NewForceBodyStart),
+                    0, 0, [], NeedsPlayer: false, After: validators, Body: body),
                     codePages: (body.Length + 0x400 + StubPage - 1) / StubPage);
                 if (explicitWhy is not null) throw new InvalidOperationException(L.Independence.NotRun(explicitWhy));
                 if (explicitResult == 0) throw new InvalidOperationException(L.Independence.Changed);
             }
             else
             {
-                ulong instance = TryReadPointer(handle, exe + NewForceEventSlotRva) ?? 0;
+                ulong instance = TryReadPointer(handle, CommandGlobal(identity, NewForceEventSlotRva)) ?? 0;
                 ulong vtable = instance == 0 ? 0 : TryReadPointer(handle, instance) ?? 0;
                 // The edit event delegates through a static event instance's vtable.
                 // Verify that indirect target as well as both native creation bodies.
-                if (!CodeIs(handle, exe + NewForceEventRva, NewForceEventStart)
-                    || !CodeIs(handle, exe + NewForceBodyRva, NewForceBodyStart)
+                if (!CommandCodeMatches(handle, identity, NewForceEventRva, NewForceEventStart)
+                    || !CommandCodeMatches(handle, identity, NewForceBodyRva, NewForceBodyStart)
                     || instance == 0 || vtable == 0
-                    || TryReadPointer(handle, vtable) != exe + NewForceEventRva)
+                    || TryReadPointer(handle, vtable) != CommandAt(identity, NewForceEventRva))
                     throw new InvalidOperationException(L.Independence.NotRun(L.Calls.WhyCode));
                 // 0x2D76A0 needs a native-invalid ordinary corps (number byte 0).
                 if (!layout.Corps.Skip(1).Take(MaxPlayerForce).Any(address => address != 0
                     && ReadBytes(handle, address, CorpsRead) is { } corps
                     && BitConverter.ToUInt64(corps) == identity.Classes.Corps && corps[0x11] == 0))
                     throw new InvalidOperationException(L.Independence.NoCorps);
-                (string? why, int result) = RunOnFrame(handle, identity, data => new FrameCall(exe + NewForceForEditRva,
-                    NewForceForEditStart, 0, data + StubArgs, IndependenceArgs(data, request.Governor, request.City), NeedsPlayer: false));
+                (string? why, int result) = RunOnFrame(handle, identity, data => new FrameCall(CommandAt(identity, NewForceForEditRva),
+                    CommandStart(identity, NewForceForEditRva, NewForceForEditStart), 0, data + StubArgs,
+                    IndependenceArgs(data, request.Governor, request.City), NeedsPlayer: false));
                 if (why is not null) throw new InvalidOperationException(L.Independence.NotRun(why));
                 if (result == 0) throw new InvalidOperationException(L.Independence.Refused);
             }
@@ -73,7 +76,7 @@ internal static partial class GameMemory
     internal static byte[] PrepareExplicitIndependence(IRecordMemory memory, GameIdentity identity, GameLayout layout,
         GameSnapshot before, CityIndependence.Request request)
     {
-        if (!identity.Verified) throw new InvalidOperationException(L.Independence.NotRun(L.Calls.WhyUnverified));
+        if (!SupportsIndependence(identity)) throw new InvalidOperationException(L.Independence.NotRun(L.Calls.WhyUnverified));
         if (request.RequestedSlot != request.NewForce || request.NewForce is < 1 or > MaxPlayerForce
             || CityIndependence.Refusal(before, request.City) is not null
             || before.Cities[request.City].Address != request.CityAddress
@@ -82,7 +85,6 @@ internal static partial class GameMemory
             || before.OfficerById[request.Governor].Address != request.GovernorAddress
             || !before.ForceRecords.TryGetValue(request.NewForce, out ForceRecord? force) || force.Ruler != 0)
             throw new InvalidOperationException(L.Independence.Changed);
-        ulong exe = identity.ModuleBase;
         var guards = new List<TransferGuard>();
         ulong Q(ulong address) => BitConverter.ToUInt64(memory.Read(address, 8));
         void Guard(ulong address, byte[] expected)
@@ -95,16 +97,16 @@ internal static partial class GameMemory
         {
             if (Q(address) != expected) throw new InvalidOperationException(L.Independence.Changed);
         }
-        ulong raw = Q(exe + BasePointerRva);
+        ulong raw = Q(CommandWorldSlot(identity));
         if (raw == 0 || Q(raw + 0x871E8) != layout.State || raw + 0xE270 != layout.Tables.Tile)
             throw new InvalidOperationException(L.Independence.Changed);
-        Guard(exe + BasePointerRva, BitConverter.GetBytes(raw));
+        Guard(CommandWorldSlot(identity), BitConverter.GetBytes(raw));
         Guard(raw + 0x871E8, BitConverter.GetBytes(layout.State));
         Guard(layout.State + 0x24, memory.Read(layout.State + 0x24, 0x18));
         foreach ((ulong rva, byte[] start) in new (ulong, byte[])[] {
             (NewForceBodyRva, NewForceBodyStart), (AgreementMapRva, AgreementMapStart),
             (0x232400, IndependenceTribeStart), (0x233110, IndependenceSpecialStart) })
-            Guard(exe + rva, start);
+            Guard(CommandAt(identity, rva), CommandStart(identity, rva, start));
         OfficerRecord governor = before.OfficerById[request.Governor];
         CityRecord city = before.Cities[request.City];
         Class(governor.Address, identity.Classes.Officer);
@@ -145,11 +147,11 @@ internal static partial class GameMemory
         }
         if (!hasCorps) throw new InvalidOperationException(L.Independence.NoCorps);
         return TransferFrame.Build(guards, [
-            new TransferCall(new(exe + 0x232400, governor.Address, 0), MustReturnZero: true),
-            new TransferCall(new(exe + 0x233110, governor.Address, 0), MustReturnZero: true)
+            new TransferCall(new(CommandAt(identity, 0x232400), governor.Address, 0), MustReturnZero: true),
+            new TransferCall(new(CommandAt(identity, 0x233110), governor.Address, 0), MustReturnZero: true)
         ], [
-            new TransferCall(new(exe + NewForceBodyRva, governor.Address, city.Address, [1, 0, (ulong)request.RequestedSlot])),
-            new TransferCall(new(exe + AgreementMapRva, 0, 0))
+            new TransferCall(new(CommandAt(identity, NewForceBodyRva), governor.Address, city.Address, [1, 0, (ulong)request.RequestedSlot])),
+            new TransferCall(new(CommandAt(identity, AgreementMapRva), 0, 0))
         ]);
     }
 

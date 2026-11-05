@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "profileSha256": "a93ae6075edb3e889477585e89f921d0e906f546e9841a950a71c6a75c33bc90",
+  "files": {
+    "Core/BuildProfiles/GameNativeFactsNovember2026.g.cs": "abc702318f604c6bcc0a435af3e4bc21eb9000debb2dbdc31b13c5089dd4969d",
+    "BuildProfiles/November2026/Seasons/Native/GameBuildFacts.g.h": "e7531e2afcfe6471b8108f9fce261c433be44e58b599508511f4c2dbe635fc4e",
+    "BuildProfiles/November2026/Environment/Native/GameBuildFacts.g.h": "e7531e2afcfe6471b8108f9fce261c433be44e58b599508511f4c2dbe635fc4e",
+    "BuildProfiles/November2026/Seasons/Native/FrameSignatures.h": "9da513cfa29765e6a480aff5351c7f97782a9c11a7568463254533e2d77fd80f",
+    "BuildProfiles/November2026/Seasons/Native/PrepareSignature.h": "3c7770106e5da2b8e102eb81d176eed37303f87e55b56da34f55e23c1492167d",
+    "BuildProfiles/November2026/Environment/Native/EnvironmentSignatures.h": "0ed4f8af5b0753ffcb2bf84fb62a165acd9796c18f84240032d1e2e2bfda5c78",
+    "BuildProfiles/November2026/Environment/Native/EnvironmentNoticeSignatures.g.h": "2a0bfec11bc20fb1552609ec02c7d736e5c0b0b7e4821d68ccbca365e5da3a02"
+  }
+}

@@ -27,6 +27,7 @@ internal sealed class SeasonNativeProcess:IDisposable
     private PublicLibraryLoader? loaderPlan;
     private readonly string dllHash;
     private readonly bool environment;
+    private readonly GameBuildProfile profile;
     private readonly (ulong Rva,int Size,string Hash)[] targets;
     private static readonly (ulong Rva,int Size,string Hash)[] Targets=GameBuildFacts.SeasonTargets();
     [StructLayout(LayoutKind.Explicit,Size=48)] private struct Region
@@ -50,8 +51,8 @@ internal sealed class SeasonNativeProcess:IDisposable
     private static Win32Exception Error()=>new(Marshal.GetLastWin32Error());
     internal SeasonNativeProcess(GameIdentity identity,string buildDirectory,Action<string> journal,bool environment=false)
     {
-        if(!identity.Verified||!GameMemory.IsSameGame(identity))throw new InvalidDataException("Verified native season process required");
-        var profile=GameBuildProfiles.Require(identity);
+        if(!GameMemory.IsSameGame(identity))throw new InvalidDataException("Verified native season process required");
+        profile=GameBuildProfiles.RequireNative(identity);
         GameCapabilities.Require(identity,environment?GameFeature.Environment:GameFeature.Seasons);
         this.environment=environment;targets=(environment?profile.EnvironmentTargets:profile.SeasonTargets).ToArray();
         game=identity;log=journal;dll=Path.GetFullPath(Path.Combine(buildDirectory,environment?"EnvironmentBridge.dll":"SeasonBridge.dll"));
@@ -194,7 +195,7 @@ internal sealed class SeasonNativeProcess:IDisposable
             if(!receipt.Confirmed(generation))throw new IOException($"Environment recovery unconfirmed: error={receipt.Error}");
         }
         if(!originals.All(p=>Read(p.Address,p.Bytes.Length).AsSpan().SequenceEqual(p.Bytes)&&Query(p.Address).Protection==p.Protection)||
-            BinaryPrimitives.ReadUInt64LittleEndian(Read(game.ModuleBase+GameBuildFacts.Engine.UpdateSlotRva,8))!=game.ModuleBase+GameBuildFacts.Engine.UpdateRva)
+            BinaryPrimitives.ReadUInt64LittleEndian(Read(game.ModuleBase+profile.UpdateSlotRva,8))!=game.ModuleBase+profile.UpdateRva)
             throw new IOException("Environment original code/dispatch restoration differs");
         foreach(var allocation in allocations)
         {

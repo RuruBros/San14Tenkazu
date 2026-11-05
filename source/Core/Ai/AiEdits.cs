@@ -10,12 +10,12 @@ namespace San14Tenkazu;
 internal static class AiEdits
 {
     internal const int NodeIdentity = 0x10;   // a node's vtable, class hash and flags
-    private const int NodeRead = 0x60;        // a leaf's params from +0x38: the guide's reach p7 at +0x54
+    internal const int NodeRead = 0x60;       // a leaf's params from +0x38: the guide's reach p7 at +0x54
 
     // What may be typed for a number: 0 to ten times the file's value (at least 100), as the guide reads it.
     internal static (long Min, long Max) Range(AiGuideValue value, int fileRaw) => (value.Shown(0), value.Shown(MaxRaw(fileRaw)));
 
-    private static int MaxRaw(int fileRaw) => Math.Max(fileRaw * 10, 100);
+    internal static int MaxRaw(int fileRaw) => Math.Max(fileRaw * 10, 100);
 
     // The value the trees hold for one shown; null between the steps of a scaled one (85 for a number shown ×10).
     internal static int? Raw(AiGuideValue value, long shown)
@@ -52,7 +52,7 @@ internal static class AiEdits
     // label names the write in the log and the question (the decision).
     internal static EditPlan Plan(IRecordMemory memory, AiTree[] trees, AiLiveTree[] live, string label, IReadOnlyList<(AiGuideValue Value, int Raw)> requests)
     {
-        var records = new Dictionary<ulong, (RecordKind Kind, byte[] Expected, List<FieldChange> Changes)>();
+        var records = new Dictionary<ulong, (RecordKind Kind, byte[] Expected, List<FieldChange> Changes, Dictionary<int, AiSlot> Slots)>();
         var desiredCells = new Dictionary<ulong, int>();
         var lines = new List<string>();
         foreach ((AiGuideValue value, int raw) in requests)
@@ -83,23 +83,27 @@ internal static class AiEdits
                 }
                 int offset = (int)(cell.Address - address);
                 if (offset < 0 || offset + 4 > length) return EditPlan.Refuse(L.Ai.ValueNotFound(value.Label));
-                if (!records.TryGetValue(address, out var record)) records[address] = record = (kind, memory.Read(address, length), []);
+                if (!records.TryGetValue(address, out var record)) records[address] = record = (kind, memory.Read(address, length), [], []);
                 var field = new FieldDef(value.Label, kind, offset, FieldKind.Int32, 0, MaxRaw(fileRaw));
-                if (field.Read(record.Expected) != raw) record.Changes.Add(new FieldChange(field, raw));
+                if (field.Read(record.Expected) != raw)
+                {
+                    record.Changes.Add(new FieldChange(field, raw));
+                    record.Slots.Add(offset, slot);
+                }
             }
             string from = before is int b ? AiText.Number(value.Shown(b)) + value.Unit : L.AiGuide.Differs;
             lines.Add(L.Ai.EditLine(value.Label, from, AiText.Number(value.Shown(raw)) + value.Unit, slots.Count));
         }
         List<RecordEdit> edits = records.Where(r => r.Value.Changes.Count > 0)
-            .Select(r => new RecordEdit(r.Value.Kind, r.Key, r.Value.Expected, label, r.Value.Changes)).ToList();
+            .Select(r => new RecordEdit(r.Value.Kind, r.Key, r.Value.Expected, label, r.Value.Changes) { AiSlots = r.Value.Slots }).ToList();
         return new EditPlan(edits, string.Join("\n", lines));
     }
 
     // The numbers whose game value is not the file's, as raw values by key (AiAdjustments.Key): what to keep.
-    internal static Dictionary<string, int> Changed(IRecordMemory memory, AiTree[] trees, AiLiveTree[] live)
+    internal static Dictionary<string, int> Changed(IRecordMemory memory, AiTree[] trees, AiLiveTree[] live, IEnumerable<AiGuideValue>? values = null)
     {
         var changed = new Dictionary<string, int>();
-        foreach (AiGuideValue value in AiGuide.Values)
+        foreach (AiGuideValue value in values ?? AiGuide.Values)
             if (GameRaw(memory, trees, live, value) is int now && FileRaw(trees, value) is int file && now != file)
                 changed[AiAdjustments.Key(value)] = now;
         return changed;
@@ -108,11 +112,11 @@ internal static class AiEdits
     // What to write again of the numbers kept: those the game holds at the file's value again (it started over from
     // its file); and those it holds at a third value, left as they are and told.
     internal static (List<(AiGuideValue Value, int Raw)> Write, List<(AiGuideValue Value, int? Now, int Kept)> Other) Reapply(
-        IRecordMemory memory, AiTree[] trees, AiLiveTree[] live, IReadOnlyDictionary<string, int> kept)
+        IRecordMemory memory, AiTree[] trees, AiLiveTree[] live, IReadOnlyDictionary<string, int> kept, IEnumerable<AiGuideValue>? values = null)
     {
         var write = new List<(AiGuideValue, int)>();
         var other = new List<(AiGuideValue, int?, int)>();
-        foreach (AiGuideValue value in AiGuide.Values)
+        foreach (AiGuideValue value in values ?? AiGuide.Values)
         {
             if (!kept.TryGetValue(AiAdjustments.Key(value), out int raw)) continue;
             int? now = GameRaw(memory, trees, live, value);
@@ -130,6 +134,7 @@ internal static class AiEdits
 // guide first finds it (tree:node:term:arg).
 internal sealed class AiAdjustments(string path)
 {
+    internal AiAdjustments ForNovember() => new(Path.Combine(Path.GetDirectoryName(path)!, "ai_values_20261105.txt"));
     internal static string Key(AiGuideValue value)
     {
         AiAnchor a = value.Anchors[0];

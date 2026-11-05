@@ -8,7 +8,10 @@ namespace San14Tenkazu;
 
 // The game process the editor is connected to: its exe's SHA-256 (Verified when it is the build every offset here
 // was checked against) and the vtables of its record types, found in that exe.
-internal readonly record struct GameIdentity(int ProcessId, DateTime StartTimeUtc, ulong ModuleBase, string ExeHash, bool Verified, GameClasses Classes);
+internal readonly record struct GameIdentity(int ProcessId, DateTime StartTimeUtc, ulong ModuleBase, string ExeHash, bool Verified, GameClasses Classes)
+{
+    internal GameDataProfile? DataProfile => GameBuildProfiles.FindData(ExeHash);
+}
 
 // Where each table of pointers to the game's records lies (addresses in the game). They are all listed in one
 // "game base" object: for the verified build at known offsets in it, for another build found by their records'
@@ -174,6 +177,8 @@ internal readonly record struct ForceInfo(int Id, int RulerId, int ColorIndex, s
 internal sealed partial class GameSnapshot
 {
     internal RuntimeRuleSettings? RuntimeRules { get; init; } = RuntimeRuleSettings.Original;
+    internal bool OriginalAbilityTableVerified { get; init; }
+    internal bool? ExperienceGrowth => RuntimeRules?.Growth ?? (OriginalAbilityTableVerified ? false : null);
     internal required CityRecord[] Cities { get; init; }          // index = city ID
     internal required CountyRecord[] Counties { get; init; }      // counties owned by the 46 cities
     internal required OfficerRecord[] Officers { get; init; }     // officers with a name
@@ -337,6 +342,7 @@ internal sealed partial class GameSnapshot
             Hour = Hour,
             Pace = Pace,
             Session = Session,
+            OriginalAbilityTableVerified = OriginalAbilityTableVerified,
             RuntimeRules = RuntimeRules
         };
     }
@@ -372,6 +378,7 @@ internal sealed record RecordEdit(RecordKind Kind, ulong Address, byte[] Expecte
     IReadOnlyList<SlotRestart>? Restarts = null, MilitaryPointGuard? MilitaryPoints = null)
 {
     internal RuntimeRuleSettings? ExpectedRuntimeRules { get; init; }
+    internal IReadOnlyDictionary<int, AiSlot>? AiSlots { get; init; }
 }
 
 // An officer's 개성 slot the game is to judge afresh once the 개성 is written (PersonalityEdits.Plan): its mark of
@@ -484,8 +491,8 @@ internal static partial class GameMemory
     private static readonly NameTable FormationTable = new(t => t.Formation, 21, c => c.Formation, 0x80, 5,
         Describe: record => L.Terms.Mobility(record[FormationMobilityOffset]));
 
-    // The verified build's tables, from its base object.
-    private static GameTables VerifiedTables(ulong baseObject) => new(
+    // The common basic table layout, from a build-specific world pointer.
+    private static GameTables ProfiledTables(ulong baseObject) => new(
         baseObject + CityTable, baseObject + ForceTable, baseObject + CorpsTable, baseObject + TileTable, baseObject + CountyTable,
         baseObject + BuildingTable, baseObject + OfficerTable, baseObject + UnitTable, baseObject + StatePointer, baseObject + CountryTable,
         baseObject + ItemTable, baseObject + PersonalityTableOffset, baseObject + TacticTableOffset, baseObject + PolicyTableOffset,
@@ -501,6 +508,12 @@ internal static partial class GameMemory
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr OpenProcess(uint access, bool inheritHandle, int processId);
+
+    private static IntPtr OpenGameWrite(uint access, GameIdentity identity)
+    {
+        if (identity.DataProfile is not null) throw new InvalidOperationException(L.Compatibility.Unavailable);
+        return OpenProcess(access, false, identity.ProcessId);
+    }
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr handle);
     [DllImport("kernel32.dll", SetLastError = true)]
@@ -521,8 +534,7 @@ internal static partial class GameMemory
                 throw new InvalidOperationException(L.Errors.GameTwice(ProcessName, games.Length));
             Process game = games[0];
             ProcessModule module = game.MainModule ?? throw new InvalidOperationException(L.Errors.ExeInfo);
-            // Another build (a patch) is not refused: its record types are found by name in its exe, and the editor
-            // treats it as unverified (EditorForm: read-only until its self-checks pass and writing is allowed).
+            // Full verification and read-only support are separate. Both resolve record types from the EXE.
             byte[] exe = File.ReadAllBytes(module.FileName);
             string hash = Convert.ToHexString(SHA256.HashData(exe));
             bool verified = GameBuildProfiles.Find(hash) is not null && !TreatAsUnverified;
@@ -596,6 +608,7 @@ internal static partial class GameMemory
     internal static GameLayout Resolve(GameIdentity identity, Action<string>? progress, CancellationToken cancellationToken,
         IReadOnlyList<BasePointer>? known = null)
     {
+        if (identity.DataProfile is not null) return ReadCurrentLayout(identity);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         IntPtr handle = OpenRead(identity.ProcessId);
         try
@@ -604,7 +617,7 @@ internal static partial class GameMemory
             if (identity.Verified && TryRead(handle, identity.ModuleBase + BasePointerRva, pointer))
             {
                 ulong candidate = BitConverter.ToUInt64(pointer);
-                if (candidate != 0 && TryBuildLayout(handle, identity, VerifiedTables(candidate + BaseAdjust)) is { } quick) return quick;
+                if (candidate != 0 && TryBuildLayout(handle, identity, ProfiledTables(candidate + BaseAdjust)) is { } quick) return quick;
             }
             if (!identity.Verified)
                 foreach (BasePointer path in known ?? [])
@@ -616,7 +629,7 @@ internal static partial class GameMemory
             progress?.Invoke(identity.Verified ? L.Connection.SearchAfterQuick
                 : L.Connection.SearchUnverified);
             ulong table = ScanCityTable(handle, identity, progress, cancellationToken);
-            GameTables tables = identity.Verified ? VerifiedTables(table - CityTable) : DiscoverTables(handle, identity, table);
+            GameTables tables = identity.Verified ? ProfiledTables(table - CityTable) : DiscoverTables(handle, identity, table);
             GameLayout layout = TryBuildLayout(handle, identity, tables)
                 ?? throw new InvalidOperationException(L.Errors.DataNotFound);
             return identity.Verified ? layout : layout with { Pointers = StaticPointers(handle, identity, table) };
@@ -817,10 +830,12 @@ internal static partial class GameMemory
     internal static GameSnapshot ReadSnapshot(GameIdentity identity, GameLayout layout, GameSnapshot? before = null)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
-        GameSessionObservation? session = identity.Verified ? RequirePlayingSession(identity) : null;
+        var readOnly = identity.DataProfile;
+        GameSessionObservation? session = identity.Verified || readOnly is not null ? RequirePlayingSession(identity) : null;
         IntPtr handle = OpenRead(identity.ProcessId);
         try
         {
+            if (readOnly is not null) RequireSnapshotRoot(handle, identity, layout, readOnly, session!);
             using var buffers = new SnapshotReadBuffers();
             int citySlots = (layout.Tribes ? TribeLast : CityCount) + 1;
             byte[] allCities = buffers.Read(handle, layout.CityArray, citySlots * CityStride);
@@ -958,7 +973,7 @@ internal static partial class GameMemory
                 }
             }
             List<PersonalityRecord> personalities = ReadPersonalities(handle, identity, layout);
-            PlayRecord? play = ReadPlayRecord(handle, identity);
+            PlayRecord? play = readOnly is null ? ReadPlayRecord(handle, identity) : null;
             IReadOnlySet<int>? dlcOfficers = identity.Verified ? ReadDlcOfficers(handle, identity) : null;
 
             int playerForce = -1, hour = -1;
@@ -975,20 +990,25 @@ internal static partial class GameMemory
                 hour = state[StateHourOffset];
             }
 
+            var runtimeProfile = RuntimeRuleBuildProfile.Find(identity);
+            var rules = identity.Verified || runtimeProfile is not null
+                ? RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase, runtimeProfile)
+                : readOnly is not null ? null : RuntimeRuleSettings.Original;
+            bool originalAbilityTable = readOnly?.AbilityTable is { } table &&
+                ReadOriginalAbilityTable((address, size) => ReadBytes(handle, address, size), identity.ModuleBase, table, runtimeProfile, rules);
             if (session is not null)
             {
                 var afterSession = RequirePlayingSession(identity);
                 if (session.Entries[2].Address != afterSession.Entries[2].Address)
                     throw new GameSessionUnavailableException(afterSession with { Phase = GameSessionPhase.Transition, Error = "Game session changed during snapshot read" });
+                if (readOnly is not null) RequireSnapshotRoot(handle, identity, layout, readOnly, afterSession);
                 session = afterSession;
             }
             return new GameSnapshot
             {
                 Session = session,
-                // Runtime patches exist only on the verified build: an unknown build runs the original rules, and its
-                // ability curve is still checked by GameChecks before any write is allowed. Null means the verified
-                // build's code was found in a state no setting explains.
-                RuntimeRules = identity.Verified ? RuntimeRulePatches.DetectFull((address, size) => ReadBytes(handle, address, size), identity.ModuleBase) : RuntimeRuleSettings.Original,
+                OriginalAbilityTableVerified = originalAbilityTable,
+                RuntimeRules = rules,
                 Cities = cities,
                 Counties = counties.ToArray(),
                 Officers = officers.ToArray(),
@@ -1118,7 +1138,8 @@ internal static partial class GameMemory
     internal static GamePace ReadPace(GameIdentity identity, GameLayout layout)
     {
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
-        if (identity.Verified && !ReadSession(identity).IsPlaying) return GamePace.Unknown;
+        bool profiled = identity.Verified || identity.DataProfile is not null;
+        if (profiled && !ReadSession(identity).IsPlaying) return GamePace.Unknown;
         IntPtr handle = OpenRead(identity.ProcessId);
         try
         {
@@ -1131,7 +1152,7 @@ internal static partial class GameMemory
                 if (!TryRead(handle, layout.State + StateYearOffset, after)) return GamePace.Unknown;
                 if (!before.AsSpan().SequenceEqual(after)) return GamePace.Running;
             }
-            return identity.Verified && !ReadSession(identity).IsPlaying ? GamePace.Unknown : GamePace.Paused;
+            return profiled && !ReadSession(identity).IsPlaying ? GamePace.Unknown : GamePace.Paused;
         }
         finally { CloseHandle(handle); }
     }
@@ -1143,8 +1164,18 @@ internal static partial class GameMemory
     // record is compared with edit.Expected right before it is written: an edit that changes a linked field
     // (LinkedFields) is refused when any linked field of its record has moved since, and a plain value the game
     // changed meanwhile is written over and returned, to be reported.
-    internal static IReadOnlyList<string> Apply(GameIdentity identity, IReadOnlyList<RecordEdit> edits, string? runtimeReceipt = null)
+    internal static IReadOnlyList<string> Apply(GameIdentity identity, IReadOnlyList<RecordEdit> edits, string? runtimeReceipt = null,
+        GameLayout? expectedLayout = null)
     {
+        if (identity.DataProfile is { } profile)
+        {
+            if (edits.Count > 0 && edits.All(edit => edit.Kind is RecordKind.AiNode or RecordKind.AiArgs))
+                return ApplyProfiledAiEdits(identity, expectedLayout, edits);
+            ProfiledEdits.RequireFields(profile, edits);
+            if (expectedLayout is null) throw new InvalidOperationException(L.Errors.StateMoved);
+            return WithProfiledEditSession(identity, expectedLayout, (handle, data) =>
+                ApplyProfiledEdits(handle, identity, profile, expectedLayout, data, edits));
+        }
         lock (RuntimeRuleLock) return ApplyWithRecoveryEdits(identity, edits, runtimeReceipt);
     }
 
@@ -1154,7 +1185,7 @@ internal static partial class GameMemory
         GameCapabilities.Require(identity, GameFeature.DataWrite);
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
-        IntPtr handle = OpenProcess(access, false, identity.ProcessId);
+        IntPtr handle = OpenGameWrite(access, identity);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
@@ -1262,11 +1293,15 @@ internal static partial class GameMemory
         if (!IsSameGame(identity)) throw new InvalidOperationException(L.Errors.ProcessChangedReconnect);
         if (layout.State == 0) throw new InvalidOperationException(L.Errors.NoStateForPlayer);
         if (force is < 1 or > MaxPlayerForce) throw new ArgumentOutOfRangeException(nameof(force));
-        uint access = ProcessQueryInformation | ProcessVmRead | ProcessVmWrite | ProcessVmOperation;
-        IntPtr handle = OpenProcess(access, false, identity.ProcessId);
+        IntPtr handle = OpenCommandWrite(identity, DemoSwitchRva);
         if (handle == IntPtr.Zero) throw AccessError(L.Errors.NoWriteAccess);
         try
         {
+            bool profiled = GameCommandProfile.Find(identity) is not null;
+            if (profiled && (!layout.SameStorage(ReadCurrentLayout(identity)) ||
+                !CommandCodeMatches(handle, identity, DemoSwitchRva, DemoSwitchStart) ||
+                !ProfiledFrameCodeMatches(handle, identity, GameBuildProfiles.RequireNative(identity))))
+                throw new InvalidOperationException(L.Calls.WhyCode);
             if (ReadPointers(handle, layout.Tables.State, 1)[0] != layout.State || !HasVtable(handle, layout.State, identity.Classes.World))
                 throw new InvalidOperationException(L.Errors.StateMoved);
             byte[] record = ReadBytes(handle, layout.Forces[force], ForceRead);
@@ -1283,6 +1318,7 @@ internal static partial class GameMemory
                 string? why = RunDemoSwitchOff(handle, identity);
                 if (why is not null)
                 {
+                    if (profiled) throw new InvalidOperationException(why);
                     // Only the demo bit changes; the game may update the other bits at the same time, so re-read right before.
                     uint flags = BitConverter.ToUInt32(ReadBytes(handle, flagsAddress, 4));
                     if ((flags & DemoPlayFlag) != 0) WriteBytes(handle, flagsAddress, BitConverter.GetBytes(flags & ~DemoPlayFlag));
@@ -1291,8 +1327,27 @@ internal static partial class GameMemory
                     throw new InvalidOperationException(L.Errors.AutoStopUnconfirmed);
                 return new DemoEnd(why is null, why);
             }
-            catch
+            catch (Exception failure)
             {
+                if (profiled)
+                {
+                    try
+                    {
+                        if (ReadPointers(handle, layout.Tables.State, 1)[0] != layout.State ||
+                            !HasVtable(handle, layout.State, identity.Classes.World))
+                            throw new InvalidOperationException(L.Errors.StateMoved);
+                        WriteBytes(handle, forceAddress, oldForce);
+                        WriteBytes(handle, flagsAddress, oldFlags);
+                        if (!ReadBytes(handle, forceAddress, 1).SequenceEqual(oldForce) ||
+                            !ReadBytes(handle, flagsAddress, 4).SequenceEqual(oldFlags))
+                            throw new InvalidOperationException(L.Errors.AutoStopUnconfirmed);
+                    }
+                    catch (Exception recovery)
+                    {
+                        throw new AggregateException(failure, recovery);
+                    }
+                    throw;
+                }
                 try { WriteBytes(handle, forceAddress, oldForce); WriteBytes(handle, flagsAddress, oldFlags); }
                 catch (Win32Exception) { /* Report the first error. */ }
                 throw;

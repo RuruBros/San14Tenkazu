@@ -202,6 +202,7 @@ class MemoryImage:
             shape.append(token)
         if not ordered: raise ValueError(f'Empty function: {start:#x}')
         row = {'rva': start, 'instruction_count': len(ordered), 'prefix_sha256': self.prefix(start),
+               'code_start': ordered[0], 'code_end': ordered[-1]+instructions[ordered[-1]].size,
                'shape_sha256': digest(json_bytes(shape)),
                'raw_code_sha256': digest(json_bytes([[at-start, instructions[at].bytes.hex()] for at in ordered])),
                'direct_edges': edges, 'references': references, 'issues': sorted(issues)}

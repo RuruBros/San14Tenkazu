@@ -49,7 +49,7 @@ internal static partial class GameMemory
         if(ReadPace(identity,layout)!=GamePace.Paused)throw new InvalidOperationException(L.DeveloperUi.PauseRequired);
         lock(RuntimeRuleLock)
         {
-            IntPtr handle=OpenProcess(ProcessQueryInformation|ProcessVmRead|ProcessVmWrite|ProcessVmOperation|0x0800,false,identity.ProcessId);
+            IntPtr handle=OpenGameWrite(ProcessQueryInformation|ProcessVmRead|ProcessVmWrite|ProcessVmOperation|0x0800, identity);
             if(handle==IntPtr.Zero)throw AccessError(L.Errors.NoWriteAccess);
             try
             {

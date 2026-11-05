@@ -7,6 +7,10 @@ namespace San14Tenkazu.Tests;
 public sealed class AiFileFactAttribute : FactAttribute
 {
     internal static readonly string Folder = Path.GetDirectoryName(GameFiles.Exe)!;
+    internal static string Stamp => AiTreeFile.Stamp(File.ReadAllBytes(Path.Combine(Folder, AiTreeFile.RelativePath)));
+    internal static bool November => Stamp == AiBuildProfile.NovemberStock;
+    internal static int Node(int legacy, int november) => November ? november : legacy;
+    internal static int[] Nodes(int[] legacy, int[] november) => November ? november : legacy;
 
     public AiFileFactAttribute()
     {
@@ -19,14 +23,16 @@ public sealed class AiFileFactAttribute : FactAttribute
 public partial class AiTreeTests
 {
     private static AiTree[] GameTrees() => AiTreeFile.Read(AiFileFactAttribute.Folder);
+    private static IReadOnlyList<AiGuidePage> GamePages(AiTree[] trees) => AiBuildProfile.Pages(AiFileFactAttribute.Stamp, trees);
 
     [AiFileFact]
     public void ReadsTheFourTreesAsTheGameDoes()
     {
         AiTree[] trees = GameTrees();
 
-        Assert.Equal(new[] { 246, 10312, 348, 111 }, trees.Select(t => t.Nodes.Length));
-        Assert.Equal(new uint[] { 0x7CC94F1A, 0xEB10FB33, 0x9C5B9A81, 0xFB6999B7 }, trees.Select(t => t.ChunkHash));
+        Assert.Equal(AiFileFactAttribute.Nodes([246, 10312, 348, 111], [246, 10790, 348, 111]), trees.Select(t => t.Nodes.Length));
+        uint corps = AiFileFactAttribute.November ? 0x72610CC7u : 0xEB10FB33u;
+        Assert.Equal(new uint[] { 0x7CC94F1A, corps, 0x9C5B9A81, 0xFB6999B7 }, trees.Select(t => t.ChunkHash));
         Assert.Equal(new uint[] { 0x57C83E03, 0xCCA2CE60, 0x6B6C9FAD, 0xEEE443B1 }, trees.Select(t => t.TreeHash));
         Assert.All(trees, tree =>
         {
@@ -58,7 +64,7 @@ public partial class AiTreeTests
     public void ASortieWaitsForAThousandSoldiers()
     {
         AiTree corps = GameTrees()[(int)AiTreeKind.Corps];
-        AiNode departure = corps.Nodes[1777], gate = corps.Nodes[1776];
+        AiNode departure = corps.Nodes[AiFileFactAttribute.Node(1777, 1789)], gate = corps.Nodes[AiFileFactAttribute.Node(1776, 1788)];
         AiCondition condition = AiCondition.Of(gate.Params);
         AiTerm term = Assert.Single(condition.Terms);
 
@@ -80,19 +86,21 @@ public partial class AiTreeTests
     public void TheWindowSpellsANodeOutInALine()
     {
         AiTree corps = GameTrees()[(int)AiTreeKind.Corps];
-        AiNode gate = corps.Nodes[1776];
+        AiNode gate = corps.Nodes[AiFileFactAttribute.Node(1776, 1788)];
         AiTerm term = AiCondition.Of(gate.Params).Terms[0];
 
         Assert.Equal(L.Ai.ConditionIf("$608D13B6 > 1,000"), AiText.Line(corps, gate));
-        Assert.Contains("$478F0486 ≤ 5", AiText.Line(corps, corps.Nodes[1773]));
-        Assert.Equal(L.Ai.Sequence(L.Ai.OrderInOrder, L.Ai.RuleSequence), AiText.Line(corps, corps.Nodes[1767]));
+        Assert.Contains("$478F0486 ≤ 5", AiText.Line(corps, corps.Nodes[AiFileFactAttribute.Node(1773, 1785)]));
+        Assert.Equal(L.Ai.Sequence(L.Ai.OrderInOrder, L.Ai.RuleSequence), AiText.Line(corps, corps.Nodes[AiFileFactAttribute.Node(1767, 1779)]));
         Assert.Equal(L.Ai.Root, AiText.Line(corps, corps.Root));
-        Assert.Equal(L.Ai.BlockDecision("82725CD9", L.Ai.DecisionTransport), AiText.Line(corps, corps.Nodes[1813]));
-        Assert.Contains(AiLabels.Info(AiCatalog.Class(corps.Nodes[1821].Class)!, 16), AiText.Line(corps, corps.Nodes[1821]));
-        Assert.Contains("$PersonalityMoney", AiText.Line(corps, corps.Nodes[1821]));
+        Assert.Equal(L.Ai.BlockDecision("82725CD9", L.Ai.DecisionTransport), AiText.Line(corps, corps.Nodes[AiFileFactAttribute.Node(1813, 1847)]));
+        AiNode personality = corps.Nodes[AiFileFactAttribute.Node(1821, 1855)];
+        Assert.Contains(AiLabels.Info(AiCatalog.Class(personality.Class)!, 16), AiText.Line(corps, personality));
+        Assert.Contains("$PersonalityMoney", AiText.Line(corps, personality));
         Assert.Equal((L.Ai.RoleTunable, L.Ai.TermArg(1, 2, AiLabels.Predicate(20)), true), AiText.Describe(gate, term.FirstArg + 1));
         Assert.Equal((L.Ai.RoleVariable, false), (AiText.Describe(gate, term.FirstArg).Role, AiText.Describe(gate, term.FirstArg).Number));
-        Assert.Equal(new int?[] { 0, 1, 2, null }, new[] { 1777, 5400, 8692, 10007 }.Select(i => AiText.CorpsType(corps, corps.Nodes[i])));
+        Assert.Equal(new int?[] { 0, 1, 2, null }, AiFileFactAttribute.Nodes([1777, 5400, 8692, 10007], [1789, 5652, 9154, 10485])
+            .Select(i => AiText.CorpsType(corps, corps.Nodes[i])));
         Assert.All(GameTrees().SelectMany(t => t.Nodes.Select(n => (t, n))), x => Assert.NotEmpty(AiText.Line(x.t, x.n)));
     }
 
@@ -102,15 +110,16 @@ public partial class AiTreeTests
     public void TheGuidesNumbersAreWhereItSays()
     {
         AiTree[] trees = GameTrees();
-        Assert.Equal(Enum.GetValues<AiDecision>(), AiGuide.Pages.Select(p => p.Decision));
-        foreach (AiGuideValue value in AiGuide.Pages.SelectMany(p => p.Sections).SelectMany(s => s.Values))
+        var pages = GamePages(trees);
+        Assert.Equal(Enum.GetValues<AiDecision>(), pages.Select(p => p.Decision));
+        foreach (AiGuideValue value in AiBuildProfile.Values(pages))
         {
             var slots = value.Anchors.Select(a => a.Slot(trees)).ToList();
             Assert.All(slots, s => Assert.NotNull(s));
             Assert.All(slots, s => Assert.True(AiCatalog.IsNumber(trees[(int)s!.Value.Tree].Nodes[s.Value.Node], s.Value.Param), $"{value.Label}: {s}"));
             Assert.Single(slots.Select(s => trees[(int)s!.Value.Tree].Nodes[s.Value.Node].Params[s.Value.Param]).Distinct());
         }
-        int Raw(AiDecision d, string label) => AiGuide.Pages.Single(p => p.Decision == d).Sections.SelectMany(s => s.Values).First(v => v.Label == label)
+        int Raw(AiDecision d, string label) => pages.Single(p => p.Decision == d).Sections.SelectMany(s => s.Values).First(v => v.Label == label)
             is { } v && v.Anchors[0].Slot(trees) is { } s ? v.Shown(trees[(int)s.Tree].Nodes[s.Node].Params[s.Param]) : -1;
         Assert.Equal(2000, Raw(AiDecision.Transport, L.AiGuide.TransportGold));
         Assert.Equal(4, Raw(AiDecision.TargetForces, L.AiGuide.TargetCountHigh));
@@ -171,12 +180,12 @@ public partial class AiTreeTests
     {
         AiTree corps = GameTrees()[(int)AiTreeKind.Corps];
         (_, AiTreeKind tree, uint block) = AiValues.Decisions.Single(d => d.Decision == AiDecision.Transport);
-        var surplus = new AiSlot(AiTreeKind.Corps, 1827, 1);   // VariablePlusValue(gold kept back, 2,000)
+        var surplus = new AiSlot(AiTreeKind.Corps, AiFileFactAttribute.Node(1827, 1861), 1);   // VariablePlusValue(gold kept back, 2,000)
 
         Assert.Equal(AiTreeKind.Corps, tree);
-        Assert.Equal(new[] { 1813, 5386, 8678 }, AiValues.Blocks(corps, block).Select(n => n.Index));
-        Assert.Equal(2000, corps.Nodes[1827].Params[1]);
-        Assert.Equal(new[] { 5400, 8692 }, AiValues.Counterparts(corps, surplus).Select(s => s.Node));
+        Assert.Equal(AiFileFactAttribute.Nodes([1813, 5386, 8678], [1847, 5638, 9140]), AiValues.Blocks(corps, block).Select(n => n.Index));
+        Assert.Equal(2000, corps.Nodes[surplus.Node].Params[1]);
+        Assert.Equal(AiFileFactAttribute.Nodes([5400, 8692], [5652, 9154]), AiValues.Counterparts(corps, surplus).Select(s => s.Node));
         Assert.All(AiValues.Counterparts(corps, surplus), s => Assert.Equal(2000, corps.Nodes[s.Node].Params[1]));
         Assert.Contains(surplus, AiValues.Numbers(corps));
         Assert.DoesNotContain(surplus with { Param = 0 }, AiValues.Numbers(corps));
@@ -267,22 +276,23 @@ public partial class AiTreeTests
         AiTree[] trees = GameTrees();
         var heap = new MadeUp.Heap(trees);
         AiLiveTree[] live = AiMemory.Read(heap, MadeUp.Heap.ModuleBase, trees);
-        AiGuideValue gold = AiGuide.Values.Single(v => v.Label == L.AiGuide.TransportGold);
+        var values = AiBuildProfile.Values(GamePages(trees)).ToArray();
+        AiGuideValue gold = values.Single(v => v.Label == L.AiGuide.TransportGold);
         var kept = new Dictionary<string, int> { [AiAdjustments.Key(gold)] = 3000 };
 
-        var (write, other) = AiEdits.Reapply(heap, trees, live, kept);
+        var (write, other) = AiEdits.Reapply(heap, trees, live, kept, values);
         Assert.Equal((gold, 3000), Assert.Single(write));
         Assert.Empty(other);
         EditPlan plan = AiEdits.Plan(heap, trees, live, "AI", write);
         Assert.Equal(3, plan.Edits.Sum(e => e.Changes.Count));
         GameMemory.Apply(heap, TestGame.Classes, plan.Edits);
         Assert.Equal(3000, AiEdits.GameRaw(heap, trees, live, gold));
-        Assert.Equal(kept, AiEdits.Changed(heap, trees, live));
-        Assert.Empty(AiEdits.Reapply(heap, trees, live, kept).Write);
+        Assert.Equal(kept, AiEdits.Changed(heap, trees, live, values));
+        Assert.Empty(AiEdits.Reapply(heap, trees, live, kept, values).Write);
 
-        heap.Poke(AiMemory.Cell(heap, live[1], 5400, 1)!.Value, 2500);
+        heap.Poke(AiMemory.Cell(heap, live[1], AiFileFactAttribute.Node(5400, 5652), 1)!.Value, 2500);
         Assert.Null(AiEdits.GameRaw(heap, trees, live, gold));
-        Assert.Equal(gold, Assert.Single(AiEdits.Reapply(heap, trees, live, kept).Other).Value);
+        Assert.Equal(gold, Assert.Single(AiEdits.Reapply(heap, trees, live, kept, values).Other).Value);
     }
 
     // The kept numbers are for one edition of the game's file: another stamp finds none.
@@ -330,7 +340,7 @@ public partial class AiTreeTests
     {
         GameIdentity identity = GameMemory.FindGame();
         AiTree[] file = GameTrees();
-        AiLiveTree[] live = GameMemory.ReadAiTrees(identity, file);
+        AiLiveTree[] live = GameMemory.ReadAiTrees(identity, file, AiFileFactAttribute.Stamp);
 
         Assert.Equal(file.Select(t => t.Nodes.Length), live.Select(t => t.Nodes.Length));
         GameMemory.ReadAi(identity, memory =>
@@ -431,10 +441,10 @@ public partial class AiTreeTests
             private ulong next = 0x1_0000_0000;
             internal ulong[] Roots { get; }
 
-            internal Heap(AiTree[] trees)
+            internal Heap(AiTree[] trees, ulong managerRva = AiMemory.ManagerPointerRva)
             {
                 ulong manager = Block(0x60), ai = Block(0x30);
-                Put(ModuleBase + AiMemory.ManagerPointerRva, ai);
+                Put(ModuleBase + managerRva, ai);
                 Put(ai + 8, manager);
                 Roots = new ulong[trees.Length];
                 for (int k = 0; k < trees.Length; k++)
@@ -465,7 +475,11 @@ public partial class AiTreeTests
                             }
                         }
                         else if (nodes[i].Class == AiCatalog.Sequential || nodes[i].Class == AiCatalog.StaticLink || nodes[i].IsLeaf)
-                            for (int q = 0; q < p.Length; q++) Put32(at[i] + (nodes[i].IsLeaf ? 0x38u : 0x28u) + (ulong)(4 * q), unchecked((uint)p[q]));
+                        {
+                            var live = new AiLiveTree(trees[k], at[0], at);
+                            for (int q = 0; q < p.Length; q++)
+                                if (AiMemory.Cell(this, live, i, q) is { } cell) Poke(cell, p[q]);
+                        }
                     }
                     Put(at[0] + 0x38, (ulong)nodes.Length);
                     Put(at[0] + 0x40, table);

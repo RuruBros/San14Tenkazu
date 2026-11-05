@@ -59,8 +59,8 @@ internal static class TacticMemory
     private static bool Address(ulong at) => at is >= 0x10000 and < 0x0000800000000000 && (at & 7) == 0;
     internal static TacticSnapshot Read(IRecordMemory memory, GameIdentity game)
     {
-        if (!game.Verified || game.Classes.Tactic == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
-        ulong root = Pointer(memory, game.ModuleBase + FormationMemory.RootRva);
+        if (game.Classes.Tactic == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
+        ulong rootSlot = FormationMemory.RootSlot(game), root = Pointer(memory, rootSlot);
         if (!Address(root)) throw new InvalidDataException(L.Rules.NotReady);
         byte[] pointers = memory.Read(root + TableOffset, 201 * 8);
         ulong array = BinaryPrimitives.ReadUInt64LittleEndian(pointers), state = Pointer(memory, root + FormationMemory.StateOffset);
@@ -85,7 +85,7 @@ internal static class TacticMemory
             if (record.Named) records.Add(record);
         }
         if (records.Count == 0) throw new InvalidDataException(L.Rules.NotReady);
-        if (Pointer(memory, game.ModuleBase + FormationMemory.RootRva) != root || Pointer(memory, root + FormationMemory.StateOffset) != state
+        if (Pointer(memory, rootSlot) != root || Pointer(memory, root + FormationMemory.StateOffset) != state
             || !memory.Read(root + TableOffset, pointers.Length).AsSpan().SequenceEqual(pointers)) throw new InvalidDataException(L.Rules.Stale);
         return new(root, state, array, records.ToArray(), Convert.ToHexString(SHA256.HashData(catalog.ToArray())));
     }

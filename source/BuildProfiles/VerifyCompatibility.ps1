@@ -2,6 +2,10 @@
 param(
     [Parameter(Mandatory=$true)][string]$Python,
     [string]$AuditModulePath,
+    [string]$LegacyRuntimeImage,
+    [string]$LegacyRuntimeBase,
+    [string]$NovemberRuntimeImage,
+    [string]$NovemberRuntimeBase,
     [string]$Output
 )
 $ErrorActionPreference='Stop'
@@ -42,9 +46,28 @@ try {
     Run 'generated-drift' $Python @('source/BuildProfiles/generate.py','--check')
     Run 'generator-tests' $Python @('-m','unittest','discover','-s','source/BuildProfiles','-p','test_generate.py','-v')
     Run 'version-matcher-tests' $Python @('-m','unittest','discover','-s','source/Reverse','-p','test_version_audit.py','-v')
-    # This excluded production test opens the real user's game, so it never belongs to an offline verifier.
-    $taskFilter='(FullyQualifiedName~CompatibilityTests|FullyQualifiedName~SettingsMigrationTests|FullyQualifiedName~GameClassesTests|FullyQualifiedName~GameBuildProfile|FullyQualifiedName~RuntimeRule|FullyQualifiedName~RuntimeTrait|FullyQualifiedName~KnownBuilds|FullyQualifiedName~PublicLibraryLoader|FullyQualifiedName~RuleProfile|FullyQualifiedName~Season|FullyQualifiedName~EnvironmentTests|FullyQualifiedName~GameCallTests|FullyQualifiedName~CalendarTests|FullyQualifiedName~FieldTests|FullyQualifiedName~WriteTests|FullyQualifiedName~WriteRecoveryTests|FullyQualifiedName~SnapshotReadBufferTests|FullyQualifiedName~StringsTests|FullyQualifiedName~StringResourceBaselineTests)&FullyQualifiedName!~ProductionDateSourceReadsTheCurrentVerifiedGameWithoutWriting'
-    Run 'managed-offline' 'dotnet' @('test','source/Tests/San14Tenkazu.Tests.csproj','--no-restore','-c','Release','-p:NuGetAudit=false','--filter',$taskFilter,'--results-directory',(Join-Path $taskOutput 'managed'),'--logger','trx;LogFileName=offline.trx') $true
+    if ($LegacyRuntimeImage -or $LegacyRuntimeBase -or $NovemberRuntimeImage -or $NovemberRuntimeBase) {
+        if (!$LegacyRuntimeImage -or !$LegacyRuntimeBase -or !$NovemberRuntimeImage -or !$NovemberRuntimeBase) {
+            throw 'Supply both runtime image paths and both capture bases.'
+        }
+        Run 'runtime-profile-captures' $Python @('source/Reverse/runtime_profile_audit.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase)
+        Run 'native-command-profile' $Python @('source/Reverse/game_command_profile.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase)
+        Run 'native-command-replay' $Python @('source/Reverse/game_command_replay.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase)
+        Run 'game-command-candidates' $Python @('source/Reverse/game_command_audit.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--candidate-image',$NovemberRuntimeImage,'--candidate-base',$NovemberRuntimeBase,
+            '--output',(Join-Path $taskOutput 'game-command-candidates.json'),'--verify-known-camera')
+    }
+    # Run the whole managed suite except the entry points that read the user's running game.
+    $taskFilter='FullyQualifiedName!~LiveGameTests&FullyQualifiedName!~SnapshotLiveReadTests&FullyQualifiedName!~TheGameHoldsTheFilesTreesUnderTheCatalogsNames&FullyQualifiedName!~ProductionDateSourceReadsTheCurrentVerifiedGameWithoutWriting'
+    # Native lifecycle fixtures measure cancellation against fixed timeouts. Run collections serially.
+    Run 'managed-offline' 'dotnet' @('test','source/Tests/San14Tenkazu.Tests.csproj','--no-restore','-c','Release','-p:NuGetAudit=false','--filter',$taskFilter,'--results-directory',(Join-Path $taskOutput 'managed'),'--logger','trx;LogFileName=offline.trx','--','xUnit.ParallelizeTestCollections=false','xUnit.MaxParallelThreads=1') $true
     [xml]$taskTrx=Get-Content -LiteralPath (Join-Path $taskOutput 'managed/offline.trx')
     $taskManagedPassed=[int]$taskTrx.TestRun.ResultSummary.Counters.total -gt 0 -and [int]$taskTrx.TestRun.ResultSummary.Counters.total -eq [int]$taskTrx.TestRun.ResultSummary.Counters.passed
     foreach($taskFlavor in @('dev','public')){
@@ -54,15 +77,35 @@ try {
         Run ($taskFlavor+'-menu') 'dotnet' @($taskChecks,'--developer-menu-check',$taskDev.ToString())
         Run ($taskFlavor+'-season-bundle') 'dotnet' @($taskChecks,'--season-bundle-check','source/Seasons')
         Run ($taskFlavor+'-environment-bundle') 'dotnet' @($taskChecks,'--environment-bundle-check','source/Environment')
+        Run ($taskFlavor+'-environment-menu') 'dotnet' @($taskChecks,'--environment-menu',(Join-Path $taskOutput ($taskFlavor+'-environment-menu')))
     }
     $taskDevChecks=Join-Path $taskOutput 'checks-dev/San14Tenkazu.Tests.dll'
+    if ($LegacyRuntimeImage) {
+        foreach ($taskRuntime in @(
+            @{ name='legacy'; image=$LegacyRuntimeImage; base=$LegacyRuntimeBase; flags=@() },
+            @{ name='november'; image=$NovemberRuntimeImage; base=$NovemberRuntimeBase; flags=@('--november') })) {
+            $taskPayload=Join-Path $taskOutput ('trait-payload-'+$taskRuntime.name)
+            $taskBase=if($taskRuntime.base.StartsWith('0x')) {
+                [Convert]::ToUInt64($taskRuntime.base.Substring(2),16)
+            } else { [UInt64]$taskRuntime.base }
+            Run ('trait-export-'+$taskRuntime.name) 'dotnet' (@($taskDevChecks,'--runtime-trait-list-export',
+                ('--module='+$taskBase.ToString('X')),$taskPayload)+$taskRuntime.flags)
+            Run ('trait-replay-'+$taskRuntime.name) $Python (@('source/Reverse/runtime_trait_replay.py',
+                '--image',$taskRuntime.image,'--base',$taskRuntime.base,'--payload',$taskPayload)+$taskRuntime.flags)
+        }
+    }
     Run 'runtime-memory-wpf' 'dotnet' @($taskDevChecks,'--runtime-rules-offline',(Join-Path $taskOutput 'runtime-memory'))
     Run 'runtime-persistence-wpf' 'dotnet' @($taskDevChecks,'--runtime-rule-persistence',(Join-Path $taskOutput 'runtime-persistence'))
     Run 'settings-import-wpf' 'dotnet' @($taskDevChecks,'--settings-import-offline',(Join-Path $taskOutput 'settings-import'))
     if((Sources) -cne $taskBefore){throw 'Sources changed during verification; these results cannot certify the final tree.'}
     $taskProfile=Get-Content -LiteralPath source/BuildProfiles/current.json -Raw | ConvertFrom-Json
+    $taskProfiles=@(foreach($taskName in 'current','november2026'){
+        $taskPath='source/BuildProfiles/'+$taskName+'.json'
+        $taskDefinition=Get-Content -LiteralPath $taskPath -Raw | ConvertFrom-Json
+        [ordered]@{id=$taskDefinition.id;profileSha256=(Hash $taskPath);exeSha256=$taskDefinition.exeSha256}
+    })
     $taskPassed=$taskManagedPassed -and @($taskStages|Where-Object{$_.exitCode -ne 0}).Count -eq 0
-    $taskReport=[ordered]@{schemaVersion=1;utc=[DateTime]::UtcNow.ToString('o');gameAccess=$false;passed=$taskPassed;profileId=$taskProfile.id;profileSha256=(Hash 'source/BuildProfiles/current.json');exeSha256=$taskProfile.exeSha256;sourceInventorySha256=(Hash (Join-Path $taskOutput 'source-hashes.json'));managedTotal=[int]$taskTrx.TestRun.ResultSummary.Counters.total;managedPassed=[int]$taskTrx.TestRun.ResultSummary.Counters.passed;managedAllPassed=$taskManagedPassed;stages=$taskStages.ToArray();authorization='Regression evidence only. No new build registration, migration route, live execution, publish or deployment is authorized by this report.'}
+    $taskReport=[ordered]@{schemaVersion=1;utc=[DateTime]::UtcNow.ToString('o');gameAccess=$false;passed=$taskPassed;profileId=$taskProfile.id;profileSha256=(Hash 'source/BuildProfiles/current.json');exeSha256=$taskProfile.exeSha256;profiles=$taskProfiles;sourceInventorySha256=(Hash (Join-Path $taskOutput 'source-hashes.json'));managedTotal=[int]$taskTrx.TestRun.ResultSummary.Counters.total;managedPassed=[int]$taskTrx.TestRun.ResultSummary.Counters.passed;managedAllPassed=$taskManagedPassed;stages=$taskStages.ToArray();authorization='Regression evidence only. No new build registration, migration route, live execution, publish or deployment is authorized by this report.'}
     [IO.File]::WriteAllText((Join-Path $taskOutput 'report.json'),(ConvertTo-Json -InputObject $taskReport -Depth 12))
     if(!$taskPassed){throw ('Offline verification has failures; no certification: '+(Join-Path $taskOutput 'report.json'))}
     Write-Host ('PASS offline compatibility verification: '+(Join-Path $taskOutput 'report.json'))

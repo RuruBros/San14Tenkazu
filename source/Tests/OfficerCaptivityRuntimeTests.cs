@@ -41,16 +41,28 @@ public sealed class OfficerCaptivityRuntimeTests
             Date = (date.GetProperty("year").GetInt32(), date.GetProperty("month").GetInt32(), date.GetProperty("day").GetInt32())
         };
         var memory = new CapturedMemory(input.GetProperty("reads"));
+        var november = identity with { Verified = false, ExeHash = GameBuildProfiles.NovemberNative.ExeSha256 };
+        var profile = GameCommandProfile.Find(november)!;
+        var target = profile.Target(GameMemory.OfficerCaptureRva);
+        var novemberMemory = new CapturedMemory(input.GetProperty("reads"),
+            (exe + november.DataProfile!.WorldPointerRva, BitConverter.GetBytes(raw)), (exe + target.Rva, target.Prefix));
         Assert.Equal(9, input.GetProperty("rows").GetArrayLength());
         foreach (var row in input.GetProperty("rows").EnumerateArray())
         {
-            var prepared = GameMemory.PrepareCaptivity(memory, identity, layout, data, new(row.GetProperty("id").GetInt32(), row.GetProperty("captor").GetInt32()));
+            var request = new OfficerCaptivity.Request(row.GetProperty("id").GetInt32(), row.GetProperty("captor").GetInt32());
+            var prepared = GameMemory.PrepareCaptivity(memory, identity, layout, data, request);
             Assert.Equal(row.GetProperty("body").GetString(), Convert.ToHexString(prepared.Body));
             Assert.Equal(row.GetProperty("place").GetInt32(), prepared.Place);
             var call = Assert.IsType<TransferCall>(Assert.Single(prepared.Changes));
             Assert.Equal(4, call.Invocation.More!.Length);
             Assert.Equal(prepared.Target.Force, row.GetProperty("captor").GetInt32());
             Assert.Empty(prepared.Plan.Edits);
+            var projected = GameMemory.PrepareCaptivity(novemberMemory, november, layout, data, request);
+            var novemberCall = Assert.IsType<TransferCall>(Assert.Single(projected.Changes));
+            Assert.Equal(call.Invocation with { Function = exe + 0x2E3020, More = novemberCall.Invocation.More }, novemberCall.Invocation);
+            Assert.Equal(call.Invocation.More, novemberCall.Invocation.More);
+            Assert.Equal(prepared.Place, projected.Place);
+            Assert.Contains(projected.Guards, guard => guard.Address == exe + target.Rva);
         }
     }
 
@@ -89,10 +101,10 @@ public sealed class OfficerCaptivityRuntimeTests
         });
     }
 
-    private sealed class CapturedMemory(JsonElement reads) : IRecordMemory
+    private sealed class CapturedMemory(JsonElement reads, params (ulong Address, byte[] Bytes)[] bindings) : IRecordMemory
     {
-        private readonly (ulong Address, byte[] Bytes)[] segments = reads.EnumerateArray()
-            .Select(r => (r.GetProperty("address").GetUInt64(), Convert.FromHexString(r.GetProperty("hex").GetString()!))).ToArray();
+        private readonly (ulong Address, byte[] Bytes)[] segments = bindings.Concat(reads.EnumerateArray()
+            .Select(r => (r.GetProperty("address").GetUInt64(), Convert.FromHexString(r.GetProperty("hex").GetString()!)))).ToArray();
         public byte[] Read(ulong address, int length)
         {
             foreach (var segment in segments)

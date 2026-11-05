@@ -57,8 +57,8 @@ internal static class PolicyMemory
     private static bool Address(ulong at) => at is >= 0x10000 and < 0x0000800000000000 && (at & 7) == 0;
     internal static PolicySnapshot Read(IRecordMemory memory, GameIdentity game)
     {
-        if (!game.Verified || game.Classes.Policy == 0 || game.Classes.PolicyEffect == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
-        ulong root = Pointer(memory, game.ModuleBase + FormationMemory.RootRva);
+        if (game.Classes.Policy == 0 || game.Classes.PolicyEffect == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
+        ulong rootSlot = FormationMemory.RootSlot(game), root = Pointer(memory, rootSlot);
         if (!Address(root)) throw new InvalidDataException(L.Rules.NotReady);
         ulong state = Pointer(memory, root + FormationMemory.StateOffset);
         if (!Address(state) || Pointer(memory, state) != game.Classes.World) throw new InvalidDataException(L.Rules.NotReady);
@@ -96,7 +96,7 @@ internal static class PolicyMemory
             catalogs.Add(new(t.Table, t.Table + "-v1", Convert.ToHexString(SHA256.HashData(catalog.ToArray())), ids.ToArray()));
             if (!memory.Read(root + t.Offset, pointers.Length).AsSpan().SequenceEqual(pointers)) throw new InvalidDataException(L.Rules.Stale);
         }
-        if (Pointer(memory, game.ModuleBase + FormationMemory.RootRva) != root || Pointer(memory, root + FormationMemory.StateOffset) != state) throw new InvalidDataException(L.Rules.Stale);
+        if (Pointer(memory, rootSlot) != root || Pointer(memory, root + FormationMemory.StateOffset) != state) throw new InvalidDataException(L.Rules.Stale);
         return new(root, state, arrays[0], arrays[1], rows.ToArray(), catalogs.ToArray());
     }
 

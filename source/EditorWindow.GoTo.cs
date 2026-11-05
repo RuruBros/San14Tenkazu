@@ -23,12 +23,13 @@ internal sealed partial class EditorWindow
 
     private async Task GoToTileAsync(int tile, string place)
     {
-        if (busy || game is not { } identity || snapshot is null) return;
+        if (busy || game is not { } identity || layout is not { } found || snapshot is null) return;
         // One game call at a time (writes call the game too): busy for the moment it takes.
         SetBusy(true, scanning: false);
         try
         {
-            string? why = await Task.Run(() => GameMemory.ShowTileInGame(identity, tile));
+            string? why = await RunNativeCommandAsync(NativeCommandKind.Camera, identity, found, tile,
+                () => GameMemory.ShowTileInGame(identity, tile));
             status.Text = why is null ? L.Card.WentTo(place) : L.Card.NotWent(why);
             if (why is not null) AddLog(status.Text);
         }

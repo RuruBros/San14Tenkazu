@@ -5,6 +5,38 @@ namespace San14Tenkazu.Tests;
 public sealed class RuleProfileTests
 {
     [Fact]
+    public void UpdatedRulesUseTheirOwnRootAndNeverReplacePriorBuildPreferences()
+    {
+        var legacy = new FormationFixture();
+        var identity = legacy.Identity with { ExeHash = GameSessionTests.UpdateHash, Verified = false };
+        var updated = new FormationFixture(identity: identity);
+        var before = updated.Snapshot();
+        var edit = Change(before);
+        var changed = FormationMemory.Apply(updated, identity, before, [edit]);
+        Assert.Equal(edit.After, changed.Values[edit.Key]);
+        var restored = FormationMemory.Apply(updated, identity, changed, [edit with { Before = edit.After, After = edit.Before }]);
+        Assert.Equal(before.Record(1).Data, restored.Record(1).Data);
+        Assert.Equal(before.Record(1).Vector, restored.Record(1).Vector);
+        Assert.Throws<InvalidDataException>(() => FormationMemory.Read(updated, identity with { ExeHash = new string('F', 64) }));
+
+        var folder = Directory.CreateTempSubdirectory("San14Rules-");
+        try
+        {
+            var oldFile = new RuleProfileFile(Path.Combine(folder.FullName, "rule_profiles.json"));
+            var oldProfile = legacy.Snapshot().Baseline(legacy.Identity.ExeHash);
+            var oldStamp = oldFile.Save(oldProfile, "").Stamp;
+            var newFile = oldFile.ForBuild(identity.DataProfile!);
+            Assert.Null(newFile.Read().Profile);
+            var newProfile = before.Baseline(identity.ExeHash).WithChanges([edit]);
+            newFile.Save(newProfile, "");
+            Assert.Equal(edit.After, newFile.Read().Profile!.Desired(edit.Key));
+            Assert.Equal(oldStamp, oldFile.Read().Stamp);
+            Assert.Equal(edit.Before, oldFile.Read().Profile!.Desired(edit.Key));
+        }
+        finally { folder.Delete(recursive: true); }
+    }
+
+    [Fact]
     public void IndexedLookupsFollowTableAdditionsEditsRestoresAndSerialization()
     {
         var fixture = new TacticFixture();

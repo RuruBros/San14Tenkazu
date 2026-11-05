@@ -15,7 +15,7 @@ internal static class Undo
         }
         return written.Where(e => e.Changes.Count > 0)
             .Select(e => new RecordEdit(e.Kind, e.Address, after[e.Address], e.Label, e.Changes.Select(c => new FieldChange(c.Field, c.Field.Read(e.Expected))).ToList(),
-                e.Restarts, e.MilitaryPoints))
+                e.Restarts, e.MilitaryPoints) { AiSlots = e.AiSlots, ExpectedRuntimeRules = e.ExpectedRuntimeRules })
             .ToList();
     }
 

@@ -105,15 +105,19 @@ public sealed class GameBuildProfileTests
         }
     }
     [Theory]
-    [InlineData(false)] [InlineData(true)]
-    public void PackagedNativeIdentityIsCheckedFromThePeWithoutLoadingTheLibrary(bool environment)
+    [InlineData(false, false)] [InlineData(true, false)]
+    [InlineData(false, true)] [InlineData(true, true)]
+    public void PackagedNativeIdentityIsCheckedFromThePeWithoutLoadingTheLibrary(bool environment, bool november)
     {
         string root = Path.Combine(Path.GetTempPath(), "san14-build-profile-" + Guid.NewGuid().ToString("N"));
         try
         {
-            string directory = environment ? EnvironmentNativeBundle.Extract(root) : SeasonNativeBundle.Extract(root);
+            var profile = november ? GameBuildProfiles.NovemberNative : GameBuildProfiles.Current;
+            var other = november ? GameBuildProfiles.Current : GameBuildProfiles.NovemberNative;
+            string directory = environment ? EnvironmentNativeBundle.Extract(root, profile) : SeasonNativeBundle.Extract(root, profile);
             byte[] file = File.ReadAllBytes(Path.Combine(directory, environment ? "EnvironmentBridge.dll" : "SeasonBridge.dll"));
-            var profile = GameBuildProfiles.Current; profile.VerifyNativeBinary(file);
+            profile.VerifyNativeBinary(file);
+            Assert.Throws<InvalidDataException>(() => other.VerifyNativeBinary(file));
             uint rva = NativeExports.Rva(file, "San14BuildProfileIdentity");
             using var stream = new MemoryStream(file); using var pe = new PEReader(stream);
             var section = pe.PEHeaders.SectionHeaders.Single(s => rva >= s.VirtualAddress && rva - s.VirtualAddress < s.SizeOfRawData);

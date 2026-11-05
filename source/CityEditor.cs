@@ -183,9 +183,13 @@ internal sealed class CityEditorCard : EditorCard
     // Inputs and fills are available only while connected and not busy.
     internal bool FillsEnabled
     {
+        set => officers.FillsEnabled = value;
+    }
+
+    internal bool NativeActionsEnabled
+    {
         set
         {
-            officers.FillsEnabled = value;
             actionsEnabled = value;
             give.IsEnabled = value;
             independence.IsEnabled = value && independenceBlock is null;

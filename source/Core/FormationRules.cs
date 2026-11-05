@@ -64,12 +64,15 @@ internal sealed record FormationSnapshot(ulong Root, ulong State, ulong Array, F
 internal static class FormationMemory
 {
     internal const ulong RootRva = GameBuildFacts.Memory.BasePointerRva, TableOffset = 0x77428, StateOffset = 0x871E8;
+    internal static ulong RootSlot(GameIdentity game) => checked(game.ModuleBase + (game.Verified ? RootRva :
+        game.DataProfile is { RuleGuards.IsDefaultOrEmpty: false } profile ? profile.WorldPointerRva
+        : throw new InvalidDataException(L.Rules.Incompatible)));
     private static ulong Pointer(IRecordMemory memory, ulong at) => BinaryPrimitives.ReadUInt64LittleEndian(memory.Read(at, 8));
     private static bool Address(ulong at) => at is >= 0x10000 and < 0x0000800000000000 && (at & 7) == 0;
     internal static FormationSnapshot Read(IRecordMemory memory, GameIdentity game)
     {
-        if (!game.Verified || game.Classes.Formation == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
-        ulong root = Pointer(memory, game.ModuleBase + RootRva);
+        if (game.Classes.Formation == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
+        ulong rootSlot = RootSlot(game), root = Pointer(memory, rootSlot);
         if (!Address(root)) throw new InvalidDataException(L.Rules.NotReady);
         byte[] pointers = memory.Read(root + TableOffset, 21 * 8);
         ulong array = BinaryPrimitives.ReadUInt64LittleEndian(pointers);
@@ -97,7 +100,7 @@ internal static class FormationMemory
             catalog.Write(data, 0x10, 10); // Name and kind identify the catalog, not values changed by this editor.
             catalog.WriteByte(data[0x7E]);
         }
-        if (Pointer(memory, game.ModuleBase + RootRva) != root || Pointer(memory, root + StateOffset) != state
+        if (Pointer(memory, rootSlot) != root || Pointer(memory, root + StateOffset) != state
             || !memory.Read(root + TableOffset, pointers.Length).AsSpan().SequenceEqual(pointers)) throw new InvalidDataException(L.Rules.Stale);
         return new(root, state, array, records.ToArray(), Convert.ToHexString(SHA256.HashData(catalog.ToArray())));
     }

@@ -1,6 +1,7 @@
 ﻿using San14Tenkazu;
 using System.IO;
 using System.Reflection;
+using System.Text.Json;
 using San14Tenkazu.EnvironmentRules;
 using San14Tenkazu.Tests;
 using W=System.Windows;
@@ -32,6 +33,26 @@ internal static partial class RenderChecks
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripDeveloperCities")==expected,"City roundtrip entry leaked into public build");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadDeveloperGeographyTopology")==expected,"Raw geography diagnostic leaked into public build");
         Require((typeof(EditorWindow).GetMethod("RunDeveloperGeography",Hidden)!=null)==expected,"City diagnostics leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunProfiledCityEdit",Hidden)!=null)==expected,"Profiled city round trip leaked into public build");
+        Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripProfiledCityGold")==expected,"Profiled city memory test leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunProfiledFieldsEdit",Hidden)!=null)==expected,"Profiled field round trip leaked into public build");
+        Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripProfiledFields")==expected,"Profiled field memory test leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunProfiledRuleEdit",Hidden)!=null)==expected,"Profiled rule round trip leaked into public build");
+        Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name is "RoundTripProfiledRules" or "PlanProfiledRuleTrials")==expected,"Profiled rule diagnostic leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunProfiledAiEdit",Hidden)!=null)==expected&&
+            typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name is "RoundTripProfiledAi" or "RunProfiledAiTrial")==expected,
+            "Profiled AI diagnostic leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunProfiledAiExtension",Hidden)!=null)==expected&&
+            typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripNovemberAiExtension")==expected,
+            "AI supply protection diagnostic leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunProfiledRuntimeRules",Hidden)!=null)==expected&&
+            typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripProfiledRuntimeRules")==expected,
+            "Runtime rule diagnostic leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("StartNativeCommandSuiteStepAsync",Hidden)!=null)==expected&&
+            (typeof(EditorWindow).GetMethod("FindNativeCommandContinuation",Hidden|BindingFlags.Static)!=null)==expected&&
+            typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadNativeTrialCamera")==expected,
+            "Native command suite leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunProfiledRenderCheck",Hidden)!=null)==expected,"Profiled render diagnostic leaked into public build");
         Require((typeof(EditorWindow).GetMethod("DeveloperEnvironmentEvidence",Hidden|BindingFlags.Static)!=null)==expected,"Native receipt diagnostic leaked into public build");
         Require((typeof(EditorWindow).GetMethod("PrepareDeveloperNoticeScene",Hidden)!=null)==expected&&
             (typeof(EditorWindow).Assembly.GetType("San14Tenkazu.DeveloperNoticeDiagnostic")!=null)==expected,"Picture diagnostics leaked into public build");
@@ -45,7 +66,10 @@ internal static partial class RenderChecks
         CheckTraitListDiagnostic();
         CheckCompatibilityDiagnostic();
         CheckDeveloperEntry();
+        CheckNativeCommandContinuation();
         CheckDeveloperGeography();
+        CheckProfiledRuleRoundTrip();
+        CheckProfiledAiRoundTrip();
         CheckDeveloperNoticeDiagnostic();
         CheckPerformanceSummary();
         var fixture=new DeveloperFixture();var controller=new EnvironmentController(fixture,Console.WriteLine);
@@ -68,6 +92,11 @@ internal static partial class RenderChecks
             Require(window.Preview.IsEnabled&&window.Damage.IsEnabled&&window.Stop.IsEnabled&&window.ReadText.IsEnabled,"Separate test actions missing");
             window.Cities.SelectedItem=null;Require(window.ReadText.IsEnabled&&window.ReadTraits.IsEnabled&&!window.Preview.IsEnabled,"Read-only diagnostics must not require a damage target");window.Cities.SelectedIndex=0;
             window.SetAvailable(false,true);Require(!window.Preview.IsEnabled&&!window.Damage.IsEnabled&&!window.ReadTraits.IsEnabled&&window.Stop.IsEnabled,"Busy state must retain cancellation");
+            window.SetAvailable(true,true,previewOnly:true);
+            Require(window.Preview.IsEnabled&&window.Stop.IsEnabled&&!window.Damage.IsEnabled&&!window.ReadText.IsEnabled&&
+                window.PictureDiagnostic.IsChecked==false&&window.PictureDiagnostic.IsEnabled,"New profile must default to the repeatable no-damage preview");
+            window.PictureDiagnostic.IsChecked=true;window.SetAvailable(false,true,previewOnly:true);window.SetAvailable(true,true,previewOnly:true);
+            Require(window.PictureDiagnostic.IsChecked==true,"Refreshing availability must preserve the user's trace selection");
             var receipt=new EnvironmentProtocol.Reply{Date=192|(7u<<16)|(11u<<24),Weather=new byte[EnvironmentProtocol.CitySlots],RecentDates=new uint[EnvironmentProtocol.CitySlots*5],TestState=2,TestCity=1,TestKind=1};
             var overlay=EnvironmentOverlay.From(new(EnvironmentPhase.On,EnvironmentEffects.None,EnvironmentEffects.None,false,receipt));
             Require(overlay is not null&&overlay.IsPreview(1,4)&&overlay.Recent(1,4)==receipt.Date&&receipt.RecentDates.All(d=>d==0),"Preview must be distinct from real history");
@@ -90,6 +119,8 @@ internal static partial class RenderChecks
                 "Trait diagnostic action and result log must fit the second tab");
             window.Tabs.SelectedIndex=2;window.SetCompatibilityAvailable(true,false);window.UpdateLayout();
             Require(window.ReadCompatibility.IsEnabled&&!window.CancelCompatibility.IsEnabled&&window.CompatibilityLog.ActualHeight>100,"Compatibility tab layout missing");
+            Require(window.NativeCommandSuite.IsVisible&&!window.NativeCommandSuite.IsEnabled,
+                "One native command suite entry should be visible and disabled offline");
             window.SetCompatibilityAvailable(false,true);
             Require(!window.ReadCompatibility.IsEnabled&&window.CancelCompatibility.IsEnabled,"Read-only cancellation must remain enabled while reading");
             Console.WriteLine("PASS local developer WPF choices, distinct actions, cancellation, receipt, typography and preview provenance");
@@ -98,6 +129,57 @@ internal static partial class RenderChecks
         Console.WriteLine("PASS developer build flavor expected="+expected+" compiled="+compiled);
     }
 #if LOCAL_DEVELOPER
+    private static void CheckProfiledAiRoundTrip()
+    {
+        var data=new TestGame().City(1,1).Build();
+        var city=data.Cities[1];
+        var memory=new FakeMemory(data);
+        var edit=new RecordEdit(RecordKind.City,city.Address,city.Data,"AI recovery fixture",
+            [new(CityFields.Gold,city[CityFields.Gold]+1)]);
+        int writes=0;
+        void Apply(IReadOnlyList<RecordEdit> edits){writes++;GameMemory.Apply(memory,TestGame.Classes,edits);}
+        var receipt=GameMemory.RunProfiledAiTrial(memory,[edit],Apply);
+        Require(writes==2&&receipt.Changed.Single().Sha256!=receipt.Restored.Single().Sha256&&
+            memory.Read(city.Address,city.Data.Length).SequenceEqual(city.Data),"AI diagnostic must compare readback and restore whole records");
+        memory.Set(city.Address,CityFields.Gold,city[CityFields.Gold]+2);
+        try{GameMemory.RunProfiledAiTrial(memory,[edit],Apply);throw new IOException("AI diagnostic admitted a stale target");}
+        catch(InvalidOperationException){Require(writes==2,"Stale AI target must receive no writes");}
+        Console.WriteLine("PASS AI diagnostic exact restored bytes and stale target refusal; gameAccess=false");
+    }
+
+    private static void CheckNativeCommandContinuation()
+    {
+        var identity = new GameIdentity(1234, DateTime.UnixEpoch, 0, GameNativeFactsNovember2026.ExeSha256, false, TestGame.Classes);
+        string directory = Directory.CreateTempSubdirectory("San14Tenkazu-command-journal-").FullName;
+        string path = Path.Combine(directory, "native-commands-fixture.jsonl");
+        string[] commands = ["Camera", "Calendar", "Item", "Alliance", "Give", "Capture", "Transfer", "Revival", "Independence", "Surrender", "Demo"];
+        var find = typeof(EditorWindow).GetMethod("FindNativeCommandContinuation", Hidden | BindingFlags.Static)!;
+        object? Find(GameIdentity game, DateTime title) => find.Invoke(null, [directory, game, title]);
+        string Row(string stage, string command) => JsonSerializer.Serialize(new { stage, command });
+        try
+        {
+            File.WriteAllLines(path, [JsonSerializer.Serialize(new { stage = "started", identity.ProcessId, identity.ExeHash, identity.StartTimeUtc, commands }),
+                Row("armed", "Camera"), Row("before", "Camera"), Row("after", "Camera"),
+                Row("armed", "Calendar"), Row("before", "Calendar"), Row("after", "Calendar")]);
+            DateTime latest = File.GetLastWriteTimeUtc(path);
+            DateTime title = latest.AddMinutes(1);
+            object? result = Find(identity, title);
+            Require(result is not null && Equals(result.GetType().GetField("Completed", Hidden)!.GetValue(result), 2),
+                "Native command continuation must preserve completed steps");
+            Require(Find(identity, latest) is null, "Native command continuation must require a later title observation");
+            Require(Find(identity with { StartTimeUtc = identity.StartTimeUtc.AddSeconds(1) }, title) is null,
+                "Native command continuation must reject a reused PID");
+            File.AppendAllLines(path, [Row("armed", "Item"), Row("before", "Item")]);
+            Require(Find(identity, title) is null, "Native command continuation must reject an unfinished write");
+            File.AppendAllLines(path, [Row("failed", "Item")]);
+            Require(Find(identity, title) is not null, "Native command continuation must keep failed steps pending after title");
+            File.AppendAllLines(path, [Row("after", "Alliance")]);
+            Require(Find(identity, title) is null, "Native command continuation must reject an out-of-order result");
+            Console.WriteLine("PASS native command continuation: 6 checks; gameAccess=false");
+        }
+        finally { File.Delete(path); Directory.Delete(directory); }
+    }
+
     private static void CheckDeveloperEntry()
     {
         static T Field<T>(object owner,string name)=>(T)owner.GetType().GetField(name,Hidden)!.GetValue(owner)!;
@@ -109,6 +191,7 @@ internal static partial class RenderChecks
         var root=(W.FrameworkElement)editor.Content;editor.Content=null;
         var host=new W.Window{Content=root,Width=1100,Height=750,ShowActivated=false,ShowInTaskbar=false,Title="Developer header WPF check"};
         var log=Field<LogPanel>(editor,"log");var button=Field<PlateButton>(editor,"developerButton");
+        string journal = Path.GetTempFileName();
         try {
             host.Show();Pump();host.UpdateLayout();
             Require(IsDescendant(log,button)&&button.ContextMenu is null&&!log.Open,"Developer button must belong to the folded log header and open directly");
@@ -116,8 +199,20 @@ internal static partial class RenderChecks
             Require(bounds.Right>log.ActualWidth-24&&bounds.Top>=0&&bounds.Bottom<=log.ActualHeight,"Developer entry must sit at the right edge of the log header");
             Click(button);Pump();var first=Field<DisasterTestWindow>(editor,"developerMenu");
             Require(first.IsVisible&&first.Tabs.Items.Count==5&&!log.Open,"One click must open the tabbed window without expanding the log");
+            first.Tabs.SelectedIndex = 2; Pump(); first.UpdateLayout();
+            Require(first.ProfiledRulesEdit.IsVisible && !first.ProfiledRulesEdit.IsEnabled,
+                "The rule test button must be visible in the compatibility tab and unavailable offline");
+            Require(first.ProfiledAiEdit.IsVisible&&!first.ProfiledAiEdit.IsEnabled,"The AI test button must be visible and unavailable offline");
             Click(button);Pump();Require(ReferenceEquals(first,Field<DisasterTestWindow>(editor,"developerMenu")),"Repeated click must reuse the same tools window");
+            var suiteField = typeof(EditorWindow).GetField("nativeCommandSuite", Hidden)!;
+            var fixture = new GameIdentity(1234, DateTime.UnixEpoch, 0, GameNativeFactsNovember2026.ExeSha256, false, TestGame.Classes);
+            object? suite = Activator.CreateInstance(suiteField.FieldType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
+                null, [journal, fixture], null);
+            suiteField.SetValue(editor, suite);
             first.Close();Pump();
+            Require(suite is not null && ReferenceEquals(suite, suiteField.GetValue(editor)),
+                "Closing the tools window must keep the active native command suite");
+            Console.WriteLine("PASS native command suite survives closing the tools window; gameAccess=false");
             var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)Math.Ceiling(log.ActualWidth),(int)Math.Ceiling(log.ActualHeight),96,96,System.Windows.Media.PixelFormats.Pbgra32);
             var visual=new System.Windows.Media.DrawingVisual();using(var draw=visual.RenderOpen())draw.DrawRectangle(new System.Windows.Media.VisualBrush(log),null,new W.Rect(0,0,log.ActualWidth,log.ActualHeight));bitmap.Render(visual);
             var encoder=new System.Windows.Media.Imaging.PngBitmapEncoder();encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
@@ -125,7 +220,7 @@ internal static partial class RenderChecks
             Console.WriteLine("WPF developer header: "+path);
             Console.WriteLine("PASS developer entry at log header right edge, direct opening, visible disaster tab, window reuse and unchanged log fold; no game connection");
         }finally {
-            Field<DisasterTestWindow?>(editor,"developerMenu")?.Close();Pump();host.Close();editor.Close();
+            Field<DisasterTestWindow?>(editor,"developerMenu")?.Close();Pump();host.Close();editor.Close();File.Delete(journal);
         }
     }
 #endif

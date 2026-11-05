@@ -6,14 +6,16 @@ internal sealed partial class EditorWindow
 
     private void UpdateCalendarControls(bool connected)
     {
-        calendarButton.IsEnabled = !busy && connected && game is { Verified: true } && layout is { State: not 0 } &&
+        bool supported = game is { } identity && GameMemory.SupportsCalendar(identity);
+        calendarButton.IsEnabled = !busy && connected && supported && layout is { State: not 0 } &&
             snapshot is { Date: { } date, Hour: >= 0 and <= 23 } && new GameCalendarDate(date.Year, date.Month, date.Day).IsValid;
-        calendarButton.ToolTip = game is { Verified: false } ? L.Calendar.VerifiedOnly : L.Calendar.Tip;
+        calendarButton.ToolTip = game is not null && !supported ? L.Calendar.VerifiedOnly : L.Calendar.Tip;
     }
 
     private async Task ChangeCalendarAsync()
     {
-        if (!CanWrite(out _) || game is not { Verified: true } identity || layout is not { State: not 0 } found) return;
+        if (!CanWrite(out _) || game is not { } identity || !GameMemory.SupportsCalendar(identity) ||
+            layout is not { State: not 0 } found) return;
         SetBusy(true, scanning: false);
         try
         {
@@ -21,7 +23,8 @@ internal sealed partial class EditorWindow
             var dialog = new CalendarDialog(before.Date) { Owner = this };
             if (dialog.ShowDialog() != true || dialog.Target is not { } target) return;
             AddLog(L.Calendar.Requested(identity.ProcessId, $"0x{found.State:X}", before.Date, target, before.Hour));
-            GameClock after = await Task.Run(() => GameMemory.ChangeCalendar(identity, found, before, target));
+            GameClock after = await RunNativeCommandAsync(NativeCommandKind.Calendar, identity, found, target,
+                () => GameMemory.ChangeCalendar(identity, found, before, target));
             status.Text = L.Calendar.Completed(after.Date, after.Hour);
             AddLog(status.Text);
         }

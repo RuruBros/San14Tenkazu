@@ -1,11 +1,124 @@
 using System.Text;
 using System.Text.Json;
+using System.Buffers.Binary;
+using System.Security.Cryptography;
 
 namespace San14Tenkazu.Tests;
 
 public sealed class CompatibilityTests
 {
     private static GameIdentity Identity => new(1,DateTime.UnixEpoch,0x140000000,GameBuildFacts.ExeSha256,true,TestGame.Classes with {DoctrinePanel=0x7015});
+
+    [Fact]
+    public void UpdatedBuildSeparatesValidatedDataFieldsFromNativeFeatures()
+    {
+        var updated = Identity with { Verified = false, ExeHash = GameSessionTests.UpdateHash };
+        Assert.Null(GameBuildProfiles.Find(updated.ExeHash));
+        Assert.Null(GameBuildProfiles.FindData(GameBuildFacts.ExeSha256));
+        Assert.Equal(0x2780F60UL, updated.DataProfile!.WorldPointerRva);
+        Assert.Equal(new[] { GameFeature.BasicRead, GameFeature.DataWrite, GameFeature.AbilityData,
+                GameFeature.RuntimeTraits, GameFeature.RuntimeAbilities, GameFeature.TraitList, GameFeature.RuleTables,
+                GameFeature.Tactics, GameFeature.Policies, GameFeature.Offices, GameFeature.Ranks, GameFeature.Doctrines,
+                GameFeature.GameCalls, GameFeature.AiTrees, GameFeature.Environment, GameFeature.Seasons },
+            GameCapabilities.Inspect(updated).Where(c => c.CanAttempt).Select(c => c.Feature));
+        Assert.Same(GameBuildProfiles.NovemberNative, GameBuildProfiles.FindNative(updated));
+        Assert.Same(GameBuildProfiles.Current, GameBuildProfiles.FindNative(Identity));
+        var unverified = new RecordEdit(RecordKind.Officer, 0x10, [], "gender", [new(OfficerFields.Gender, 1)]);
+        Assert.Throws<InvalidDataException>(() => GameMemory.Apply(updated, [unverified]));
+
+        var unknown = updated with { ExeHash = updated.ExeHash[..^1] + "0" };
+        Assert.Null(unknown.DataProfile);
+        Assert.Null(GameBuildProfiles.FindNative(unknown));
+        Assert.Null(RuntimeRuleBuildProfile.Find(unknown));
+        Assert.Null(GameCommandProfile.Find(unknown));
+        Assert.Equal(GameSessionPhase.Unsupported, GameMemory.ReadSession(unknown).Phase);
+    }
+
+    [Fact]
+    public void NovemberCommandsUseOnlyRegisteredTargetsAndLegacyIdentityKeepsItsOwnBindings()
+    {
+        var updated = Identity with { Verified = false, ExeHash = GameSessionTests.UpdateHash };
+        var profile = GameCommandProfile.Find(updated)!;
+        Assert.Null(GameCommandProfile.Find(Identity));
+        Assert.Equal(0x3A0050UL, profile.Target(0x3C1A00).Rva);
+        Assert.Equal(0x2E3020UL, profile.Target(0x2E0CF0).Rva);
+        Assert.Equal(0x2A0CF0UL, profile.Target(0x29EDE0).Rva);
+        Assert.Equal(0x27D4140UL, profile.Global(0x27D10F0));
+        Assert.Throws<InvalidOperationException>(() => profile.Target(0x3C3DC0));
+        Assert.Throws<InvalidOperationException>(() => profile.Global(0x277DF18));
+        Assert.All(profile.Functions.Values, target =>
+        {
+            Assert.InRange(target.Prefix.Length, 16, 32);
+            Assert.False(target.Matches(new byte[target.Length]));
+        });
+        Assert.True(GameMemory.SupportsCalendar(updated));
+        Assert.True(GameMemory.SupportsIndependence(updated));
+    }
+
+    [Fact]
+    public void ProfiledTraitEditAndUndoRequireTheCurrentSlotMode()
+    {
+        var profile = GameBuildProfiles.FindData(GameSessionTests.UpdateHash)!;
+        var expanded = new RuntimeRuleSettings(Traits9: true);
+        var game = new TestGame().Officer(1, "officer", 1, 1, 2);
+        var data = game.Build(expanded);
+        var officer = data.OfficerById[1];
+        var edit = new RecordEdit(RecordKind.Officer, officer.Address, officer.Data, "trait",
+            [new(OfficerFields.Personalities[8], 1)]) { ExpectedRuntimeRules = expanded };
+        ProfiledEdits.RequireFields(profile, [edit]);
+        ProfiledEdits.RequireCurrentRecords(data, [edit]);
+        ProfiledEdits.RequireCurrentRecords(data.With([edit]), Undo.Of([edit]));
+        Assert.Throws<InvalidDataException>(() => ProfiledEdits.RequireCurrentRecords(game.Build(), [edit]));
+        Assert.Throws<InvalidDataException>(() => ProfiledEdits.RequireCurrentRecords(data, [edit with { ExpectedRuntimeRules = null }]));
+    }
+
+    [Fact]
+    public void ProfiledEditsValidateWholeBatchAndRejectStaleTargetsBeforeOpeningWriteHandle()
+    {
+        var profile = GameBuildProfiles.FindData(GameSessionTests.UpdateHash)!;
+        var data = new TestGame().City(1, 1).Build();
+        var city = data.Cities[1];
+        var gold = new RecordEdit(RecordKind.City, city.Address, city.Data, "city", [new(CityFields.Gold, 1)]);
+        ProfiledEdits.RequireFields(profile, [gold]);
+        ProfiledEdits.RequireCurrentRecords(data, [gold]);
+        Assert.Throws<InvalidDataException>(() => ProfiledEdits.RequireFields(profile,
+            [gold, gold with { Address = city.Address + 8, Changes = [new(CityFields.Governor, 1)] }]));
+        Assert.Throws<InvalidDataException>(() => ProfiledEdits.RequireFields(profile, [gold, gold]));
+        Assert.Throws<StaleEditException>(() => ProfiledEdits.RequireCurrentRecords(data.With([gold]), [gold]));
+        Assert.Throws<InvalidOperationException>(() => ProfiledEdits.RequireCurrentRecords(data, [gold with { Address = city.Address + 1 }]));
+    }
+
+    [Fact]
+    public void OriginalAbilityProofRejectsOneChangedLevelOrGuard()
+    {
+        const ulong module = 0x140000000, manager = 0x50000, vtable = module + 0x1400;
+        int[][] levels = JsonSerializer.Deserialize<int[][]>(File.ReadAllBytes(
+            Path.Combine(AppContext.BaseDirectory, "Vectors", "GameAbilityLevels20261105.json")))!;
+        Assert.Equal(101, levels.Length);
+        byte[] guard = [0x90, 0xC3], pointers = new byte[101 * 8];
+        var memory = new Dictionary<ulong, byte[]> { [module + 0x100] = guard, [module + 0x200] = BitConverter.GetBytes(manager),
+            [manager + 0x60] = pointers };
+        for (int level = 0; level < levels.Length; level++)
+        {
+            ulong at = 0x80000 + (ulong)level * 0x40;
+            BinaryPrimitives.WriteUInt64LittleEndian(pointers.AsSpan(level * 8), at);
+            byte[] record = new byte[0x24];
+            BinaryPrimitives.WriteUInt64LittleEndian(record, vtable);
+            Assert.Equal(5, levels[level].Length);
+            for (int ability = 0; ability < levels[level].Length; ability++)
+                BinaryPrimitives.WriteInt32LittleEndian(record.AsSpan(0x10 + ability * 4), levels[level][ability]);
+            memory[at] = record;
+        }
+        var profile = new GameAbilityTable(0x200, 0x1400, [new(0x100, guard.Length, Convert.ToHexString(SHA256.HashData(guard)))]);
+        byte[] Read(ulong at, int _) => (byte[])memory[at].Clone();
+        Assert.True(GameMemory.ReadOriginalAbilityTable(Read, module, profile));
+        byte[] last = memory[0x80000 + 100 * 0x40];
+        last[0x20] ^= 1;
+        Assert.False(GameMemory.ReadOriginalAbilityTable(Read, module, profile));
+        last[0x20] ^= 1;
+        guard[0] ^= 1;
+        Assert.False(GameMemory.ReadOriginalAbilityTable(Read, module, profile));
+    }
     [Fact]
     public void MissingOptionalClassBlocksOnlyDependentFeaturesAndNeverCertifiesExecution()
     {

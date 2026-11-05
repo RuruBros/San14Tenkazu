@@ -32,6 +32,14 @@ internal sealed partial class EditorWindow
         window.CancelCompatibility.Click+=()=>compatibilityCancellation?.Cancel();
         window.ReadGeography.Click+=async()=>await RunDeveloperGeography(false);
         window.EditGeography.Click+=async()=>await RunDeveloperGeography(true);
+        window.ProfiledCityEdit.Click+=async()=>await RunProfiledCityEdit();
+        window.ProfiledFieldsEdit.Click+=async()=>await RunProfiledFieldsEdit();
+        window.ProfiledRulesEdit.Click += async () => await RunProfiledRuleEdit();
+        window.ProfiledAiEdit.Click += async () => await RunProfiledAiEdit();
+        window.ProfiledAiExtension.Click += async () => await RunProfiledAiExtension();
+        window.ProfiledRuntimeRules.Click += async () => await RunProfiledRuntimeRules();
+        window.NativeCommandSuite.Click += async () => await StartNativeCommandSuiteStepAsync();
+        window.ProfiledRender.Click += async () => await RunProfiledRenderCheck();
         bool closeAllowed=false,closePending=false;
         window.Closing+=async(_,e)=>{
             if(performanceCancellation is {} measuring){measuring.Cancel();e.Cancel=true;return;}
@@ -43,21 +51,40 @@ internal sealed partial class EditorWindow
                 if(await CancelDeveloperTest()){closeAllowed=true;window.Close();}
             }finally{closePending=false;}
         };
-        window.Closed+=(_,_)=>developerMenu=null;UpdateDeveloperControls();window.Show();
+        window.Closed += (_, _) => developerMenu = null;
+        if (nativeCommandSuite is { } suite && game == suite.Game)
+        {
+            window.AppendCompatibility(suite.Journal);
+            if (suite.Armed is not null)
+                window.AppendCompatibility(L.DeveloperUi.NativeSuiteStep(suite.Completed + 1, NativeCommandSequence.Length,
+                    NativeCommandLabel(suite.Kind)));
+            else window.AppendCompatibility(suite.AwaitingReload ? L.DeveloperUi.NativeSuiteReload : L.DeveloperUi.NativeSuiteNext);
+        }
+        UpdateDeveloperControls();window.Show();
     }
     private void UpdateDeveloperControls()
     {
         if(developerMenu is not {} window)return;
         bool available=!developerChanging&&!environmentChanging&&!busy&&!seasonClosing&&!seasonDisconnecting;
         window.PerformanceStart.IsEnabled=available&&seasonController?.Status.Phase==SeasonPhase.On;
-        window.SetAvailable(available&&game is{Verified:true}&&layout is not null&&snapshot is not null,available);
+        bool november=game is {} attached&&GameBuildProfiles.FindNative(attached)==GameBuildProfiles.NovemberNative;
+        window.SetAvailable(available&&developerRenderTrial is null&&(game is{Verified:true}||november)&&layout is not null&&snapshot is not null,available,november);
         window.SetCompatibilityAvailable(available&&!refreshing&&!rulePolling&&!runtimeRulesChecking&&!environmentChecking&&!seasonStarting&&!seasonStopping,compatibilityCancellation is not null);
         window.SetGeographyAvailable(available&&!HasPendingEdits&&!refreshing&&!rulePolling&&!runtimeRulesChecking&&!environmentChecking&&!seasonStarting&&!seasonStopping&&game is{Verified:true}&&layout is not null&&snapshot is not null);
+        window.ProfiledCityEdit.IsEnabled = available && !HasPendingEdits && !refreshing &&
+            game?.DataProfile?.Supports(CityFields.Gold) == true && layout is not null && ProfiledCityTarget() is not null;
+        window.ProfiledFieldsEdit.IsEnabled = available && CanRunProfiledFieldsEdit;
+        window.ProfiledRulesEdit.IsEnabled = available && CanRunProfiledRuleEdit;
+        window.ProfiledAiEdit.IsEnabled = available && CanRunProfiledAi;
+        window.ProfiledAiExtension.IsEnabled = available && CanRunProfiledAi;
+        window.ProfiledRuntimeRules.IsEnabled = available && CanRunProfiledRuntimeRules;
+        UpdateNativeCommandSuiteControls(window, available);
+        window.ProfiledRender.IsEnabled = available && CanRunProfiledRenderCheck;
         window.SetReceipt(environmentController?.Status);
     }
     private async Task RefreshDeveloperCities()
     {
-        try{if(game is not{Verified:true} identity||layout is not {} found)throw new InvalidOperationException(L.DeveloperUi.ConnectionRequired);
+        try{if(game is not{} identity||GameBuildProfiles.FindNative(identity) is null||layout is not {} found)throw new InvalidOperationException(L.DeveloperUi.ConnectionRequired);
             developerChanging=true;UpdateDeveloperControls();var data=await Task.Run(()=>GameMemory.ReadSnapshot(identity,found));developerMenu?.SetCities(data);}
         catch(Exception error){developerMenu?.Append(error.Message);}
         finally{developerChanging=false;UpdateDeveloperControls();}
@@ -106,17 +133,22 @@ internal sealed partial class EditorWindow
         if(developerChanging||developerMenu is not {} window)return;
         var diagnosticStarted=System.Diagnostics.Stopwatch.GetTimestamp();
         try {
-            if(game is not{Verified:true} identity||layout is not {} found||busy||seasonClosing||seasonDisconnecting)throw new InvalidOperationException(L.DeveloperUi.ReadyConnectionRequired);
+            if(game is not{} identity||layout is not {} found||busy||seasonClosing||seasonDisconnecting||developerRenderTrial is not null||
+                (mode==1?GameBuildProfiles.FindNative(identity) is null:!identity.Verified))throw new InvalidOperationException(L.DeveloperUi.ReadyConnectionRequired);
             var target=window.Target??throw new InvalidOperationException(L.DeveloperUi.ChooseTargetCity);int kind=window.Kind.SelectedIndex;
             developerChanging=true;UpdateDeveloperControls();
             if(developerNoticeDiagnostic is not null&&!await CancelDeveloperCore())throw new IOException(L.Seasons.Unrestored);
             var fresh=await Task.Run(()=>GameMemory.ReadSnapshot(identity,found));
             if(fresh.ForceOfCity(target.Id)!=target.Force)throw new InvalidOperationException(L.DeveloperUi.CityOwnerChanged);
             if(await Task.Run(()=>GameMemory.ReadPace(identity,found))!=GamePace.Paused)throw new InvalidOperationException(L.DeveloperUi.PauseRequired);
-            if(mode==1&&window.PictureDiagnostic.IsChecked==true){
-                if(seasonController?.Status is not{Phase:SeasonPhase.Off,OriginalRestored:true,Requested:false}||
+            bool captureTrace=window.PictureDiagnostic.IsChecked==true;
+            bool profiledPreview=mode==1&&GameBuildProfiles.FindNative(identity)==GameBuildProfiles.NovemberNative;
+            if(mode==1&&(captureTrace||profiledPreview)){
+                var renderer=seasonController?.Status;
+                if(renderer is not{OriginalRestored:true,Requested:false}||
+                    (renderer.Phase!=SeasonPhase.Off&&!(profiledPreview&&!captureTrace&&renderer.Phase==SeasonPhase.Faulted))||
                     environmentController?.Status.Actual is {} effects&&effects!=EnvironmentEffects.None)throw new InvalidOperationException(L.DeveloperUi.PictureDiagnosticRendererOff);
-                developerNoticeDiagnostic=new(Path.Combine(seasonStorageRoot,"environment","diagnostics"),identity,fresh,target.Id,kind,found,diagnosticStarted);
+                developerNoticeDiagnostic=new(Path.Combine(seasonStorageRoot,"environment","diagnostics"),identity,fresh,target.Id,kind,found,diagnosticStarted,captureTrace);
                 StartDeveloperNoticeDeadline();
                 window.Append(L.DeveloperUi.PictureDiagnosticPrepared+developerNoticeDiagnostic.DirectoryPath);
             }
@@ -145,6 +177,7 @@ internal sealed partial class EditorWindow
     }
     private async Task<bool> CancelDeveloperCore()
     {
+        if(developerRenderTrial is not null)return await StopProfiledRenderCheck("manual-or-deadline");
         try{
             if(environmentController is {} controller){
                 if(controller.Status.Phase==EnvironmentPhase.On)await controller.TestAsync(0,1,0);

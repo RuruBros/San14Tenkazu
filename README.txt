@@ -2,6 +2,7 @@
 
 Steam 삼국지14 한국어판(SAN14CE_KO.exe)의 실행 중인 게임에 연결해
 지도와 검색 목록에서 장수·도시·관문·부대 등을 편집합니다.
+2026년 11월 Steam 한국어판 업데이트와 이전 지원 버전에는 각각 전용 호환성 프로필을 적용합니다.
 
 다운로드
 https://github.com/RuruBros/San14Tenkazu/releases/latest

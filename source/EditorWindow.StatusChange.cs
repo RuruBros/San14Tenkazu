@@ -21,8 +21,8 @@ internal sealed partial class EditorWindow
             PreparedCaptivity prepared = await Task.Run(() => GameMemory.PrepareCaptivity(identity, found, data, capture));
             if (!ConfirmWrite(prepared.Plan.Summary)) return;
             AddLog(prepared.Plan.Summary);
-            executionStarted = true;
-            foreach (string line in await Task.Run(() => GameMemory.ApplyCaptivity(identity, found, prepared))) AddLog(line);
+            foreach (string line in await RunNativeCommandAsync(NativeCommandKind.Capture, identity, found, capture,
+                () => { executionStarted = true; return GameMemory.ApplyCaptivity(identity, found, prepared); })) AddLog(line);
             status.Text = L.StatusChange.Completed;
         }
         catch (Exception ex) { ReportError(ex); }

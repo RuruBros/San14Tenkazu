@@ -19,7 +19,22 @@ internal static class GameCapabilities
         var evidence = ImmutableArray.CreateBuilder<CapabilityEvidence>();
         bool known = identity.Verified && GameBuildProfiles.Find(identity.ExeHash) is not null;
         bool native = feature is not (GameFeature.BasicRead or GameFeature.DataWrite);
-        if (native) evidence.Add(new("profile", known, known ? "registered EXE/layout/ABI; live guards still required" : "unregistered or unverified build"));
+        bool abilityData = feature == GameFeature.AbilityData && identity.DataProfile?.AbilityTable is not null;
+        bool ruleData = GameRuleTableProfile.Includes(feature) && identity.DataProfile is { RuleGuards.IsDefaultOrEmpty: false };
+        bool renderer = feature is GameFeature.Seasons or GameFeature.Environment && GameBuildProfiles.FindNative(identity) is not null;
+        bool ai = feature == GameFeature.AiTrees && AiBuildProfile.IsNovember(identity);
+        bool calls = feature == GameFeature.GameCalls && GameCommandProfile.Find(identity) is not null;
+        bool runtime = feature is GameFeature.RuntimeAbilities or GameFeature.RuntimeTraits or GameFeature.TraitList &&
+            RuntimeRuleBuildProfile.Find(identity) is not null;
+        if (native) evidence.Add(new("profile", known || abilityData || ruleData || renderer || ai || runtime || calls, abilityData
+            ? "registered original ability table and code; live growth curve required"
+            : ruleData ? "registered rule layouts and code; live table and codec checks required"
+            : ai ? "registered AI manager and stock tree; live node and parameter checks required"
+            : runtime ? "registered runtime patch and trait-list ABI; live bytes and ownership required"
+            : calls ? "registered per-command ABI; live frame, code and result checks required"
+            : known || renderer ? "registered EXE/layout/ABI; live guards still required" : "unregistered or unverified build"));
+        if (feature == GameFeature.DataWrite && identity.DataProfile is { } dataProfile)
+            evidence.Add(new("profile", !dataProfile.Fields.IsEmpty, "registered fields only; exact code and live storage checks required"));
         var c = identity.Classes;
         (string, ulong)[] required = feature switch
         {
@@ -37,7 +52,8 @@ internal static class GameCapabilities
             _ => throw new ArgumentOutOfRangeException(nameof(feature))
         };
         foreach (var (name, address) in required) evidence.Add(new("class", address != 0, name));
-        if (!native) evidence.Add(new("layout", true, known ? "registered layout; current storage checks required" : "RTTI/table discovery only; field self-checks and explicit write permission required"));
+        if (!native) evidence.Add(new("layout", true, known || identity.DataProfile is not null
+            ? "registered layout; current storage checks required" : "RTTI/table discovery only; field self-checks and explicit write permission required"));
         return new(feature, evidence.All(e => e.Passed) ? CapabilityState.Eligible : CapabilityState.Blocked, evidence.ToImmutable());
     }
     internal static ImmutableArray<GameCapability> Inspect(GameIdentity identity) => Enum.GetValues<GameFeature>().Select(f => Inspect(identity, f)).ToImmutableArray();

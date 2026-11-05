@@ -17,11 +17,12 @@ struct Fixture {
     std::shared_ptr<Session> s;std::shared_ptr<Message> message;
     static uint64_t allocate(size_t size){auto value=VirtualAlloc(nullptr,size,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!value)throw std::bad_alloc();return reinterpret_cast<uint64_t>(value);}
     Fixture() {
-        module=allocate(0x2780000);root=allocate(0x90000);world=allocate(0x1000);manager=allocate(0x1000);
+        module=allocate(gamebuild::Memory::BasePointerRva+sizeof(uint64_t));root=allocate(0x90000);world=allocate(0x1000);manager=allocate(0x1000);
         tiles=allocate(48400*0x20);units=allocate(501*0x200);cities=allocate((CitySlots+1)*0x168);counties=allocate(501*0x200);buildings=allocate((CitySlots+1)*0x20);
         input.module=module;input.generation=17;input.worldClass=101;input.unitClass=102;input.tileClass=103;input.countyClass=104;input.cityClass=105;input.buildingClass=106;
-        write<uint64_t>(module+0x277df18,root-0x290);write<uint64_t>(root+0x86f58,world);write<uint64_t>(world,101);
-        write<uint64_t>(module+0x1b9fb70,manager);write<uint64_t>(manager+0x210,1);
+        write<uint64_t>(module+gamebuild::Memory::BasePointerRva,root-gamebuild::Memory::BaseAdjust);
+        write<uint64_t>(root+gamebuild::Memory::StatePointer,world);write<uint64_t>(world,101);
+        write<uint64_t>(module+gamebuild::Scene::ManagerRva,manager);write<uint64_t>(manager+gamebuild::Scene::SceneOffset,1);
         write<uint64_t>(root+0xdfe0,tiles);write<uint64_t>(root+0x7e5a8,units);
         for(unsigned tile=0;tile<48400;tile++){write<uint64_t>(tiles+tile*0x20,103);write<uint16_t>(tiles+tile*0x20+0x12,1);}
         for(unsigned i=0;i<=500;i++)write<uint64_t>(units+i*0x200,102);
@@ -39,8 +40,9 @@ struct Fixture {
         }
         // Only the native morale adapter is synthetic here; the real game's body is separately checked in Oracle.
         BYTE jump[]{0x48,0xb8,0,0,0,0,0,0,0,0,0xff,0xe0};auto adapter=reinterpret_cast<uint64_t>(&moraleAdapter);std::memcpy(jump+2,&adapter,8);
-        std::memcpy(reinterpret_cast<void*>(module+0x270550),jump,sizeof(jump));DWORD old{};
-        VirtualProtect(reinterpret_cast<void*>(module+0x270000),0x1000,PAGE_EXECUTE_READ,&old);
+        const auto morale=module+gamebuild::Engine::AddMoraleRva;
+        std::memcpy(reinterpret_cast<void*>(morale),jump,sizeof(jump));DWORD old{};
+        if(!VirtualProtect(reinterpret_cast<void*>(morale),sizeof(jump),PAGE_EXECUTE_READ,&old))throw std::runtime_error("morale fixture protection");
         unit(1,220*80+80);unit(2,220*90+90);write<uint8_t>(tiles+(220*90+90)*0x20+0x10,13);
         message=std::make_shared<Message>();message->sequence=1;message->seed=1;message->values=DefaultValues;
         climate(200,30000);s=std::make_shared<Session>(input);s->pending.store(message);clock(10,23);
@@ -182,7 +184,7 @@ void noticePageChecks(){
     pages.clear();require(!noticePages(L"1\f2\f3\f4\f5\f6\f7\f8\f9",pages),"message page count remains bounded");
 }
 void dispatchChecks(){
-    Fixture f;auto slot=reinterpret_cast<void**>(f.module+0x1387728);auto original=reinterpret_cast<Update>(f.module+0x14b600);
+    Fixture f;auto slot=reinterpret_cast<void**>(f.module+gamebuild::Engine::UpdateSlotRva);auto original=reinterpret_cast<Update>(f.module+gamebuild::Engine::UpdateRva);
     originalUpdate=original;f.s->slotHooked=true;current.store(f.s);uint64_t request[]{f.module,0x12345678};*slot=reinterpret_cast<void*>(request[1]);
     require(EnvironmentRestoreDispatch(request)==NO_ERROR&&*slot==reinterpret_cast<void*>(EnvironmentFrame),"active one-shot restores admitted environment dispatch");
     f.s->admission=false;*slot=reinterpret_cast<void*>(request[1]);
@@ -237,10 +239,10 @@ void soundChecks(){
     fixtureNoticeOwnership=fixtureNoticeActive=fixtureNoticePending=false;fixtureNoticeSoundChannel=3;fixtureNoticeSoundHandle=55;fixtureNoticeSoundClock=100;
     Fixture f;std::memcpy(reinterpret_cast<void*>(f.module+NoticeSoundAllocateRva),NoticeSoundAllocateCode,sizeof(NoticeSoundAllocateCode));
     std::memcpy(reinterpret_cast<void*>(f.module+NoticeSoundStopRva),NoticeSoundStopCode,sizeof(NoticeSoundStopCode));
-    for(auto source:NoticeSoundSources)write<uint32_t>(f.module+0x13c4950+source.id*4,source.resource);
+    for(auto source:NoticeSoundSources)write<uint32_t>(f.module+NoticeSoundResourceRva+source.id*4,source.resource);
     require(noticeSoundCode(f.module),"exact original sound allocator stop and five resource mappings pass admission");
-    write<uint32_t>(f.module+0x13c4950+0x65*4,0);require(!noticeSoundCode(f.module),"changed original sound resource mapping rejects admission");
-    write<uint32_t>(f.module+0x13c4950+0x65*4,0x7eed9d1e);write<uint8_t>(f.module+NoticeSoundStopRva,0);
+    write<uint32_t>(f.module+NoticeSoundResourceRva+0x65*4,0);require(!noticeSoundCode(f.module),"changed original sound resource mapping rejects admission");
+    write<uint32_t>(f.module+NoticeSoundResourceRva+0x65*4,0x7eed9d1e);write<uint8_t>(f.module+NoticeSoundStopRva,0);
     require(!noticeSoundCode(f.module),"changed original stop function rejects admission");
     fixtureNoticeOwnership=fixtureNoticeActive=true;fixtureNoticeSoundHandle=55;
     f.s->presentation.begin(f.module,L"메뉴 취소 검사",4,true);fixtureNoticePending=false;f.s->presentation.poll(f.module);
@@ -480,7 +482,7 @@ void noticeArmingChecks(){
     // Exercise the production readiness evaluator, including its exact lazy read order.
     for(uint32_t base:{uint32_t(ReadyFirst),uint32_t(ReadyQueue)})for(int failure=-1;failure<12;failure++){
         auto ownedStore=std::make_unique<notice_trace::Store>();auto& store=*ownedStore;store.arm(17,67);store.start(100,2);
-        const uint64_t manager=0x1b620b0,items=1000,a=2000,b=3000;
+        const uint64_t manager=NoticeManagerRva,items=1000,a=2000,b=3000;
         auto r64=[&](uint64_t at)->uint64_t{
             if(at==manager+0x10)return failure==0?0:failure==1?129:2;
             if(at==manager+0x20)return failure==2?0:items;
@@ -488,8 +490,8 @@ void noticeArmingChecks(){
             if(at==manager)return failure==4?0:1;
             if(at==manager+0x28)return failure==5?0:1;
             if(at==items)return a;if(at==items+8)return b;
-            if(at==a)return failure==6?0x13acdb8:failure==7?99:0x13d68c0;
-            if(at==b)return failure==7||failure==11?99:0x13d68c0;throw std::runtime_error("unexpected readiness read");};
+            if(at==a)return failure==6?NoticeStateClassRva:failure==7?99:GameStateClassRva;
+            if(at==b)return failure==7||failure==11?99:GameStateClassRva;throw std::runtime_error("unexpected readiness read");};
         std::vector<uint64_t> untraced,traced;auto check=[&](Store* trace,std::vector<uint64_t>& reads){return noticeReadyRead(0,[&](uint64_t at){reads.push_back(at);return r64(at);},[&](uint64_t at){reads.push_back(at);return failure==9?1u:0u;},[&]{reads.push_back(444);return failure==8?0ull:4000ull;},[&](uint64_t){reads.push_back(555);return failure==10;},trace,base);};
         auto expected=check(nullptr,untraced);auto actual=check(&store,traced);Query q;q.season=67;q.command=2;store.read(q);
         require(actual==expected&&actual==(failure==-1)&&untraced==traced,"readiness diagnostics preserve exact admission and short-circuit reads");

@@ -29,6 +29,19 @@ internal sealed partial class EditorWindow
         seasonOn.Foreground=seasonOff.Foreground=CardSkin.Ink;
         environmentButton.Click+=OpenEnvironmentMenu;return environmentButton;
     }
+    private void SelectEnvironmentProfile(GameIdentity identity)
+    {
+        string name=GameBuildProfiles.FindNative(identity)==GameBuildProfiles.NovemberNative
+            ? "settings-20261105.json" : "settings.json";
+        string path=Path.Combine(seasonStorageRoot,"environment",name);
+        if(string.Equals(environmentFile.PathName,path,StringComparison.OrdinalIgnoreCase))return;
+        environmentMenu?.Close();
+        environmentFile=new(path);
+        environmentSettings=EnvironmentSettings.New();
+        environmentApplied=null;
+        environmentFailure=null;
+        ReadEnvironmentSettings();
+    }
     private void ReadEnvironmentSettings()
     {
         try
@@ -102,7 +115,10 @@ internal sealed partial class EditorWindow
         environmentButton.IsEnabled=!seasonClosing&&!seasonDisconnecting;
         if(environmentMenu is not {} menu)return;
         bool available=!environmentChanging&&!seasonStarting&&!seasonStopping&&!seasonClosing&&!seasonDisconnecting;
-        menu.SetAvailable(available&&!busy&&environmentController?.Status is not {Phase:EnvironmentPhase.Faulted,Restored:false},available&&!busy);
+#if LOCAL_DEVELOPER
+        available=available&&developerRenderTrial is null;
+#endif
+        menu.SetAvailable(available&&!busy&&!layoutRecovering&&environmentController?.Status is not {Phase:EnvironmentPhase.Faulted,Restored:false},available&&!busy);
         menu.SeasonStatus.Text=L.Environment.SeasonStatus(seasonStatus.Text);
         var value=environmentController?.Status;
         string actual=value?.Phase switch
@@ -143,7 +159,10 @@ internal sealed partial class EditorWindow
     }
     private async Task ApplyEnvironmentAsync(EnvironmentSettings selected)
     {
-        if(environmentChanging||environmentChecking||runtimeRulesChecking||seasonStarting||seasonStopping||seasonClosing||seasonDisconnecting||busy||refreshing)return;
+#if LOCAL_DEVELOPER
+        if(developerRenderTrial is not null)return;
+#endif
+        if(environmentChanging||environmentChecking||runtimeRulesChecking||seasonStarting||seasonStopping||seasonClosing||seasonDisconnecting||busy||refreshing||layoutRecovering)return;
         environmentChanging=true;SetBusy(true,scanning:false);
         try
         {
@@ -163,7 +182,8 @@ internal sealed partial class EditorWindow
     {
         environmentJournal??=new SeasonJournal(Path.Combine(seasonStorageRoot,"environment","logs"));
         using var timing=new SeasonTiming(RecordEnvironment,"environment-apply");
-        if(game is not {Verified:true} identity||layout is not {} found||snapshot is null)
+        if(game is not {} identity||layout is not {} found||snapshot is null||
+            !GameCapabilities.Inspect(identity,GameFeature.Environment).CanAttempt)
         {EnvironmentNotice(L.Environment.Saved);timing.Complete("saved-without-game");return;}
         // Stopping remains available during play; enabling/changing effects waits for pause.
         if((selected.Seasonal||selected.Effects!=EnvironmentEffects.None)&&await Task.Run(()=>environmentReadPace(identity,found))!=GamePace.Paused)
@@ -214,7 +234,8 @@ internal sealed partial class EditorWindow
     private async Task ReapplyEnvironmentAsync(bool retry=false)
     {
         if(busy||refreshing||environmentChecking||environmentChanging||layoutRecovering||seasonStarting||seasonStopping
-            ||seasonClosing||seasonDisconnecting||game is not {Verified:true} identity||layout is null)return;
+            ||seasonClosing||seasonDisconnecting||game is not {} identity||layout is null
+            ||!GameCapabilities.Inspect(identity,GameFeature.Environment).CanAttempt)return;
 #if LOCAL_DEVELOPER
         // Automatic saved settings must not interfere with existing developer actions.
         if(developerMenu is not null||developerChanging||developerRendering)return;

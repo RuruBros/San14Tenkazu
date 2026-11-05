@@ -41,6 +41,15 @@ public sealed class OfficerRevivalRuntimeTests
             Date = (date.GetProperty("year").GetInt32(), date.GetProperty("month").GetInt32(), date.GetProperty("day").GetInt32())
         };
         var memory = new CapturedMemory(input.GetProperty("reads"));
+        var november = identity with { Verified = false, ExeHash = GameBuildProfiles.NovemberNative.ExeSha256 };
+        var profile = GameCommandProfile.Find(november)!;
+        var add = profile.Target(GameMemory.OfficerListAddRva);
+        var validity = profile.Target(0x2341F0);
+        var novemberMemory = new CapturedMemory(input.GetProperty("reads"),
+            (exe + november.DataProfile!.WorldPointerRva, BitConverter.GetBytes(raw)),
+            (exe + profile.Global(0x27D10E0), memory.Read(exe + 0x27D10E0, 0x88)),
+            (identity.Classes.Officer + 0x18, BitConverter.GetBytes(exe + validity.Rva)),
+            (exe + validity.Rva, validity.Prefix), (exe + add.Rva, add.Prefix));
         Assert.Equal(12, input.GetProperty("rows").GetArrayLength());
         if (name == "officer_appearance_native.json.gz")
         {
@@ -56,6 +65,10 @@ public sealed class OfficerRevivalRuntimeTests
             var prepared = GameMemory.PrepareRevival(memory, identity, layout, data, request);
             Assert.Equal(row.GetProperty("body").GetString(), Convert.ToHexString(prepared.Body));
             Assert.Contains(prepared.Guards, g => g.Nonzero && g.Address == exe + 0x27D1100);
+            var projected = GameMemory.PrepareRevival(novemberMemory, november, layout, data, request);
+            var call = Assert.Single(projected.Changes.OfType<TransferCall>());
+            Assert.Equal(new GameMemory.FrameInvocation(exe + 0x321560, raw, prepared.Officer.Address), call.Invocation);
+            Assert.Contains(projected.Guards, guard => guard.Nonzero && guard.Address == exe + 0x27D4150);
         }
     }
 
@@ -106,10 +119,10 @@ public sealed class OfficerRevivalRuntimeTests
         Assert.Equal(12, accepted);
     }
 
-    private sealed class CapturedMemory(JsonElement reads) : IRecordMemory
+    private sealed class CapturedMemory(JsonElement reads, params (ulong Address, byte[] Bytes)[] bindings) : IRecordMemory
     {
-        private readonly (ulong Address, byte[] Bytes)[] segments = reads.EnumerateArray()
-            .Select(r => (r.GetProperty("address").GetUInt64(), Convert.FromHexString(r.GetProperty("hex").GetString()!))).ToArray();
+        private readonly (ulong Address, byte[] Bytes)[] segments = bindings.Concat(reads.EnumerateArray()
+            .Select(r => (r.GetProperty("address").GetUInt64(), Convert.FromHexString(r.GetProperty("hex").GetString()!)))).ToArray();
         public byte[] Read(ulong address, int length)
         {
             foreach (var segment in segments)

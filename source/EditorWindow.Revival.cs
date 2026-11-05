@@ -17,8 +17,8 @@ internal sealed partial class EditorWindow
             PreparedRevival prepared = await Task.Run(() => GameMemory.PrepareRevival(identity, found, data, request));
             if (!ConfirmWrite(prepared.Plan.Summary)) return;
             AddLog(prepared.Plan.Summary);
-            executionStarted = true;
-            foreach (string line in await Task.Run(() => GameMemory.ApplyRevival(identity, found, data, request))) AddLog(line);
+            foreach (string line in await RunNativeCommandAsync(NativeCommandKind.Revival, identity, found, request,
+                () => { executionStarted = true; return GameMemory.ApplyRevival(identity, found, data, request); })) AddLog(line);
             status.Text = L.Revival.Completed;
         }
         catch (Exception ex) { ReportError(ex); }

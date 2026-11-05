@@ -59,8 +59,8 @@ internal static class OfficeMemory
     private static bool Address(ulong at) => at is >= 0x10000 and < 0x0000800000000000 && (at & 7) == 0;
     internal static OfficeSnapshot Read(IRecordMemory memory, GameIdentity game)
     {
-        if (!game.Verified || game.Classes.Post == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
-        ulong root = Pointer(memory, game.ModuleBase + FormationMemory.RootRva);
+        if (game.Classes.Post == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
+        ulong rootSlot = FormationMemory.RootSlot(game), root = Pointer(memory, rootSlot);
         if (!Address(root)) throw new InvalidDataException(L.Rules.NotReady);
         ulong state = Pointer(memory, root + FormationMemory.StateOffset);
         if (!Address(state) || Pointer(memory, state) != game.Classes.World) throw new InvalidDataException(L.Rules.NotReady);
@@ -85,7 +85,7 @@ internal static class OfficeMemory
             rows.Add(row with { VectorAddress = begin, Vector = empty ? [] : memory.Read(begin, 20) });
         }
         if (!memory.Read(root + TableOffset, pointers.Length).AsSpan().SequenceEqual(pointers)
-            || Pointer(memory, game.ModuleBase + FormationMemory.RootRva) != root || Pointer(memory, root + FormationMemory.StateOffset) != state) throw new InvalidOperationException(L.Rules.Stale);
+            || Pointer(memory, rootSlot) != root || Pointer(memory, root + FormationMemory.StateOffset) != state) throw new InvalidOperationException(L.Rules.Stale);
         return new(root, state, array, Convert.ToHexString(SHA256.HashData(catalog.ToArray())), rows.ToArray());
     }
 

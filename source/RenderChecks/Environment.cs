@@ -84,7 +84,8 @@ internal static partial class RenderChecks
                 Check("disconnected-timing-journal-is-flushed-and-closed",exclusive.Length>0);
             menu.Close();Pump();Click(Field<PlateButton>(editor,"environmentButton"));Pump();menu=Field<EnvironmentSettingsWindow>(editor,"environmentMenu");
             Check("reopened-menu-retains-saved-combination",menu.Selection(saved)==saved);
-            Set(editor,"game",new GameIdentity(1,DateTime.UnixEpoch,0,"fixture",true,TestGame.Classes));Set(editor,"snapshot",new TestGame().Build());
+            var legacy=new GameIdentity(1,DateTime.UnixEpoch,0,GameBuildFacts.ExeSha256,true,TestGame.Classes);
+            Set(editor,"game",legacy);Set(editor,"snapshot",new TestGame().Build());
             Set(editor,"layout",new GameLayout(new(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),0,0,0,0,0,0,0,0,[],[],0,0,0));
             Set(editor,"environmentController",controller);Click(menu.Apply);Pump(()=>!Field<bool>(editor,"environmentChanging"));
             Call(editor,"UpdateEnvironmentControls");Check("menu-reports-actual-applied-combination",controller.Status.Actual==saved.Effects&&menu.Status.Text.Contains("비 이동"));
@@ -173,6 +174,13 @@ internal static partial class RenderChecks
                 Check("timing-records-"+stage,timings.Any(line=>line.Contains("stage="+stage+",")));
             Check("timing-distinguishes-pause-wait",timings.Any(line=>line.Contains("operation=environment-apply,")&&line.Contains("outcome=waiting-for-pause")));
             Check("timing-distinguishes-failure",timings.Any(line=>line.Contains("operation=environment-apply,")&&line.Contains("outcome=incomplete")));
+            var newer=legacy with{ExeHash=GameNativeFactsNovember2026.ExeSha256,Verified=false};
+            Call(editor,"SelectEnvironmentProfile",newer);
+            var newFile=Field<EnvironmentSettingsFile>(editor,"environmentFile");
+            Check("new-build-starts-with-separate-environment-settings",newFile.PathName.EndsWith("settings-20261105.json")&&
+                newFile.Read().Settings is null&&Field<EnvironmentSettings>(editor,"environmentSettings") is{Seasonal:false,Effects:EnvironmentEffects.None});
+            Call(editor,"SelectEnvironmentProfile",legacy);
+            Check("old-build-keeps-its-environment-settings",Field<EnvironmentSettingsFile>(editor,"environmentFile").Read().Settings is not null);
             Console.WriteLine("PASS environment native WPF menu, 1024 combinations, direct numeric validation/persistence, actual status, OFF");
         }
         finally

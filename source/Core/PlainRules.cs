@@ -44,8 +44,8 @@ internal static class PlainRuleMemory
     private static bool Address(ulong at) => at is >= 0x10000 and < 0x0000800000000000 && (at & 7) == 0;
     internal static PlainRuleSnapshot Read(IRecordMemory memory, GameIdentity game, PlainRuleSpec spec)
     {
-        if (!game.Verified || spec.Class(game.Classes) == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
-        ulong root=Pointer(memory,game.ModuleBase+FormationMemory.RootRva);
+        if (spec.Class(game.Classes) == 0 || game.Classes.World == 0) throw new InvalidDataException(L.Rules.Incompatible);
+        ulong rootSlot = FormationMemory.RootSlot(game), root = Pointer(memory, rootSlot);
         if (!Address(root)) throw new InvalidDataException(L.Rules.NotReady);
         ulong state=Pointer(memory,root+FormationMemory.StateOffset);
         if (!Address(state) || Pointer(memory,state)!=game.Classes.World) throw new InvalidDataException(L.Rules.NotReady);
@@ -64,7 +64,7 @@ internal static class PlainRuleMemory
             var record=new PlainRuleRecord(id,at,data,spec);
             if (!GameMemory.IsPlaceholder(record.Name) && record.Name!="0") records.Add(record);
         }
-        if (!memory.Read(root+spec.TableOffset,pointers.Length).AsSpan().SequenceEqual(pointers) || Pointer(memory,game.ModuleBase+FormationMemory.RootRva)!=root
+        if (!memory.Read(root+spec.TableOffset,pointers.Length).AsSpan().SequenceEqual(pointers) || Pointer(memory,rootSlot)!=root
             || Pointer(memory,root+FormationMemory.StateOffset)!=state) throw new InvalidOperationException(L.Rules.Stale);
         return new(spec,root,state,array,Convert.ToHexString(SHA256.HashData(catalog.ToArray())),records.ToArray());
     }

@@ -31,6 +31,7 @@ internal sealed record AiExtensionStatus(AiExtensionSettings Settings, ulong Che
 // Versioned and bound to the actual behaviour-tree file. Unknown/corrupt settings never turn a condition on.
 internal sealed class AiExtensionSettingsFile(string path)
 {
+    internal AiExtensionSettingsFile ForNovember() => new(Path.Combine(Path.GetDirectoryName(path)!, "ai_extensions_20261105.json"));
     private sealed record Saved(int Version, string Stamp, AiExtensionSettings Settings);
     internal AiExtensionSettings Load(string stamp)
     {

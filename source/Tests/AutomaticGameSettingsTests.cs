@@ -69,6 +69,24 @@ public sealed class AutomaticGameSettingsTests
         Assert.Equal(AutomaticGamePhase.Unsupported, f.Poll().Phase); Assert.Equal(0, f.Writes);
     }
 
+    [Fact]
+    public void ReadOnlyBuildWaitsAtTitleAndConnectsWithoutCheckingSavedRules()
+    {
+        var f = new Fixture();
+        f.Start();
+        f.Current = f.Current!.Value with { Verified = false, ExeHash = GameSessionTests.UpdateHash };
+        f.OnRead = () => throw new InvalidOperationException("read-only builds must skip runtime rule reads");
+        f.Session = new(GameSessionPhase.Title, 0, 0, []);
+        Assert.Equal(AutomaticGamePhase.SessionWaiting, f.Poll().Phase);
+        f.Session = new(GameSessionPhase.Playing, 0, 0, []);
+        Assert.Equal(AutomaticGamePhase.Starting, f.Poll().Phase);
+        f.Ready = true;
+        Assert.Equal(AutomaticGamePhase.Connect, f.Poll().Phase);
+        f.Session = new(GameSessionPhase.Title, 0, 0, []);
+        Assert.Equal(AutomaticGamePhase.SessionWaiting, f.Poll().Phase);
+        Assert.Equal(0, f.Writes);
+    }
+
     [Theory] [InlineData("cancel")] [InlineData("intent")] [InlineData("process")] [InlineData("build")] [InlineData("foreign")]
     public void ChangedInputsNeverWrite(string kind)
     {

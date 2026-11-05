@@ -80,12 +80,12 @@ internal static partial class RenderChecks
             var single = (PlateButton)typeof(ForceEditorCard).GetField("surrenderButton", Hidden)!.GetValue(forceCard)!;
             Check("force-card-keeps-only-single-surrender", !single.IsEnabled &&
                 typeof(ForceEditorCard).GetField("batchSurrenderButton", Hidden) is null);
-            forceCard.FillsEnabled = true;
+            forceCard.SurrenderEnabled = true;
             int singleCalls = 0;
             forceCard.SurrenderClicked += () => singleCalls++;
             Click(single);
             Check("force-card-still-routes-single-surrender", singleCalls == 1 && single.IsEnabled);
-            forceCard.FillsEnabled = false;
+            forceCard.SurrenderEnabled = false;
             Check("single-surrender-disables-while-busy-or-disconnected", !single.IsEnabled);
 
             string storage = Path.GetFullPath(Path.Combine(output, "storage"));
@@ -114,6 +114,21 @@ internal static partial class RenderChecks
                 Check("list-batch-action-disables-while-busy", !batch.IsEnabled);
                 Call(editor, "SetBusy", false, false);
                 Check("list-batch-action-enables-after-busy", batch.IsEnabled);
+                var november = new GameIdentity(1, DateTime.UnixEpoch, 0x140000000,
+                    GameNativeFactsNovember2026.ExeSha256, false, TestGame.Classes);
+                typeof(EditorWindow).GetField("game", Hidden)!.SetValue(editor, november);
+                typeof(EditorWindow).GetField("writesAllowed", Hidden)!.SetValue(editor, true);
+                Call(editor, "UpdateControls");
+                var city = Field<CityEditorCard>(editor, "cityEditor");
+                var force = Field<ForceEditorCard>(editor, "forceEditor");
+                var give = Field<PlateButton>(city, "give");
+                var independence = Field<PlateButton>(city, "independence");
+                var surrender = Field<PlateButton>(force, "surrenderButton");
+                Check("november-enables-profiled-native-card-actions", give.IsEnabled && independence.IsEnabled && surrender.IsEnabled);
+                Check("november-keeps-legacy-bulk-actions-disabled", !Field<PlateButton>(force, "heal").IsEnabled);
+                typeof(EditorWindow).GetField("writesAllowed", Hidden)!.SetValue(editor, false);
+                Call(editor, "UpdateControls");
+                Check("november-disables-native-card-actions-without-writes", !give.IsEnabled && !independence.IsEnabled && !surrender.IsEnabled);
                 typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(editor, null);
                 Call(editor, "UpdateControls");
                 Check("list-batch-action-disables-when-disconnected", !batch.IsEnabled);

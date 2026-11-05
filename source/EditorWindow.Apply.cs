@@ -10,9 +10,9 @@ internal sealed partial class EditorWindow
         !HasPendingEdits || Confirm(L.Apply.DiscardAndGoOn);
 
     // Writes the edits, reads the game back and reports what the game kept; true when the write went through.
-    private async Task<bool> WriteAsync(List<RecordEdit> edits, bool undoable = true)
+    private async Task<bool> WriteAsync(List<RecordEdit> edits, bool undoable = true, bool restoreGivenBaseValues = false)
     {
-        if (WriteBlock(edits.SelectMany(e => e.Changes).Select(c => GameChecks.GroupOf(c.Field))) is { } blocked)
+        if (FieldWriteBlock(edits.SelectMany(e => e.Changes).Select(c => c.Field)) is { } blocked)
         {
             ReportError(new InvalidOperationException(blocked));
             return false;
@@ -27,6 +27,9 @@ internal sealed partial class EditorWindow
         GameLayout found = layout!;
         SetBusy(true, scanning: false);
         SetOperationProgress(L.OperationProgress.Checking);
+#if LOCAL_DEVELOPER
+        NativeCommandSuite? trial = null;
+#endif
         try
         {
             // Linked values wait for [정지]; plain ones go in while the game runs (GameChecks.PaceBlock). Telling the
@@ -44,15 +47,29 @@ internal sealed partial class EditorWindow
             foreach (RecordEdit edit in edits)
                 AddLog(L.Apply.Request(edit.Label, string.Join(", ", edit.Changes.Select(c => $"{c.Field.Label} {c.Field.Read(edit.Expected):N0} → {c.Value:N0}"))));
             WarnAboveCaps(edits);
-            _ = GameMemory.AgreementPairs(found.Forces, edits);
+            var agreementPairs = GameMemory.AgreementPairs(found.Forces, edits);
+#if LOCAL_DEVELOPER
+            var itemEdits = edits.Where(edit => edit.Kind == RecordKind.Item).ToArray();
+            NativeCommandKind? trialKind = agreementPairs.Count > 0 ? NativeCommandKind.Alliance
+                : itemEdits.Length > 0 ? NativeCommandKind.Item : null;
+            bool single = agreementPairs.Count == 1 && edits.SelectMany(edit => edit.Changes).All(change => ForceFields.IsAgreement(change.Field)) ||
+                agreementPairs.Count == 0 && itemEdits.Length == 1 && edits.Count == 1;
+            trial = await BeginNativeCommandTrialAsync(trialKind, identity, found,
+                edits.Select(edit => new { edit.Address, edit.Label, changes = edit.Changes.Select(change =>
+                    new { change.Field.Offset, change.Field.Label, change.Value }) }).ToArray(), single, restoreGivenBaseValues);
+#endif
 
-            IReadOnlyList<string> overwritten = await Task.Run(() => GameMemory.Apply(identity, edits, runtimeRuleFile.ReceiptPath(identity)));
+            IReadOnlyList<string> overwritten = await Task.Run(() => GameMemory.Apply(identity, edits, runtimeRuleFile.ReceiptPath(identity), found));
             foreach (string item in overwritten) AddLog("  " + L.Apply.WroteOverGame(item));
             if (undoable) RememberUndo(edits);
             SetOperationProgress(L.OperationProgress.Synchronizing);
             foreach (string line in await Task.Run(() => GameMemory.SyncForceAgreements(identity, found, edits))) AddLog("  " + line);
             // A 명품 counts for the game's rules only on its list of held ones, which the game itself puts right.
-            foreach (string line in await Task.Run(() => GameMemory.SyncOwnedItems(identity, edits))) AddLog("  " + line);
+            var itemWarnings = await Task.Run(() => GameMemory.SyncOwnedItems(identity, edits));
+            foreach (string line in itemWarnings) AddLog("  " + line);
+#if LOCAL_DEVELOPER
+            if (trial is not null && itemWarnings.Count > 0) throw new InvalidOperationException(string.Join("\n", itemWarnings));
+#endif
             SetOperationProgress(L.OperationProgress.Reading);
             await Task.Delay(300);
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found));
@@ -75,10 +92,20 @@ internal sealed partial class EditorWindow
                 : L.Apply.WrittenButChanged;
             AddLog(status.Text);
             foreach (string item in drift) AddLog("  " + L.Apply.GameChangedBack(item));
+#if LOCAL_DEVELOPER
+            if (trial is not null)
+            {
+                if (drift.Count > 0) throw new InvalidOperationException(L.Apply.WrittenButChanged);
+                await FinishNativeCommandTrialAsync(trial, identity, found);
+            }
+#endif
             return true;
         }
         catch (Exception ex) when (ex is StaleEditException or WriteRecoveryException)
         {
+#if LOCAL_DEVELOPER
+            if (trial is not null) FailNativeCommandTrial(trial, ex);
+#endif
             // A failed recovery can leave part of the change in memory. Show the freshly read state and
             // preserve its full diagnostic; only a verified stale rollback gets the "all undone" message.
             try
@@ -94,6 +121,9 @@ internal sealed partial class EditorWindow
         }
         catch (Exception ex)
         {
+#if LOCAL_DEVELOPER
+            if (trial is not null) FailNativeCommandTrial(trial, ex);
+#endif
             ReportError(ex);
             return false;
         }

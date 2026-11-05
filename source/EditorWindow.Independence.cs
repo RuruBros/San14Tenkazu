@@ -13,8 +13,8 @@ internal sealed partial class EditorWindow
         bool called = false;
         try
         {
-            if (WriteBlock([GameChecks.World]) is { } blocked) throw new InvalidOperationException(blocked);
-            if (!identity.Verified) throw new InvalidOperationException(L.Independence.NotRun(L.Calls.WhyUnverified));
+            if (NativeWorldWriteBlock(identity) is { } blocked) throw new InvalidOperationException(blocked);
+            if (!GameMemory.SupportsIndependence(identity)) throw new InvalidOperationException(L.Independence.NotRun(L.Calls.WhyUnverified));
             if (await Task.Run(() => GameMemory.ReadPace(identity, found)) != GamePace.Paused)
                 throw new InvalidOperationException(L.Independence.PauseFirst);
             // Preview the applied governor, not an uncommitted dropdown selection.
@@ -26,8 +26,8 @@ internal sealed partial class EditorWindow
             if (!ConfirmDiscard() || !Confirm(L.Independence.Confirm(place, governor), W.MessageBoxImage.Warning,
                 defaultNo: true, title: L.Independence.Button)) return;
             AddLog(L.Independence.Request(place, governor, before.ForceName(request.FromForce), request.NewForce));
-            called = true;
-            GameSnapshot after = await Task.Run(() => GameMemory.MakeCityIndependent(identity, found, request));
+            GameSnapshot after = await RunNativeCommandAsync(NativeCommandKind.Independence, identity, found, request,
+                () => { called = true; return GameMemory.MakeCityIndependent(identity, found, request); });
             snapshot = after;
             map.SetSnapshot(after);
             AfterWrite();
