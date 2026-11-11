@@ -179,3 +179,23 @@ operation. Its camera replay checks the actual flight request at the virtual
 camera receiver. The output directory contains the per-stage logs and JSON
 report. A candidate report requires further verification before registering a
 new build or executing a command in a game.
+
+`Reverse/editor_consumer_audit.py` is an additional offline consumer check. Supply
+the same two pinned images/bases, the real complete-editor JSONL as `--log`, its
+Native layout proof as `--layout-evidence`, and a new `--output` JSON file. It
+first independently verifies the real round-trip log, then replays original
+policy membership, officer tactic filtering and personality effect selection on
+the recorded before/changed/restored record images. Original virtual validity
+checks execute against controlled lookup records. Per-query input hashes,
+record read offsets/widths, results, executed instructions and code pins are
+recorded. The additional conditions cover all 35 policy slots, preparation days,
+ordinary/special officer tactic filtering, and signed personality value clamps.
+
+This is an offline experiment with declared dependencies, not a replay of the
+complete old live world. The force log ends at 0x120; the unrecorded tail is a
+zero-valued fixture. Policy collection observes its visitor boundary and does
+not execute policy level/effect aggregation or merit bonuses. Tactics use plain
+flags without positive reference matches. Personality checks concern effect
+kinds/values, not condition/filter evaluation or holder activation. Missing live
+snapshot pages are never filled from a newer game session. No live test action,
+process connection, game write or screen access is added by this script.
