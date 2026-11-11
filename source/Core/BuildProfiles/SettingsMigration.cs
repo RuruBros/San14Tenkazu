@@ -14,7 +14,10 @@ internal sealed class SettingsMigrationPolicy(IEnumerable<BuildSemanticContract>
     private readonly ImmutableDictionary<string, BuildSemanticContract> contracts = definitions.ToImmutableDictionary(d => d.Build, StringComparer.OrdinalIgnoreCase);
     private readonly ImmutableArray<SettingsMigrationRoute> reviewed = routes.ToImmutableArray();
     internal static SettingsMigrationPolicy Product { get; } = new(
-        [new(GameBuildFacts.ExeSha256, "runtime-settings-v1", RuleProfile.CurrentSchema)], []);
+        [new(GameBuildFacts.ExeSha256, "runtime-settings-v1", RuleProfile.CurrentSchema),
+         new(GameNativeFactsNovember2026.ExeSha256, "runtime-settings-v1", RuleProfile.CurrentSchema)],
+        [new(GameBuildFacts.ExeSha256, GameNativeFactsNovember2026.ExeSha256, true, true),
+         new(GameNativeFactsNovember2026.ExeSha256, GameBuildFacts.ExeSha256, true, true)]);
     internal void Require(string source, string target, bool runtime)
     {
         if (!contracts.TryGetValue(source, out var from) || !contracts.TryGetValue(target, out var to)

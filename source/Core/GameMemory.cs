@@ -933,9 +933,12 @@ internal static partial class GameMemory
             var forceRecords = new Dictionary<int, ForceRecord>();
             var corpsRecords = new Dictionary<int, CorpsRecord>();
             MilitaryPointCaps? militaryCaps = null;
-            if (identity.Verified)
+            if (identity.Verified || readOnly?.MilitaryCapsRva is > 0)
             {
-                var caps = new MilitaryPointCaps(identity.ModuleBase + MilitaryPointCaps.Rva, ReadBytes(handle, identity.ModuleBase + MilitaryPointCaps.Rva, MilitaryPointCaps.Size));
+                if (readOnly is not null) ProfiledEdits.RequireCode(readOnly, [CorpsFields.MilitaryPoints],
+                    guard => ReadBytes(handle, identity.ModuleBase + guard.Rva, guard.Length));
+                ulong capsAt = identity.ModuleBase + (readOnly?.MilitaryCapsRva ?? MilitaryPointCaps.Rva);
+                var caps = new MilitaryPointCaps(capsAt, ReadBytes(handle, capsAt, MilitaryPointCaps.Size));
                 if (caps.Valid) militaryCaps = caps;
             }
             var corpsForce = new byte[ForceCount];
@@ -973,7 +976,7 @@ internal static partial class GameMemory
                 }
             }
             List<PersonalityRecord> personalities = ReadPersonalities(handle, identity, layout);
-            PlayRecord? play = readOnly is null ? ReadPlayRecord(handle, identity) : null;
+            PlayRecord? play = ReadPlayRecord(handle, identity);
             IReadOnlySet<int>? dlcOfficers = identity.Verified ? ReadDlcOfficers(handle, identity) : null;
 
             int playerForce = -1, hour = -1;
@@ -1052,7 +1055,15 @@ internal static partial class GameMemory
 
     private static PlayRecord? ReadPlayRecord(IntPtr handle, GameIdentity identity)
     {
-        ulong address = identity.Verified ? identity.ModuleBase + PlayRecordRva : FindPlayRecord(handle, identity);
+        var profile = identity.DataProfile;
+        if (profile is not null)
+        {
+            if (profile.PlayRecordRva == 0) return null;
+            ProfiledEdits.RequireCode(profile, [PlayRecordFields.Unlocks1, PlayRecordFields.Unlocks2, PlayRecordFields.Changed],
+                guard => ReadBytes(handle, identity.ModuleBase + guard.Rva, guard.Length));
+        }
+        ulong address = profile is not null ? identity.ModuleBase + profile.PlayRecordRva
+            : identity.Verified ? identity.ModuleBase + PlayRecordRva : FindPlayRecord(handle, identity);
         byte[] data = new byte[PlayRecordFields.Size];
         return address != 0 && TryRead(handle, address, data) && IsPlayRecord(data) ? new PlayRecord(address, data) : null;
     }

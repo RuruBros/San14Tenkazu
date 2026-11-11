@@ -258,15 +258,27 @@ internal sealed class ForceEditorCard : EditorCard
 
     private List<(int Slot, int Commander)> UnitList() => units.Rows.Select(r => r.Tag).OfType<(int Slot, int Commander)>().ToList();
 
-    // The fills write at once (after asking): only while connected and not busy.
+    // Tables and draft fills are available only while connected and not busy.
     internal bool FillsEnabled
     {
         set
         {
-            members.FillsEnabled = value;
             cities.EditingEnabled = gates.EditingEnabled = units.EditingEnabled = value;
-            heal.IsEnabled = morale.IsEnabled = value;
+            SetFillAvailability(value, value);
         }
+    }
+#if LOCAL_DEVELOPER
+    internal object DeveloperFillState() => new
+    {
+        loyalty = members.FillsEnabled, heal = heal.IsEnabled, morale = morale.IsEnabled,
+        cities = CitiesTable.EditingEnabled, gates = GatesTable.EditingEnabled, units = UnitsTable.EditingEnabled
+    };
+#endif
+
+    internal void SetFillAvailability(bool officers, bool unitValues)
+    {
+        members.FillsEnabled = officers;
+        heal.IsEnabled = morale.IsEnabled = unitValues;
     }
 
     internal bool SurrenderEnabled

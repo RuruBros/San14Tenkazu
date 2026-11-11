@@ -15,6 +15,29 @@ table writes require a stable paused session, original executable code, and
 writable data pages. Rule preferences are stored by EXE hash for this profile,
 separately from the legacy profile file.
 The data profile is independent of the full runtime patch registry.
+Linked officer transfers, officer likes/dislikes, and bilateral force friendships
+use separately reviewed serializer fields. Force array edits check both the
+parent record serializer and the nested array serializer. The service value at
+officer `+0x1BE` is two bytes; the merit at `+0x1C0` must remain separate.
+`Reverse/editor_linked_fields_audit.py` replays both pinned captures offline at
+archive IO boundaries and checks widths/counts against the regression vector.
+`Reverse/editor_complete_fields_audit.py` extends this to every ordinary editor
+field, nested officer/unit arrays, the native military-cap jump table, and the
+play-record singleton/unlock/ancient-officer mapping. Archive IO and the unlock
+eligibility query are explicit boundaries; fixture success is not live gameplay
+or save/load validation. `CompleteEditorCoverageTests` derives fields from their
+definitions and requires admission, matching native widths and exact code pins.
+City/gate morale, officer compatibility, and personality effect kinds are bytes;
+neighboring bytes must survive edits and Undo. Military balances retain their
+force/leader/current-cap guard, and personality retargeting authenticates the
+current holders before clearing their activation bits.
+
+Both registered builds have reviewed settings-migration routes. Rule imports
+still require matching schemas, catalogs and record IDs, retain target defaults,
+and disable automatic application. Runtime imports copy only user settings.
+Startup preparation hashes the installed executable, selects that build's
+settings file, and rechecks the launched identity and original runtime bytes.
+The approved live basic-field trial remains limited to its original 34 fields.
 `november2026.json` binds the same newer executable to its own season and
 environment Native contract, with separately pinned bridges and original code.
 Runtime rules use an independently pinned patch and trait-list profile for that
@@ -79,6 +102,71 @@ from offline runs: it reads the actual game. `--runtime-rules-offline`,
 use owned fixtures. Do not invoke live-game switches or the editor's normal
 startup as an offline test. Keep Native fixture success distinct from live-game
 loading, visible rendering, gameplay effects, and deployment.
+
+`--automatic-settings-offline` checks legacy and November intent storage, startup
+preparation, failure deduplication/retry, and pending-edit retention. Both automatic
+process discovery and installed-EXE discovery use injected fixtures. The automatic
+preparation path selects preferences and receipts from the observed process build,
+checks the same supported runtime profile as explicit preparation, and rechecks
+the selected intent immediately before its guarded transaction. Both developer
+and public flavors run this check in the compatibility verifier.
+
+The local developer menu also provides a separate complete-editor trial tab.
+It previews targets before running product planners and guarded writes. Each trial
+uses one process freeze for apply, ordinary Undo, and exact journal recovery.
+Personality holder marks and play-record dirty state are logged separately from
+ordinary Undo semantics. The byte journal permits only declared field-sized writes
+and restores attempted writes in reverse after validating record identity and
+exact current bytes; it never overwrites whole baseline records. Stop requests
+are honored after recovery. Missing targets remain unverified.
+
+Developer-menu checks exercise these paths with owned memory, partial writes,
+log failures, changed guards/neighbors, failed recovery, and cancellation. The
+generated `RenderChecks/artifacts/complete-editor-trials.jsonl` is independently
+checked by `Reverse/editor_roundtrip_log.py` against both Native serializer-width
+vectors. The same parser accepts live JSONL, verifies original/changed/Undo/final
+bytes and hashes, and distinguishes valid partial evidence from full completion.
+All trial methods, types, and UI entries are absent from public builds.
+
+`DeveloperChecks/Run.ps1` invokes the same Core preview and round-trip methods
+without a window. Build its project with `LocalDeveloperPackage=true` and
+`DeveloperPackageBuild=true`, then supply `-Mode preview -GameProcessId <pid>
+-Output <new-directory>`. Review `targets.json` and `availability.json` before
+using `-Mode run -ExpectedManifest <preview>/targets.json` with another new
+directory. `-Keys` selects existing available cases. Ctrl+C or an output-directory
+`stop.request` stops after the current case has been restored. The verifier checks
+both runner flavors without game access; a public runner cannot execute trials.
+
+An explicitly approved seeded-duration case is selected with
+`-SeedProvokeCommander <officer-id>` (CLI `--seed-provoke-commander=<id>`) or a
+named player unit in the developer tab. Its own preview/run sequence contains
+only the selected case, marks `seededProvocation=true`, and injects precisely
+one duration byte 0→1 before using the product decrement plan 1→0. Ordinary
+Undo and journal recovery finish before the same process freeze is released.
+The remembered target fields remain unchanged. This verifies editing with an
+injected input; it does not verify Native provocation activation or gameplay AI.
+The independent parser enforces this exact shape and rejects changed units,
+target fields, duration values, or missing intermediate readbacks.
+
+The separate held-provocation action uses `Reverse/provocation_plan.py` to replay
+the unmodified November setter and target-consumption code against read-only
+copies of the current save. It runs actual immunity/resistance/target helpers,
+suppresses presentation only, authenticates executed instructions against the
+reviewed capture, and exports code/input guards plus the complete Native result.
+Its current local reference captures are required under `.cache`.
+
+The developer tab can load that `plan.json`, apply the three field-sized writes,
+wait for the user's in-game confirmation, then decrease using the product planner,
+Undo and restore the original fields. The same Core is available through CLI
+`provocation-apply --pid=<pid> --plan=<plan> --output=<new-directory>` and
+`provocation-finish --pid=<pid> --receipt=<apply>/receipt.json --confirmed=true
+--output=<new-directory>`. `provocation-restore` skips the decrease and restores.
+Never issue finish before the user actually confirms. Recovery intent is flushed
+before writes; no date advance, save, movement or attack is performed. The held
+state survives the CLI process, so retain its receipt. `verify_provocation_hold.py`
+independently checks the bytes, user confirmation and final record/array hashes.
+This applies a verified Native replay result; it does not remotely call the setter
+inside the live process (`nativeReplay=true`, `liveNativeCall=false`).
 
 The offline verifier checks the runtime-mode transitions and injected rollback
 failures for both versions. To also check the actual captured PE bytes, pass

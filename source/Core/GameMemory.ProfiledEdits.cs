@@ -15,7 +15,12 @@ internal static class ProfiledEdits
         foreach (var edit in edits)
         {
             if (edit.Changes.Count == 0 || edit.Changes.Any(c => c.Field.Record != edit.Kind) ||
-                edit.Restarts is { Count: > 0 } || edit.MilitaryPoints is not null)
+                edit.Restarts is { Count: > 0 } restarts && (edit.Kind != RecordKind.Personality ||
+                    restarts.Any(restart => restart.Slot is < 0 or >= 9) ||
+                    restarts.Select(restart => (restart.Officer, restart.Slot)).Distinct().Count() != restarts.Count) ||
+                edit.MilitaryPoints is not null && (edit.Kind != RecordKind.Corps ||
+                    edit.Changes.Any(change => change.Field != CorpsFields.MilitaryPoints)) ||
+                edit.Kind == RecordKind.Corps && edit.MilitaryPoints is null)
                 throw new InvalidDataException(L.Compatibility.Unavailable);
             if (Block(profile, edit.Changes.Select(c => c.Field)) is { } unsupported)
                 throw new InvalidDataException(unsupported);
@@ -26,6 +31,18 @@ internal static class ProfiledEdits
     internal static IEnumerable<string> CheckedGroups(IEnumerable<FieldDef> fields)
         => fields.Where(f => f != OfficerFields.Loyalty).Select(GameChecks.GroupOf).Distinct();
 
+    internal static void RequireCode(GameDataProfile profile, IEnumerable<FieldDef> fields, Func<GameDataGuard, byte[]> read)
+    {
+        foreach (var guard in fields.SelectMany(field => profile.Fields[field].RequiredCode)
+            .DistinctBy(guard => (guard.Rva, guard.Length, guard.Sha256)))
+        {
+            byte[] code = read(guard);
+            if (code.Length != guard.Length ||
+                !string.Equals(Convert.ToHexString(SHA256.HashData(code)), guard.Sha256, StringComparison.Ordinal))
+                throw new InvalidDataException(L.Connection.EditCodeChanged);
+        }
+    }
+
     internal static void RequireCurrentRecords(GameSnapshot data, IReadOnlyList<RecordEdit> edits)
     {
         foreach (var edit in edits)
@@ -35,6 +52,15 @@ internal static class ProfiledEdits
             var now = data.DataAt(edit.Kind, edit.Address);
             if (now is null || now.Length != edit.Expected.Length || !GameMemory.IsSameRecord(edit.Kind, now, edit.Expected))
                 throw new InvalidOperationException(L.Errors.RecordMismatch(edit.Label));
+            foreach (var restart in edit.Restarts ?? [])
+            {
+                var personality = data.Personalities.SingleOrDefault(p => p.Address == edit.Address);
+                var holder = data.Officers.SingleOrDefault(o => o.Address == restart.Officer);
+                if (personality is null || holder is null || restart.Personality != personality.Index ||
+                    restart.Slot < 0 || restart.Slot >= OfficerFields.Personalities.Length ||
+                    holder[OfficerFields.Personalities[restart.Slot]] != restart.Personality)
+                    throw new InvalidOperationException(L.Errors.RecordMismatch(edit.Label));
+            }
             var moved = edit.Changes.Where(c => c.Field.Read(now) != c.Field.Read(edit.Expected))
                 .Select(c => c.Field.Label).ToArray();
             if (moved.Length > 0) throw new StaleEditException(edit.Label, moved);
@@ -95,29 +121,38 @@ internal static partial class GameMemory
     }
 
     private static IReadOnlyList<string> ApplyProfiledEdits(IntPtr handle, GameIdentity identity, GameDataProfile profile,
-        GameLayout layout, GameSnapshot data, IReadOnlyList<RecordEdit> edits)
+        GameLayout layout, GameSnapshot data, IReadOnlyList<RecordEdit> edits, IRecordMemory? memory = null)
     {
         ProfiledEdits.RequireFields(profile, edits);
         ValidateForceAgreementCalls(handle, identity, edits);
         ValidateProfiledOwnedItemCalls(handle, identity, edits);
         _ = AgreementPairs(layout.Forces, edits);
         ProfiledEdits.RequireCurrentRecords(data, edits);
+        foreach (var edit in edits.Where(edit => edit.MilitaryPoints is not null))
+        {
+            var military = edit.MilitaryPoints!;
+            var caps = military.Caps;
+            if (profile.MilitaryCapsRva == 0 || caps.Address != checked(identity.ModuleBase + profile.MilitaryCapsRva) ||
+                military.Force <= 0 || military.Force >= layout.Forces.Length || layout.Forces[military.Force] != military.ForceAddress)
+                throw new InvalidDataException(L.Force.MilitaryUnavailable);
+            RequireImageDataPage(handle, caps.Address, MilitaryPointCaps.Size, identity.ModuleBase);
+        }
         var fields = edits.SelectMany(edit => edit.Changes).Select(change => change.Field).ToArray();
         var catalog = ReadCatalog(identity, layout);
         if (GameChecks.WriteBlock(false, true, GameChecks.Run(data, catalog), ProfiledEdits.CheckedGroups(fields)) is { } blocked)
             throw new InvalidDataException(blocked);
         var broken = GameChecks.Broken(data, edits, catalog);
         if (broken.Count > 0) throw new InvalidDataException(L.Apply.BreaksTies(string.Join("\n", broken)));
-        foreach (var guard in fields.Select(field => profile.Fields[field]).Distinct())
+        var restartHolders = edits.SelectMany(edit => edit.Restarts ?? []).Select(restart => restart.Officer).Distinct().ToArray();
+        ProfiledEdits.RequireCode(profile, restartHolders.Length == 0 ? fields : [.. fields, OfficerFields.Loyalty], guard =>
         {
             ulong address = checked(identity.ModuleBase + guard.Rva);
             RequireEditPage(handle, address, guard.Length, 0x20, identity.ModuleBase);
-            byte[] code = ReadBytes(handle, address, guard.Length);
-            if (!string.Equals(Convert.ToHexString(SHA256.HashData(code)), guard.Sha256, StringComparison.Ordinal))
-                throw new InvalidDataException(L.Connection.EditCodeChanged);
-        }
+            return ReadBytes(handle, address, guard.Length);
+        });
         foreach (var edit in edits) RequireEditPage(handle, edit.Address, edit.Expected.Length, 0x04);
-        return Apply(new ProcessMemory(handle), identity.Classes, edits, () =>
+        foreach (ulong holder in restartHolders) RequireEditPage(handle, holder, OfficerStride, 0x04);
+        return Apply(memory ?? new ProcessMemory(handle), identity.Classes, edits, () =>
         {
             var after = RequirePlayingSession(identity);
             if (data.Session?.Entries[2].Address != after.Entries[2].Address)
@@ -136,6 +171,24 @@ internal static partial class GameMemory
             BitConverter.ToUInt32(info, 32) != MemCommit || BitConverter.ToUInt32(info, 36) != protection ||
             allocation != 0 && BitConverter.ToUInt64(info, 8) != allocation)
             throw new InvalidOperationException(L.Connection.EditPageChanged);
+    }
+
+    // Caps are read, never written by a corps-balance edit. A loaded image's data
+    // can legitimately remain PAGE_WRITECOPY (observed in the November process).
+    internal static bool IsImageDataPage(byte[] info, ulong address, int length, ulong allocation) =>
+        info.Length == 48 && length > 0 && BitConverter.ToUInt64(info, 0) <= address &&
+        BitConverter.ToUInt64(info, 24) >= (ulong)length &&
+        address - BitConverter.ToUInt64(info, 0) <= BitConverter.ToUInt64(info, 24) - (ulong)length &&
+        BitConverter.ToUInt64(info, 8) == allocation && BitConverter.ToUInt32(info, 32) == MemCommit &&
+        BitConverter.ToUInt32(info, 36) is 0x02 or 0x04 or 0x08 && BitConverter.ToUInt32(info, 40) == 0x1000000;
+
+    private static void RequireImageDataPage(IntPtr handle, ulong address, int length, ulong allocation)
+    {
+        byte[] info = new byte[48];
+        if (VirtualQueryEx(handle, (IntPtr)address, info, (UIntPtr)info.Length).ToUInt64() != 48 ||
+            !IsImageDataPage(info, address, length, allocation))
+            throw new InvalidOperationException(L.Connection.EditPageChanged +
+                $" address=0x{address:X}; allocation=0x{BitConverter.ToUInt64(info, 8):X}; protect=0x{BitConverter.ToUInt32(info, 36):X}; type=0x{BitConverter.ToUInt32(info, 40):X}");
     }
 
 #if LOCAL_DEVELOPER

@@ -23,14 +23,15 @@ internal sealed partial class EditorWindow
                 var state = identity is { } connected && RuntimeRuleBuildProfile.Supports(connected)
                     ? await Task.Run(() => runtimeRuleAccess.Read(connected)) : null;
                 if (game != identity || busy) return;
-                var window = new RuntimeRulesWindow(state, offline: identity is null) { Owner = this };
-                var preference = runtimeRuleFile.For(identity).Read();
-                if (preference is not null) { preference.CheckBuild(identity?.ExeHash ?? GameBuildProfiles.Current.ExeSha256); window.ShowSaved(preference, select: true); }
+                string build = identity?.ExeHash ?? gamePreparationAccess.Build();
+                var window = new RuntimeRulesWindow(state, offline: identity is null) { Owner = this, TargetBuild = build };
+                var preference = runtimeRuleFile.ForBuild(build).Read();
+                if (preference is not null) { preference.CheckBuild(build); window.ShowSaved(preference, select: true); }
                 runtimeRulesWindow = window;
                 runtimeRulesIdentity = identity;
                 window.Apply.Click += async () => await ChangeRuntimeRules(window, window.Selection);
                 window.Restore.Click += async () => await ChangeRuntimeRules(window, RuntimeRuleSettings.Original);
-                window.Import.Click += () => { if (game is { Verified: true } current) ImportRuntimeSettings(window, current); };
+                window.Import.Click += () => { if (game is { } current && RuntimeRuleBuildProfile.Supports(current)) ImportRuntimeSettings(window, current); };
                 window.Closing += (_, e) => { if (busy) e.Cancel = true; };
                 window.Closed += (_, _) => runtimeRulesWindow = null;
                 window.Show();
@@ -47,8 +48,9 @@ internal sealed partial class EditorWindow
         {
             try
             {
-                var saved = new RuntimeRulePreference(1, GameBuildProfiles.Current.ExeSha256, settings, window.ConvertProgress.IsChecked == true);
-                runtimeRuleFile.Save(saved); window.ShowSaved(saved, select: true);
+                var saved = new RuntimeRulePreference(1, window.TargetBuild, settings, window.ConvertProgress.IsChecked == true);
+                saved.CheckBuild(gamePreparationAccess.Build());
+                runtimeRuleFile.ForBuild(saved.Build).Save(saved); window.ShowSaved(saved, select: true);
                 automaticGameFailure = null;
                 window.Status.Text = L.AutomaticSettings.Saved; AddLog(window.Status.Text);
             }

@@ -1,16 +1,31 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace San14Tenkazu;
 
 internal sealed record GamePreparationAccess(
     Func<bool> IsRunning, Action Launch, Func<GameIdentity?> Find,
     Func<GameIdentity, RuntimeRuleSettings?> Read,
-    Action<GameIdentity, RuntimeRuleSettings, string> Prepare)
+    Action<GameIdentity, RuntimeRuleSettings, string> Prepare, Func<string>? InstalledBuild = null)
 {
     internal static readonly GamePreparationAccess Live = new(GameMemory.IsRunning,
         () => Process.Start(new ProcessStartInfo("steam://rungameid/" + SteamInstallation.AppId) { UseShellExecute = true }),
         () => GameMemory.IsRunning() ? GameMemory.FindGame() : null,
-        GameMemory.ReadRuntimeRules, GameMemory.PrepareRuntimeRules);
+        GameMemory.ReadRuntimeRules, GameMemory.PrepareRuntimeRules, ReadInstalledBuild);
+
+    internal string Build()
+    {
+        string build = InstalledBuild?.Invoke() ?? GameBuildProfiles.Current.ExeSha256;
+        if (!RuntimeRuleBuildProfile.SupportsBuild(build)) throw new InvalidOperationException(L.Preparation.Unsupported);
+        return build;
+    }
+
+    private static string ReadInstalledBuild()
+    {
+        string directory = SteamInstallation.FindGameDirectory(null) ?? throw new InvalidOperationException(L.Preparation.Unsupported);
+        using var file = File.OpenRead(Path.Combine(directory, "SAN14CE_KO.exe"));
+        return Convert.ToHexString(SHA256.HashData(file));
+    }
 }
 
 // No save is opened by this flow. The user waits for verified preparation, then uses the game's Load menu.
@@ -20,7 +35,7 @@ internal sealed class GamePreparation(GamePreparationAccess access)
         Func<bool> intentUnchanged, CancellationToken cancellationToken,
         Func<CancellationToken, Task>? wait = null, int attempts = 240)
     {
-        preference.CheckBuild(GameBuildProfiles.Current.ExeSha256);
+        preference.CheckBuild(access.Build());
         cancellationToken.ThrowIfCancellationRequested();
         if (access.IsRunning()) throw new InvalidOperationException(L.Preparation.AlreadyRunning);
         if (!intentUnchanged()) throw new InvalidOperationException(L.Rules.ProfileMoved);
@@ -36,7 +51,7 @@ internal sealed class GamePreparation(GamePreparationAccess access)
             {
                 if (identity.StartTimeUtc < started || observed is { } prior && prior != identity)
                     throw new InvalidOperationException(L.Errors.ProcessChanged);
-                if (!identity.Verified) throw new InvalidOperationException(L.Preparation.Unsupported);
+                if (!RuntimeRuleBuildProfile.Supports(identity)) throw new InvalidOperationException(L.Preparation.Unsupported);
                 preference.CheckBuild(identity.ExeHash);
                 observed = identity;
                 RuntimeRuleSettings? state = access.Read(identity);

@@ -23,7 +23,7 @@ public sealed class CompatibilityTests
             GameCapabilities.Inspect(updated).Where(c => c.CanAttempt).Select(c => c.Feature));
         Assert.Same(GameBuildProfiles.NovemberNative, GameBuildProfiles.FindNative(updated));
         Assert.Same(GameBuildProfiles.Current, GameBuildProfiles.FindNative(Identity));
-        var unverified = new RecordEdit(RecordKind.Officer, 0x10, [], "gender", [new(OfficerFields.Gender, 1)]);
+        var unverified = new RecordEdit(RecordKind.Officer, 0x10, [], "unknown", [new(OfficerFields.Gender with { Offset = 0x1EF }, 1)]);
         Assert.Throws<InvalidDataException>(() => GameMemory.Apply(updated, [unverified]));
 
         var unknown = updated with { ExeHash = updated.ExeHash[..^1] + "0" };
@@ -82,7 +82,7 @@ public sealed class CompatibilityTests
         ProfiledEdits.RequireFields(profile, [gold]);
         ProfiledEdits.RequireCurrentRecords(data, [gold]);
         Assert.Throws<InvalidDataException>(() => ProfiledEdits.RequireFields(profile,
-            [gold, gold with { Address = city.Address + 8, Changes = [new(CityFields.Governor, 1)] }]));
+            [gold, gold with { Address = city.Address + 8, Changes = [new(CityFields.Morale with { Offset = 0x167 }, 1)] }]));
         Assert.Throws<InvalidDataException>(() => ProfiledEdits.RequireFields(profile, [gold, gold]));
         Assert.Throws<StaleEditException>(() => ProfiledEdits.RequireCurrentRecords(data.With([gold]), [gold]));
         Assert.Throws<InvalidOperationException>(() => ProfiledEdits.RequireCurrentRecords(data, [gold with { Address = city.Address + 1 }]));

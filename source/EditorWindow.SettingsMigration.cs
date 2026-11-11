@@ -6,15 +6,16 @@ internal sealed partial class EditorWindow
     private void ImportRuntimeSettings(RuntimeRulesWindow window, GameIdentity identity)
     {
         if (busy || game != identity) return;
-        string targetStamp=runtimeRuleFile.Stamp();
+        var preferences=runtimeRuleFile.For(identity);
+        string targetStamp=preferences.Stamp();
         var dialog=new Microsoft.Win32.OpenFileDialog { Filter="JSON|*.json", Title=L.Compatibility.Import };
         if (dialog.ShowDialog(window)!=true) return;
         try
         {
             var source=SettingsImportSource.Read(dialog.FileName); using var guard=source.Guard();
-            if(source.PathName.Equals(Path.GetFullPath(runtimeRuleFile.PathName),StringComparison.OrdinalIgnoreCase))throw new InvalidDataException(L.Compatibility.MigrationUnsupported);
+            if(source.PathName.Equals(Path.GetFullPath(preferences.PathName),StringComparison.OrdinalIgnoreCase))throw new InvalidDataException(L.Compatibility.MigrationUnsupported);
             var migrated=SettingsMigration.Runtime(source.Parse<RuntimeRulePreference>(), identity.ExeHash);
-            if(runtimeRuleFile.Stamp()!=targetStamp)throw new IOException(L.Rules.ProfileMoved);
+            if(preferences.Stamp()!=targetStamp)throw new IOException(L.Rules.ProfileMoved);
             window.ImportTargetStamp=targetStamp;
             window.LoadImported(migrated,source);
         }
@@ -26,7 +27,7 @@ internal sealed partial class EditorWindow
         rulesImportButton=button;button.IsEnabled=false;
         button.Click+=()=>
         {
-            if(busy||RulesPending||game is not {Verified:true} identity||ruleKept is not {Profile:{} baseline} kept) return;
+            if(busy||RulesPending||game is not { } identity||!SupportsRuleTables(identity)||ruleKept is not {Profile:{} baseline} kept) return;
             var dialog=new Microsoft.Win32.OpenFileDialog { Filter="JSON|*.json",Title=L.Compatibility.ImportRules };
             if(dialog.ShowDialog(this)!=true)return;
             try
@@ -46,7 +47,7 @@ internal sealed partial class EditorWindow
         if(busy||RulesPending||game!=identity||ruleKept?.Stamp!=stamp)throw new IOException(L.Rules.ProfileMoved);
         GameCapabilities.Require(identity,GameFeature.RuleTables);
         ++ruleRevision;
-        ruleKept=ruleFile.Import(source,baseline,stamp);
+        ruleKept=RuleFileFor(identity).Import(source,baseline,stamp);
         FillLists();RefreshEditor();UpdateControls();AddLog(L.Compatibility.ImportSaved);
     }
 }

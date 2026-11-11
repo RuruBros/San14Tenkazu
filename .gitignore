@@ -9,6 +9,8 @@ source/Tests/TestResults/
 source/RenderChecks/bin/
 source/RenderChecks/obj/
 source/RenderChecks/artifacts/
+source/DeveloperChecks/bin/
+source/DeveloperChecks/obj/
 # The deployed build next to the README (rebuilt from source)
 /San14Tenkazu.exe
 /*.dll

@@ -15,9 +15,10 @@ internal sealed partial class EditorWindow
             if (busy) return;
             try
             {
-                var saved = runtimeRuleFile.Read();
-                saved?.CheckBuild(GameBuildProfiles.Current.ExeSha256);
-                var window = gamePreparationWindow = new GamePreparationWindow(saved) { Owner = this };
+                string build = gamePreparationAccess.Build();
+                var saved = runtimeRuleFile.ForBuild(build).Read();
+                saved?.CheckBuild(build);
+                var window = gamePreparationWindow = new GamePreparationWindow(saved) { Owner = this, Build = build };
                 window.Launch.Click += async () => await PrepareGameAsync(window);
                 window.Cancel.Click += () => gamePreparationCancellation?.Cancel();
                 window.Closing += (_, e) =>
@@ -40,13 +41,16 @@ internal sealed partial class EditorWindow
         SetBusy(true, scanning: false); window.SetWorking(true);
         try
         {
+            string build = window.Build;
             // Refuse existing games before saving any changed selection.
             if (gamePreparationAccess.IsRunning()) throw new InvalidOperationException(L.Preparation.AlreadyRunning);
-            var preference = new RuntimeRulePreference(1, GameBuildProfiles.Current.ExeSha256, window.Selection, window.Convert.IsChecked == true);
-            runtimeRuleFile.Save(preference);
+            var preferences = runtimeRuleFile.ForBuild(build);
+            var preference = new RuntimeRulePreference(1, build, window.Selection, window.Convert.IsChecked == true);
+            preference.CheckBuild(gamePreparationAccess.Build());
+            preferences.Save(preference);
             window.Status.Text = L.Preparation.Waiting; AddLog(window.Status.Text);
             var identity = await Task.Run(() => new GamePreparation(gamePreparationAccess).RunAsync(preference,
-                runtimeRuleFile.ReceiptPath, () => runtimeRuleFile.Read() == preference, cancellation.Token));
+                preferences.ReceiptPath, () => preferences.Read() == preference, cancellation.Token));
             runtimeRuleFailure = null;
             window.Status.Text = L.Preparation.Ready;
             AddLog(window.Status.Text + $" (PID {identity.ProcessId})");

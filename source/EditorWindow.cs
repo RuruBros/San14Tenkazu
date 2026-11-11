@@ -314,14 +314,13 @@ internal sealed partial class EditorWindow : W.Window
         bool connected = snapshot is not null && !layoutRecovering;
         var profile = game?.DataProfile;
         bool dataEditable = !busy && connected && (profile is null || writesAllowed);
-        bool editable = dataEditable && profile is null;
         bool nativeEditable = dataEditable && (profile is null || game is { } identity && GameCommandProfile.Find(identity) is not null);
         UpdateCalendarControls(connected);
         connectButton.IsEnabled = !busy && !automaticGameChecking;
         UpdateRegisteredButton();
         reloadButton.IsEnabled = !busy && connected;
         runtimeRulesButton.IsEnabled = !busy && !automaticGameChecking;
-        if(rulesImportButton is {} import)import.IsEnabled=!busy&&connected&&!RulesPending&&ruleKept?.Profile is not null&&game is {Verified:true};
+        if(rulesImportButton is {} import)import.IsEnabled=!busy&&connected&&!RulesPending&&ruleKept?.Profile is not null&&game is {} rulesIdentity&&SupportsRuleTables(rulesIdentity);
         map.AiEnabled = !busy;
         // [검색 취소] only matters while the slow memory search runs.
         cancelButton.Visibility = busy && scanCancellation is not null ? W.Visibility.Visible : W.Visibility.Collapsed;
@@ -338,6 +337,8 @@ internal sealed partial class EditorWindow : W.Window
                 OfficerEditorCard => profile.Supports(RecordKind.Officer),
                 UnitEditorCard => profile.Supports(RecordKind.Unit),
                 ForceEditorCard => profile.Supports(RecordKind.Force),
+                ItemEditorCard => profile.Supports(RecordKind.Item),
+                PersonalityEditorCard => profile.Supports(RecordKind.Personality),
                 _ => false
             });
         lists.ApplyEnabled = dataEditable;
@@ -357,13 +358,17 @@ internal sealed partial class EditorWindow : W.Window
         rankEditor.ApplyEnabled=rankAvailable; rankEditor.SetAvailable(rankAvailable);
         bool doctrineAvailable=!busy && connected && doctrineRuleSnapshot is not null && ruleKept?.Profile?.Table("doctrine") is not null;
         doctrineEditor.ApplyEnabled=doctrineAvailable; doctrineEditor.SetAvailable(doctrineAvailable);
-        cityEditor.FillsEnabled = gateEditor.FillsEnabled = forceEditor.FillsEnabled = editable;
+        cityEditor.FillsEnabled = gateEditor.FillsEnabled = dataEditable && FieldWriteBlock([OfficerFields.Loyalty]) is null;
+        forceEditor.FillsEnabled = dataEditable;
+        forceEditor.SetFillAvailability(dataEditable && FieldWriteBlock([OfficerFields.Loyalty]) is null,
+            dataEditable && FieldWriteBlock(UnitFields.All) is null);
         cityEditor.NativeActionsEnabled = nativeEditable;
         forceEditor.SurrenderEnabled = nativeEditable;
         batchSurrenderButton.IsEnabled = nativeEditable;
         officerEditor.RevivalEnabled = nativeEditable;
         officerEditor.StatusChangeEnabled = nativeEditable;
-        unlockButton.IsEnabled = editable && snapshot?.Play is not null;
+        unlockButton.IsEnabled = dataEditable && snapshot?.Play is not null &&
+            FieldWriteBlock([PlayRecordFields.Unlocks1, PlayRecordFields.Unlocks2]) is null;
     }
 
     // Esc leaves the visible view first. A detail editor hidden behind the list keeps its pending inputs.

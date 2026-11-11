@@ -24,7 +24,12 @@ internal sealed class RuntimeRulePreferenceFile(string directory)
     internal string PathName => Path.Combine(directory, "settings.json");
     internal RuntimeRulePreferenceFile For(GameIdentity? identity) =>
         identity is { } connected && RuntimeRuleBuildProfile.Find(connected) is { } profile
-            ? new(Path.Combine(directory, profile.ExeHash)) : this;
+            ? ForBuild(profile.ExeHash) : this;
+    internal RuntimeRulePreferenceFile ForBuild(string build) =>
+        GameBuildProfiles.Find(build) is not null ? this :
+        GameBuildProfiles.FindData(build) is { } profile && RuntimeRuleBuildProfile.SupportsBuild(build)
+            ? new(Path.Combine(directory, profile.ExeSha256))
+            : throw new InvalidDataException(L.RuntimeErrors.PreferenceBuildChanged);
     internal string ReceiptPath(GameIdentity identity) => Path.Combine(directory, $"{identity.ProcessId}-{identity.StartTimeUtc.Ticks}.json");
     internal RuntimeRulePreference? Read()
     {

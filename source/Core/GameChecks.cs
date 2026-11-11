@@ -28,7 +28,7 @@ internal static class GameChecks
     {
         RecordKind.City or RecordKind.Building or RecordKind.Gate => City,
         RecordKind.County => County,
-        RecordKind.Force => Force,
+        RecordKind.Force or RecordKind.Corps => Force,
         RecordKind.Item => Item,
         RecordKind.Personality => Personality,
         RecordKind.Unit => Unit,

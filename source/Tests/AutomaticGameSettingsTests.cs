@@ -12,9 +12,10 @@ public sealed class AutomaticGameSettingsTests
         internal GameSessionObservation Session = new(GameSessionPhase.Playing, 0, 0, []);
         internal readonly RuntimeRulePreference Preference;
         internal readonly AutomaticGameSettings Monitor;
-        internal Fixture(RuntimeRuleSettings? settings = null)
+        internal Fixture(RuntimeRuleSettings? settings = null, bool november = false)
         {
-            Preference = new(1, GameBuildProfiles.Current.ExeSha256, settings ?? new(true, AbilityRuleMode.Growth200, true), true);
+            Preference = new(1, november ? GameNativeFactsNovember2026.ExeSha256 : GameBuildProfiles.Current.ExeSha256,
+                settings ?? new(true, AbilityRuleMode.Growth200, true), true);
             Monitor = new(new(() => { Finds++; return Current; }, id => Current == id,
                 _ => { OnRead?.Invoke(); return Rules; }, _ => Ready,
                 (id, settings, path) =>
@@ -24,7 +25,8 @@ public sealed class AutomaticGameSettingsTests
                     Writes++; Rules = CorruptReadback ? RuntimeRuleSettings.Original : settings; return true;
                 }, _ => Session));
         }
-        internal void Start(int pid = 10) => Current = new(pid, DateTime.UtcNow, 0x140000000, GameBuildProfiles.Current.ExeSha256, true, TestGame.Classes);
+        internal void Start(int pid = 10) => Current = new(pid, DateTime.UtcNow, 0x140000000, Preference.Build,
+            Preference.Build == GameBuildProfiles.Current.ExeSha256, TestGame.Classes with { DoctrinePanel = 0x7015 });
         internal AutomaticGameObservation Poll(CancellationToken token = default) => Monitor.Poll(Preference,
             id => $"receipt-{id.ProcessId}", () => IntentCurrent, token);
     }
@@ -34,15 +36,16 @@ public sealed class AutomaticGameSettingsTests
         foreach (bool traits in new[] { false, true })
         foreach (AbilityRuleMode ability in Enum.GetValues<AbilityRuleMode>())
         foreach (bool list in new[] { false, true })
-            if (!list || traits) yield return [traits, (int)ability, list];
+        foreach (bool november in new[] { false, true })
+            if (!list || traits) yield return [traits, (int)ability, list, november];
     }
 
     [Theory] [MemberData(nameof(SavedModes))]
-    public void LaunchAfterEditorStartPreparesOnceThenConnectsAndPreparesAgainOnRestart(bool traits, int ability, bool list)
+    public void LaunchAfterEditorStartPreparesOnceThenConnectsAndPreparesAgainOnRestart(bool traits, int ability, bool list, bool november)
     {
         var settings = new RuntimeRuleSettings(traits, (AbilityRuleMode)ability, list);
         int expectedWrites = settings == RuntimeRuleSettings.Original ? 0 : 1;
-        var f = new Fixture(settings); Assert.Equal(AutomaticGamePhase.Absent, f.Poll().Phase);
+        var f = new Fixture(settings, november); Assert.Equal(AutomaticGamePhase.Absent, f.Poll().Phase);
         f.Start(); f.Rules = null; Assert.Equal(AutomaticGamePhase.Starting, f.Poll().Phase);
         f.Rules = RuntimeRuleSettings.Original; Assert.Equal(AutomaticGamePhase.RulesApplied, f.Poll().Phase);
         for (int i = 0; i < 5; i++) Assert.Equal(AutomaticGamePhase.RulesApplied, f.Poll().Phase);
@@ -70,42 +73,67 @@ public sealed class AutomaticGameSettingsTests
     }
 
     [Fact]
-    public void ReadOnlyBuildWaitsAtTitleAndConnectsWithoutCheckingSavedRules()
+    public void NovemberWithoutSavedSettingsWaitsAtTitleAndConnectsWithoutReadingRules()
     {
-        var f = new Fixture();
+        var f = new Fixture(november: true);
         f.Start();
-        f.Current = f.Current!.Value with { Verified = false, ExeHash = GameSessionTests.UpdateHash };
-        f.OnRead = () => throw new InvalidOperationException("read-only builds must skip runtime rule reads");
+        f.OnRead = () => throw new InvalidOperationException("no preferences must skip runtime rule reads");
+        AutomaticGameObservation Poll() => f.Monitor.Poll((RuntimeRulePreference?)null, _ => "", () => true, default);
         f.Session = new(GameSessionPhase.Title, 0, 0, []);
-        Assert.Equal(AutomaticGamePhase.SessionWaiting, f.Poll().Phase);
+        Assert.Equal(AutomaticGamePhase.Starting, Poll().Phase);
         f.Session = new(GameSessionPhase.Playing, 0, 0, []);
-        Assert.Equal(AutomaticGamePhase.Starting, f.Poll().Phase);
+        Assert.Equal(AutomaticGamePhase.Starting, Poll().Phase);
         f.Ready = true;
-        Assert.Equal(AutomaticGamePhase.Connect, f.Poll().Phase);
+        Assert.Equal(AutomaticGamePhase.Connect, Poll().Phase);
         f.Session = new(GameSessionPhase.Title, 0, 0, []);
-        Assert.Equal(AutomaticGamePhase.SessionWaiting, f.Poll().Phase);
+        Assert.Equal(AutomaticGamePhase.SessionWaiting, Poll().Phase);
         Assert.Equal(0, f.Writes);
+    }
+
+    [Fact]
+    public void NovemberPreferencesAreSelectedFromObservedProcessAndRecheckedBeforeWriting()
+    {
+        var f = new Fixture(november: true); f.Start();
+        int selections = 0;
+        Assert.Throws<InvalidOperationException>(() => f.Monitor.Poll(identity =>
+        {
+            Assert.Equal(f.Current, identity); selections++; return f.Preference;
+        }, id => $"receipt-{id.ProcessId}", (id, preference) =>
+        {
+            Assert.Equal(f.Current, id); Assert.Equal(f.Preference, preference); return false;
+        }, default));
+        Assert.Equal(1, selections); Assert.Equal(0, f.Writes);
     }
 
     [Theory] [InlineData("cancel")] [InlineData("intent")] [InlineData("process")] [InlineData("build")] [InlineData("foreign")]
     public void ChangedInputsNeverWrite(string kind)
     {
-        var f = new Fixture(); f.Start(); using var cancellation = new CancellationTokenSource();
-        if (kind == "build") f.Current = f.Current!.Value with { ExeHash = "other" };
-        if (kind == "foreign") f.Rules = new(true);
-        f.OnRead = () =>
+        foreach (bool november in new[] { false, true })
         {
-            if (kind == "cancel") cancellation.Cancel();
-            if (kind == "intent") f.IntentCurrent = false;
-            if (kind == "process") f.Start(12);
-        };
-        Assert.ThrowsAny<Exception>(() => f.Poll(cancellation.Token)); Assert.Equal(0, f.Writes);
+            var f = new Fixture(november: november); f.Start(); using var cancellation = new CancellationTokenSource();
+            if (kind == "build")
+            {
+                f.Current = f.Current!.Value with { ExeHash = "other" };
+                if (november)
+                {
+                    Assert.Equal(AutomaticGamePhase.Unsupported, f.Poll().Phase); Assert.Equal(0, f.Writes); continue;
+                }
+            }
+            if (kind == "foreign") f.Rules = new(true);
+            f.OnRead = () =>
+            {
+                if (kind == "cancel") cancellation.Cancel();
+                if (kind == "intent") f.IntentCurrent = false;
+                if (kind == "process") f.Start(12);
+            };
+            Assert.ThrowsAny<Exception>(() => f.Poll(cancellation.Token)); Assert.Equal(0, f.Writes);
+        }
     }
 
-    [Fact]
-    public void FailedReadbackCannotReportApplied()
+    [Theory] [InlineData(false)] [InlineData(true)]
+    public void FailedReadbackCannotReportApplied(bool november)
     {
-        var f = new Fixture { CorruptReadback = true }; f.Start();
+        var f = new Fixture(november: november) { CorruptReadback = true }; f.Start();
         Assert.Throws<InvalidDataException>(() => f.Poll()); Assert.Equal(1, f.Writes);
     }
 

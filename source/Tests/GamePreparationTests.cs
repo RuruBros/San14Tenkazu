@@ -10,7 +10,8 @@ public sealed class GamePreparationTests
             GameBuildProfiles.Current.ExeSha256, true, TestGame.Classes);
         internal RuntimeRuleSettings? State = RuntimeRuleSettings.Original;
         internal Action? OnLaunch, OnRead;
-        internal readonly RuntimeRulePreference Preference = new(1, GameBuildProfiles.Current.ExeSha256, new(true, AbilityRuleMode.Growth200, true), true);
+        internal RuntimeRulePreference Preference = new(1, GameBuildProfiles.Current.ExeSha256, new(true, AbilityRuleMode.Growth200, true), true);
+        internal string? InstalledBuild;
         internal Task<GameIdentity> Run(CancellationToken token = default, int attempts = 4) => new GamePreparation(new(
             () => Running,
             () => { Launches++; Identity = Identity with { StartTimeUtc = DateTime.UtcNow }; OnLaunch?.Invoke(); },
@@ -21,7 +22,7 @@ public sealed class GamePreparationTests
                 Assert.Equal(Identity, id); Assert.Equal("fixture-receipt", receipt);
                 Writes++; if (FailApply) throw new IOException("fixture apply failure");
                 State = BadReadback ? RuntimeRuleSettings.Original : settings;
-            })).RunAsync(Preference, _ => "fixture-receipt", () => Unchanged, token, _ => Task.CompletedTask, attempts);
+            }, () => InstalledBuild ?? Preference.Build)).RunAsync(Preference, _ => "fixture-receipt", () => Unchanged, token, _ => Task.CompletedTask, attempts);
     }
 
     [Fact]
@@ -80,5 +81,24 @@ public sealed class GamePreparationTests
         var f = new Fixture { NotReady = 1 };
         f.OnRead = () => f.Identity = f.Identity with { ProcessId = f.Identity.ProcessId + 1 };
         await Assert.ThrowsAsync<InvalidOperationException>(() => f.Run()); Assert.Equal(0, f.Writes);
+    }
+
+    [Fact]
+    public async Task NovemberStartupUsesItsOwnProfileAndSavedPreference()
+    {
+        var f = new Fixture();
+        f.Identity = f.Identity with { Verified = false, ExeHash = GameNativeFactsNovember2026.ExeSha256 };
+        f.Preference = f.Preference with { Build = f.Identity.ExeHash };
+        Assert.Equal(f.Identity.ProcessId, (await f.Run()).ProcessId);
+        Assert.Equal(1, f.Writes); Assert.Equal(f.Preference.Settings, f.State);
+    }
+
+    [Theory]
+    [InlineData("unknown")] [InlineData(GameNativeFactsNovember2026.ExeSha256)]
+    public async Task UnknownOrChangedInstalledBuildNeverLaunches(string installed)
+    {
+        var f = new Fixture { InstalledBuild = installed };
+        await Assert.ThrowsAnyAsync<Exception>(() => f.Run());
+        Assert.Equal(0, f.Launches); Assert.Equal(0, f.Writes);
     }
 }

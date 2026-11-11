@@ -33,6 +33,20 @@ internal sealed class DisasterTestWindow:W.Window
     internal readonly PlateButton ReadGeography=new(L.DeveloperUi.ReadGeography),EditGeography=new(L.DeveloperUi.EditGeography);
     internal readonly PlateButton ProfiledCityEdit=new(L.DeveloperUi.ProfiledEditRoundTrip){IsEnabled=false};
     internal readonly PlateButton ProfiledFieldsEdit=new(L.DeveloperUi.ProfiledFieldsRoundTrip){IsEnabled=false};
+    internal readonly PlateButton CompleteEditsPreview = new(L.DeveloperUi.CompleteEditsPreview) { IsEnabled = false };
+    internal readonly PlateButton CompleteEditsRun = new(L.DeveloperUi.CompleteEditsRun) { IsEnabled = false };
+    internal readonly PlateButton CompleteEditsStop = new(L.DeveloperUi.CompleteEditsStop) { IsEnabled = false };
+    internal readonly PlateButton HeldProvocationLoad = new(L.DeveloperUi.ProvocationLoad);
+    internal readonly PlateButton HeldProvocationApply = new(L.DeveloperUi.ProvocationApply) { IsEnabled = false };
+    internal readonly PlateButton HeldProvocationFinish = new(L.DeveloperUi.ProvocationFinish) { IsEnabled = false };
+    internal readonly PlateButton HeldProvocationRestore = new(L.DeveloperUi.ProvocationRestore) { IsEnabled = false };
+    internal readonly WC.TextBox HeldProvocationLog = new() { IsReadOnly = true, AcceptsReturn = true,
+        TextWrapping = W.TextWrapping.Wrap, VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto };
+    private sealed record CompleteUnitChoice(int Commander, string Name);
+    internal readonly WC.ComboBox CompleteProvokeUnits = new() { DisplayMemberPath = "Name", Margin = new W.Thickness(0, 0, 0, 12) };
+    internal int? CompleteProvokeCommander => CompleteProvokeUnits.SelectedItem is CompleteUnitChoice { Commander: > 0 } choice ? choice.Commander : null;
+    internal readonly WC.TextBox CompleteEditsLog = new() { IsReadOnly = true, AcceptsReturn = true,
+        TextWrapping = W.TextWrapping.Wrap, VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto };
     internal readonly WC.TextBox GeographyLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal DisasterTestWindow()
     {
@@ -73,6 +87,28 @@ internal sealed class DisasterTestWindow:W.Window
         WC.DockPanel.SetDock(geographyHeading,WC.Dock.Top);geography.Children.Add(geographyHeading);geography.Children.Add(GeographyLog);
         Tabs.Items.Add(new WC.TabItem{Header=L.DeveloperUi.GeographyTab,Content=geography,Background=CardSkin.Parchment,Foreground=CardSkin.Ink,Padding=new W.Thickness(12,6,12,6)});
         Tabs.Items.Add(new WC.TabItem{Header=L.DeveloperUi.PerformanceTab,Content=performance,Background=CardSkin.Parchment,Foreground=CardSkin.Ink});
+        var complete = new WC.DockPanel { Margin = new W.Thickness(20) };
+        var completeHeading = new WC.StackPanel();
+        completeHeading.Children.Add(new WC.TextBlock { Text = L.DeveloperUi.CompleteEditsInstructions,
+            TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 0, 0, 14) });
+        completeHeading.Children.Add(new WC.TextBlock { Text = L.DeveloperUi.CompleteSeededProvocationHint,
+            TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 0, 0, 8) });
+        completeHeading.Children.Add(CompleteProvokeUnits);
+        var completeActions = new WC.WrapPanel();
+        foreach (var button in new[] { CompleteEditsPreview, CompleteEditsRun, CompleteEditsStop })
+        { button.Margin = new W.Thickness(0, 0, 8, 14); completeActions.Children.Add(button); }
+        completeHeading.Children.Add(completeActions);
+        WC.DockPanel.SetDock(completeHeading, WC.Dock.Top); complete.Children.Add(completeHeading); complete.Children.Add(CompleteEditsLog);
+        Tabs.Items.Add(new WC.TabItem { Header = L.DeveloperUi.CompleteEditsTab, Content = complete,
+            Background = CardSkin.Parchment, Foreground = CardSkin.Ink, Padding = new W.Thickness(12, 6, 12, 6) });
+        var held = new WC.DockPanel { Margin = new W.Thickness(20) };
+        var heldHeading = new WC.StackPanel();
+        heldHeading.Children.Add(new WC.TextBlock { Text = L.DeveloperUi.ProvocationInstructions, TextWrapping = W.TextWrapping.Wrap });
+        foreach (var button in new[] { HeldProvocationLoad, HeldProvocationApply, HeldProvocationFinish, HeldProvocationRestore })
+        { button.Margin = new W.Thickness(0, 8, 0, 0); heldHeading.Children.Add(button); }
+        WC.DockPanel.SetDock(heldHeading, WC.Dock.Top); held.Children.Add(heldHeading); held.Children.Add(HeldProvocationLog);
+        Tabs.Items.Add(new WC.TabItem { Header = L.DeveloperUi.ProvocationTab, Content = held,
+            Background = CardSkin.Parchment, Foreground = CardSkin.Ink, Padding = new W.Thickness(12, 6, 12, 6) });
     }
     private bool available,previewOnly;
     private void SelectionChanged(){Preview.IsEnabled=available&&Target is not null&&Kind.SelectedIndex>=0;Damage.IsEnabled=Preview.IsEnabled&&!previewOnly;}
@@ -88,9 +124,19 @@ internal sealed class DisasterTestWindow:W.Window
     internal void AppendTraitDiagnostic(string text){TraitLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);TraitLog.ScrollToEnd();}
     internal void SetCompatibilityAvailable(bool ready,bool reading){ReadCompatibility.IsEnabled=ready;CancelCompatibility.IsEnabled=reading;}
     internal void AppendCompatibility(string text){CompatibilityLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);CompatibilityLog.ScrollToEnd();}
-    internal void SetCities(GameSnapshot data){int selected=Target?.Id??1;Cities.ItemsSource=data.CityIds.Where(EnvironmentPolicy.EffectCity).Select(id=>new City(id,data.ForceOfCity(id),data.CityName(id)+" · "+data.ForceName(data.ForceOfCity(id)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);}
+    internal void SetCities(GameSnapshot data)
+    {
+        int selected=Target?.Id??1;Cities.ItemsSource=data.CityIds.Where(EnvironmentPolicy.EffectCity).Select(id=>new City(id,data.ForceOfCity(id),data.CityName(id)+" · "+data.ForceName(data.ForceOfCity(id)))).ToArray();Cities.SelectedItem=Cities.Items.Cast<City>().FirstOrDefault(c=>c.Id==selected);
+        int commander = CompleteProvokeCommander ?? 0;
+        CompleteProvokeUnits.ItemsSource = new[] { new CompleteUnitChoice(0, L.DeveloperUi.CompleteNoSeededProvocation) }
+            .Concat(data.Units.Where(u => data.ForceOfUnit(u) == data.PlayerForce && u[UnitFields.Ailments[UnitFields.Provoked]] == 0)
+                .OrderBy(u => u.Slot).Select(u => new CompleteUnitChoice(u.Commander, data.CommanderName(u.Commander)))).ToArray();
+        CompleteProvokeUnits.SelectedItem = CompleteProvokeUnits.Items.Cast<CompleteUnitChoice>().FirstOrDefault(c => c.Commander == commander)
+            ?? CompleteProvokeUnits.Items[0];
+    }
     internal void SetGeographyAvailable(bool ready){ReadGeography.IsEnabled=EditGeography.IsEnabled=ready;}
     internal void AppendGeography(string text){GeographyLog.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);GeographyLog.ScrollToEnd();}
+    internal void AppendCompleteEdits(string text) { CompleteEditsLog.AppendText(DateTime.Now.ToString("HH:mm:ss") + " " + text + System.Environment.NewLine); CompleteEditsLog.ScrollToEnd(); }
     internal void Append(string text){Log.AppendText(DateTime.Now.ToString("HH:mm:ss")+" "+text+System.Environment.NewLine);Log.ScrollToEnd();}
     internal void SetReceipt(EnvironmentStatus? status)
     {

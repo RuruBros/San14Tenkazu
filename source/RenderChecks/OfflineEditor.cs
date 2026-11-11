@@ -7,9 +7,14 @@ internal static partial class RenderChecks
         _ => throw new InvalidOperationException("Unexpected offline rule read"),
         _ => throw new InvalidOperationException("Unexpected offline data read"),
         (_, _, _) => throw new InvalidOperationException("Unexpected offline preparation"));
+    private static readonly GamePreparationAccess OfflinePreparationAccess = new(() => false,
+        () => throw new InvalidOperationException("Unexpected offline launch"), () => null,
+        _ => throw new InvalidOperationException("Unexpected offline runtime read"),
+        (_, _, _) => throw new InvalidOperationException("Unexpected offline runtime write"),
+        () => GameBuildProfiles.Current.ExeSha256);
     private static EditorWindow OfflineEditor(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null,
         string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null,
         RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null)
         => new(registeredGameRunning, seasonStorageRoot, aiStorageRoot, ruleStorageRoot, ruleAccess,
-            runtimeRuleAccess, gamePreparationAccess, OfflineGameAccess);
+            runtimeRuleAccess, gamePreparationAccess ?? OfflinePreparationAccess, OfflineGameAccess);
 }

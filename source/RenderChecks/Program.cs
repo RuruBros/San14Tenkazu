@@ -50,6 +50,7 @@ internal static partial class RenderChecks
             if(args.Contains("--environment-bundle-check")){San14Tenkazu.EnvironmentRules.EnvironmentNativeBundle.VerifySources(args.First(a=>!a.StartsWith("--")));Console.WriteLine("PASS environment bundle/source pins");return 0;}
             if (args.Contains("--steam-discovery")) { CheckSteamDiscovery(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--package-smoke")) { CheckPortablePackage(args.First(a => !a.StartsWith("--"))); return 0; }
+            if (args.Contains("--november-editors")) { CheckNovemberEditors(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--unit-conditions")) { CheckUnitConditions(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--officer-merit")) { CheckOfficerMerit(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--officer-revival")) { CheckOfficerRevival(args.First(a => !a.StartsWith("--"))); return 0; }

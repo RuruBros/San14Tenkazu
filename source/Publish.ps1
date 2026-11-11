@@ -69,6 +69,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Release build failed; see source/RenderChecks/artifacts/publish-build.log' }
     Assert-SourceState $taskState
     Invoke-Check @('--developer-menu-check', $taskDeveloper.ToString()) 'publish-developer-menu.log'
+    Invoke-Check @('--november-editors', (Join-Path $taskArtifacts ('publish-november-editors-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-november-editors.log'
     Invoke-Check @('--public-loader-offline', (Join-Path $taskArtifacts 'publish-public-loader')) 'publish-public-loader.log'
     Invoke-Check @('--runtime-rules-offline', (Join-Path $taskArtifacts 'publish-runtime-rules')) 'publish-runtime-rules.log'
     Invoke-Check @('--runtime-rule-persistence', (Join-Path $taskArtifacts 'publish-runtime-rule-persistence')) 'publish-runtime-rule-persistence.log'

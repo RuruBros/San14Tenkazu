@@ -37,6 +37,14 @@ internal static partial class RenderChecks
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripProfiledCityGold")==expected,"Profiled city memory test leaked into public build");
         Require((typeof(EditorWindow).GetMethod("RunProfiledFieldsEdit",Hidden)!=null)==expected,"Profiled field round trip leaked into public build");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripProfiledFields")==expected,"Profiled field memory test leaked into public build");
+        foreach (string method in new[] { "PrepareCompleteEditorTrials", "PlanCompleteEditorTrials", "RoundTripCompleteEditorFields", "RunCompleteEditTrial", "PrepareSeededProvocationTrial" })
+            Require(typeof(GameMemory).GetMethods(Hidden | BindingFlags.Static).Any(m => m.Name == method) == expected, "Complete editor trial leaked: " + method);
+        Require((typeof(EditorWindow).GetMethod("PrepareCompleteEdits", Hidden) != null) == expected, "Complete editor preview leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("RunCompleteEdits", Hidden) != null) == expected, "Complete editor UI action leaked into public build");
+        Require((typeof(GameMemory).GetNestedType("CompleteEditTrial", BindingFlags.NonPublic) != null) == expected, "Complete editor trial types leaked into public build");
+        foreach (string method in new[] { "BeginDeveloperProvocation", "FinishDeveloperProvocation", "ApplyProvocationBytes", "RestoreProvocationBytes" })
+            Require(typeof(GameMemory).GetMethods(Hidden | BindingFlags.Static).Any(m => m.Name == method) == expected, "Held provocation leaked: " + method);
+        Require((typeof(EditorWindow).GetMethod("RunHeldProvocation", Hidden) != null) == expected, "Held provocation UI leaked");
         Require((typeof(EditorWindow).GetMethod("RunProfiledRuleEdit",Hidden)!=null)==expected,"Profiled rule round trip leaked into public build");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name is "RoundTripProfiledRules" or "PlanProfiledRuleTrials")==expected,"Profiled rule diagnostic leaked into public build");
         Require((typeof(EditorWindow).GetMethod("RunProfiledAiEdit",Hidden)!=null)==expected&&
@@ -70,6 +78,8 @@ internal static partial class RenderChecks
         CheckDeveloperGeography();
         CheckProfiledRuleRoundTrip();
         CheckProfiledAiRoundTrip();
+        CheckCompleteEditorTrials();
+        CheckHeldProvocation();
         CheckDeveloperNoticeDiagnostic();
         CheckPerformanceSummary();
         var fixture=new DeveloperFixture();var controller=new EnvironmentController(fixture,Console.WriteLine);
@@ -83,7 +93,7 @@ internal static partial class RenderChecks
         }finally{controller.DisposeAsync().AsTask().GetAwaiter().GetResult();}
         Require(fixture.Stopped,"Developer controller must restore native ownership on disposal");
         var window=new DisasterTestWindow();window.SetCities(new TestGame().Build());window.SetAvailable(true,true);
-        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==5&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
+        Require(ReferenceEquals(window.Content,window.Tabs)&&window.Tabs.Items.Count==7&&window.Tabs.Items[0] is WC.TabItem{Header:"재난 테스트"}
             && window.Tabs.Items[1] is WC.TabItem{Header:"개성 목록 진단"}&&window.Tabs.Items[2] is WC.TabItem{Header:"호환성 진단"},"Developer tabs must separate approved actions");
         try {
             window.Show();window.UpdateLayout();
@@ -198,7 +208,8 @@ internal static partial class RenderChecks
             var bounds=button.TransformToAncestor(log).TransformBounds(new W.Rect(0,0,button.ActualWidth,button.ActualHeight));
             Require(bounds.Right>log.ActualWidth-24&&bounds.Top>=0&&bounds.Bottom<=log.ActualHeight,"Developer entry must sit at the right edge of the log header");
             Click(button);Pump();var first=Field<DisasterTestWindow>(editor,"developerMenu");
-            Require(first.IsVisible&&first.Tabs.Items.Count==5&&!log.Open,"One click must open the tabbed window without expanding the log");
+            Require(first.IsVisible&&first.Tabs.Items.Count==7&&!log.Open,"One click must open the tabbed window without expanding the log");
+            Require(first.Tabs.Items[6] is WC.TabItem held && Equals(held.Header, L.DeveloperUi.ProvocationTab), "Held provocation tab is missing");
             first.Tabs.SelectedIndex = 2; Pump(); first.UpdateLayout();
             Require(first.ProfiledRulesEdit.IsVisible && !first.ProfiledRulesEdit.IsEnabled,
                 "The rule test button must be visible in the compatibility tab and unavailable offline");

@@ -230,10 +230,14 @@ internal sealed class TestGame
         return this;
     }
 
-    internal GameSnapshot Build(RuntimeRuleSettings? rules = null, int playerForce = -1) => new()
+    internal GameSnapshot Build(RuntimeRuleSettings? rules = null, int playerForce = -1,
+        bool originalAbilityTableVerified = false, GamePace pace = GamePace.Unknown, int hour = -1) => new()
     {
         Session = new(GameSessionPhase.Playing, 0, 0, []),
         RuntimeRules = rules ?? RuntimeRuleSettings.Original,
+        OriginalAbilityTableVerified = originalAbilityTableVerified,
+        Pace = pace,
+        Hour = hour,
         PlayerForce = playerForce,
         Cities = cities,
         Counties = [.. counties],

@@ -5,6 +5,7 @@ namespace San14Tenkazu;
 
 internal sealed class GamePreparationWindow : W.Window
 {
+    internal string Build { get; init; } = GameBuildProfiles.Current.ExeSha256;
     internal readonly WC.CheckBox Traits = new() { Content = L.GameSettingsUi.TraitsNine };
     internal readonly WC.CheckBox TraitList = new() { Content = L.GameSettingsUi.TraitListNine };
     internal readonly WC.ComboBox Ability = new() { ItemsSource = new[] { L.GameSettingsUi.AbilityOriginal, L.GameSettingsUi.AbilityCapTwoHundred, L.GameSettingsUi.AbilityGrowthTwoHundred } };

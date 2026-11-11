@@ -34,6 +34,14 @@ internal sealed partial class EditorWindow
         window.EditGeography.Click+=async()=>await RunDeveloperGeography(true);
         window.ProfiledCityEdit.Click+=async()=>await RunProfiledCityEdit();
         window.ProfiledFieldsEdit.Click+=async()=>await RunProfiledFieldsEdit();
+        window.CompleteEditsPreview.Click += async () => await PrepareCompleteEdits();
+        window.CompleteEditsRun.Click += async () => await RunCompleteEdits();
+        window.CompleteEditsStop.Click += () => completeEditsCancellation?.Cancel();
+        window.HeldProvocationLoad.Click += LoadHeldProvocation;
+        window.HeldProvocationApply.Click += async () => await RunHeldProvocation(true, false);
+        window.HeldProvocationFinish.Click += async () => await RunHeldProvocation(false, true);
+        window.HeldProvocationRestore.Click += async () => await RunHeldProvocation(false, false);
+        window.CompleteProvokeUnits.SelectionChanged += (_, _) => { completeEditsPreparation = null; UpdateDeveloperControls(); };
         window.ProfiledRulesEdit.Click += async () => await RunProfiledRuleEdit();
         window.ProfiledAiEdit.Click += async () => await RunProfiledAiEdit();
         window.ProfiledAiExtension.Click += async () => await RunProfiledAiExtension();
@@ -42,6 +50,8 @@ internal sealed partial class EditorWindow
         window.ProfiledRender.Click += async () => await RunProfiledRenderCheck();
         bool closeAllowed=false,closePending=false;
         window.Closing+=async(_,e)=>{
+            if (heldProvocationReceipt is not null) { e.Cancel = true; return; }
+            if (completeEditsCancellation is { } complete) { complete.Cancel(); e.Cancel = true; return; }
             if(performanceCancellation is {} measuring){measuring.Cancel();e.Cancel=true;return;}
             if(compatibilityCancellation is {} reading){reading.Cancel();e.Cancel=true;return;}
             if(closeAllowed)return;e.Cancel=true;if(developerChanging||closePending)return;closePending=true;
@@ -74,6 +84,15 @@ internal sealed partial class EditorWindow
         window.ProfiledCityEdit.IsEnabled = available && !HasPendingEdits && !refreshing &&
             game?.DataProfile?.Supports(CityFields.Gold) == true && layout is not null && ProfiledCityTarget() is not null;
         window.ProfiledFieldsEdit.IsEnabled = available && CanRunProfiledFieldsEdit;
+        window.CompleteEditsPreview.IsEnabled = available && CanPrepareCompleteEdits;
+        window.CompleteProvokeUnits.IsEnabled = available && CanPrepareCompleteEdits;
+        window.CompleteEditsRun.IsEnabled = available && CanPrepareCompleteEdits && completeEditsPreparation is { } prepared &&
+            game == prepared.Identity && layout is { } completeLayout && completeLayout.SameStorage(prepared.Layout);
+        window.CompleteEditsStop.IsEnabled = completeEditsCancellation is not null;
+        window.HeldProvocationLoad.IsEnabled = available && CanPrepareCompleteEdits && heldProvocationReceipt is null;
+        window.HeldProvocationApply.IsEnabled = window.HeldProvocationLoad.IsEnabled && heldProvocationPlan is not null;
+        window.HeldProvocationFinish.IsEnabled = window.HeldProvocationRestore.IsEnabled =
+            !developerChanging && !seasonClosing && !seasonDisconnecting && heldProvocationReceipt is not null && game == heldProvocationReceipt.Identity;
         window.ProfiledRulesEdit.IsEnabled = available && CanRunProfiledRuleEdit;
         window.ProfiledAiEdit.IsEnabled = available && CanRunProfiledAi;
         window.ProfiledAiExtension.IsEnabled = available && CanRunProfiledAi;

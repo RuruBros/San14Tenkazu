@@ -23,18 +23,23 @@ internal sealed class AutomaticGameSettings(AutomaticGameAccess access)
     private RuntimeRulePreference? prepared;
     internal AutomaticGameObservation Poll(RuntimeRulePreference? preference, Func<GameIdentity, string> receipt,
         Func<bool> intentCurrent, CancellationToken cancellationToken)
+        => Poll(_ => preference, receipt, (_, _) => intentCurrent(), cancellationToken);
+
+    internal AutomaticGameObservation Poll(Func<GameIdentity, RuntimeRulePreference?> preferenceFor, Func<GameIdentity, string> receipt,
+        Func<GameIdentity, RuntimeRulePreference?, bool> intentCurrent, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (observed is not { } cached || !access.Same(cached))
         { observed = access.Find(); prepared = null; }
         if (observed is not { } identity) return new(null, AutomaticGamePhase.Absent);
-        if (!identity.Verified)
+        if (!RuntimeRuleBuildProfile.Supports(identity))
         {
             if (identity.DataProfile is null) return new(identity, AutomaticGamePhase.Unsupported);
             var readOnlySession = access.Session?.Invoke(identity);
             if (readOnlySession is not { IsPlaying: true }) return new(identity, AutomaticGamePhase.SessionWaiting, readOnlySession);
             return new(identity, access.DataReady(identity) ? AutomaticGamePhase.Connect : AutomaticGamePhase.Starting, readOnlySession);
         }
+        var preference = preferenceFor(identity);
         preference?.CheckBuild(identity.ExeHash);
         var session = access.Session?.Invoke(identity);
         AutomaticGameObservation Ready() => new(identity,
@@ -52,7 +57,7 @@ internal sealed class AutomaticGameSettings(AutomaticGameAccess access)
         if (rules != RuntimeRuleSettings.Original && (prepared is null || rules != prepared.Settings))
             throw new InvalidDataException(L.Preparation.ChangedRules);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!intentCurrent()) throw new InvalidOperationException(L.Rules.ProfileMoved);
+        if (!intentCurrent(identity, preference)) throw new InvalidOperationException(L.Rules.ProfileMoved);
         if (!access.Same(identity)) throw new InvalidOperationException(L.Errors.ProcessChanged);
         if (!access.Prepare(identity, preference.Settings, receipt(identity)))
         {

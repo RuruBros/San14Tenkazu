@@ -5,6 +5,7 @@ namespace San14Tenkazu;
 
 internal sealed class RuntimeRulesWindow : W.Window
 {
+    internal string TargetBuild { get; init; } = GameBuildProfiles.Current.ExeSha256;
     private bool known;
     private bool offline;
     private readonly WC.TextBlock applied = new() { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 6, 0, 14) };

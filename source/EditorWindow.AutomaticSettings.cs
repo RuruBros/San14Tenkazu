@@ -33,11 +33,18 @@ internal sealed partial class EditorWindow
             if (game is not null && (HasPendingEdits || registeredEditor?.HasPending == true))
             { AutomaticNotice(L.AutomaticSettings.PendingEdits); return; }
             if (game is not null && !await DisconnectAsync(L.AutomaticSettings.Waiting)) return;
-            preference = runtimeRuleFile.Read();
-            if (automaticGameFailure is { } failed && preference == automaticFailedPreference
-                && await Task.Run(() => automaticGameAccess.Same(failed))) return;
-            var observation = await Task.Run(() => automaticGameSettings.Poll(preference,
-                runtimeRuleFile.ReceiptPath, () => runtimeRuleFile.Read() == preference, automaticGameCancellation.Token));
+            if (automaticGameFailure is { } failed && await Task.Run(() => automaticGameAccess.Same(failed)))
+            {
+                preference = runtimeRuleFile.For(failed).Read();
+                if (preference == automaticFailedPreference) return;
+            }
+            var observation = await Task.Run(() => automaticGameSettings.Poll(id =>
+                {
+                    candidate = id;
+                    preference = runtimeRuleFile.For(id).Read();
+                    return preference;
+                }, id => runtimeRuleFile.For(id).ReceiptPath(id),
+                (id, expected) => runtimeRuleFile.For(id).Read() == expected, automaticGameCancellation.Token));
             if (automaticGameCancellation.IsCancellationRequested) return;
             candidate = observation.Identity;
             if (candidate is {} observed && observation.Session is {} session) ObserveSession(observed, session);

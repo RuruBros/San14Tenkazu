@@ -38,6 +38,7 @@ internal sealed class OfficerTables : WC.StackPanel
     // Inputs and fills are available only while connected and not busy.
     internal bool FillsEnabled
     {
+        get => fillsEnabled;
         set
         {
             fillsEnabled = value;

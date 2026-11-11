@@ -13,7 +13,7 @@
     <Product>天下圖</Product>
     <AssemblyTitle>天下圖 (천하도) - 삼국지14 CE 메모리 편집기</AssemblyTitle>
     <!-- The core engine and its tests are projects of their own in the folders below. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);Core/**;Tests/**;RenderChecks/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Core/**;Tests/**;RenderChecks/**;DeveloperChecks/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="Core\San14Tenkazu.Core.csproj" />

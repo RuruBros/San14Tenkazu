@@ -5,6 +5,17 @@ namespace San14Tenkazu;
 
 internal static partial class GameMemory
 {
+    // Preserve the previously approved scalar trial scope when product editing gains fields.
+    // Linked transfers and relationships require their own explicit live-test approval.
+    private static readonly HashSet<FieldDef> ProfiledRoundTripFields =
+    [
+        CityFields.Gold, CityFields.Food, CityFields.Troops, CityFields.Wounded, CityFields.Scale,
+        CityFields.Durability, GateFields.Troops, GateFields.Durability, FacilityFields.Durability,
+        .. CountyFields.All, OfficerFields.Loyalty, OfficerFields.Merit, .. OfficerFields.Years,
+        .. OfficerFields.Abilities, .. OfficerFields.Abilities.Select(OfficerFields.ExperienceOf),
+        .. UnitFields.All, ForceFields.Country, ForceFields.Color
+    ];
+
     internal static (int Passed, int Missing) RoundTripProfiledFields(GameIdentity identity, GameLayout layout, Action<object> record)
     {
         var profile = identity.DataProfile ?? throw new InvalidOperationException(L.Compatibility.Unavailable);
@@ -12,8 +23,7 @@ internal static partial class GameMemory
         if (baseline is not { Date: not null, PlayerForce: > 0 } || ReadPace(identity, layout) != GamePace.Paused)
             throw new InvalidOperationException(L.DeveloperUi.PauseRequired);
         var countries = ReadCountryNames(identity, layout).Select(c => c.Index).ToArray();
-        var fields = profile.Fields.Keys.Where(f => !OfficerFields.Personalities.Contains(f) &&
-                f.Record != RecordKind.Item && !ForceFields.IsAgreement(f))
+        var fields = profile.Fields.Keys.Where(ProfiledRoundTripFields.Contains)
             .OrderBy(f => f.Record).ThenBy(f => f.Offset).ThenBy(f => f.Min).ToArray();
         var covered = new HashSet<FieldDef>();
         var missing = new List<FieldDef>();

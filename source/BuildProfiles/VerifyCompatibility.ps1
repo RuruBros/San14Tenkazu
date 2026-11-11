@@ -46,6 +46,8 @@ try {
     Run 'generated-drift' $Python @('source/BuildProfiles/generate.py','--check')
     Run 'generator-tests' $Python @('-m','unittest','discover','-s','source/BuildProfiles','-p','test_generate.py','-v')
     Run 'version-matcher-tests' $Python @('-m','unittest','discover','-s','source/Reverse','-p','test_version_audit.py','-v')
+    Run 'editor-roundtrip-parser-tests' $Python @('-m','unittest','discover','-s','source/Reverse','-p','test_editor_roundtrip_log.py','-v')
+    Run 'held-provocation-proof-tests' $Python @('-m','unittest','discover','-s','source/Reverse','-p','test_provocation_hold.py','-v')
     if ($LegacyRuntimeImage -or $LegacyRuntimeBase -or $NovemberRuntimeImage -or $NovemberRuntimeBase) {
         if (!$LegacyRuntimeImage -or !$LegacyRuntimeBase -or !$NovemberRuntimeImage -or !$NovemberRuntimeBase) {
             throw 'Supply both runtime image paths and both capture bases.'
@@ -59,6 +61,14 @@ try {
         Run 'native-command-replay' $Python @('source/Reverse/game_command_replay.py',
             '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
             '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase)
+        Run 'linked-editor-fields' $Python @('source/Reverse/editor_linked_fields_audit.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase,
+            '--output',(Join-Path $taskOutput 'linked-editor-fields.json'))
+        Run 'complete-editor-fields' $Python @('source/Reverse/editor_complete_fields_audit.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase,
+            '--output',(Join-Path $taskOutput 'complete-editor-fields.json'))
         Run 'game-command-candidates' $Python @('source/Reverse/game_command_audit.py',
             '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
             '--candidate-image',$NovemberRuntimeImage,'--candidate-base',$NovemberRuntimeBase,
@@ -75,9 +85,20 @@ try {
         Run ($taskFlavor+'-build') 'dotnet' @('build','source/RenderChecks/San14Tenkazu.RenderChecks.csproj','--no-restore','-c','Release','-p:NuGetAudit=false',('-p:LocalDeveloperPackage='+$taskBool),('-p:DeveloperPackageBuild='+$taskBool),('-p:PublicRelease='+(!$taskDev).ToString().ToLowerInvariant()),'-o',$taskBuild)
         $taskChecks=Join-Path $taskBuild 'San14Tenkazu.Tests.dll'
         Run ($taskFlavor+'-menu') 'dotnet' @($taskChecks,'--developer-menu-check',$taskDev.ToString())
+        if ($taskDev) {
+            Run 'editor-roundtrip-log-fixture' $Python @('source/Reverse/editor_roundtrip_log.py',
+                '--log','source/RenderChecks/artifacts/complete-editor-trials.jsonl','--output',(Join-Path $taskOutput 'editor-roundtrip-fixture-proof.json'))
+            Run 'editor-seeded-roundtrip-log-fixture' $Python @('source/Reverse/editor_roundtrip_log.py',
+                '--log','source/RenderChecks/artifacts/complete-editor-seeded-trials.jsonl','--output',(Join-Path $taskOutput 'editor-seeded-roundtrip-fixture-proof.json'))
+        }
+        Run ($taskFlavor+'-editors') 'dotnet' @($taskChecks,'--november-editors',(Join-Path $taskOutput ($taskFlavor+'-editors')))
+        Run ($taskFlavor+'-automatic-settings') 'dotnet' @($taskChecks,'--automatic-settings-offline',(Join-Path $taskOutput ($taskFlavor+'-automatic-settings')))
         Run ($taskFlavor+'-season-bundle') 'dotnet' @($taskChecks,'--season-bundle-check','source/Seasons')
         Run ($taskFlavor+'-environment-bundle') 'dotnet' @($taskChecks,'--environment-bundle-check','source/Environment')
         Run ($taskFlavor+'-environment-menu') 'dotnet' @($taskChecks,'--environment-menu',(Join-Path $taskOutput ($taskFlavor+'-environment-menu')))
+        $taskRunnerBuild=Join-Path $taskOutput ('runner-'+$taskFlavor)
+        Run ($taskFlavor+'-runner-build') 'dotnet' @('build','source/DeveloperChecks/San14Tenkazu.DeveloperChecks.csproj','-c','Release','-m:1','-p:NuGetAudit=false',('--ignore-failed-sources'),('-p:LocalDeveloperPackage='+$taskBool),('-p:DeveloperPackageBuild='+$taskBool),('-p:PublicRelease='+(!$taskDev).ToString().ToLowerInvariant()),'-o',$taskRunnerBuild)
+        Run ($taskFlavor+'-runner-flavor') 'dotnet' @((Join-Path $taskRunnerBuild 'San14Tenkazu.Tests.dll'),'--build-check',$taskDev.ToString())
     }
     $taskDevChecks=Join-Path $taskOutput 'checks-dev/San14Tenkazu.Tests.dll'
     if ($LegacyRuntimeImage) {

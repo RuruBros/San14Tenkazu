@@ -16,6 +16,9 @@ internal sealed record RuntimeRuleBuildProfile(string ExeHash, uint ExecutableLi
     internal static bool Supports(GameIdentity identity) =>
         identity.Verified || Find(identity) is not null;
 
+    internal static bool SupportsBuild(string build) => GameBuildProfiles.Find(build) is not null ||
+        string.Equals(build, GameBuildProfiles.NovemberNative.ExeSha256, StringComparison.OrdinalIgnoreCase);
+
     private static RuntimeRuleBuildProfile LoadNovember()
     {
         using var resource = typeof(RuntimeRuleBuildProfile).Assembly.GetManifestResourceStream("RuntimeRules.November2026.json")
