@@ -160,7 +160,7 @@ internal sealed partial class EditorWindow
         bool writing = false;
         // Read-only polling leaves controls available. Any intervening write or reconnect invalidates
         // this read, including a write that starts and finishes before a background read returns.
-        bool Current() => !busy && game == identity && ruleRevision == revision;
+        bool Current() => !busy && !layoutRecovering && game == identity && ruleRevision == revision;
         void BeginWrite()
         {
             ++ruleRevision;
@@ -391,7 +391,8 @@ internal sealed partial class EditorWindow
         if (doctrines is not null && (doctrines.Root!=formation.Root || doctrines.State!=formation.State)) throw new InvalidOperationException(L.Rules.Stale);
         return new(formation, tactics, policies, offices, ranks, doctrines);
     }
-    private bool RulesPending => formationEditor.Pending != 0 || tacticEditor.Pending != 0 || policyEditor.Pending != 0 || policyEffectEditor.Pending != 0 || officeEditor.Pending != 0 || rankEditor.Pending != 0 || doctrineEditor.Pending != 0;
+    private bool RulesPending => DraftEditor is { Pending: > 0 } card &&
+        card is FormationEditorCard or TacticEditorCard or PolicyEditorCard or OfficeEditorCard or PlainRuleEditorCard;
     private static RuleProfile AddNewBaselines(RuleProfile profile, RuleReadState state)
     {
         if (state.Tactic is { } tactics) profile = profile.AddTactics(tactics);

@@ -59,7 +59,7 @@ internal sealed partial class EditorWindow
         }
         if (game is not { } identity || !RuntimeRuleBuildProfile.Supports(identity) || layout is null) return;
         if (runtimeRulesIdentity != identity) { window.Status.Text = L.GameSettingsUi.ConnectionChanged; return; }
-        if (lists.Pending > 0 || Editors.Any(card => card.Pending > 0)) { window.Status.Text = L.GameSettingsUi.PendingEdits; return; }
+        if (HasPendingEdits) { window.Status.Text = L.GameSettingsUi.PendingEdits; return; }
         bool convert = window.ConvertProgress.IsChecked == true;
         var preferences = runtimeRuleFile.For(identity);
         runtimeRulesChanging = true; ++ruleRevision; SetBusy(true, scanning: false); window.SetBusy(true);
@@ -107,10 +107,10 @@ internal sealed partial class EditorWindow
         var preferences = runtimeRuleFile.For(identity);
         if (retry) runtimeRuleFailure = null;
         if (runtimeRuleFailure == identity) return;
-        bool Pending() => lists.Pending > 0 || aiView?.Pending == true || Editors.Any(c => c.Pending > 0) || RulesPending || runtimeRulesWindow?.HasPendingChanges == true;
+        bool Pending() => HasPendingEdits || RulesPending || runtimeRulesWindow?.HasPendingChanges == true;
         if (Pending()) return;
         var observed = snapshot; var currentLayout = layout;
-        bool Current() => !busy && !refreshing && game == identity && ReferenceEquals(snapshot, observed) && !seasonClosing && !seasonDisconnecting;
+        bool Current() => !busy && !refreshing && !layoutRecovering && game == identity && ReferenceEquals(snapshot, observed) && !seasonClosing && !seasonDisconnecting;
         void Notice(string text)
         {
             if (runtimeRuleNotice != text) { runtimeRuleNotice = text; AddLog(text); }

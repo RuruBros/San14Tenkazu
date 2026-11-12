@@ -117,6 +117,16 @@ internal static partial class RenderChecks
                 && fields[FormationRules.Fields[0]].Value == 22 && transitions == 0,
                 new { writesBefore, writesAfter = fixture.Writes, card.Pending, enabledTransitions = transitions });
 
+            card.Open(new(fixture.Snapshot().Record(1), profile));
+            readStarted.Reset(); releaseRead.Reset();
+            read = () => { var captured = fixture.Snapshot(); readStarted.Set(); if (!releaseRead.Wait(10000)) throw new TimeoutException(); return captured; };
+            FormationSnapshot beforeRecovery = Field<FormationSnapshot>(window, "ruleSnapshot");
+            poll = (Task)Call(window, "PollRulesAsync")!; PumpUntil(() => readStarted.IsSet);
+            Set(window, "layoutRecovering", true); releaseRead.Set(); Await(poll);
+            Set(window, "layoutRecovering", false);
+            Record("recovery-discards-inflight-rule-read", ReferenceEquals(beforeRecovery, Field<FormationSnapshot>(window, "ruleSnapshot")),
+                new { staleReadDiscarded = ReferenceEquals(beforeRecovery, Field<FormationSnapshot>(window, "ruleSnapshot")) });
+
             readStarted.Reset(); releaseRead.Reset();
             read = () => { var captured = fixture.Snapshot(); readStarted.Set(); if (!releaseRead.Wait(10000)) throw new TimeoutException(); return captured; };
             poll = (Task)Call(window, "PollRulesAsync")!; PumpUntil(() => readStarted.IsSet);

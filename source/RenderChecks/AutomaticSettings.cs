@@ -46,13 +46,14 @@ internal static partial class RenderChecks
         byte[]? legacyBefore = !legacy ? File.ReadAllBytes(rootFile.PathName) : null;
         GameIdentity? current = null;
         RuntimeRuleSettings? rules = RuntimeRuleSettings.Original;
-        int writes = 0; bool fail = false, dataReady = false;
+        int writes = 0, connections = 0; bool fail = false, dataReady = false;
         GameSessionObservation session = new(GameSessionPhase.Title, 0, 0, []);
         var access = new AutomaticGameAccess(() => current, id => current == id, _ => rules, _ => dataReady,
             (id, wanted, receipt) => { writes++; if (fail) throw new IOException("injected preparation failure"); rules = wanted; return true; }, _ => session);
         var preparation = OfflinePreparationAccess with { InstalledBuild = () => build };
         var editor = new EditorWindow(() => false, storage, storage, storage,
-            gamePreparationAccess: preparation, automaticGameAccess: access);
+            gamePreparationAccess: preparation, automaticGameAccess: access,
+            automaticConnect: () => { connections++; throw new InvalidOperationException("Offline fixture must never connect to a game"); });
         var window = new RuntimeRulesWindow(null, offline: true) { TargetBuild = build };
         GameIdentity Identity(int pid) => new(pid, DateTime.UtcNow, 0x140000000, build, legacy,
             TestGame.Classes with { DoctrinePanel = legacy ? TestGame.Classes.DoctrinePanel : 0x7015 });
@@ -91,13 +92,17 @@ internal static partial class RenderChecks
                 "populated-title-tables-show-title-waiting");
             Check(writes == 3 && typeof(EditorWindow).GetField("game", Hidden)!.GetValue(editor) is null,
                 "title-neither-connects-nor-writes-rules");
+            CheckSessionTransitions(editor, current!.Value, Check, Await);
             var data = new TestGame().Build(playerForce: 0);
             typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(editor, data);
             typeof(EditorWindow).GetField("game", Hidden)!.SetValue(editor, current);
+            typeof(EditorWindow).GetField("sessionDataUnavailable", Hidden)!.SetValue(editor, false);
+            typeof(EditorWindow).GetField("disconnectedEditor", Hidden)!.SetValue(editor, null);
             typeof(EditorWindow).GetField("writesAllowed", Hidden)!.SetValue(editor, true);
             Call(editor, "UpdateControls");
             Check(Field<PlateButton>(editor, "playButton").IsEnabled, "confirmed-play-with-zero-player-enables-auto-stop");
             var hiddenDrafts = Field<CityEditorCard>(editor, "cityEditor").TableDrafts;
+            Field<MapView>(editor, "map").ShowEditor(Field<CityEditorCard>(editor, "cityEditor"));
             var retained = hiddenDrafts.Get(new CityTarget(1), CityFields.Troops, 100);
             retained.Set(123);
             Await((Task)Call(editor, "WaitForSessionAsync", current!.Value, session)!);
@@ -107,12 +112,16 @@ internal static partial class RenderChecks
             Check(File.ReadAllText(Field<EditorLogFile>(editor, "logFile").PathName).Contains("phase=Title"),
                 "title-state-evidence-is-written-to-editor-log");
             Check(retained.IsChanged && retained.Value == 123, "title-return-retains-hidden-card-draft");
+            bool retainedPending = (bool)typeof(EditorWindow).GetProperty("HasPendingEdits", Hidden)!.GetValue(editor)!;
+            if (!retainedPending) hiddenDrafts.Clear();
+            Check(retainedPending, "retained-card-draft-blocks-connect-before-poll");
             session = new(GameSessionPhase.Playing, 0, 0, []);
             Poll();
             Check(typeof(EditorWindow).GetField("game", Hidden)!.GetValue(editor) is null && writes == 3
                 && Field<WC.TextBlock>(editor, "status").Text == L.AutomaticSettings.PendingEdits,
                 "hidden-draft-after-title-blocks-unattended-reconnection");
             hiddenDrafts.Clear();
+            Check(connections == 0, "offline-fixture-never-calls-game-connection");
             Check(legacyBefore is null || legacyBefore.SequenceEqual(File.ReadAllBytes(rootFile.PathName)),
                 "other-build-settings-are-preserved");
             File.WriteAllText(Path.Combine(output, "checks.json"), JsonSerializer.Serialize(new { gameAccess = false, checks }, new JsonSerializerOptions { WriteIndented = true }));

@@ -12,6 +12,46 @@ internal sealed partial class EditorWindow
     private string sessionEvidence = "";
     private bool connectionWaitingForSession;
     private bool sessionDataUnavailable;
+    private EditorCard? disconnectedEditor;
+
+    private void BeginLayoutRecovery(string message)
+    {
+        if (!layoutRecovering) ++ruleRevision;
+        layoutRecovering = true;
+        status.Text = message;
+        UpdateControls();
+    }
+
+    private async Task HandleSessionUnavailableAsync(GameIdentity identity, GameSessionObservation session)
+    {
+        if (game != identity) return;
+        var sessionLayout = identity.DataProfile?.Session ?? (identity.Verified ? GameSessionReader.Original : null);
+        if (sessionLayout is not null && snapshot?.Session is { } previous && session.IsChildTransitionOf(previous, sessionLayout))
+        {
+            ObserveSession(identity, session);
+            BeginLayoutRecovery(L.Connection.SessionWaiting);
+            return;
+        }
+        await WaitForSessionAsync(identity, session);
+    }
+
+    private bool AcceptLiveSnapshot(GameIdentity identity, GameLayout found, GameSnapshot data)
+    {
+        if (data.Session is { } session) ObserveSession(identity, session);
+        bool replaced = !layout!.SameStorage(found);
+        if (replaced) undoHistory.RemoveAll(h => h.Rule is null);
+        layout = found;
+        if (layoutRecovering)
+            status.Text = identity.DataProfile is not null
+                ? (writesAllowed ? L.Connection.ProfileEditing : L.Connection.ProfileReadOnly)
+                : (writesAllowed ? L.Connection.Ready : L.Connection.ReadyReadOnly);
+        layoutRecovering = false;
+        snapshot = data;
+        map.SetSnapshot(data);
+        MergeSnapshot();
+        ObservePlayerForce(data);
+        return replaced;
+    }
 
     private void ObserveSession(GameIdentity identity, GameSessionObservation session)
     {
@@ -28,6 +68,7 @@ internal sealed partial class EditorWindow
     {
         ObserveSession(identity, session);
         connectionWaitingForSession = true;
+        if (!sessionDataUnavailable) disconnectedEditor = OpenEditor;
         sessionDataUnavailable = true;
         // Invalidate in-flight rule reads and remove live data immediately, even if
         // native cleanup needs a retry. Drafts are retained until explicit discard.
@@ -49,6 +90,7 @@ internal sealed partial class EditorWindow
         if (!ConfirmDiscard()) return;
         connectionWaitingForSession = false;
         sessionDataUnavailable = false;
+        disconnectedEditor = null;
         scanCancellation = new CancellationTokenSource();
         CancellationToken token = scanCancellation.Token;
         SetBusy(true, scanning: true);
@@ -117,7 +159,11 @@ internal sealed partial class EditorWindow
         {
             connectionWaitingForSession = true;
             // FindGame may have succeeded before game was assigned.
-            if (attemptedIdentity is {} observed) await WaitForSessionAsync(observed, ex.Observation);
+            if (attemptedIdentity is {} observed)
+            {
+                if (game == observed && snapshot is not null) await HandleSessionUnavailableAsync(observed, ex.Observation);
+                else await WaitForSessionAsync(observed, ex.Observation);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -170,7 +216,7 @@ internal sealed partial class EditorWindow
         }
         catch (GameSessionUnavailableException ex)
         {
-            await WaitForSessionAsync(identity, ex.Observation);
+            await HandleSessionUnavailableAsync(identity, ex.Observation);
         }
         catch (Exception ex)
         {
@@ -197,34 +243,11 @@ internal sealed partial class EditorWindow
             GameSnapshot? before = snapshot;
             GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found, before));
             if (busy || game != identity) return;
-            if (data.Session is {} session) ObserveSession(identity, session);
-            replaced = !layout.SameStorage(found);
-            if (replaced) undoHistory.RemoveAll(h => h.Rule is null);
-            layout = found;
-            bool resumedProfiledRefresh = identity.DataProfile is not null && layoutRecovering && status.Text == L.Connection.SessionWaiting;
-            if (resumedProfiledRefresh)
-                status.Text = writesAllowed ? L.Connection.ProfileEditing : L.Connection.ProfileReadOnly;
-            layoutRecovering = false;
-            snapshot = data;
-            map.SetSnapshot(data);
-            MergeSnapshot();
-            if (resumedProfiledRefresh) UpdateControls();
-            ObservePlayerForce(data);
+            replaced = AcceptLiveSnapshot(identity, found, data);
         }
         catch (GameSessionUnavailableException ex)
         {
-            if (game != identity) return;
-            // A modal notice can enqueue a child while the authenticated game stack is intact.
-            // Keep ownership for one refresh interval and continue to reject all profiled writes.
-            if (!layoutRecovering && identity.DataProfile is { } profile && snapshot?.Session is { } previous &&
-                ex.Observation.HasPendingChangeOn(previous, profile.Session))
-            {
-                ObserveSession(identity, ex.Observation);
-                layoutRecovering = true;
-                status.Text = L.Connection.SessionWaiting;
-                UpdateControls();
-            }
-            else await WaitForSessionAsync(identity, ex.Observation);
+            await HandleSessionUnavailableAsync(identity, ex.Observation);
         }
         catch (Exception ex)
         {
@@ -233,9 +256,7 @@ internal sealed partial class EditorWindow
                 if ((identity.Verified || identity.DataProfile is not null) && GameMemory.IsSameGame(identity))
                 {
                     if (!layoutRecovering) AddLog(L.Rules.Rechecking + " " + ex.Message);
-                    layoutRecovering = true;
-                    status.Text = L.Rules.Rechecking;
-                    UpdateControls();
+                    BeginLayoutRecovery(L.Rules.Rechecking);
                 }
                 else await DisconnectAsync(L.Connection.Disconnected(ex.Message));
             }

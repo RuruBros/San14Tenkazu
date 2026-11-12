@@ -242,8 +242,7 @@ internal sealed partial class EditorWindow
 #endif
         if(seasonController?.Status.Phase is SeasonPhase.Connecting or SeasonPhase.Applying or SeasonPhase.Restoring or SeasonPhase.Reconnecting)return;
         if(retry)environmentFailure=null;
-        if(environmentFailure==identity||environmentMenu?.HasPendingChanges==true||lists.Pending>0||aiView?.Pending==true
-            ||Editors.Any(card=>card.Pending>0)||RulesPending)return;
+        if(environmentFailure==identity||environmentMenu?.HasPendingChanges==true||HasPendingEdits||RulesPending)return;
         environmentChecking=true;
         bool writing=false;
         try

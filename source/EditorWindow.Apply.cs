@@ -4,10 +4,22 @@
 internal sealed partial class EditorWindow
 {
     // Typed values wait in the open editor card; reading the game again or leaving drops them, after asking.
-    private bool HasPendingEdits => OpenEditor is { Pending: > 0 } || lists.Pending > 0 || aiView?.Pending == true
-        || sessionDataUnavailable && Editors.Any(card => card.Pending > 0);
-    private bool ConfirmDiscard() =>
-        !HasPendingEdits || Confirm(L.Apply.DiscardAndGoOn);
+    private bool HasPendingEdits => DraftEditor is { Pending: > 0 } || lists.Pending > 0 || aiView?.Pending == true;
+    private bool ConfirmDiscard()
+    {
+        if (!HasPendingEdits) return true;
+        if (!Confirm(L.Apply.DiscardAndGoOn)) return false;
+        DiscardCurrentEdits();
+        return true;
+    }
+
+    private void DiscardCurrentEdits()
+    {
+        lists.TableDrafts.Clear();
+        aiView?.DiscardDrafts();
+        ReopenEditor();
+        disconnectedEditor = null;
+    }
 
     // Writes the edits, reads the game back and reports what the game kept; true when the write went through.
     private async Task<bool> WriteAsync(List<RecordEdit> edits, bool undoable = true, bool restoreGivenBaseValues = false)

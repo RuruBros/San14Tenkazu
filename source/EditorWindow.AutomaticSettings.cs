@@ -8,10 +8,19 @@ internal sealed partial class EditorWindow
     private readonly CancellationTokenSource automaticGameCancellation = new();
     private readonly AutomaticGameAccess automaticGameAccess;
     private readonly AutomaticGameSettings automaticGameSettings;
+    private readonly Func<Task> automaticConnect;
     private bool automaticGameChecking, automaticGameConnecting, automaticGameCloseRequested;
     private GameIdentity? automaticGameFailure;
     private RuntimeRulePreference? automaticFailedPreference;
     private string automaticNotice = "";
+    private string automaticPendingEvidence = "";
+
+    private void AutomaticPendingEditsNotice()
+    {
+        string evidence = $"Automatic reconnection blocked: lists={lists.Pending}, ai={aiView?.Pending == true}, registered={registeredEditor?.HasPending == true}, sessionDataUnavailable={sessionDataUnavailable}, activeCard={DraftEditor?.Target}, cachedCards=[{string.Join(", ", Editors.Where(card => card.Pending > 0).Select(card => $"{card.Target}:{card.Pending}"))}]";
+        if (automaticPendingEvidence != evidence) { automaticPendingEvidence = evidence; AddLog(evidence); }
+        AutomaticNotice(L.AutomaticSettings.PendingEdits);
+    }
 
     private void AutomaticNotice(string message)
     {
@@ -31,7 +40,7 @@ internal sealed partial class EditorWindow
         {
             if (game is { } connected && await Task.Run(() => automaticGameAccess.Same(connected))) return;
             if (game is not null && (HasPendingEdits || registeredEditor?.HasPending == true))
-            { AutomaticNotice(L.AutomaticSettings.PendingEdits); return; }
+            { AutomaticPendingEditsNotice(); return; }
             if (game is not null && !await DisconnectAsync(L.AutomaticSettings.Waiting)) return;
             if (automaticGameFailure is { } failed && await Task.Run(() => automaticGameAccess.Same(failed)))
             {
@@ -66,9 +75,10 @@ internal sealed partial class EditorWindow
                     automaticGameFailure = candidate; automaticFailedPreference = preference;
                     break;
                 case AutomaticGamePhase.Connect:
-                    if (HasPendingEdits || registeredEditor?.HasPending == true) { AutomaticNotice(L.AutomaticSettings.PendingEdits); break; }
+                    if (HasPendingEdits || registeredEditor?.HasPending == true) { AutomaticPendingEditsNotice(); break; }
+                    automaticPendingEvidence = "";
                     automaticGameConnecting = true;
-                    try { await ConnectAsync(); }
+                    try { await automaticConnect(); }
                     finally { automaticGameConnecting = false; }
                     if (game != candidate && !connectionWaitingForSession) { automaticGameFailure = candidate; automaticFailedPreference = preference; }
                     else { automaticGameFailure = null; automaticNotice = ""; }

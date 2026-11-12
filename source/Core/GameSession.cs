@@ -11,10 +11,13 @@ internal sealed record GameSessionObservation(GameSessionPhase Phase, ulong Stac
 {
     internal bool IsPlaying => Phase == GameSessionPhase.Playing;
 
-    internal bool HasPendingChangeOn(GameSessionObservation previous, GameSessionLayout layout) =>
-        Phase == GameSessionPhase.Transition && Pending == 1 && Error is null &&
+    // Child dialogs and turn/progress states may enter or leave across several polls.
+    // Retain connection ownership only; this observation still cannot authorize a read or write.
+    internal bool IsChildTransitionOf(GameSessionObservation previous, GameSessionLayout layout) =>
+        Phase == GameSessionPhase.Transition && (Error is null or "Active state stack changed during read") &&
         previous.IsPlaying && Stack != 0 && Stack == previous.Stack &&
-        GameSessionReader.Classify(Entries, 0, layout) == GameSessionPhase.Playing &&
+        Entries.Length >= 3 && GameSessionReader.Classify(Entries.Take(3).ToArray(), 0, layout) == GameSessionPhase.Playing &&
+        !Entries.Any(e => e.Name is "CLoadState" or "CGameStartInitState") &&
         Entries.Take(3).SequenceEqual(previous.Entries.Take(3));
 
     internal string Evidence => $"phase={Phase}, stack=0x{Stack:X}, pending={Pending}, states=[{string.Join(", ", Entries.Select(e => $"{e.Name}@0x{e.Address:X}/vt=0x{e.VtableRva:X}/leaving={e.Leaving}"))}], error={Error}";

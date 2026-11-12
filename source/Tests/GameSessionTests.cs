@@ -111,28 +111,41 @@ public sealed class GameSessionTests
         Assert.Equal(GameSessionPhase.Transition, capture.Observe().Phase);
     }
 
-    [Fact]
-    public void OnlySinglePendingChangeOnSameAuthenticatedGameCanDeferRefreshDisconnect()
+    [Theory]
+    [InlineData("GameSessionPlaying.json", false)]
+    [InlineData("GameSession20261105-playing.json", true)]
+    public void ChildTransitionsRetainOnlyTheSameAuthenticatedGame(string file, bool updated)
     {
-        var capture = new Capture("GameSession20261105-playing.json");
-        var profile = Assert.IsType<GameDataProfile>(GameBuildProfiles.FindData(UpdateHash));
-        GameSessionObservation Read() => GameSessionReader.Read(capture.Read, capture.Module, profile.Session);
+        var capture = new Capture(file);
+        var layout = updated ? GameBuildProfiles.FindData(UpdateHash)!.Session : GameSessionReader.Original;
+        GameSessionObservation Read() => GameSessionReader.Read(capture.Read, capture.Module, layout);
         var before = Read();
         Put(capture.Header, 0x20, 1);
         var pending = Read();
         Assert.Equal(GameSessionPhase.Transition, pending.Phase);
-        Assert.True(pending.HasPendingChangeOn(before, profile.Session));
-        Assert.False((pending with { Pending = 2 }).HasPendingChangeOn(before, profile.Session));
-        Assert.False((pending with { Stack = before.Stack + 8 }).HasPendingChangeOn(before, profile.Session));
-        Assert.False((pending with { Error = "World storage changed during snapshot read" }).HasPendingChangeOn(before, profile.Session));
-        Assert.False((pending with { Entries = pending.Entries.Append(new(0x90000000, 0, "CLoadState", 0)).ToArray() })
-            .HasPendingChangeOn(before, profile.Session));
+        Assert.True(pending.IsChildTransitionOf(before, layout));
+        Assert.True((pending with { Pending = 2 }).IsChildTransitionOf(before, layout));
+        Assert.True((pending with { Error = "Active state stack changed during read" }).IsChildTransitionOf(before, layout));
+        Assert.False((pending with { Stack = before.Stack + 8 }).IsChildTransitionOf(before, layout));
+        foreach (string error in new[] { "World storage changed during snapshot read", "World tables are not ready", "State manager code guard mismatch" })
+            Assert.False((pending with { Error = error }).IsChildTransitionOf(before, layout));
+        foreach (string name in new[] { "CLoadState", "CGameStartInitState" })
+            Assert.False((pending with { Entries = pending.Entries.Append(new(0x90000000, 0, name, 0)).ToArray() })
+                .IsChildTransitionOf(before, layout));
+        var replaced = pending.Entries.ToArray();
+        replaced[2] = replaced[2] with { Address = replaced[2].Address + 8 };
+        Assert.False((pending with { Entries = replaced }).IsChildTransitionOf(before, layout));
+        ulong child = BinaryPrimitives.ReadUInt64LittleEndian(capture.Memory[capture.Stack].AsSpan(24));
+        capture.Memory[child][0x68] = 1;
+        Assert.True(Read().IsChildTransitionOf(before, layout));
         Put(capture.Header, 0x20, 0);
+        Assert.True(Read().IsChildTransitionOf(before, layout));
+        Assert.False(Read().IsPlaying);
         ulong game = BinaryPrimitives.ReadUInt64LittleEndian(capture.Memory[capture.Stack].AsSpan(16));
         capture.Memory[game][0x68] = 1;
         Assert.Equal(GameSessionPhase.Transition, Read().Phase);
         Put(capture.Header, 0x20, 1);
-        Assert.False(Read().HasPendingChangeOn(before, profile.Session));
+        Assert.False(Read().IsChildTransitionOf(before, layout));
     }
 
     [Theory]

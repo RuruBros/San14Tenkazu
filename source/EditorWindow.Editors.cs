@@ -19,6 +19,7 @@ internal sealed partial class EditorWindow
     private EditorCard[] Editors => [forceEditor, cityEditor, gateEditor, facilityEditor, officerEditor, unitEditor, personalityEditor, itemEditor, formationEditor, tacticEditor, policyEditor, policyEffectEditor, officeEditor, rankEditor, doctrineEditor];
 
     private EditorCard? OpenEditor => Editors.FirstOrDefault(card => card.Shown);
+    private EditorCard? DraftEditor => OpenEditor ?? (sessionDataUnavailable ? disconnectedEditor : null);
 
     private void WireEditors()
     {
@@ -164,12 +165,16 @@ internal sealed partial class EditorWindow
     private async Task<bool> LeaveAsync(EditorCard card)
     {
         if (card.Pending == 0) return true;
-        return Choose(L.Window.LeaveCard(card.Pending)) switch
-        {
-            true => await ApplyCardAsync(card),
-            false => true,
-            null => false
-        };
+        return await FinishLeavingAsync(card, Choose(L.Window.LeaveCard(card.Pending)));
+    }
+
+    private async Task<bool> FinishLeavingAsync(EditorCard card, bool? choice)
+    {
+        if (choice is null) return false;
+        if (choice == true) return await ApplyCardAsync(card);
+        // Discarding must reset the card itself: a hidden card must not later block reconnection.
+        if (card == OpenEditor) ReopenEditor();
+        return true;
     }
 
     private Task<bool> ApplyCardAsync(EditorCard card) => card switch

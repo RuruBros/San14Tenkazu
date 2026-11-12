@@ -83,6 +83,13 @@ internal static partial class RenderChecks
             PumpUntil(() => entered.IsSet || polling.IsCompleted);
             Setup(changed); release.Set(); Await(polling); onRead = null;
             Check(writes == 2, "reconnect-during-read-discards-old-result");
+            entered.Reset(); release.Reset(); Setup(changed);
+            onRead = () => { entered.Set(); if (!release.Wait(10000)) throw new TimeoutException(); };
+            polling = (Task)Call(editor, "ReapplyRuntimeRulesAsync", true)!;
+            PumpUntil(() => entered.IsSet || polling.IsCompleted);
+            Set(editor, "layoutRecovering", true); release.Set(); Await(polling); onRead = null;
+            Set(editor, "layoutRecovering", false);
+            Check(writes == 2, "session-transition-during-read-cancels-automatic-write");
             Set(editor, "runtimeRulesWindow", null); fail = true;
             Poll(true); int failedWrites = writes; Poll(); Poll(); Check(writes == failedWrites, "failed-apply-does-not-repeat-on-timer");
             fail = false; Poll(true); Check(writes == failedWrites + 1 && actual == wanted, "explicit-refresh-retries-after-failure");

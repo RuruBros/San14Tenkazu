@@ -77,7 +77,7 @@ internal sealed partial class EditorWindow : W.Window
     private (int Force, int Ruler)? lastPlayer;
     private bool demoNoticed;
 
-    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null, AutomaticGameAccess? automaticGameAccess = null)
+    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null, AutomaticGameAccess? automaticGameAccess = null, Func<Task>? automaticConnect = null)
     {
         string aiFolder = aiStorageRoot ?? Program.DataFolder;
         aiKept = new(Path.Combine(aiFolder, "ai_values.txt"));
@@ -89,6 +89,7 @@ internal sealed partial class EditorWindow : W.Window
         this.gamePreparationAccess = gamePreparationAccess ?? GamePreparationAccess.Live;
         this.automaticGameAccess = automaticGameAccess ?? AutomaticGameAccess.Live;
         automaticGameSettings = new(this.automaticGameAccess);
+        this.automaticConnect = automaticConnect ?? ConnectAsync;
         this.ruleAccess = ruleAccess ?? RuleGameAccess.Live;
         this.seasonStorageRoot=seasonStorageRoot ?? Path.Combine(Program.DataFolder,"seasons");
         registeredIsRunning = registeredGameRunning ?? RegisteredOfficerFile.GameIsRunning;
