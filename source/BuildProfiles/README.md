@@ -199,3 +199,26 @@ flags without positive reference matches. Personality checks concern effect
 kinds/values, not condition/filter evaluation or holder activation. Missing live
 snapshot pages are never filled from a newer game session. No live test action,
 process connection, game write or screen access is added by this script.
+
+`Reverse/editor_effects_cases.py` removes the earlier policy visitor boundary.
+It runs the original force collector, officer policy visitor, merit bonus,
+integer accumulation, level-10 cap and final policy-effect decoder, including
+plain/encoded vectors. It also runs the original personality dispatcher and
+condition handlers in both phases, records returned target lists, and checks
+all 256 range-condition bytes across legacy/custom trait indices and signed
+number boundaries. The earlier and November range helpers have different code
+shapes; both are executed and checked independently against this matrix.
+
+Supply `--legacy-image`, `--legacy-base`, `--november-image`, `--november-base`
+and a new `--output` JSON path. Optional `--log` and `--layout-evidence` first
+verify the recorded live round trip, then reuse its original/changed/restored
+policy and personality fields in declared controlled contexts. This does not
+reconstruct unrecorded historical dependencies. Native input/neighbor writes
+and fixture attempts to change executable instructions are rejected. Every
+query records Native reads, trace hashes and owned writes. Only CRT mutex
+lock/unlock and exact memset semantics cross an emulator host boundary; no
+gameplay predicate, visitor, bonus, decoder, or filter is stubbed. Event-based
+conditions 30/39/40 have no dispatcher handler: rejection here is checked and
+is not evidence that their separate attack/destruction event effects ran.
+`VerifyCompatibility.ps1` runs these controlled cases when both images are
+provided. This verification never opens a game or adds a live developer action.

@@ -69,6 +69,14 @@ try {
             '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
             '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase,
             '--output',(Join-Path $taskOutput 'complete-editor-fields.json'))
+        Run 'native-editor-effects' $Python @('source/Reverse/editor_effects_cases.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase,
+            '--output',(Join-Path $taskOutput 'native-editor-effects.json'))
+        Run 'native-editor-effects-negative' $Python @('source/Reverse/editor_effects_negative.py',
+            '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
+            '--november-image',$NovemberRuntimeImage,'--november-base',$NovemberRuntimeBase,
+            '--output',(Join-Path $taskOutput 'native-editor-effects-negative.json'))
         Run 'game-command-candidates' $Python @('source/Reverse/game_command_audit.py',
             '--legacy-image',$LegacyRuntimeImage,'--legacy-base',$LegacyRuntimeBase,
             '--candidate-image',$NovemberRuntimeImage,'--candidate-base',$NovemberRuntimeBase,
