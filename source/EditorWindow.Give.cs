@@ -35,7 +35,7 @@ internal sealed partial class EditorWindow
         }
         if (ChooseTaker(data, place) is not int force) return;
         string forceName = data.ForceName(force);
-        if (!ConfirmDiscard() || !Confirm(L.Give.Confirm(place, forceName), W.MessageBoxImage.Warning, defaultNo: true, title: L.Give.Button)) return;
+        if (!ConfirmDiscard(() => Confirm(L.Give.Confirm(place, forceName), W.MessageBoxImage.Warning, defaultNo: true, title: L.Give.Button))) return;
         EditPlan kept;
         SetBusy(true, scanning: false);
 #if LOCAL_DEVELOPER

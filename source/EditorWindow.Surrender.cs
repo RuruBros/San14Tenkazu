@@ -41,8 +41,8 @@ internal sealed partial class EditorWindow
             string toName = data.ForceName(to);
             string confirmation = batch ? L.Surrender.BatchConfirm(total, string.Join("\n", sources.Select(data.ForceName)), toName)
                 : L.Surrender.Confirm(data.ForceName(from), toName);
-            if (!ConfirmDiscard() || !Confirm(confirmation, W.MessageBoxImage.Warning, defaultNo: true,
-                title: batch ? L.Surrender.BatchButton : L.Surrender.Button)) return;
+            if (!ConfirmDiscard(() => Confirm(confirmation, W.MessageBoxImage.Warning, defaultNo: true,
+                title: batch ? L.Surrender.BatchButton : L.Surrender.Button))) return;
             // Validate the entire selection before the first call, then recheck each remaining ruler before dispatch.
             SetOperationProgress(L.Surrender.Checking(total), completed, total);
             GameSnapshot fresh = await ReadSurrenderSnapshotAsync(identity, found);

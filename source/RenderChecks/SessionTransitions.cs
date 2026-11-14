@@ -66,6 +66,12 @@ internal static partial class RenderChecks
         check(gold.IsChanged && Pending(), "cancel-leaving-retains-current-card-input");
         awaitTask((Task)Call(editor, "FinishLeavingAsync", card, false)!);
         check(!Pending() && card.Pending == 0, "discard-leaving-clears-card-input-and-cache");
+        // [소속 주기]/[독립]/[항복시키기] ask to discard, then ask about the operation itself.
+        gold.Set(gold.Current + 100);
+        bool cancelled = !(bool)Call(editor, "FinishDiscard", true, true, (Func<bool>)(() => false))!;
+        check(cancelled && gold.IsChanged && Pending(), "cancelled-operation-after-discard-approval-keeps-input");
+        bool proceeded = (bool)Call(editor, "FinishDiscard", true, true, (Func<bool>)(() => true))!;
+        check(proceeded && !gold.IsChanged && !Pending(), "confirmed-operation-drops-input");
         // LeaveAsync's discard branch used to leave the old card's cached values in memory.
         gold.Set(gold.Current + 100);
         Call(editor, "Show", new OfficerTarget(1));
@@ -75,5 +81,17 @@ internal static partial class RenderChecks
         Call(card, "Revert"); // Always clear the fixture before reporting failure, so teardown never asks about discarding it.
         check(Field<GameIdentity?>(editor, "game") is null && Field<GameSnapshot?>(editor, "snapshot") is null && !phantomPending,
             "actual-load-ignores-abandoned-card-cache");
+
+        // Live reads can recover without a reconnect when disconnecting was blocked; the flag stays set.
+        Set(editor, "game", identity);
+        Set(editor, "layout", layout);
+        Call(editor, "AcceptLiveSnapshot", identity, layout, data);
+        Call(editor, "Show", new CityTarget(1));
+        gold.Set(gold.Current + 100);
+        awaitTask((Task)Call(editor, "HandleSessionUnavailableAsync", identity, load)!);
+        bool tracked = ReferenceEquals(Field<EditorCard?>(editor, "disconnectedEditor"), card) && Pending();
+        Call(card, "Revert");
+        check(Field<bool>(editor, "sessionDataUnavailable") && tracked && !Pending(),
+            "card-opened-after-recovery-stays-tracked-at-next-transition");
     }
 }

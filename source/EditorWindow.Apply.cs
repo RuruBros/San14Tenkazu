@@ -5,11 +5,18 @@ internal sealed partial class EditorWindow
 {
     // Typed values wait in the open editor card; reading the game again or leaving drops them, after asking.
     private bool HasPendingEdits => DraftEditor is { Pending: > 0 } || lists.Pending > 0 || aiView?.Pending == true;
-    private bool ConfirmDiscard()
+    // proceed is the operation's own question, asked after the discard question; input is dropped only after both say yes.
+    private bool ConfirmDiscard(Func<bool>? proceed = null)
     {
-        if (!HasPendingEdits) return true;
-        if (!Confirm(L.Apply.DiscardAndGoOn)) return false;
-        DiscardCurrentEdits();
+        bool pending = HasPendingEdits;
+        return FinishDiscard(pending, !pending || Confirm(L.Apply.DiscardAndGoOn), proceed);
+    }
+
+    // Cancelling the operation after approving the discard must keep the input.
+    private bool FinishDiscard(bool pending, bool approved, Func<bool>? proceed)
+    {
+        if (!approved || proceed?.Invoke() == false) return false;
+        if (pending) DiscardCurrentEdits();
         return true;
     }
 

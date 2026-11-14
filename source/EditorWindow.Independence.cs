@@ -23,8 +23,8 @@ internal sealed partial class EditorWindow
             if (before.Cities[city].Governor != data.Cities[city].Governor || before.ForceOfCity(city) != data.ForceOfCity(city))
                 throw new InvalidOperationException(L.Independence.Changed);
             string place = before.CityName(city), governor = before.OfficerName(request.Governor);
-            if (!ConfirmDiscard() || !Confirm(L.Independence.Confirm(place, governor), W.MessageBoxImage.Warning,
-                defaultNo: true, title: L.Independence.Button)) return;
+            if (!ConfirmDiscard(() => Confirm(L.Independence.Confirm(place, governor), W.MessageBoxImage.Warning,
+                defaultNo: true, title: L.Independence.Button))) return;
             AddLog(L.Independence.Request(place, governor, before.ForceName(request.FromForce), request.NewForce));
             GameSnapshot after = await RunNativeCommandAsync(NativeCommandKind.Independence, identity, found, request,
                 () => { called = true; return GameMemory.MakeCityIndependent(identity, found, request); });

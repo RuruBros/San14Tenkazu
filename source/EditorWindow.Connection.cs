@@ -68,7 +68,9 @@ internal sealed partial class EditorWindow
     {
         ObserveSession(identity, session);
         connectionWaitingForSession = true;
-        if (!sessionDataUnavailable) disconnectedEditor = OpenEditor;
+        // Keep the card whose draft is tracked now. When disconnecting failed and live reads recovered, the flag is
+        // still set while the user opens another card; that card's draft must be retained as well.
+        disconnectedEditor = DraftEditor;
         sessionDataUnavailable = true;
         // Invalidate in-flight rule reads and remove live data immediately, even if
         // native cleanup needs a retry. Drafts are retained until explicit discard.
