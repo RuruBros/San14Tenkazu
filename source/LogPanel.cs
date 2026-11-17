@@ -22,6 +22,7 @@ internal sealed class LogPanel : WC.DockPanel
         Background = CardSkin.DarkWood, Foreground = CardSkin.InkOnDark, VerticalScrollBarVisibility = WC.ScrollBarVisibility.Auto
     };
     private readonly WC.Border body;
+    private int characterCount;
     private readonly WC.DockPanel heading=new(){LastChildFill=true};
     // Points up while folded (the log opens upward), down while open.
     private readonly WS.Path chevron = new()
@@ -34,6 +35,10 @@ internal sealed class LogPanel : WC.DockPanel
 
     internal LogPanel()
     {
+        text.TextChanged += (_, e) =>
+        {
+            foreach (var change in e.Changes) characterCount += change.AddedLength - change.RemovedLength;
+        };
         // The bar is dark wood under a gold rule, as the legend above it; the whole bar is the fold.
         var bar = new WC.Border
         {
@@ -93,7 +98,7 @@ internal sealed class LogPanel : WC.DockPanel
         text.AppendText(line);
         // The complete editor log is written to disk. Keep a bounded recent portion in the UI,
         // trimming a block at a time instead of copying the text on every append.
-        if (text.Text.Length > MaximumCharacters)
+        if (characterCount > MaximumCharacters)
         {
             string content = text.Text;
             int start = content.Length - RetainedCharacters;

@@ -27,18 +27,24 @@ internal sealed partial class MapSurface
         return troopTexts[troops] = troops.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
-    private readonly Dictionary<(WM.Brush Fill, bool Face, double Dpi), (double Radius, MapSprite Sprite)> portraitSprites = [];
+    private readonly record struct PortraitStyle(WM.Brush Fill, bool Face, double Radius, double Dpi,
+        System.Drawing.Color RingColor, long Troops);
+    private readonly Dictionary<(int Slot, WM.Brush? Fallback), (PortraitStyle Style, MapSprite Sprite)> portraitSprites = [];
 
-    private MapSprite UnitPortraitSprite(WM.Brush fill, bool face, double radius, double pixelsPerDip)
+    private MapSprite UnitPortraitSprite(int slot, WM.Brush fill, bool face, double radius, double pixelsPerDip,
+        System.Drawing.Color color, long troops)
     {
-        var key = (fill, face, pixelsPerDip);
-        if (portraitSprites.TryGetValue(key, out var cached) && cached.Radius == radius) return cached.Sprite;
+        // A slot retains only its latest vector drawing. A new count, portrait, radius or DPI replaces it.
+        var style = new PortraitStyle(fill, face, radius, pixelsPerDip, color, face ? troops : 0);
+        var key = face ? (slot, (WM.Brush?)null) : (-1, fill);
+        if (portraitSprites.TryGetValue(key, out var cached) && cached.Style == style) return cached.Sprite;
         var drawing = new MapDrawList(8);
         DrawPortraitBase(drawing, fill, face, "", default, radius, pixelsPerDip);
+        if (face) DrawTroopRing(drawing, color, troops, default, radius);
         double reach = radius + UnitRing / 2 + 0.75 + (UnitGlow.Length - 1) * 1.3 + 2;
         var sprite = new MapSprite(drawing, new W.Rect(-reach, -reach, reach * 2, reach * 2));
-        if (portraitSprites.Count >= 1024) portraitSprites.Clear();
-        portraitSprites[key] = (radius, sprite);
+        if (portraitSprites.Count >= 1024 && !portraitSprites.ContainsKey(key)) portraitSprites.Clear();
+        portraitSprites[key] = (style, sprite);
         return sprite;
     }
 

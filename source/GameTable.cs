@@ -21,7 +21,7 @@ internal sealed class GameTable : WC.Border
 
     // A row: what it opens and its cells in the columns' order: a face number, a text ("above\nbelow" in a
     // TwoLines column), a long, or a Shield.
-    internal sealed record Row(object Tag, object?[] Cells);
+    internal sealed record Row(object Tag, object?[] Cells, bool ReadOnly = false);
 
     // A force's name after its shield (ForceShield).
     internal sealed record Shield(string Text, System.Drawing.Color Colour);
@@ -106,7 +106,7 @@ internal sealed class GameTable : WC.Border
         }
     }
 
-    private NumberField? Draft(Row row, int column) => columns[column].Field is { } field && DraftTarget is { } target
+    private NumberField? Draft(Row row, int column) => !row.ReadOnly && columns[column].Field is { } field && DraftTarget is { } target
         ? drafts?.Find(target(row.Tag), field) : null;
 
     private void DraftChanged()
@@ -126,6 +126,7 @@ internal sealed class GameTable : WC.Border
         get => editingEnabled;
         set
         {
+            if (editingEnabled == value) return;
             editingEnabled = value;
             if (!value) CancelInput();
             header.UpdateActions();
@@ -142,11 +143,15 @@ internal sealed class GameTable : WC.Border
     // make the table again in its sort, keeping the scroll and the pick where they can.
     internal void SetRows(IReadOnlyList<Row> next)
     {
-        if (drafts is not null && DraftTarget is { } target)
+        if (drafts is { HasInputs: true } && DraftTarget is { } target)
             foreach (Row row in next)
+            {
+                if (row.ReadOnly) continue;
+                var rowTarget = target(row.Tag);
                 for (int column = 0; column < columns.Length; column++)
                     if (columns[column].Field is { } field && row.Cells[column] is long value)
-                        drafts.Follow(target(row.Tag), field, value);
+                        drafts.Follow(rowTarget, field, value);
+            }
         if (input is { Committing: false } edit)
         {
             Row? fresh = next.FirstOrDefault(r => Equals(r.Tag, edit.Row.Tag));
@@ -226,7 +231,7 @@ internal sealed class GameTable : WC.Border
     internal bool FocusDraft(EditorTarget target, FieldDef field, Action showPage)
     {
         int column = Array.FindIndex(columns, c => c.Field == field);
-        Row? row = rows.FirstOrDefault(r => DraftTarget?.Invoke(r.Tag) == target);
+        Row? row = rows.FirstOrDefault(r => !r.ReadOnly && DraftTarget?.Invoke(r.Tag) == target);
         if (row is null || column < 0 || !CanEdit(row, column)) return false;
         showPage();
         list.ScrollIntoView(row);
@@ -292,7 +297,7 @@ internal sealed class GameTable : WC.Border
         _ => Convert.ToString(cell, CultureInfo.CurrentCulture) ?? ""
     };
 
-    private bool CanEdit(Row row, int column) => editingEnabled && CellWriter is not null && column >= 0 && column < columns.Length
+    private bool CanEdit(Row row, int column) => !row.ReadOnly && editingEnabled && CellWriter is not null && column >= 0 && column < columns.Length
         && columns[column] is { Kind: Kind.Number, Field: { } field } && row.Cells[column] is long
         && (CanEditCell?.Invoke(row.Tag, field) ?? true);
 
@@ -358,13 +363,16 @@ internal sealed class GameTable : WC.Border
     private void CancelInput()
     {
         if (input is { Committing: true }) return;
-        if (input is { } edit)
+        var edit = input;
+        if (edit is not null)
         {
             edit.Number.Box.PreviewKeyDown -= edit.KeyHandler;
             edit.Number.Box.LostKeyboardFocus -= edit.FocusHandler;
         }
         input = null;
         inputLayer.Children.Clear();
+        if (edit is not null && DraftTarget is { } target)
+            drafts?.Release(target(edit.Row.Tag), edit.Number);
     }
 
     private async Task CommitInputAsync(CellInput edit)

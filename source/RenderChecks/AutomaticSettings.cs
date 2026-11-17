@@ -97,7 +97,7 @@ internal static partial class RenderChecks
             typeof(EditorWindow).GetField("snapshot", Hidden)!.SetValue(editor, data);
             typeof(EditorWindow).GetField("game", Hidden)!.SetValue(editor, current);
             typeof(EditorWindow).GetField("sessionDataUnavailable", Hidden)!.SetValue(editor, false);
-            typeof(EditorWindow).GetField("disconnectedEditor", Hidden)!.SetValue(editor, null);
+            Field<HashSet<EditorCard>>(editor, "disconnectedEditors").Clear();
             typeof(EditorWindow).GetField("writesAllowed", Hidden)!.SetValue(editor, true);
             Call(editor, "UpdateControls");
             Check(Field<PlateButton>(editor, "playButton").IsEnabled, "confirmed-play-with-zero-player-enables-auto-stop");

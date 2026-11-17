@@ -284,6 +284,7 @@ internal sealed partial class EditorWindow
         return rows;
     }
 
+    private sealed record DuplicateOfficerSlot(int Id, int Slot);
     private sealed class OfficerListRow(byte[] bytes, string forceName, string baseName, GameTable.Row row, int status, long power)
     {
         internal byte[] Bytes = bytes;
@@ -318,13 +319,15 @@ internal sealed partial class EditorWindow
             int owner = data.ForceOfCorps(o.Corps);
             if (!forceNames.TryGetValue(owner, out string? forceName)) forceNames[owner] = forceName = data.ForceName(owner);
             if (!baseNames.TryGetValue(o.BaseId, out string? baseName)) baseNames[o.BaseId] = baseName = data.BaseName(o.BaseId);
-            officerRows.TryGetValue(o.Id, out var kept);
-            if (kept is null || !o.Data.AsSpan().SequenceEqual(kept.Bytes) || kept.ForceName != forceName || kept.BaseName != baseName)
+            officerRows.TryGetValue(o.Slot, out var kept);
+            bool readOnly = !data.OfficerById.TryGetValue(o.Id, out var canonical) || canonical.Slot != o.Slot;
+            if (kept is null || kept.Row.ReadOnly != readOnly || !o.Data.AsSpan().SequenceEqual(kept.Bytes) || kept.ForceName != forceName || kept.BaseName != baseName)
             {
-                var row = new GameTable.Row(o.Id, [o.Face, o.Name + "\n" + o.CourtesyName, forceName + "\n" + baseName, OfficerFields.StatusName(o.Status),
-                    o[OfficerFields.Loyalty], o[OfficerFields.Leadership], o[OfficerFields.Strength], o[OfficerFields.Intelligence], o[OfficerFields.Politics], o[OfficerFields.Charm]]);
+                object tag = readOnly ? new DuplicateOfficerSlot(o.Id, o.Slot) : o.Id;
+                var row = new GameTable.Row(tag, [o.Face, o.Name + "\n" + o.CourtesyName, forceName + "\n" + baseName, OfficerFields.StatusName(o.Status),
+                    o[OfficerFields.Loyalty], o[OfficerFields.Leadership], o[OfficerFields.Strength], o[OfficerFields.Intelligence], o[OfficerFields.Politics], o[OfficerFields.Charm]], readOnly);
                 if (kept is null || kept.Bytes.Length != o.Data.Length)
-                    officerRows[o.Id] = kept = new((byte[])o.Data.Clone(), forceName, baseName, row, o.Status, 0);
+                    officerRows[o.Slot] = kept = new((byte[])o.Data.Clone(), forceName, baseName, row, o.Status, 0);
                 else { o.Data.CopyTo(kept.Bytes, 0); kept.ForceName = forceName; kept.BaseName = baseName; kept.Row = row; kept.Status = o.Status; }
                 kept.Power = o[OfficerFields.Leadership] + o[OfficerFields.Strength] + o[OfficerFields.Intelligence];
                 changed = true;
@@ -454,6 +457,9 @@ internal sealed partial class EditorWindow
         if (snapshot is not { } data) return;
         switch (tag)
         {
+            case DuplicateOfficerSlot:
+                status.Text = L.Lists.DuplicateOfficer;
+                break;
             case int force when table == forceTable:
                 await OpenAsync(new ForceTarget(force));
                 break;

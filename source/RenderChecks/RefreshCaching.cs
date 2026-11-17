@@ -91,6 +91,8 @@ internal static partial class RenderChecks
             Check("validation-prepares-hidden-invalid-tab", lists.Tab == (int)ListKind.Officers && officers.Contains(11) && invalid.Box.Text == "bad input");
             invalid.Show(0); Snapshot(Data(95));
             Check("matching-live-value-clears-pending-draft", draft.Current == 95 && !draft.IsChanged && lists.Pending == 0);
+            Check("matching-live-value-releases-inactive-input", lists.TableDrafts.Find(new OfficerTarget(11), OfficerFields.Leadership) is null);
+            draft = lists.TableDrafts.Get(new OfficerTarget(11), OfficerFields.Leadership, 95);
             draft.Set(96); Snapshot(Data(includeOfficer: false));
             var pending = lists.TableDrafts.Changes(out _)!;
             Check("removed-target-retains-draft-and-refuses-apply", draft.Box.Text == "96" &&

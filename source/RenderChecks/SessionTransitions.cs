@@ -88,9 +88,21 @@ internal static partial class RenderChecks
         Call(editor, "AcceptLiveSnapshot", identity, layout, data);
         Call(editor, "Show", new CityTarget(1));
         gold.Set(gold.Current + 100);
+        Set(editor, "environmentChanging", true);
         awaitTask((Task)Call(editor, "HandleSessionUnavailableAsync", identity, load)!);
-        bool tracked = ReferenceEquals(Field<EditorCard?>(editor, "disconnectedEditor"), card) && Pending();
+        Field<System.Windows.Threading.DispatcherTimer>(editor, "liveTimer").Stop();
+        Call(editor, "AcceptLiveSnapshot", identity, layout, data);
+        awaitTask((Task)Call(editor, "OpenAsync", new OfficerTarget(1), true)!);
+        check(Pending() && gold.IsChanged, "clean-officer-card-keeps-disconnected-city-draft");
+        awaitTask((Task)Call(editor, "HandleSessionUnavailableAsync", identity, load)!);
+        Field<System.Windows.Threading.DispatcherTimer>(editor, "liveTimer").Stop();
+        bool tracked = Field<HashSet<EditorCard>>(editor, "disconnectedEditors").Contains(card) && Pending();
+        Call(editor, "AcceptLiveSnapshot", identity, layout, data);
+        awaitTask((Task)Call(editor, "OpenAsync", new CityTarget(1), true)!);
+        check(card.Shown && gold.Value == gold.Current + 100 && Pending(), "returning-to-city-resumes-retained-input");
         Call(card, "Revert");
+        Set(editor, "environmentChanging", false);
+        awaitTask((Task)Call(editor, "HandleSessionUnavailableAsync", identity, load)!);
         check(Field<bool>(editor, "sessionDataUnavailable") && tracked && !Pending(),
             "card-opened-after-recovery-stays-tracked-at-next-transition");
     }

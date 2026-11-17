@@ -391,8 +391,9 @@ internal sealed partial class EditorWindow
         if (doctrines is not null && (doctrines.Root!=formation.Root || doctrines.State!=formation.State)) throw new InvalidOperationException(L.Rules.Stale);
         return new(formation, tactics, policies, offices, ranks, doctrines);
     }
-    private bool RulesPending => DraftEditor is { Pending: > 0 } card &&
-        card is FormationEditorCard or TacticEditorCard or PolicyEditorCard or OfficeEditorCard or PlainRuleEditorCard;
+    private bool RulesPending => HasRuleDraft(OpenEditor) || disconnectedEditors.Any(HasRuleDraft);
+    private static bool HasRuleDraft(EditorCard? card) =>
+        card is (FormationEditorCard or TacticEditorCard or PolicyEditorCard or OfficeEditorCard or PlainRuleEditorCard) && card.Pending > 0;
     private static RuleProfile AddNewBaselines(RuleProfile profile, RuleReadState state)
     {
         if (state.Tactic is { } tactics) profile = profile.AddTactics(tactics);

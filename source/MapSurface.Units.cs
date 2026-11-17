@@ -463,13 +463,13 @@ internal sealed partial class MapSurface
         string surname = face is not null || officer is null ? "" : UnitSurname(data, officer);
         if (dc is IGpuMapCanvas gpuCanvas)
         {
-            gpuCanvas.DrawSprite(UnitPortraitSprite(face ?? gradient, face is not null, r, pixelsPerDip), p);
+            gpuCanvas.DrawSprite(UnitPortraitSprite(unit.Slot, face ?? gradient, face is not null, r, pixelsPerDip, color, unit[UnitFields.Troops]), p);
             // Text must snap at its final screen position, rather than the command list's local origin.
             if (face is null && surname.Length > 0)
                 DrawCentred(dc, Mark(surname, r * 1.05, WM.Brushes.White, pixelsPerDip), p);
         }
         else DrawPortraitBase(dc, face ?? gradient, face is not null, surname, p, r, pixelsPerDip);
-        DrawTroopRing(dc, color, unit[UnitFields.Troops], p, r);
+        if (dc is not IGpuMapCanvas || face is null) DrawTroopRing(dc, color, unit[UnitFields.Troops], p, r);
         if (zoom >= TroopFiguresZoom) DrawTroopFigures(dc, unit, p, r, pixelsPerDip);
 
         // The force's shield is placed with the others' (PlaceShields).

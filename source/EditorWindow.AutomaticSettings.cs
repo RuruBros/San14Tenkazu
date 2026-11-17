@@ -17,7 +17,7 @@ internal sealed partial class EditorWindow
 
     private void AutomaticPendingEditsNotice()
     {
-        string evidence = $"Automatic reconnection blocked: lists={lists.Pending}, ai={aiView?.Pending == true}, registered={registeredEditor?.HasPending == true}, sessionDataUnavailable={sessionDataUnavailable}, activeCard={DraftEditor?.Target}, cachedCards=[{string.Join(", ", Editors.Where(card => card.Pending > 0).Select(card => $"{card.Target}:{card.Pending}"))}]";
+        string evidence = $"Automatic reconnection blocked: lists={lists.Pending}, ai={aiView?.Pending == true}, registered={registeredEditor?.HasPending == true}, sessionDataUnavailable={sessionDataUnavailable}, activeCard={OpenEditor?.Target}, disconnectedCards=[{string.Join(", ", disconnectedEditors.Select(card => card.Target))}], cachedCards=[{string.Join(", ", Editors.Where(card => card.Pending > 0).Select(card => $"{card.Target}:{card.Pending}"))}]";
         if (automaticPendingEvidence != evidence) { automaticPendingEvidence = evidence; AddLog(evidence); }
         AutomaticNotice(L.AutomaticSettings.PendingEdits);
     }

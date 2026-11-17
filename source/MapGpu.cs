@@ -70,6 +70,7 @@ internal sealed class GpuMap : IDisposable
     internal (double Draw, double End, double Submit) LastFrame { get; private set; }
     private volatile bool pending, recordingReady = true;
     internal bool Pending => pending;
+    internal bool HasFrameTarget => back?.Bitmap is not null;
     internal bool Recording => pending && !recordingReady;
     private Thread? renderThread;
     private readonly AutoResetEvent renderWake = new(false);
@@ -214,7 +215,7 @@ internal sealed class GpuMap : IDisposable
             { back = candidate; return true; }
             candidate.Dispose();
         }
-        if (TargetCount >= 3) return false;
+        if (TargetCount >= 3) { SkippedLocks++; return false; }
         back = MakeTarget(shared: true);
         return true;
     }
@@ -631,7 +632,7 @@ internal sealed class D2DCanvas : IGpuMapCanvas, IDisposable
         Vector2 d = Vector2.Transform(new((float)area.Right, (float)area.Bottom), transform);
         double left = Math.Min(Math.Min(a.X, b.X), Math.Min(c.X, d.X)), top = Math.Min(Math.Min(a.Y, b.Y), Math.Min(c.Y, d.Y));
         double right = Math.Max(Math.Max(a.X, b.X), Math.Max(c.X, d.X)), bottom = Math.Max(Math.Max(a.Y, b.Y), Math.Max(c.Y, d.Y));
-        if (left <= viewport.Right + 1 && right >= -1 && top <= viewport.Bottom + 1 && bottom >= -1) return true;
+        if (left <= viewport.Right + 1 && right >= viewport.Left - 1 && top <= viewport.Bottom + 1 && bottom >= viewport.Top - 1) return true;
         Culled++;
         return false;
     }

@@ -218,7 +218,7 @@ internal sealed partial class MapSurface : WC.Grid
     {
         presentedView = default;
         presentedTransform = WM.Matrix.Identity;
-        submittedComposition = publishedComposition = double.NaN;
+        publishedComposition = double.NaN;
         // SAN14_NO_GPU=1 keeps WPF drawing the map (for a machine where the GPU renderer misbehaves).
         gpu = Environment.GetEnvironmentVariable("SAN14_NO_GPU") == "1" ? null : GpuMap.TryCreate();
         bool on = gpu is not null;
@@ -228,7 +228,7 @@ internal sealed partial class MapSurface : WC.Grid
         if (gpu is null) return;
         GpuMap renderer = gpu;
         renderer.ImageChanged += () => { if (ReferenceEquals(gpu, renderer)) gpuImage.Source = renderer.Image; };
-        renderer.FrameReady += () => Dispatcher.BeginInvoke(WT.DispatcherPriority.Render, new Action(() => QueueGpuPublish(renderer)));
+        renderer.FrameReady += () => QueueGpuPublish(renderer);
         if (gpu.Shaders is { } shaders) shaders.Ready += () => Dispatcher.BeginInvoke(RequestFrame);
         gpuImage.Source = gpu.Image;
         WM.RenderOptions.SetBitmapScalingMode(gpuImage, WM.BitmapScalingMode.NearestNeighbor);
@@ -244,21 +244,19 @@ internal sealed partial class MapSurface : WC.Grid
         RequestFrame();
     }
 
-    private bool gpuPublishQueued;
+    private int gpuPublishQueued;
     private void QueueGpuPublish(GpuMap renderer)
     {
-        if (gpuPublishQueued || !ReferenceEquals(gpu, renderer)) return;
-        gpuPublishQueued = true;
+        if (Interlocked.Exchange(ref gpuPublishQueued, 1) != 0) return;
         Dispatcher.BeginInvoke(WT.DispatcherPriority.Render, new Action(() =>
         {
-            gpuPublishQueued = false;
+            Interlocked.Exchange(ref gpuPublishQueued, 0);
             if (!ReferenceEquals(gpu, renderer)) return;
             if (renderer.Lost) { RenderGpu(); return; }
             PublishGpuFrame();
-            // A composition pass may have requested a newer view while this frame was in flight.
-            // Start that pass now, instead of waiting for yet another display interval. Still
-            // submit at most one frame per composition time and keep only one worker frame.
-            if (gpuDirty && submittedComposition != lastGpuFrame && renderer.PrepareFrameTarget()) RenderGpu();
+            // Prepare the newest requested view while WPF consumes the completed image.
+            // The worker holds one frame and publication is paced by composition.
+            if (gpuDirty && !renderer.Pending) RenderGpu();
         }));
     }
 
@@ -281,6 +279,7 @@ internal sealed partial class MapSurface : WC.Grid
         if (gpu is null) return;
         gpuDirty = true;
         HookGpuFrames();
+        if (IsLoaded && IsMoving && !gpu.Pending) QueueGpuPublish(gpu);
     }
 
     private void HookGpuFrames()
@@ -291,7 +290,6 @@ internal sealed partial class MapSurface : WC.Grid
     }
 
     private bool inGpuComposition;
-    private double submittedComposition = double.NaN;
     private double publishedComposition = double.NaN;
     private void OnGpuFrame(object? sender, EventArgs e)
     {
@@ -335,7 +333,7 @@ internal sealed partial class MapSurface : WC.Grid
             renderLog?.Record("device-lost", zoom, IsMoving, width, height, gpu, framePhases, UnitProfile, LastPrepareMs, gpuFrame.Count);
             gpuImage.Source = null; gpu.Dispose(); StartGpu(); return;
         }
-        if (!gpuDirty) return;
+        if (!gpuDirty || !gpu.HasFrameTarget && (inGpuComposition || !gpu.PrepareFrameTarget())) return;
         gpuDirty = false;
         double viewAt = Now;
         long preparedAt = Stopwatch.GetTimestamp();
@@ -344,7 +342,6 @@ internal sealed partial class MapSurface : WC.Grid
         LastPrepareMs = Stopwatch.GetElapsedTime(preparedAt).TotalMilliseconds;
         if (gpu.RenderAsync(gpuFrame))
         {
-            submittedComposition = lastGpuFrame;
             submittedView = (zoom, IsMoving, center, viewAt);
             submittedTransform = worldTransform.Matrix;
             renderLog?.Record("submit", zoom, IsMoving, width, height, gpu, framePhases, UnitProfile, LastPrepareMs, gpuFrame.Count,
@@ -523,6 +520,7 @@ internal sealed partial class MapSurface : WC.Grid
         dateChip.Visibility = data?.Date is null ? W.Visibility.Collapsed : W.Visibility.Visible;
         byte[] oldTerrain = TerrainTypes;
         snapshot = data;
+        if (data is null) portraitSprites.Clear();
         if (!ReferenceEquals(oldTerrain, TerrainTypes))
         {
             tiles.SetTerrain(TerrainTypes); ground.SetTerrain(TerrainTypes);

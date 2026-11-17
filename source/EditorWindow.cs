@@ -199,7 +199,7 @@ internal sealed partial class EditorWindow : W.Window
         WireAi();
         WireRules();
         // Skipped while the map is zooming or panning: updating the lists would drop map frames.
-        liveTimer.Tick += async (_, _) => { if (!map.IsMoving) await LiveRefreshAsync(); };
+        liveTimer.Tick += async (_, _) => await LiveRefreshAsync();
         map.ViewSettled += async () => { if (liveRefreshDeferred) await LiveRefreshAsync(); };
         searchTimer.Tick += (_, _) => { searchTimer.Stop(); RefreshLists(currentOnly: true); };
         iconTimer.Tick += (_, _) => ApplyDecodedIcons();

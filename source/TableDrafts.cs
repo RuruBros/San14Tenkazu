@@ -6,6 +6,7 @@ internal sealed class TableDrafts
 {
     private readonly Dictionary<(EditorTarget Target, FieldDef Field), NumberField> numbers = [];
     internal event Action? Changed;
+    internal bool HasInputs => numbers.Count > 0;
     internal int Pending => numbers.Values.Count(n => n.IsChanged);
     internal bool HasKeyboardFocus => numbers.Values.Any(n => n.Box.IsKeyboardFocusWithin);
     internal (EditorTarget Target, FieldDef Field)? InvalidCell { get; private set; }
@@ -15,12 +16,23 @@ internal sealed class TableDrafts
         if (numbers.TryGetValue((target, field), out var number)) return number;
         number = new NumberField(field);
         number.Show(current);
-        number.Edited += () => Changed?.Invoke();
+        number.Edited += () =>
+        {
+            Release(target, number);
+            Changed?.Invoke();
+        };
         numbers.Add((target, field), number);
         return number;
     }
 
     internal NumberField? Find(EditorTarget target, FieldDef field) => numbers.GetValueOrDefault((target, field));
+
+    // An attached box may still receive keyboard input even if its current text matches the game.
+    internal void Release(EditorTarget target, NumberField number)
+    {
+        if (number.Box.Parent is null && !number.IsChanged && ReferenceEquals(Find(target, number.Field), number))
+            numbers.Remove((target, number.Field));
+    }
 
     internal void Revert(NumberField number)
     {
@@ -30,9 +42,10 @@ internal sealed class TableDrafts
 
     internal void Follow(EditorTarget target, FieldDef field, long current)
     {
-        if (Find(target, field) is not { } number) return;
+        if (Find(target, field) is not { } number || number.Current == current) return;
         bool changed = number.IsChanged;
         number.Follow(current);
+        Release(target, number);
         if (changed != number.IsChanged) Changed?.Invoke();
     }
 
@@ -46,6 +59,7 @@ internal sealed class TableDrafts
             {
                 bool before = number.IsChanged;
                 number.Follow(current);
+                Release(key.Target, number);
                 changed |= before != number.IsChanged;
             }
         if (changed) Changed?.Invoke();

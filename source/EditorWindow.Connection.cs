@@ -18,7 +18,7 @@ internal sealed partial class EditorWindow
     private string sessionEvidence = "";
     private bool connectionWaitingForSession;
     private bool sessionDataUnavailable;
-    private EditorCard? disconnectedEditor;
+    private readonly HashSet<EditorCard> disconnectedEditors = [];
     private readonly LiveGameReads liveReads;
     private bool liveRefreshDeferred;
     private bool connectionClosed;
@@ -79,7 +79,7 @@ internal sealed partial class EditorWindow
         connectionWaitingForSession = true;
         // Keep the card whose draft is tracked now. When disconnecting failed and live reads recovered, the flag is
         // still set while the user opens another card; that card's draft must be retained as well.
-        disconnectedEditor = DraftEditor;
+        if (OpenEditor is { Pending: > 0 } open) disconnectedEditors.Add(open);
         sessionDataUnavailable = true;
         // Invalidate in-flight rule reads and remove live data immediately, even if
         // native cleanup needs a retry. Drafts are retained until explicit discard.
@@ -101,7 +101,7 @@ internal sealed partial class EditorWindow
         if (!ConfirmDiscard()) return;
         connectionWaitingForSession = false;
         sessionDataUnavailable = false;
-        disconnectedEditor = null;
+        disconnectedEditors.Clear();
         scanCancellation = new CancellationTokenSource();
         CancellationToken token = scanCancellation.Token;
         SetBusy(true, scanning: true);
@@ -247,21 +247,29 @@ internal sealed partial class EditorWindow
         liveRefreshDeferred = false;
         refreshing = true;
         GameIdentity identity = game.Value;
-        GameLayout found = layout;
+        GameLayout initialLayout = layout;
+        GameSnapshot? before = snapshot;
+        bool IsCurrent() => !connectionClosed && !busy && game == identity &&
+            ReferenceEquals(layout, initialLayout) && ReferenceEquals(snapshot, before);
+        GameLayout found = initialLayout;
+        bool applying = false;
         bool replaced = false; // a load swapped the world: retry rules/environment that failed or self-stopped meanwhile
         try
         {
             if (identity.Verified || identity.DataProfile is not null)
+            {
                 found = await Task.Run(() => liveReads.Layout(identity));
-            GameSnapshot? before = snapshot;
+                if (!IsCurrent()) return;
+            }
             GameSnapshot data = await Task.Run(() => liveReads.Snapshot(identity, found, before));
-            if (connectionClosed || busy || game != identity || !ReferenceEquals(snapshot, before)) return;
+            if (!IsCurrent()) return;
             // Input can start while the worker reads. Discard that sample and read fresh after
             // settling instead of applying old data in the middle of a drag or over a later write.
             if (map.IsMoving) { liveRefreshDeferred = true; return; }
+            applying = true;
             replaced = AcceptLiveSnapshot(identity, found, data);
         }
-        catch (Exception) when (connectionClosed) { return; }
+        catch (Exception) when (connectionClosed || !applying && !IsCurrent()) { return; }
         catch (GameSessionUnavailableException ex)
         {
             await HandleSessionUnavailableAsync(identity, ex.Observation);

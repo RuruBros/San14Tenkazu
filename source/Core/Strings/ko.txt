@@ -329,6 +329,7 @@ BulkScope = 현재 표의 수정 가능한 {count:N0}개 항목에 같은 값을
 BulkSkipped = 수정할 수 없는 {count:N0}개 항목은 제외됩니다.
 BulkValue = {field} → {value:N0} 일괄 수정
 BulkUnavailable = 일괄 수정 대상의 상태가 바뀌었거나 현재 수정할 수 없습니다. 표를 확인한 뒤 다시 시도하세요.
+DuplicateOfficer = 같은 번호의 무장이 여러 슬롯에 있습니다. 이 행은 조회만 가능하며 해당 번호의 첫 번째 슬롯에서 편집할 수 있습니다.
 ForceCount = {count}개 세력
 CityCount = {count}곳
 OfficerCount = {count}명

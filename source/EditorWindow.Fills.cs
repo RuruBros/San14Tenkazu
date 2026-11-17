@@ -52,9 +52,11 @@ internal sealed partial class EditorWindow
     // draft that does not read as a number is left for the footer to report.
     private static void Stage(EditorCard card, EditorTarget target, byte[] record, RecordEdit edit, bool raiseOnly)
     {
-        var numbers = edit.Changes.Select(change => (change, Number: card.TableDrafts.Get(target, change.Field, change.Field.Read(record)))).ToList();
-        if (numbers.Any(n => !n.Number.IsValid)) return;
-        foreach ((FieldChange change, NumberField number) in numbers)
-            if (!raiseOnly || number.Value < change.Value) number.Set(change.Value);
+        var drafts = card.TableDrafts;
+        var numbers = edit.Changes.Select(change => (change, Number: drafts.Get(target, change.Field, change.Field.Read(record)))).ToList();
+        if (numbers.All(n => n.Number.IsValid))
+            foreach ((FieldChange change, NumberField number) in numbers)
+                if (!raiseOnly || number.Value < change.Value) number.Set(change.Value);
+        foreach (var (_, number) in numbers) drafts.Release(target, number);
     }
 }

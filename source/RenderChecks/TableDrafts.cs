@@ -104,6 +104,10 @@ internal static partial class RenderChecks
             var panel = new WC.DockPanel(); WC.DockPanel.SetDock(away, WC.Dock.Bottom);
             panel.Children.Add(away); panel.Children.Add(tableUnderTest); host.Content = panel; host.Show(); Layout(panel);
             int column = 3; // loyalty, then leadership
+            var untouched = Begin(tableUnderTest, 11, column);
+            WI.Keyboard.Focus(away);
+            Check("leaving-untouched-cell-releases-input", !untouched.IsChanged &&
+                card.TableDrafts.Find(new OfficerTarget(11), untouched.Field) is null);
             NumberField number = Begin(tableUnderTest, 11, column);
             Check("real-cell-keyboard-focus", number.Box.IsKeyboardFocused);
             number.Box.Text = "95";

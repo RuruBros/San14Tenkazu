@@ -153,11 +153,18 @@ internal static partial class RenderChecks
     private static void CheckBoundedUiLog(List<object> results)
     {
         var panel = new LogPanel();
-        for (int i = 0; i < 2000; i++) panel.Append(new string('x', 100) + "\n");
         var text = (WC.TextBox)typeof(LogPanel).GetField("text", Hidden)!.GetValue(panel)!;
+        var count = typeof(LogPanel).GetField("characterCount", Hidden)!;
+        foreach (string entry in new[] { "첫 줄\r\n다음\n", "\r", "\n", "🙂" })
+        {
+            panel.Append(entry);
+            Require((int)count.GetValue(panel)! == text.Text.Length, "UI log length diverged at a line boundary");
+        }
+        for (int i = 0; i < 2000; i++) panel.Append(new string('x', 100) + "\n");
         Require(text.Text.Length <= LogPanel.MaximumCharacters && !text.IsUndoEnabled, "UI log retained unbounded text/undo history");
         panel.Append(new string('y', LogPanel.MaximumCharacters * 3) + "tail");
         Require(text.Text.Length <= LogPanel.MaximumCharacters && text.Text.EndsWith("tail"), "Oversized log entry exceeded the bound or lost its tail");
+        Require((int)count.GetValue(panel)! == text.Text.Length, "UI log length diverged after block trimming");
         results.Add(new { Case = "Bounded UI log", Characters = text.Text.Length, Maximum = LogPanel.MaximumCharacters, text.IsUndoEnabled });
     }
 

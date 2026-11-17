@@ -35,9 +35,26 @@ internal static partial class RenderChecks
         var identity = new GameIdentity(123, DateTime.UtcNow, 0x140000000, "OFFLINE-REFRESH", false, TestGame.Classes);
         using var entered = new ManualResetEventSlim(); using var release = new ManualResetEventSlim();
         int reads = 0, blockedRead = 1;
-        var access = new LiveGameReads(_ => throw new InvalidOperationException("Unexpected layout access"), (_, _, _) =>
+        bool blockLayout = false;
+        Exception? readFailure = null;
+        void WaitForReplacement()
         {
-            if (Interlocked.Increment(ref reads) == blockedRead) { entered.Set(); if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException(); return stale; }
+            entered.Set();
+            if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException();
+        }
+        var access = new LiveGameReads(_ =>
+        {
+            if (!blockLayout) throw new InvalidOperationException("Unexpected layout access");
+            WaitForReplacement();
+            return layout;
+        }, (_, _, _) =>
+        {
+            if (Interlocked.Increment(ref reads) == blockedRead)
+            {
+                WaitForReplacement();
+                if (readFailure is not null) throw readFailure;
+                return stale;
+            }
             return fresh;
         });
         var editor = OfflineEditor(() => false, output, output, output, liveReads: access);
@@ -58,6 +75,33 @@ internal static partial class RenderChecks
             var newer = Data(90); Set(editor, "snapshot", newer);
             release.Set(); Pump(() => task.IsCompleted); task.GetAwaiter().GetResult();
             Check(ReferenceEquals(Get<GameSnapshot>(editor, "snapshot"), newer), "later-snapshot-is-not-overwritten-by-old-worker-result");
+            foreach (Exception failure in new Exception[] { new GameSessionUnavailableException(new(GameSessionPhase.Title, 0, 0, [])), new IOException("stale sample") })
+            {
+                readFailure = failure; blockedRead = reads + 1; entered.Reset(); release.Reset();
+                Set(editor, "snapshot", before);
+                task = (Task)Call(editor, "LiveRefreshAsync")!; Pump(() => entered.IsSet);
+                Set(editor, "snapshot", newer);
+                release.Set(); Pump(() => task.IsCompleted); task.GetAwaiter().GetResult();
+                Check(Get<GameIdentity?>(editor, "game") == identity && ReferenceEquals(Get<GameSnapshot>(editor, "snapshot"), newer),
+                    "obsolete-" + failure.GetType().Name + "-keeps-current-connection");
+            }
+            readFailure = null; blockLayout = true; entered.Reset(); release.Reset();
+            int initialReads = reads;
+            Set(editor, "game", identity with { Verified = true });
+            task = (Task)Call(editor, "LiveRefreshAsync")!; Pump(() => entered.IsSet);
+            var replacement = layout with { CityArray = 456 };
+            Set(editor, "layout", replacement);
+            release.Set(); Pump(() => task.IsCompleted); task.GetAwaiter().GetResult();
+            Check(reads == initialReads && ReferenceEquals(Get<GameLayout>(editor, "layout"), replacement), "replaced-layout-skips-obsolete-snapshot-read");
+            Set(editor, "game", identity);
+            var timer = Get<WT.DispatcherTimer>(editor, "liveTimer");
+            void StopTimer(object? sender, EventArgs e) => timer.Stop();
+            timer.Tick += StopTimer; timer.Interval = TimeSpan.FromMilliseconds(20);
+            Set(surface, "dragged", true); timer.Start(); Pump(() => !timer.IsEnabled);
+            timer.Tick -= StopTimer; timer.Interval = TimeSpan.FromSeconds(2);
+            Check(reads == initialReads && Get<bool>(editor, "liveRefreshDeferred"), "timer-tick-during-drag-defers-read");
+            Set(surface, "dragged", false); Call(surface, "Settle");
+            Pump(() => reads == initialReads + 1 && !Get<bool>(editor, "refreshing"));
             Set(editor, "snapshot", fresh); Call(editor, "FillLists"); map.ShowList(ListKind.Officers);
             var rows = (List<GameTable.Row>)Call(editor, "OfficerRows")!;
             Check(ReferenceEquals(rows, Call(editor, "OfficerRows")), "unchanged-row-inputs-reuse-sorted-rows");
@@ -68,6 +112,14 @@ internal static partial class RenderChecks
             var ruler = fresh.OfficerById[1]; ruler.Data[OfficerFields.SurnameOffset] ^= 1;
             rows = (List<GameTable.Row>)Call(editor, "OfficerRows")!;
             Check((string)rows.Single(r => (int)r.Tag == 11).Cells[2]! == fresh.ForceName(1) + "\n" + fresh.BaseName(1), "ruler-name-change-invalidates-other-officers-force-labels");
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(officer.Data.AsSpan(OfficerFields.IdOffset), 1);
+            Call(editor, "FillLists");
+            var table = Get<GameTable>(editor, "officerTable");
+            Check(table.Rows.Select(r => r.Tag).Distinct().Count() == 2 && table.Rows.Count(r => r.ReadOnly) == 1 &&
+                table.Rows.Single(r => r.ReadOnly).Cells[1] as string == officer.Name + "\n" + officer.CourtesyName,
+                "duplicate-id-displays-separate-slot-without-aliasing-writes");
+            Call(table, "SortBy", 5); Call(editor, "FillLists");
+            Check(table.Rows.Count == 2 && table.Contains(1), "sorted-duplicate-id-refresh-keeps-both-slots");
             Set(editor, "snapshot", null); Call(editor, "FillLists");
             Check(Get<System.Collections.IDictionary>(editor, "officerRows").Count == 0, "disconnect-clears-retained-officer-data");
             void CheckPolling(bool toolbar)
@@ -107,10 +159,11 @@ internal static partial class RenderChecks
             for (int i = 0; i < 8; i++)
             {
                 imageHost.Source = new System.Windows.Interop.D3DImage();
+                Check(imageHost.IsArrangeValid, "completed-image-retains-arrangement-" + i);
                 imageHost.Measure(new(128, 128)); imageHost.Arrange(new W.Rect(0, 0, 128, 128));
             }
             Check(imageHost.MeasurePasses == measures, "completed-image-switch-does-not-invalidate-measure");
-            blockedRead = 4; entered.Reset(); release.Reset();
+            blockedRead = reads + 1; entered.Reset(); release.Reset();
             // The disconnected snapshot above was deliberately cleared; restore a live sample
             // to exercise a real read already in flight when the owner window closes.
             var closingSnapshot = fresh; Set(editor, "snapshot", closingSnapshot);

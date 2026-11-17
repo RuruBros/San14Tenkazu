@@ -162,7 +162,9 @@ internal static partial class RenderChecks
                 image.Freeze(); var brush = new WM.ImageBrush(image); brush.Freeze(); fill = brush;
             }
             W.Point p = new(52.3, 55.7);
-            var sprite = (MapSprite)Call("UnitPortraitSprite", fill, portrait, radius, dpi / 96.0)!;
+            var color = System.Drawing.Color.SlateBlue;
+            long troops = radius < 15 ? 1250 : radius < 25 ? 7007 : 15250;
+            var sprite = (MapSprite)Call("UnitPortraitSprite", 0, fill, portrait, radius, dpi / 96.0, color, troops)!;
             string surname = portrait ? "" : "장";
             if (portrait)
             {
@@ -188,7 +190,12 @@ internal static partial class RenderChecks
             }
             Require(!gpu.Canvas.Deferred, "Deferred portrait did not finish uploading");
             byte[] coldPixels = ReadPixels(gpu, 160, 160);
-            gpu.Render(canvas => { canvas.Clear(WM.Colors.Black); Call("DrawPortraitBase", canvas, fill, portrait, surname, p, radius, dpi / 96.0); });
+            gpu.Render(canvas =>
+            {
+                canvas.Clear(WM.Colors.Black);
+                Call("DrawPortraitBase", canvas, fill, portrait, surname, p, radius, dpi / 96.0);
+                if (portrait) Call("DrawTroopRing", canvas, color, troops, p, radius);
+            });
             Finish(gpu); byte[] expected = ReadPixels(gpu, 160, 160);
             gpu.Render(canvas => {
                 canvas.Clear(WM.Colors.Black); canvas.DrawSprite(sprite, p);

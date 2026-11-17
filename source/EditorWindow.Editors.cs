@@ -19,7 +19,6 @@ internal sealed partial class EditorWindow
     private EditorCard[] Editors => [forceEditor, cityEditor, gateEditor, facilityEditor, officerEditor, unitEditor, personalityEditor, itemEditor, formationEditor, tacticEditor, policyEditor, policyEffectEditor, officeEditor, rankEditor, doctrineEditor];
 
     private EditorCard? OpenEditor => Editors.FirstOrDefault(card => card.Shown);
-    private EditorCard? DraftEditor => OpenEditor ?? (sessionDataUnavailable ? disconnectedEditor : null);
 
     private void WireEditors()
     {
@@ -147,7 +146,9 @@ internal sealed partial class EditorWindow
                 else
                 {
                     if (OpenEditor is { } previous && !await LeaveAsync(previous)) return;
-                    if (!ShowAtOrigin(visit.Target, visit.List)) continue;
+                    bool? opened = ShowAtOrigin(visit.Target, visit.List);
+                    if (opened == false) return;
+                    if (opened is null) continue;
                 }
                 historyAt = at;
                 break;
@@ -204,15 +205,24 @@ internal sealed partial class EditorWindow
     }
 
     // Shows the card of a target with the game's values (what was typed in it goes). False when it is not in the game.
-    private bool Show(EditorTarget target) => ShowAtOrigin(target, null);
+    private bool Show(EditorTarget target) => ShowAtOrigin(target, null) == true;
 
-    private bool ShowAtOrigin(EditorTarget target, ListKind? origin)
+    // History skips missing targets, but must stop when the user keeps a retained draft.
+    private bool? ShowAtOrigin(EditorTarget target, ListKind? origin)
     {
-        if (snapshot is not { } data) return false;
-        void ShowDataCard(EditorCard card)
+        if (snapshot is not { } data) return null;
+        bool OpenCard(EditorCard card, Action open, bool dataProfile = false)
         {
-            card.SetDataProfile(game?.DataProfile);
+            bool retained = disconnectedEditors.Contains(card) && card.Pending > 0;
+            bool resume = retained && Equals(card.Target, target);
+            if (retained && !resume && !Confirm(L.Apply.DiscardAndGoOn)) return false;
+            if (!resume) open();
+            if (dataProfile) card.SetDataProfile(game?.DataProfile);
             map.ShowEditor(card, origin);
+            disconnectedEditors.Remove(card);
+            if (resume) RefreshEditor();
+            map.HighlightForce = target is ForceTarget force ? force.Force : 0;
+            return true;
         }
         switch (target)
         {
@@ -220,73 +230,45 @@ internal sealed partial class EditorWindow
                 && plain.Records.Any(r => r.Id == id):
                 PlainRuleEditorCard plainCard=table=="rank" ? rankEditor : doctrineEditor;
                 if (table=="doctrine") plainCard.SetCostNames(catalog.Ideologies);
-                plainCard.Open(new(plain.Record(id),profile)); map.ShowEditor(plainCard,origin); map.HighlightForce=0; return true;
+                return OpenCard(plainCard, () => plainCard.Open(new(plain.Record(id), profile)));
             case OfficeTarget(int id) when officeRuleSnapshot is not null && ruleKept?.Profile is { } profile && profile.Table("office") is not null
                 && officeRuleSnapshot.Records.Any(r => r.Id == id):
-                officeEditor.Open(new(officeRuleSnapshot.Record(id), profile));
-                map.ShowEditor(officeEditor, origin); map.HighlightForce = 0; return true;
+                return OpenCard(officeEditor, () => officeEditor.Open(new(officeRuleSnapshot.Record(id), profile)));
             case PolicyTarget(string table, int id) when table is "policy" or "policyeffect" && policyRuleSnapshot is not null
                 && ruleKept?.Profile is { } profile && profile.Table(table) is not null && policyRuleSnapshot.Records.Any(r => r.Table == table && r.Id == id):
                 PolicyEditorCard policyCard = table == "policy" ? policyEditor : policyEffectEditor;
-                policyCard.Open(new(policyRuleSnapshot.Record(table, id), policyRuleSnapshot, profile));
-                map.ShowEditor(policyCard, origin); map.HighlightForce = 0; return true;
+                return OpenCard(policyCard, () => policyCard.Open(new(policyRuleSnapshot.Record(table, id), policyRuleSnapshot, profile)));
             case TacticTarget(int id) when tacticRuleSnapshot is not null && ruleKept?.Profile is { } profile && profile.Table("tactic") is not null:
-                tacticEditor.Open(new(tacticRuleSnapshot.Record(id), profile));
-                map.ShowEditor(tacticEditor, origin);
-                map.HighlightForce = 0;
-                return true;
+                return OpenCard(tacticEditor, () => tacticEditor.Open(new(tacticRuleSnapshot.Record(id), profile)));
             case FormationTarget(int id) when ruleSnapshot is not null && ruleKept?.Profile is { } profile:
-                formationEditor.Open(new(ruleSnapshot.Record(id), profile));
-                map.ShowEditor(formationEditor, origin);
-                map.HighlightForce = 0;
-                return true;
+                return OpenCard(formationEditor, () => formationEditor.Open(new(ruleSnapshot.Record(id), profile)));
             case ForceTarget(int force) when data.ForceRecords.ContainsKey(force) && data.Forces.ContainsKey(force):
-                forceEditor.Open(ForceView(data, force));
-                ShowDataCard(forceEditor);
-                map.HighlightForce = force;
-                return true;
+                return OpenCard(forceEditor, () => forceEditor.Open(ForceView(data, force)), true);
             case CityTarget(int city) when data.IsCity(city):
-                cityEditor.Open(CityView(data, city));
-                ShowDataCard(cityEditor);
+                if (!OpenCard(cityEditor, () => cityEditor.Open(CityView(data, city)), true)) return false;
                 map.SelectedCity = city;
-                map.HighlightForce = 0;
                 return true;
             case GateTarget(int gate) when data.Gates.Any(g => g.Id == gate):
-                gateEditor.Open(GateView(data, gate));
-                ShowDataCard(gateEditor);
+                if (!OpenCard(gateEditor, () => gateEditor.Open(GateView(data, gate)), true)) return false;
                 map.SelectedGate = gate;
-                map.HighlightForce = 0;
                 return true;
             case FacilityTarget facility when facility.Find(data) is { } found:
-                facilityEditor.Open(FacilityView(data, found));
-                ShowDataCard(facilityEditor);
+                if (!OpenCard(facilityEditor, () => facilityEditor.Open(FacilityView(data, found)), true)) return false;
                 map.SelectedFacility = facility;
-                map.HighlightForce = 0;
                 return true;
             case OfficerTarget(int id) when data.OfficerById.TryGetValue(id, out OfficerRecord? officer):
-                ShowOfficer(data, officer);
-                ShowDataCard(officerEditor);
-                map.HighlightForce = 0;
-                return true;
+                return OpenCard(officerEditor, () => ShowOfficer(data, officer), true);
             case UnitTarget(int slot, int commander) when data.Unit(slot, commander) is { } unit:
-                unitEditor.Open(UnitView(data, unit));
-                ShowDataCard(unitEditor);
+                if (!OpenCard(unitEditor, () => unitEditor.Open(UnitView(data, unit)), true)) return false;
                 map.SelectedUnit = (slot, commander);
-                map.HighlightForce = 0;
                 return true;
             case PersonalityTarget(int index) when data.Personalities.Any(p => p.Index == index):
-                personalityEditor.Open(PersonalityView(data, index));
-                map.ShowEditor(personalityEditor, origin);
-                map.HighlightForce = 0;
-                return true;
+                return OpenCard(personalityEditor, () => personalityEditor.Open(PersonalityView(data, index)));
             case ItemTarget(int index) when data.Items.Any(i => i.Index == index):
-                itemEditor.Open(ItemView(data, index));
-                map.ShowEditor(itemEditor, origin);
-                map.HighlightForce = 0;
-                return true;
+                return OpenCard(itemEditor, () => itemEditor.Open(ItemView(data, index)));
         }
         status.Text = L.Window.TargetGone;
-        return false;
+        return null;
     }
 
     // The open card again with what the game now holds (after a write, an undo or reading the game again).
