@@ -101,6 +101,7 @@ internal sealed partial class MapSurface
         Dispatcher.BeginInvoke(() =>
         {
             if (IsMouseOver && !IsMoving) UpdateHover(WI.Mouse.GetPosition(this));
+            if (!IsMoving) ViewSettled?.Invoke();
         }, WT.DispatcherPriority.Input);
     }
 

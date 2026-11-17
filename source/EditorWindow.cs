@@ -77,7 +77,7 @@ internal sealed partial class EditorWindow : W.Window
     private (int Force, int Ruler)? lastPlayer;
     private bool demoNoticed;
 
-    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null, AutomaticGameAccess? automaticGameAccess = null, Func<Task>? automaticConnect = null)
+    internal EditorWindow(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null, string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null, RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null, AutomaticGameAccess? automaticGameAccess = null, Func<Task>? automaticConnect = null, LiveGameReads? liveReads = null)
     {
         string aiFolder = aiStorageRoot ?? Program.DataFolder;
         aiKept = new(Path.Combine(aiFolder, "ai_values.txt"));
@@ -86,6 +86,7 @@ internal sealed partial class EditorWindow : W.Window
         runtimeRuleFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "runtime-rules"));
         logFile = new(Path.Combine(ruleStorageRoot ?? Program.DataFolder, "logs"));
         this.runtimeRuleAccess = runtimeRuleAccess ?? RuntimeRuleGameAccess.Live;
+        this.liveReads = liveReads ?? LiveGameReads.Live;
         this.gamePreparationAccess = gamePreparationAccess ?? GamePreparationAccess.Live;
         this.automaticGameAccess = automaticGameAccess ?? AutomaticGameAccess.Live;
         automaticGameSettings = new(this.automaticGameAccess);
@@ -199,6 +200,7 @@ internal sealed partial class EditorWindow : W.Window
         WireRules();
         // Skipped while the map is zooming or panning: updating the lists would drop map frames.
         liveTimer.Tick += async (_, _) => { if (!map.IsMoving) await LiveRefreshAsync(); };
+        map.ViewSettled += async () => { if (liveRefreshDeferred) await LiveRefreshAsync(); };
         searchTimer.Tick += (_, _) => { searchTimer.Stop(); RefreshLists(currentOnly: true); };
         iconTimer.Tick += (_, _) => ApplyDecodedIcons();
         automaticGameTimer.Tick += async (_, _) => await PollAutomaticGameAsync();
@@ -208,7 +210,7 @@ internal sealed partial class EditorWindow : W.Window
             automaticGameTimer.Start();
             await PollAutomaticGameAsync();
         };
-        Closed += (_, _) => { automaticGameTimer.Stop(); automaticGameCancellation.Cancel(); };
+        Closed += (_, _) => { connectionClosed = true; liveRefreshDeferred = false; automaticGameTimer.Stop(); automaticGameCancellation.Cancel(); };
         Closing += OnEditorClosing;
 
         FillLists();

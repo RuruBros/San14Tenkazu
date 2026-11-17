@@ -33,21 +33,33 @@ internal sealed class GpuMap : IDisposable
     private readonly ID3D11Device d3d;
     private readonly ID3D11DeviceContext immediate;
     private ID3D11Query finished;
+    private readonly ID3D11Fence? frameFence;
+    private readonly ID3D11DeviceContext4? fenceContext;
+    private readonly AutoResetEvent frameCompleted;
+    private readonly ManualResetEvent renderStopped;
+    private ulong fenceValue;
+    internal bool UsesGpuFence => frameFence is not null;
     private readonly ID2D1Factory1 factory;
     private readonly ID2D1Device device;
     private readonly ID2D1DeviceContext context;
     private readonly D9.IDirect3D9Ex d3d9;
     private readonly D9.IDirect3DDevice9Ex device9;
     private FrameTarget? front, back;
+    private readonly List<FrameTarget> spareTargets = [];
+    internal int TargetCount => spareTargets.Count + (front is null ? 0 : 1) + (back is null ? 0 : 1);
     private bool frontReady;
     private (int Width, int Height, float Dpi)? pendingResize;
-    private IntPtr boundSurface;
     internal int BackBufferBindings { get; private set; }
     internal int SkippedLocks { get; private set; }
     private int width, height;
     private float dpi = 96;
 
-    internal readonly WI.D3DImage Image = new();
+    private readonly WI.D3DImage initialImage = new();
+    private bool initialImageUsed;
+    internal WI.D3DImage Image => front?.Image ?? initialImage;
+    internal event Action? ImageChanged;
+    internal event Action<WI.D3DImage>? ImageCreated;
+    internal event W.DependencyPropertyChangedEventHandler? FrontBufferAvailableChanged;
     internal readonly D2DCanvas Canvas;
 
     // The ground and the borders drawn by shaders (null where they cannot be made: the tiles draw them).
@@ -85,6 +97,9 @@ internal sealed class GpuMap : IDisposable
 
     private sealed class FrameTarget : IDisposable
     {
+        private bool disposed;
+        internal WI.D3DImage Image = null!;
+        internal bool Locked;
         internal int Width, Height;
         internal float Dpi;
         internal ID3D11Texture2D? Texture;
@@ -94,16 +109,27 @@ internal sealed class GpuMap : IDisposable
         internal D9.IDirect3DSurface9? Surface9;
         public void Dispose()
         {
-            Bitmap?.Dispose(); View?.Dispose(); Surface9?.Dispose(); Texture9?.Dispose(); Texture?.Dispose();
+            if (disposed) return;
+            disposed = true;
+            try
+            {
+                if (Image is not null)
+                {
+                    if (!Locked) Image.Lock();
+                    try { Image.SetBackBuffer(WI.D3DResourceType.IDirect3DSurface9, IntPtr.Zero); }
+                    finally { Image.Unlock(); Locked = false; }
+                }
+            }
+            finally { Bitmap?.Dispose(); View?.Dispose(); Surface9?.Dispose(); Texture9?.Dispose(); Texture?.Dispose(); }
         }
     }
 
     // The device was lost (a driver update, the GPU reset): the map makes a new GpuMap.
     internal bool Lost { get; private set; }
 
-    internal static GpuMap? TryCreate(Action<IDisposable>? resourceAcquired = null)
+    internal static GpuMap? TryCreate(Action<IDisposable>? resourceAcquired = null, bool useGpuFence = true)
     {
-        try { return new GpuMap(resourceAcquired); }
+        try { return new GpuMap(resourceAcquired, useGpuFence); }
         catch (Exception ex)
         {
             Debug.WriteLine("GPU map unavailable: " + ex.Message);
@@ -111,14 +137,27 @@ internal sealed class GpuMap : IDisposable
         }
     }
 
-    private GpuMap(Action<IDisposable>? resourceAcquired)
+    private GpuMap(Action<IDisposable>? resourceAcquired, bool useGpuFence)
     {
         using var resources = new ResourceScope(resourceAcquired);
         resources.Own(renderWake);
+        frameCompleted = resources.Own(new AutoResetEvent(false));
+        renderStopped = resources.Own(new ManualResetEvent(false));
         FeatureLevel[] levels = [FeatureLevel.Level_11_1, FeatureLevel.Level_11_0, FeatureLevel.Level_10_1, FeatureLevel.Level_10_0];
         d3d = resources.Own(D3D11.D3D11CreateDevice(DriverType.Hardware, DeviceCreationFlags.BgraSupport, levels));
         immediate = resources.Own(d3d.ImmediateContext);
         finished = resources.Own(d3d.CreateQuery(QueryType.Event));
+        using (var advanced = useGpuFence ? d3d.QueryInterfaceOrNull<ID3D11Device5>() : null)
+        {
+            if (advanced is not null && immediate.QueryInterfaceOrNull<ID3D11DeviceContext4>() is { } signalContext)
+            {
+                fenceContext = resources.Own(signalContext);
+                ID3D11Fence? createdFence = null;
+                try { createdFence = advanced.CreateFence(0, FenceFlags.None); }
+                catch (SharpGen.Runtime.SharpGenException) { } // device supports the interface but not fences
+                if (createdFence is not null) frameFence = resources.Own(createdFence);
+            }
+        }
         factory = resources.Own(D2D1.D2D1CreateFactory<ID2D1Factory1>(FactoryType.MultiThreaded));
         using (IDXGIDevice dxgi = d3d.QueryInterface<IDXGIDevice>()) device = resources.Own(factory.CreateDevice(dxgi));
         context = resources.Own(device.CreateDeviceContext(DeviceContextOptions.None));
@@ -147,15 +186,37 @@ internal sealed class GpuMap : IDisposable
             pendingResize = (pixelWidth, pixelHeight, dotsPerInch);
             return;
         }
-        if (back is not null && pixelWidth == width && pixelHeight == height && dotsPerInch == dpi) return;
+        if (pixelWidth == width && pixelHeight == height && dotsPerInch == dpi) return;
         // Keep WPF's completed surface bound until Present replaces it, so a resize never leaves
         // D3DImage empty while the GPU or the compositor is still completing the new frame.
         context.Target = null;
         if (back != front) back?.Dispose();
         back = null;
         (width, height, dpi) = (pixelWidth, pixelHeight, dotsPerInch);
-        back = MakeTarget(shared: false);
+        if (TargetCount < 3) back = MakeTarget(shared: true);
         context.SetDpi(dpi, dpi);
+    }
+
+    // Run outside the WPF composition callback. Retired images can still be read by WPF;
+    // retain them intact and acquire a different target rather than waiting on the dispatcher.
+    internal bool PrepareFrameTarget()
+    {
+        if (Lost || disposed || width < 1 || height < 1) return false;
+        if (back is not null) return true;
+        for (int i = spareTargets.Count - 1; i >= 0; i--)
+        {
+            var candidate = spareTargets[i];
+            bool writable = candidate.Image.TryLock(new W.Duration(TimeSpan.Zero));
+            if (!writable) { candidate.Image.Unlock(); continue; }
+            candidate.Locked = true;
+            spareTargets.RemoveAt(i);
+            if (candidate.Width == width && candidate.Height == height && candidate.Dpi == dpi)
+            { back = candidate; return true; }
+            candidate.Dispose();
+        }
+        if (TargetCount >= 3) return false;
+        back = MakeTarget(shared: true);
+        return true;
     }
 
     private FrameTarget MakeTarget(bool shared)
@@ -163,6 +224,11 @@ internal sealed class GpuMap : IDisposable
         var made = new FrameTarget { Width = width, Height = height, Dpi = dpi };
         try
         {
+            made.Image = initialImageUsed ? new WI.D3DImage() : initialImage;
+            initialImageUsed = true;
+            ImageCreated?.Invoke(made.Image);
+            made.Image.IsFrontBufferAvailableChanged += (s, e) => FrontBufferAvailableChanged?.Invoke(s, e);
+            made.Image.Lock(); made.Locked = true;
             made.Texture = d3d.CreateTexture2D(Format.B8G8R8A8_UNorm, (uint)width, (uint)height, 1, 1, null,
                 BindFlags.RenderTarget | BindFlags.ShaderResource, shared ? ResourceOptionFlags.Shared : ResourceOptionFlags.None);
             made.View = d3d.CreateRenderTargetView(made.Texture);
@@ -195,9 +261,8 @@ internal sealed class GpuMap : IDisposable
         finally { Image.Unlock(); }
     }
 
-    // Render asynchronously into a private target. Never leave a D3DImage lock across dispatcher turns:
-    // WPF can already have captured its present callback when the next rendering callback locks the image.
-    // Its shared surface must therefore stay complete even while this private frame is in flight.
+    // Each shared target has one stable D3DImage. Only the inactive image keeps a write lock
+    // while the worker renders. The displayed image remains complete and unlocked throughout.
     internal bool Render(Action<D2DCanvas> draw)
     {
         if (back?.Bitmap is null || Pending || Lost) return false;
@@ -237,15 +302,24 @@ internal sealed class GpuMap : IDisposable
                 if (frame is not null && Record(canvas => frame.Play(canvas, this)))
                 {
                     long started = Stopwatch.GetTimestamp();
-                    var wait = new SpinWait();
-                    // Wait on the worker, with exclusive ownership of the immediate context. The UI
-                    // receives a completed frame instead of polling it on an unrelated timer.
-                    while (!stopping)
+                    if (frameFence is not null)
                     {
-                        var status = immediate.GetData(finished, IntPtr.Zero, 0, AsyncGetDataFlags.DoNotFlush);
-                        status.CheckError();
-                        if (status.Code == 0) break;
-                        wait.SpinOnce(sleep1Threshold: -1);
+                        fenceContext!.Signal(frameFence, ++fenceValue);
+                        immediate.Flush();
+                        frameFence.SetEventOnCompletion(fenceValue, frameCompleted);
+                        WaitHandle.WaitAny([frameCompleted, renderStopped]);
+                    }
+                    else
+                    {
+                        // Older drivers retain event-query completion on the worker.
+                        var wait = new SpinWait();
+                        while (!stopping)
+                        {
+                            var status = immediate.GetData(finished, IntPtr.Zero, 0, AsyncGetDataFlags.DoNotFlush);
+                            status.CheckError();
+                            if (status.Code == 0) break;
+                            wait.SpinOnce(sleep1Threshold: -1);
+                        }
                     }
                     LastGpuWait = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
                 }
@@ -304,65 +378,43 @@ internal sealed class GpuMap : IDisposable
         long presentAt = Stopwatch.GetTimestamp();
         LastReadyQueueMs = recordingReadyAt == 0 ? 0 : Stopwatch.GetElapsedTime(recordingReadyAt).TotalMilliseconds;
         LastImageLockMs = LastImageBindMs = LastImageDirtyMs = LastImageUnlockMs = 0;
-        bool locked = false;
         try
         {
             var status = immediate.GetData(finished, IntPtr.Zero, 0, AsyncGetDataFlags.DoNotFlush);
             if (status.Failure) { Lost = true; return false; }
             if (status.Code != 0) return false;
             long stageAt = Stopwatch.GetTimestamp();
-            locked = Image.TryLock(new W.Duration(TimeSpan.Zero));
+            // Publication never needs to modify or lock the previous displayed image.
+            // Each image retains its completed pixels until its own WPF reader releases it.
             LastImageLockMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
-            if (!locked)
-            {
-                Image.Unlock(); // TryLock increments the count even on timeout.
-                SkippedLocks++;
-                return false;
-            }
             FrameTarget? previous = front;
-            if (front is null || front.Width != width || front.Height != height || front.Dpi != dpi)
-                front = MakeTarget(shared: true);
-            // Only the completed image is copied while locked, within this dispatcher call. Finish this
-            // small GPU copy before Unlock so a queued WPF present never reads partially updated pixels.
-            long copiedAt = Stopwatch.GetTimestamp();
-            immediate.CopyResource(front.Texture!, back.Texture);
-            immediate.End(finished);
-            immediate.Flush();
-            var wait = new SpinWait();
-            while (true)
-            {
-                status = immediate.GetData(finished, IntPtr.Zero, 0, AsyncGetDataFlags.DoNotFlush);
-                if (status.Failure) { Lost = true; return false; }
-                if (status.Code == 0) break;
-                // Yield while the short copy completes without a timer-resolution-sized Sleep(1).
-                wait.SpinOnce(sleep1Threshold: -1);
-            }
-            LastCopyWait = Stopwatch.GetElapsedTime(copiedAt).TotalMilliseconds;
-            if (boundSurface != front.Surface9!.NativePointer)
+            var completed = back;
+            LastCopyWait = 0;
+            if (completed.Image.PixelWidth == 0)
             {
                 stageAt = Stopwatch.GetTimestamp();
-                Image.SetBackBuffer(WI.D3DResourceType.IDirect3DSurface9, front.Surface9.NativePointer, true);
+                completed.Image.SetBackBuffer(WI.D3DResourceType.IDirect3DSurface9, completed.Surface9!.NativePointer, true);
                 LastImageBindMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
-                boundSurface = front.Surface9.NativePointer;
                 BackBufferBindings++;
             }
             stageAt = Stopwatch.GetTimestamp();
-            Image.AddDirtyRect(new W.Int32Rect(0, 0, front.Width, front.Height));
+            completed.Image.AddDirtyRect(new W.Int32Rect(0, 0, completed.Width, completed.Height));
             LastImageDirtyMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
+            stageAt = Stopwatch.GetTimestamp();
+            completed.Image.Unlock(); completed.Locked = false;
+            LastImageUnlockMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
+            front = completed; back = null;
+            ImageChanged?.Invoke();
+            if (previous is not null) spareTargets.Add(previous);
+            PrepareFrameTarget();
             frontReady = true;
             pending = false;
             PresentedFrames++;
             LastPresentDelay = Stopwatch.GetElapsedTime(submittedAt).TotalMilliseconds;
-            if (previous != front) previous?.Dispose();
         }
         catch (SharpGen.Runtime.SharpGenException) { Lost = true; return false; }
         finally
         {
-            if (locked)
-            {
-                long stageAt = Stopwatch.GetTimestamp(); Image.Unlock();
-                LastImageUnlockMs = Stopwatch.GetElapsedTime(stageAt).TotalMilliseconds;
-            }
             LastPresentWorkMs = Stopwatch.GetElapsedTime(presentAt).TotalMilliseconds;
         }
         if (pendingResize is { } size)
@@ -397,6 +449,8 @@ internal sealed class GpuMap : IDisposable
         context.Target = null;
         if (front != back) front?.Dispose();
         back?.Dispose();
+        foreach (var target in spareTargets) target.Dispose();
+        spareTargets.Clear();
         front = back = null;
         frontReady = false;
         DiscardPending();
@@ -409,8 +463,10 @@ internal sealed class GpuMap : IDisposable
         if (disposed) return;
         disposed = true;
         stopping = true; renderWake.Set();
+        renderStopped.Set();
         renderThread?.Join();
         renderWake.Dispose();
+        frameCompleted.Dispose(); renderStopped.Dispose(); frameFence?.Dispose(); fenceContext?.Dispose();
         Image.Lock();
         Image.SetBackBuffer(WI.D3DResourceType.IDirect3DSurface9, IntPtr.Zero);
         Image.Unlock();

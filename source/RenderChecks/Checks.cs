@@ -81,7 +81,7 @@ internal static partial class RenderChecks
             }
         }
         Require(gpu.SubmittedFrames == 8 && gpu.PresentedFrames == 8, "Submission/presentation counts differ");
-        Require(gpu.BackBufferBindings == 1, "Normal frames recreated the WPF interop resource");
+        Require(gpu.BackBufferBindings == 2, "Normal frames did not reuse exactly two stable WPF interop resources");
 
         byte[] imagePixels = new byte[64 * 64 * 4];
         Array.Fill(imagePixels, (byte)255);
@@ -188,11 +188,11 @@ internal static partial class RenderChecks
         canvas.DrawGeometry(null, new WM.Pen(Brush(colour), 2), shape);
     }
 
-    private static byte[] ReadPixels(GpuMap gpu, int width, int height)
+    private static byte[] ReadPixels(GpuMap gpu, int width, int height, object? target = null)
     {
         var device = (ID3D11Device)typeof(GpuMap).GetField("d3d", Hidden)!.GetValue(gpu)!;
         var context = (ID3D11DeviceContext)typeof(GpuMap).GetField("immediate", Hidden)!.GetValue(gpu)!;
-        object front = typeof(GpuMap).GetField("front", Hidden)!.GetValue(gpu)!;
+        object front = target ?? typeof(GpuMap).GetField("front", Hidden)!.GetValue(gpu)!;
         var texture = (ID3D11Texture2D)front.GetType().GetField("Texture", Hidden)!.GetValue(front)!;
         using ID3D11Texture2D staging = device.CreateTexture2D(new Texture2DDescription
         {

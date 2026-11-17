@@ -10,19 +10,39 @@ internal sealed partial class EditorWindow
     private readonly Func<bool> registeredIsRunning;
     private readonly WT.DispatcherTimer registeredTimer = new(WT.DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
     private bool registeredGameRunning;
+    private bool registeredPolling, registeredClosed;
+    private long registeredRevision;
 
     private void InitializeRegisteredAvailability()
     {
         WC.ToolTipService.SetShowOnDisabled(registeredButton, true);
-        registeredTimer.Tick += (_, _) => RefreshRegisteredAvailability();
-        Loaded += (_, _) => { RefreshRegisteredAvailability(); registeredTimer.Start(); };
-        Activated += (_, _) => RefreshRegisteredAvailability();
-        Closed += (_, _) => registeredTimer.Stop();
+        registeredTimer.Tick += async (_, _) => await PollRegisteredAvailabilityAsync();
+        Loaded += async (_, _) => { registeredTimer.Start(); await PollRegisteredAvailabilityAsync(); };
+        Activated += async (_, _) => await PollRegisteredAvailabilityAsync();
+        Closed += (_, _) => { registeredClosed = true; registeredTimer.Stop(); };
         RefreshRegisteredAvailability();
+    }
+
+    private async Task PollRegisteredAvailabilityAsync()
+    {
+        if (registeredPolling || registeredClosed) return;
+        registeredPolling = true;
+        long revision = registeredRevision;
+        try
+        {
+            bool running = await Task.Run(registeredIsRunning);
+            if (registeredClosed || revision != registeredRevision) return;
+            registeredGameRunning = running;
+            UpdateRegisteredButton();
+            registeredEditor?.SetGameRunning(running);
+        }
+        catch (Exception) when (registeredClosed) { }
+        finally { registeredPolling = false; }
     }
 
     private void RefreshRegisteredAvailability()
     {
+        ++registeredRevision;
         registeredGameRunning = registeredIsRunning();
         UpdateRegisteredButton();
         registeredEditor?.SetGameRunning(registeredGameRunning);

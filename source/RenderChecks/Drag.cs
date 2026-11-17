@@ -83,7 +83,7 @@ internal static partial class RenderChecks
         var imageDirty = typeof(System.Windows.Interop.D3DImage).GetField("_isDirty", Hidden)!;
         var imageLocks = typeof(System.Windows.Interop.D3DImage).GetField("_lockCount", Hidden)!;
         var presentDelegate = typeof(System.Windows.Interop.D3DImage).GetField("_sendPresentDelegate", Hidden)!;
-        var originalPresent = (EventHandler)presentDelegate.GetValue(gpu.Image)!;
+        var watchedImages = new HashSet<System.Windows.Interop.D3DImage>();
         int wpfCopies = 0;
         int copiesWhileWriting = 0;
         var copyTimes = new List<object>();
@@ -112,49 +112,57 @@ internal static partial class RenderChecks
         var mediaType = typeof(WM.CompositionTarget).Assembly.GetType("System.Windows.Media.MediaContext")!;
         var media = mediaType.GetMethod("From", Hidden | System.Reflection.BindingFlags.Static)!.Invoke(null, [surface.Dispatcher])!;
         object? MediaField(string name) => mediaType.GetField(name, Hidden)?.GetValue(media);
-        presentDelegate.SetValue(gpu.Image, new EventHandler((sender, e) =>
+        void WatchImage(System.Windows.Interop.D3DImage image)
         {
-            bool before = (bool)imageDirty.GetValue(gpu.Image)!;
-            originalPresent(sender, e);
-            if (before && !(bool)imageDirty.GetValue(gpu.Image)!)
+            if (!watchedImages.Add(image)) return;
+            var originalPresent = (EventHandler)presentDelegate.GetValue(image)!;
+            presentDelegate.SetValue(image, new EventHandler((sender, e) =>
             {
-                wpfCopies++;
-                bool sharedWrite = (uint)imageLocks.GetValue(gpu.Image)! != 0
-                    || (gpu.Pending && ReferenceEquals(Field<object?>(gpu, "front"), Field<object?>(gpu, "back")));
-                if (sharedWrite) copiesWhileWriting++;
-                double at = clock.Elapsed.TotalMilliseconds;
-                bool exercise = phase is "drag" or "zoom" or "zoom-resume" or "zoom-drag" || phase.StartsWith("coast-") || phase.StartsWith("fast-drag-");
-                var camera = Field<(double Zoom, bool Moving, W.Point Center, double At)>(surface, "presentedView");
-                double cameraAgeMs = (Field<Stopwatch>(surface, "clock").Elapsed.TotalSeconds - camera.At) * 1000;
-                if (exercise)
+                bool before = (bool)imageDirty.GetValue(image)!;
+                originalPresent(sender, e);
+                if (before && !(bool)imageDirty.GetValue(image)!)
                 {
-                    if (previousCopyPhase == phase) copyGaps.Add(at - previousCopyAt);
-                    previousCopyAt = at;
-                    exerciseCopies++;
-                    cameraAges.Add(cameraAgeMs);
-                }
-                previousCopyPhase = phase;
-                int landSamples = -1;
-                if (capture && zoomReplay && exercise && !gpu.Recording)
-                {
-                    byte[] pixels = ReadPixels(gpu, gpu.Image.PixelWidth, gpu.Image.PixelHeight);
-                    WM.Color background = ((WM.SolidColorBrush)surface.Background).Color;
-                    landSamples = 0;
-                    for (int y = gpu.Image.PixelHeight / 4; y < gpu.Image.PixelHeight * 3 / 4; y += 12)
-                    for (int x = gpu.Image.PixelWidth / 4; x < gpu.Image.PixelWidth * 3 / 4; x += 12)
+                    wpfCopies++;
+                    bool sharedWrite = (uint)imageLocks.GetValue(image)! != 0
+                        || (gpu.Pending && ReferenceEquals(Field<object?>(gpu, "front"), Field<object?>(gpu, "back")));
+                    if (sharedWrite) copiesWhileWriting++;
+                    double at = clock.Elapsed.TotalMilliseconds;
+                    bool exercise = phase is "drag" or "zoom" or "zoom-resume" or "zoom-drag" || phase.StartsWith("coast-") || phase.StartsWith("fast-drag-");
+                    var camera = Field<(double Zoom, bool Moving, W.Point Center, double At)>(surface, "presentedView");
+                    double cameraAgeMs = (Field<Stopwatch>(surface, "clock").Elapsed.TotalSeconds - camera.At) * 1000;
+                    if (exercise)
                     {
-                        int p = (y * gpu.Image.PixelWidth + x) * 4;
-                        if (Math.Abs(pixels[p] - background.B) > 2 || Math.Abs(pixels[p + 1] - background.G) > 2 || Math.Abs(pixels[p + 2] - background.R) > 2) landSamples++;
+                        if (previousCopyPhase == phase) copyGaps.Add(at - previousCopyAt);
+                        previousCopyAt = at;
+                        exerciseCopies++;
+                        cameraAges.Add(cameraAgeMs);
                     }
-                    terrainCopies++;
-                    if (landSamples == 0) seaOnlyCopies++;
+                    previousCopyPhase = phase;
+                    int landSamples = -1;
+                    if (capture && zoomReplay && exercise && !gpu.Recording)
+                    {
+                        byte[] pixels = ReadPixels(gpu, gpu.Image.PixelWidth, gpu.Image.PixelHeight);
+                        WM.Color background = ((WM.SolidColorBrush)surface.Background).Color;
+                        landSamples = 0;
+                        for (int y = gpu.Image.PixelHeight / 4; y < gpu.Image.PixelHeight * 3 / 4; y += 12)
+                        for (int x = gpu.Image.PixelWidth / 4; x < gpu.Image.PixelWidth * 3 / 4; x += 12)
+                        {
+                            int p = (y * gpu.Image.PixelWidth + x) * 4;
+                            if (Math.Abs(pixels[p] - background.B) > 2 || Math.Abs(pixels[p + 1] - background.G) > 2 || Math.Abs(pixels[p + 2] - background.R) > 2) landSamples++;
+                        }
+                        terrainCopies++;
+                        if (landSamples == 0) seaOnlyCopies++;
+                    }
+                    copyTimes.Add(new { ms = at, phase, gpu.PresentedFrames, composition = Field<double>(surface, "lastGpuFrame"),
+                        gpu.Pending, locks = imageLocks.GetValue(image), sharedWrite, landSamples,
+                        interlock = MediaField("_interlockState")?.ToString(), result = MediaField("_lastPresentationResults")?.ToString(),
+                        refresh = MediaField("_animationRenderRate"), zoom = Field<double>(surface, "zoom"), cameraZoom = camera.Zoom, cameraCenter = camera.Center, cameraAgeMs });
                 }
-                copyTimes.Add(new { ms = at, phase, gpu.PresentedFrames,
-                    gpu.Pending, locks = imageLocks.GetValue(gpu.Image), sharedWrite, landSamples,
-                    interlock = MediaField("_interlockState")?.ToString(), result = MediaField("_lastPresentationResults")?.ToString(),
-                    refresh = MediaField("_animationRenderRate"), zoom = Field<double>(surface, "zoom"), cameraZoom = camera.Zoom, cameraCenter = camera.Center, cameraAgeMs });
-            }
-        }));
+            }));
+        }
+        // Install before the image's first Unlock subscribes its present delegate. Changing the
+        // delegate afterwards would leave the old subscriber attached to CommittingBatch.
+        WatchImage(gpu.Image); gpu.ImageCreated += WatchImage;
         var queryReadyAt = new Dictionary<int, double>();
         var submittedAt = new Dictionary<int, double>();
         gpu.Image.IsFrontBufferAvailableChanged += (_, _) => availableChanges++;
@@ -177,7 +185,7 @@ internal static partial class RenderChecks
             if (gpu.Image.PixelWidth == 0 || gpu.Image.PixelHeight == 0) zeroSizeFrames++;
             if (gpu.PresentedFrames > 0 && (gpu.Image.PixelWidth == 0 || gpu.Image.PixelHeight == 0)) emptyAfterFirstFrame++;
             frames.Add(new { ms = now, phase, submitted = gpu.SubmittedFrames, presented = gpu.PresentedFrames,
-                pending = gpu.Pending, lost = gpu.Lost, available = gpu.Image.IsFrontBufferAvailable,
+                pending = gpu.Pending, lost = gpu.Lost, available = gpu.Image.IsFrontBufferAvailable, composition = Field<double>(surface, "lastGpuFrame"),
                 width = gpu.Image.PixelWidth, height = gpu.Image.PixelHeight, drawMs = gpu.LastFrame.Draw,
                 endMs = gpu.LastFrame.End, submitMs = gpu.LastFrame.Submit, delayMs = gpu.LastPresentDelay, gpuWaitMs = gpu.LastGpuWait,
                 writable = writable.WaitOne(0), interopVersion = imageVersion.GetValue(gpu.Image), tier = WM.RenderCapability.Tier >> 16,
@@ -360,7 +368,7 @@ internal static partial class RenderChecks
                 IdleSubmissions = idleSubmissions, FrontBufferChanges = availableChanges, LostSamples = lostFrames, ZeroSizeSamples = zeroSizeFrames,
                 EmptyAfterFirstFrame = emptyAfterFirstFrame, InteropVersion = imageVersion.GetValue(gpu.Image),
                 Submitted = gpu.SubmittedFrames, Presented = gpu.PresentedFrames, WpfCopies = wpfCopies,
-                CopiesWhileWriting = copiesWhileWriting, Seconds = clock.Elapsed.TotalSeconds };
+                CopiesWhileWriting = copiesWhileWriting, gpu.UsesGpuFence, Seconds = clock.Elapsed.TotalSeconds };
             double refreshRate = Convert.ToDouble(MediaField("_animationRenderRate"));
             var display = new { Copies = exerciseCopies, refreshRate,
                 MeanMs = copyGaps.Count == 0 ? 0 : copyGaps.Average(),

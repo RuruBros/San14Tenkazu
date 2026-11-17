@@ -113,6 +113,7 @@ try {
     Invoke-Check @('--loaded-geography', (Join-Path $taskArtifacts 'publish-loaded-geography')) 'publish-loaded-geography.log'
     Invoke-Check @('--performance', (Join-Path $taskArtifacts 'publish-performance')) 'publish-performance.log'
     Invoke-Check @('--refresh-caching', (Join-Path $taskArtifacts 'publish-refresh-caching')) 'publish-refresh-caching.log'
+    Invoke-Check @('--refresh-regressions', (Join-Path $taskArtifacts ('publish-refresh-regressions-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-refresh-regressions.log'
     Invoke-Check @('--coast') 'publish-coast.log'
     Invoke-Check @('--unit-interpolation', (Join-Path $taskArtifacts 'publish-unit-interpolation')) 'publish-unit-interpolation.log'
     Invoke-Check @('--season-editor', (Join-Path $taskArtifacts ('publish-season-editor-' + [DateTime]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')))) 'publish-season-editor.log'

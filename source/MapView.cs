@@ -83,6 +83,7 @@ internal sealed partial class MapView : WC.DockPanel
     internal event Action<FacilityTarget>? FacilitySelected;
     internal event Action<int, int>? UnitSelected;  // unit slot, commander
     internal event Action? ViewChanging;            // the user starts to zoom or pan, or the map flies
+    internal event Action? ViewSettled;
     internal event Action? EscapePressed;           // Esc while the map has the keyboard
     internal event Action<int>? ForceClicked;       // a force's chip under the map
     internal event Action? EmptyClicked;            // a click on the map that hit no city or unit
@@ -98,6 +99,7 @@ internal sealed partial class MapView : WC.DockPanel
         surface.FacilityClicked += target => FacilitySelected?.Invoke(target);
         surface.UnitClicked += (slot, commander) => UnitSelected?.Invoke(slot, commander);
         surface.ViewChanging += () => ViewChanging?.Invoke();
+        surface.ViewSettled += () => ViewSettled?.Invoke();
         surface.EscapePressed += () => EscapePressed?.Invoke();
         surface.EmptyClicked += () => EmptyClicked?.Invoke();
         surface.TileRightClicked += tile => TileRightClicked?.Invoke(tile);

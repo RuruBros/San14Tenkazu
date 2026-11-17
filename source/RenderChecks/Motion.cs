@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using San14Tenkazu;
@@ -68,37 +68,43 @@ internal static partial class RenderChecks
         var dirty = typeof(System.Windows.Interop.D3DImage).GetField("_isDirty", Hidden)!;
         var locks = typeof(System.Windows.Interop.D3DImage).GetField("_lockCount", Hidden)!;
         var callback = typeof(System.Windows.Interop.D3DImage).GetField("_sendPresentDelegate", Hidden)!;
-        var original = (EventHandler)callback.GetValue(gpu.Image)!;
-        callback.SetValue(gpu.Image, new EventHandler((sender, e) =>
+        var watchedImages = new HashSet<System.Windows.Interop.D3DImage>();
+        void WatchImage(System.Windows.Interop.D3DImage image)
         {
-            bool before = (bool)dirty.GetValue(gpu.Image)!;
-            uint count = (uint)locks.GetValue(gpu.Image)!;
-            bool writing = count != 0 || gpu.Pending && ReferenceEquals(Field<object?>(gpu, "front"), Field<object?>(gpu, "back"));
-            int differences = 0, changedInside = 0;
-            if (before && reference is not null && !gpu.Recording)
+            if (!watchedImages.Add(image)) return;
+            var original = (EventHandler)callback.GetValue(image)!;
+            callback.SetValue(image, new EventHandler((sender, e) =>
             {
-                byte[] actual = ReadPixels(gpu, gpu.Image.PixelWidth, gpu.Image.PixelHeight);
-                for (int i = 0; i < actual.Length; i += 4)
+                bool before = (bool)dirty.GetValue(image)!;
+                uint count = (uint)locks.GetValue(image)!;
+                bool writing = count != 0 || gpu.Pending && ReferenceEquals(Field<object?>(gpu, "front"), Field<object?>(gpu, "back"));
+                int differences = 0, changedInside = 0;
+                if (before && reference is not null && !gpu.Recording)
                 {
-                    if (actual.AsSpan(i, 4).SequenceEqual(reference.AsSpan(i, 4))) continue;
-                    var pixel = new W.Point(i / 4 % gpu.Image.PixelWidth, i / 4 / gpu.Image.PixelWidth);
-                    if (movingArea.Contains(pixel)) changedInside++; else differences++;
+                    byte[] actual = ReadPixels(gpu, gpu.Image.PixelWidth, gpu.Image.PixelHeight);
+                    for (int i = 0; i < actual.Length; i += 4)
+                    {
+                        if (actual.AsSpan(i, 4).SequenceEqual(reference.AsSpan(i, 4))) continue;
+                        var pixel = new W.Point(i / 4 % gpu.Image.PixelWidth, i / 4 / gpu.Image.PixelWidth);
+                        if (movingArea.Contains(pixel)) changedInside++; else differences++;
+                    }
+                    inspected++;
+                    if (differences > 0) changedStatic++;
                 }
-                inspected++;
-                if (differences > 0) changedStatic++;
-            }
-            original(sender, e);
-            if (before && !(bool)dirty.GetValue(gpu.Image)!)
-            {
-                copies++;
-                if (changedInside > 0) movingCopies++;
-                if (reference is not null && !host.IsActive) inactiveCopies++;
-                if (writing) sharedWrites++;
-                records.Add(new { ms = clock.Elapsed.TotalMilliseconds, phase, active = host.IsActive,
-                    gpu.Pending, locks = count, writing, differences, changedInside,
-                    gpu.SubmittedFrames, gpu.PresentedFrames });
-            }
-        }));
+                original(sender, e);
+                if (before && !(bool)dirty.GetValue(image)!)
+                {
+                    copies++;
+                    if (changedInside > 0) movingCopies++;
+                    if (reference is not null && !host.IsActive) inactiveCopies++;
+                    if (writing) sharedWrites++;
+                    records.Add(new { ms = clock.Elapsed.TotalMilliseconds, phase, active = host.IsActive,
+                        gpu.Pending, locks = count, writing, differences, changedInside,
+                        gpu.SubmittedFrames, gpu.PresentedFrames });
+                }
+            }));
+        }
+        WatchImage(gpu.Image); gpu.ImageCreated += WatchImage;
         void Pump(double seconds, Action<double>? work = null)
         {
             double start = clock.Elapsed.TotalSeconds;

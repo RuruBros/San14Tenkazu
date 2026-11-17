@@ -16,6 +16,7 @@ namespace San14Tenkazu;
 // above the cities and glide to their new tile when a read finds them moved.
 internal sealed partial class MapSurface : WC.Grid
 {
+    internal event Action? ViewSettled;
     private const double MaxZoom = 16;
     private const double ZoomStep = 1.25;          // per wheel notch
     private const double ZoomTime = 0.07;          // seconds for ~63% of the way to the target
@@ -48,7 +49,7 @@ internal sealed partial class MapSurface : WC.Grid
     private readonly WM.MatrixTransform worldTransform = new();
     // The GPU renderer (null where Direct3D is not available: then WPF draws the layers above, as before).
     private GpuMap? gpu;
-    private readonly WC.Image gpuImage = new() { Stretch = WM.Stretch.Fill, IsHitTestVisible = false, HorizontalAlignment = W.HorizontalAlignment.Left, VerticalAlignment = W.VerticalAlignment.Top };
+    private readonly GpuImageHost gpuImage = new() { IsHitTestVisible = false, HorizontalAlignment = W.HorizontalAlignment.Left, VerticalAlignment = W.VerticalAlignment.Top };
     private bool gpuDirty, gpuHooked;
     private readonly MapDrawList gpuFrame = new();
     private readonly object terrainImageSlot = new(), fieldImageSlot = new(), fillImageSlot = new(), strategicImageSlot = new(), veilImageSlot = new();
@@ -217,6 +218,7 @@ internal sealed partial class MapSurface : WC.Grid
     {
         presentedView = default;
         presentedTransform = WM.Matrix.Identity;
+        submittedComposition = publishedComposition = double.NaN;
         // SAN14_NO_GPU=1 keeps WPF drawing the map (for a machine where the GPU renderer misbehaves).
         gpu = Environment.GetEnvironmentVariable("SAN14_NO_GPU") == "1" ? null : GpuMap.TryCreate();
         bool on = gpu is not null;
@@ -225,22 +227,39 @@ internal sealed partial class MapSurface : WC.Grid
         UseTiles();
         if (gpu is null) return;
         GpuMap renderer = gpu;
-        renderer.FrameReady += () => Dispatcher.BeginInvoke(WT.DispatcherPriority.Render, new Action(() =>
-        {
-            if (ReferenceEquals(gpu, renderer)) PublishGpuFrame();
-        }));
+        renderer.ImageChanged += () => { if (ReferenceEquals(gpu, renderer)) gpuImage.Source = renderer.Image; };
+        renderer.FrameReady += () => Dispatcher.BeginInvoke(WT.DispatcherPriority.Render, new Action(() => QueueGpuPublish(renderer)));
         if (gpu.Shaders is { } shaders) shaders.Ready += () => Dispatcher.BeginInvoke(RequestFrame);
         gpuImage.Source = gpu.Image;
         WM.RenderOptions.SetBitmapScalingMode(gpuImage, WM.BitmapScalingMode.NearestNeighbor);
         if (!Children.Contains(gpuImage)) Children.Insert(Children.IndexOf(world) + 1, gpuImage);
-        gpu.Image.IsFrontBufferAvailableChanged += (_, _) =>
+        gpu.FrontBufferAvailableChanged += (_, _) =>
         {
-            if (gpu is { } renderer) renderLog?.Record("front-buffer", zoom, IsMoving,
+            if (!ReferenceEquals(gpu, renderer)) return;
+            renderLog?.Record("front-buffer", zoom, IsMoving,
                 renderer.Image.PixelWidth, renderer.Image.PixelHeight, renderer, framePhases);
-            if (gpu?.Image.IsFrontBufferAvailable == true) gpu.Bind();
+            if (renderer.Image.IsFrontBufferAvailable) renderer.Bind();
             RequestFrame();
         };
         RequestFrame();
+    }
+
+    private bool gpuPublishQueued;
+    private void QueueGpuPublish(GpuMap renderer)
+    {
+        if (gpuPublishQueued || !ReferenceEquals(gpu, renderer)) return;
+        gpuPublishQueued = true;
+        Dispatcher.BeginInvoke(WT.DispatcherPriority.Render, new Action(() =>
+        {
+            gpuPublishQueued = false;
+            if (!ReferenceEquals(gpu, renderer)) return;
+            if (renderer.Lost) { RenderGpu(); return; }
+            PublishGpuFrame();
+            // A composition pass may have requested a newer view while this frame was in flight.
+            // Start that pass now, instead of waiting for yet another display interval. Still
+            // submit at most one frame per composition time and keep only one worker frame.
+            if (gpuDirty && submittedComposition != lastGpuFrame && renderer.PrepareFrameTarget()) RenderGpu();
+        }));
     }
 
     private bool Gpu => gpu is not null;
@@ -271,17 +290,23 @@ internal sealed partial class MapSurface : WC.Grid
         WM.CompositionTarget.Rendering += OnGpuFrame;
     }
 
+    private bool inGpuComposition;
+    private double submittedComposition = double.NaN;
+    private double publishedComposition = double.NaN;
     private void OnGpuFrame(object? sender, EventArgs e)
     {
         // Completion is checked even when WPF repeats its predicted presentation time. New work
         // is coalesced for that time, so Unlock cannot repeatedly cancel WPF's pending copy.
-        PublishGpuFrame();
+        if (gpu is { Pending: true, Recording: false } ready) QueueGpuPublish(ready);
+        else if (gpu is { Pending: false } idle && gpuDirty) QueueGpuPublish(idle);
         double frameTime = ((WM.RenderingEventArgs)e).RenderingTime.TotalSeconds;
         if (frameTime != lastGpuFrame)
         {
             lastGpuFrame = frameTime;
             if (looping) OnFrame(sender, e);
-            if (gpuDirty || gpu?.Pending == true) RenderGpu();
+            inGpuComposition = true;
+            try { if (gpuDirty || gpu?.Pending == true) RenderGpu(); }
+            finally { inGpuComposition = false; }
         }
         if (!looping && !gpuDirty && gpu?.Pending != true)
         {
@@ -300,7 +325,7 @@ internal sealed partial class MapSurface : WC.Grid
         gpuImage.Width = width / dpi.DpiScaleX;
         gpuImage.Height = height / dpi.DpiScaleY;
         gpu.Resize(width, height, (float)(96 * dpi.DpiScaleX));
-        PublishGpuFrame();
+        if (!inGpuComposition) PublishGpuFrame();
         if (gpu.Pending && !gpu.Lost)
         {
             return;
@@ -319,6 +344,7 @@ internal sealed partial class MapSurface : WC.Grid
         LastPrepareMs = Stopwatch.GetElapsedTime(preparedAt).TotalMilliseconds;
         if (gpu.RenderAsync(gpuFrame))
         {
+            submittedComposition = lastGpuFrame;
             submittedView = (zoom, IsMoving, center, viewAt);
             submittedTransform = worldTransform.Matrix;
             renderLog?.Record("submit", zoom, IsMoving, width, height, gpu, framePhases, UnitProfile, LastPrepareMs, gpuFrame.Count,
@@ -335,7 +361,9 @@ internal sealed partial class MapSurface : WC.Grid
 
     private void PublishGpuFrame()
     {
+        if (IsLoaded && publishedComposition == lastGpuFrame) return;
         if (gpu?.Present() != true) return;
+        publishedComposition = lastGpuFrame;
         presentedView = submittedView;
         presentedTransform = submittedTransform;
         if (gpu.Canvas.Deferred) gpuDirty = true;

@@ -153,6 +153,20 @@ internal sealed class GameTable : WC.Border
             if (fresh?.Cells[edit.Column] is long number && CanEdit(fresh, edit.Column)) edit.Number.Follow(number);
             else CancelInput();
         }
+        bool sameOrder = next.Count == rows.Count;
+        for (int i = 0; sameOrder && i < rows.Count; i++) sameOrder = Equals(rows[i].Tag, next[i].Tag);
+        if (sameOrder)
+        {
+            for (int i = 0; i < rows.Count; i++)
+            {
+                object?[] fresh = next[i].Cells;
+                if (fresh.SequenceEqual(rows[i].Cells)) continue;
+                fresh.CopyTo(rows[i].Cells, 0);
+                if (list.ItemContainerGenerator.ContainerFromIndex(i) is RowItem item) item.InvalidateVisual();
+            }
+            header.UpdateActions();
+            return;
+        }
         if (next.Count == rows.Count && rows.Select(r => r.Tag).ToHashSet().SetEquals(next.Select(r => r.Tag)))
         {
             // Only the rows whose values moved are drawn again: a table as tall as its rows has made them all.

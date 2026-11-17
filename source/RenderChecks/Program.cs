@@ -19,6 +19,7 @@ internal static partial class RenderChecks
             if (args.Contains("--map-reload")) { MapReloadChecks.Run(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--memory-lifetimes")) { CheckMemoryLifetimes(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--refresh-load")) { CheckRefreshLoad(args.First(a => !a.StartsWith("--"))); return 0; }
+            if (args.Contains("--refresh-regressions")) { CheckRefreshRegressions(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--refresh-caching")) { CheckRefreshCaching(args.First(a => !a.StartsWith("--"))); return 0; }
             if(args.Contains("--season-prepare-timings")){CheckSeasonPreparationTimings(args);return 0;}
             if (args.Contains("--unified-drafts")) { CheckUnifiedDrafts(args.First(a => !a.StartsWith("--"))); return 0; }

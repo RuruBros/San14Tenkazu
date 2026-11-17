@@ -14,7 +14,7 @@ internal static partial class RenderChecks
         () => GameBuildProfiles.Current.ExeSha256);
     private static EditorWindow OfflineEditor(Func<bool>? registeredGameRunning = null, string? seasonStorageRoot = null,
         string? aiStorageRoot = null, string? ruleStorageRoot = null, RuleGameAccess? ruleAccess = null,
-        RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null)
+        RuntimeRuleGameAccess? runtimeRuleAccess = null, GamePreparationAccess? gamePreparationAccess = null, LiveGameReads? liveReads = null)
         => new(registeredGameRunning, seasonStorageRoot, aiStorageRoot, ruleStorageRoot, ruleAccess,
-            runtimeRuleAccess, gamePreparationAccess ?? OfflinePreparationAccess, OfflineGameAccess);
+            runtimeRuleAccess, gamePreparationAccess ?? OfflinePreparationAccess, OfflineGameAccess, liveReads: liveReads);
 }

@@ -32,6 +32,8 @@ internal sealed partial class RegisteredOfficerWindow : W.Window
     private RegisteredOfficerFile? file;
     private RegisteredOfficer? selected;
     private bool filling, discardApproved, gameRunning;
+    private bool gameChecking, gameClosed;
+    private long gameStateRevision;
     internal bool HasPending => file is not null && (ChangedCount > 0 || CurrentChanged);
     private bool CurrentChanged => selected is not null && (numbers.Values.Any(n => n.IsChanged) || choices.Values.Any(c => c.Picked != c.Current)
         || texts.Any(t => t.Value.Text != RegisteredOfficerFields.ReadText(selected.Data, t.Key)) || FormationValue() != RegisteredOfficerFields.Formations.Read(selected.Data));
@@ -111,17 +113,32 @@ internal sealed partial class RegisteredOfficerWindow : W.Window
             if (list.SelectedItem is WC.ListBoxItem { Tag: int id }) ShowOfficer(working[id]);
         };
         Closing += (_, e) => { if (!discardApproved && HasPending && !ConfirmDiscard()) e.Cancel = true; };
-        gameTimer.Tick += (_, _) => RefreshGameState();
-        Loaded += (_, _) => { RefreshGameState(); gameTimer.Start(); };
-        Activated += (_, _) => RefreshGameState();
-        Closed += (_, _) => gameTimer.Stop();
+        gameTimer.Tick += async (_, _) => await PollGameStateAsync();
+        Loaded += async (_, _) => { gameTimer.Start(); await PollGameStateAsync(); };
+        Activated += async (_, _) => await PollGameStateAsync();
+        Closed += (_, _) => { gameClosed = true; gameTimer.Stop(); };
         RefreshGameState();
     }
 
     private void RefreshGameState() => SetGameRunning(isGameRunning());
 
+    private async Task PollGameStateAsync()
+    {
+        if (gameChecking || gameClosed) return;
+        gameChecking = true;
+        long revision = gameStateRevision;
+        try
+        {
+            bool running = await Task.Run(isGameRunning);
+            if (!gameClosed && revision == gameStateRevision) SetGameRunning(running);
+        }
+        catch (Exception) when (gameClosed) { }
+        finally { gameChecking = false; }
+    }
+
     internal void SetGameRunning(bool running)
     {
+        ++gameStateRevision;
         if (gameRunning == running && availability.Text.Length > 0)
         {
             save.IsEnabled = !running && HasPending;

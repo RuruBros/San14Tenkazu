@@ -25,7 +25,7 @@ internal static partial class RenderChecks
         var surface = (MapSurface)typeof(MapView).GetField("surface", Hidden)!.GetValue(map)!;
         var gpu = (GpuMap)typeof(MapSurface).GetField("gpu", Hidden)!.GetValue(surface)!;
         var terrain = (WC.Image)typeof(MapSurface).GetField("terrain", Hidden)!.GetValue(surface)!;
-        var gpuImage = (WC.Image)typeof(MapSurface).GetField("gpuImage", Hidden)!.GetValue(surface)!;
+        var gpuImage = (W.FrameworkElement)typeof(MapSurface).GetField("gpuImage", Hidden)!.GetValue(surface)!;
         var watch = Stopwatch.StartNew();
         Task<GameSnapshot>? read = GameMemory.IsRunning() ? Task.Run(() =>
         {

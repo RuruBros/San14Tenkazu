@@ -6,6 +6,12 @@ using WM = System.Windows.Media;
 
 namespace San14Tenkazu;
 
+internal sealed record LiveGameReads(Func<GameIdentity, GameLayout> Layout,
+    Func<GameIdentity, GameLayout, GameSnapshot?, GameSnapshot> Snapshot)
+{
+    internal static readonly LiveGameReads Live = new(GameMemory.ReadCurrentLayout, GameMemory.ReadSnapshot);
+}
+
 // The connection to the game: finding it, reading it again every two seconds, and AUTO(데모) 플레이.
 internal sealed partial class EditorWindow
 {
@@ -13,6 +19,9 @@ internal sealed partial class EditorWindow
     private bool connectionWaitingForSession;
     private bool sessionDataUnavailable;
     private EditorCard? disconnectedEditor;
+    private readonly LiveGameReads liveReads;
+    private bool liveRefreshDeferred;
+    private bool connectionClosed;
 
     private void BeginLayoutRecovery(string message)
     {
@@ -233,7 +242,9 @@ internal sealed partial class EditorWindow
     // Keeps the map and the current values live while the game runs.
     private async Task LiveRefreshAsync()
     {
-        if (busy || refreshing || game is null || layout is null) return;
+        if (connectionClosed || busy || refreshing || game is null || layout is null) return;
+        if (map.IsMoving) { liveRefreshDeferred = true; return; }
+        liveRefreshDeferred = false;
         refreshing = true;
         GameIdentity identity = game.Value;
         GameLayout found = layout;
@@ -241,12 +252,16 @@ internal sealed partial class EditorWindow
         try
         {
             if (identity.Verified || identity.DataProfile is not null)
-                found = await Task.Run(() => GameMemory.ReadCurrentLayout(identity));
+                found = await Task.Run(() => liveReads.Layout(identity));
             GameSnapshot? before = snapshot;
-            GameSnapshot data = await Task.Run(() => GameMemory.ReadSnapshot(identity, found, before));
-            if (busy || game != identity) return;
+            GameSnapshot data = await Task.Run(() => liveReads.Snapshot(identity, found, before));
+            if (connectionClosed || busy || game != identity || !ReferenceEquals(snapshot, before)) return;
+            // Input can start while the worker reads. Discard that sample and read fresh after
+            // settling instead of applying old data in the middle of a drag or over a later write.
+            if (map.IsMoving) { liveRefreshDeferred = true; return; }
             replaced = AcceptLiveSnapshot(identity, found, data);
         }
+        catch (Exception) when (connectionClosed) { return; }
         catch (GameSessionUnavailableException ex)
         {
             await HandleSessionUnavailableAsync(identity, ex.Observation);
@@ -267,9 +282,10 @@ internal sealed partial class EditorWindow
         {
             refreshing = false;
 #if LOCAL_DEVELOPER
-            UpdateDeveloperControls();
+            if (!connectionClosed) UpdateDeveloperControls();
 #endif
         }
+        if (connectionClosed) return;
         if (replaced) AddLog(L.Connection.WorldReplaced);
         if (game == identity) await ReapplyRuntimeRulesAsync(retry: replaced);
         if (game == identity) await ReapplyEnvironmentAsync(retry: replaced);
@@ -299,6 +315,7 @@ internal sealed partial class EditorWindow
             history.Clear();
             historyAt = -1;
             game = null;
+            liveRefreshDeferred = false;
             if (runtimeRulesWindow is { } rulesWindow)
             {
                 runtimeRulesIdentity = null; rulesWindow.SetOffline(true);

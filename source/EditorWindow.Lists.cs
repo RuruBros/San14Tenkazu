@@ -178,7 +178,10 @@ internal sealed partial class EditorWindow
             {
                 FillForceChoices();
                 if (snapshot is null)
+                {
                     foreach (GameTable table in ListTables) table.SetRows([]);
+                    officerRows.Clear(); officerRowInputs.Clear(); officerSortedRows = [];
+                }
             }
             finally { filling = false; }
             LoadOfficerIcons();
@@ -281,6 +284,19 @@ internal sealed partial class EditorWindow
         return rows;
     }
 
+    private sealed class OfficerListRow(byte[] bytes, string forceName, string baseName, GameTable.Row row, int status, long power)
+    {
+        internal byte[] Bytes = bytes;
+        internal string ForceName = forceName, BaseName = baseName;
+        internal GameTable.Row Row = row;
+        internal int Status = status, Seen;
+        internal long Power = power;
+    }
+    private readonly Dictionary<int, OfficerListRow> officerRows = [];
+    private List<OfficerListRow> officerRowInputs = [];
+    private List<GameTable.Row> officerSortedRows = [];
+    private int officerRowsVersion;
+
     private List<GameTable.Row> OfficerRows()
     {
         if (snapshot is not { } data) return [];
@@ -290,11 +306,38 @@ internal sealed partial class EditorWindow
         if (officerStatusBox.SelectedIndex == 0) officers = officers.Where(o => OfficerFields.IsActive(o.Status));
         if (force != 0) officers = officers.Where(o => OfficerFields.IsMember(o.Status) && data.ForceOfCorps(o.Corps) == force);
         if (word.Length > 0) officers = officers.Where(o => Matches(o, word));
-        return officers.OrderBy(o => o.Status).ThenByDescending(o => o[OfficerFields.Leadership] + o[OfficerFields.Strength] + o[OfficerFields.Intelligence])
-            .Select(o => new GameTable.Row(o.Id, [o.Face, o.Name + "\n" + o.CourtesyName, ForceAndBase(data, o), OfficerFields.StatusName(o.Status),
-                o[OfficerFields.Loyalty], o[OfficerFields.Leadership], o[OfficerFields.Strength], o[OfficerFields.Intelligence], o[OfficerFields.Politics],
-                o[OfficerFields.Charm]]))
-            .ToList();
+        // Compare owned bytes, not snapshot identity: loads and tests can reuse/mutate storage.
+        // Force/base names are outside the officer record and must invalidate its displayed row too.
+        var forceNames = new Dictionary<int, string>();
+        var baseNames = new Dictionary<int, string>();
+        var inputs = new List<OfficerListRow>();
+        int version = ++officerRowsVersion;
+        bool changed = false;
+        foreach (var o in officers)
+        {
+            int owner = data.ForceOfCorps(o.Corps);
+            if (!forceNames.TryGetValue(owner, out string? forceName)) forceNames[owner] = forceName = data.ForceName(owner);
+            if (!baseNames.TryGetValue(o.BaseId, out string? baseName)) baseNames[o.BaseId] = baseName = data.BaseName(o.BaseId);
+            officerRows.TryGetValue(o.Id, out var kept);
+            if (kept is null || !o.Data.AsSpan().SequenceEqual(kept.Bytes) || kept.ForceName != forceName || kept.BaseName != baseName)
+            {
+                var row = new GameTable.Row(o.Id, [o.Face, o.Name + "\n" + o.CourtesyName, forceName + "\n" + baseName, OfficerFields.StatusName(o.Status),
+                    o[OfficerFields.Loyalty], o[OfficerFields.Leadership], o[OfficerFields.Strength], o[OfficerFields.Intelligence], o[OfficerFields.Politics], o[OfficerFields.Charm]]);
+                if (kept is null || kept.Bytes.Length != o.Data.Length)
+                    officerRows[o.Id] = kept = new((byte[])o.Data.Clone(), forceName, baseName, row, o.Status, 0);
+                else { o.Data.CopyTo(kept.Bytes, 0); kept.ForceName = forceName; kept.BaseName = baseName; kept.Row = row; kept.Status = o.Status; }
+                kept.Power = o[OfficerFields.Leadership] + o[OfficerFields.Strength] + o[OfficerFields.Intelligence];
+                changed = true;
+            }
+            kept.Seen = version;
+            if (inputs.Count >= officerRowInputs.Count || !ReferenceEquals(kept, officerRowInputs[inputs.Count])) changed = true;
+            inputs.Add(kept);
+        }
+        changed |= inputs.Count != officerRowInputs.Count;
+        foreach (int id in officerRows.Where(pair => pair.Value.Seen != version).Select(pair => pair.Key).ToArray()) officerRows.Remove(id);
+        officerRowInputs = inputs;
+        if (changed) officerSortedRows = inputs.OrderBy(r => r.Status).ThenByDescending(r => r.Power).Select(r => r.Row).ToList();
+        return officerSortedRows;
     }
 
     // A search finds an officer by his name or 자, or by the name of one of his 개성 or 전법.
