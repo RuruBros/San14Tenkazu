@@ -19,13 +19,15 @@ internal static class OfficerRevival
             .OrderBy(b => b.Base).ToArray();
     }
 
+    // A slot the game filled for itself (flag 0x4000 at +0x15E) is not a revivable officer.
+    internal static bool IsGenerated(OfficerRecord officer) => (BitConverter.ToUInt16(officer.Data, 0x15E) & 0x4000) != 0;
+
     internal static EditPlan Plan(GameSnapshot data, Request request)
     {
         if (!Enum.IsDefined(request.Mode)) return EditPlan.Refuse(L.Revival.InvalidMode);
         if (!data.OfficerById.TryGetValue(request.Officer, out var officer) || officer.Status is not (7 or 9))
             return EditPlan.Refuse(L.Revival.InactiveOnly);
-        if ((BitConverter.ToUInt16(officer.Data, 0x15E) & 0x4000) != 0)
-            return EditPlan.Refuse(L.Revival.GeneratedOfficer);
+        if (IsGenerated(officer)) return EditPlan.Refuse(L.Revival.GeneratedOfficer);
         if (data.Units.Any(u => u.Commander == officer.Id)) return EditPlan.Refuse(L.Revival.HasUnit);
         if (data.Date is not { } date) return EditPlan.Refuse(L.Transfers.NoDate);
         if (request.DeathYear <= date.Year || request.DeathYear > OfficerFields.Death.Max)

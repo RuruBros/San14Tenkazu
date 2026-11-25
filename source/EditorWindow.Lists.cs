@@ -57,6 +57,8 @@ internal sealed partial class EditorWindow
     private readonly WC.TextBlock forceCount = new(), cityCount = new(), officerCount = new(), unitCount = new(), personalityCount = new(), itemCount = new(), ancientCount = new();
     private readonly PlateButton batchSurrenderButton = new(L.Surrender.BatchButton, icon: Icons.Force)
     { IsEnabled = false, ToolTip = L.Surrender.BatchButtonTip };
+    private readonly PlateButton batchRevivalButton = new(L.BatchRevival.Button, icon: Icons.Revert)
+    { IsEnabled = false, ToolTip = L.BatchRevival.ButtonTip };
     // The forces the filters offer (index 0 is "모든 세력"), refreshed with the lists.
     private List<int> forceChoices = [];
     private bool filling;
@@ -81,7 +83,7 @@ internal sealed partial class EditorWindow
     {
         lists.AddPage(L.Lists.ForcesTab, forceTable, [forceSearch, batchSurrenderButton], forceCount);
         lists.AddPage(L.Lists.CitiesTab, cityTable, [citySearch, cityForceBox], cityCount);
-        lists.AddPage(L.Lists.OfficersTab, officerTable, [officerSearch, officerForceBox, officerStatusBox], officerCount);
+        lists.AddPage(L.Lists.OfficersTab, officerTable, [officerSearch, officerForceBox, officerStatusBox, batchRevivalButton], officerCount);
         lists.AddPage(L.Lists.UnitsTab, unitTable, [unitSearch, unitForceBox, unitKindBox], unitCount);
         lists.AddPage(L.Lists.PersonalitiesTab, personalityTable, [personalitySearch], personalityCount, PaneSection.Data);
         lists.AddPage(L.Lists.ItemsTab, itemTable, [itemSearch], itemCount, PaneSection.Data);
@@ -94,6 +96,7 @@ internal sealed partial class EditorWindow
         lists.AddPage(L.Rules.RankPage,rankTable,[rankSearch],rankCount,PaneSection.Data);
         lists.AddPage(L.Rules.DoctrinePage,doctrineTable,[doctrineSearch],doctrineCount,PaneSection.Data);
         unlockButton.Click += () => _ = UnlockAncientsAsync();
+        batchRevivalButton.Click += () => _ = ReviveOfficersAsync();
         lists.PreparingTab += EnsureList;
         lists.TabChanged += FocusSearch;
         lists.ApplyClicked += async () => await ApplyListDraftsAsync();

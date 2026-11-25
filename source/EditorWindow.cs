@@ -158,7 +158,7 @@ internal sealed partial class EditorWindow : W.Window
         connectButton.Click += async () => { automaticGameFailure = null; await ConnectAsync(); };
         reloadButton.Click += async () => await ReloadAsync();
         calendarButton.Click += async () => await ChangeCalendarAsync();
-        cancelButton.Click += () => scanCancellation?.Cancel();
+        cancelButton.Click += () => { scanCancellation?.Cancel(); batchStop?.Cancel(); };
         playButton.Click += async () => await ResumePlayAsync();
         panelButton.Click += TogglePanel;
         registeredButton.Click += OpenRegisteredEditor;
@@ -325,8 +325,11 @@ internal sealed partial class EditorWindow : W.Window
         runtimeRulesButton.IsEnabled = !busy && !automaticGameChecking;
         if(rulesImportButton is {} import)import.IsEnabled=!busy&&connected&&!RulesPending&&ruleKept?.Profile is not null&&game is {} rulesIdentity&&SupportsRuleTables(rulesIdentity);
         map.AiEnabled = !busy;
-        // [검색 취소] only matters while the slow memory search runs.
-        cancelButton.Visibility = busy && scanCancellation is not null ? W.Visibility.Visible : W.Visibility.Collapsed;
+        // [검색 취소] only matters while the slow memory search runs; during [일괄 부활] the same button stops the batch.
+        bool batchRunning = batchStop is not null;
+        cancelButton.Visibility = busy && (scanCancellation is not null || batchRunning) ? W.Visibility.Visible : W.Visibility.Collapsed;
+        cancelButton.Text = batchRunning ? L.BatchRevival.Stop : L.Window.CancelSearch;
+        cancelButton.ToolTip = batchRunning ? L.BatchRevival.StopTip : L.Window.CancelSearchTip;
         playButton.IsEnabled = nativeEditable && snapshot?.IsDemoPlay == true;
         undoButton.IsEnabled = dataEditable && undoHistory.Count > 0;
         undoButton.ToolTip = undoHistory.Count == 0 ? L.Undo.NothingTip
@@ -368,6 +371,7 @@ internal sealed partial class EditorWindow : W.Window
         cityEditor.NativeActionsEnabled = nativeEditable;
         forceEditor.SurrenderEnabled = nativeEditable;
         batchSurrenderButton.IsEnabled = nativeEditable;
+        batchRevivalButton.IsEnabled = nativeEditable;
         officerEditor.RevivalEnabled = nativeEditable;
         officerEditor.StatusChangeEnabled = nativeEditable;
         unlockButton.IsEnabled = dataEditable && snapshot?.Play is not null &&

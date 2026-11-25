@@ -59,6 +59,7 @@ internal static partial class RenderChecks
             if (args.Contains("--force-policies")) { CheckForcePolicies(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--pending-inputs")) { CheckPendingInputs(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--pending-cards-game-read")) { ReadPendingCardsGame(args.First(a => !a.StartsWith("--"))); return 0; }
+            if (args.Contains("--batch-revival")) { CheckBatchRevival(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--unit-conditions-game-read")) { ReadUnitConditionsGame(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--tooltips")) { CheckTooltips(args.FirstOrDefault(a => !a.StartsWith("--")) ?? "source/RenderChecks/artifacts/tooltips"); return 0; }
             if (args.Contains("--choices")) { CheckChoices(args.FirstOrDefault(a => !a.StartsWith("--")) ?? "source/RenderChecks/artifacts/choices"); return 0; }

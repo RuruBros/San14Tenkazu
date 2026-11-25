@@ -3105,6 +3105,41 @@ DeathYearAfter = 등장·부활 후 몰년을 현재 연도({year})보다 크게
 Summary = {officer}: {before} → {status}, {place}, 몰년 {year}
 Evidence = 등장·부활 확인: {officer}, 신분 {status}, 군단 {corps}, 거점 {home}, 몰년 {year}, 활성 목록 등록 {count}개
 
+# 목록 창 장수 탭 [일괄 부활]
+[BatchRevival]
+Button = 일괄 부활
+ButtonTip = 사망한 장수를 골라 무작위 도시나 지정한 도시에 한꺼번에 부활시킵니다.
+Place = 위치
+RandomCity = 무작위 도시
+FixedCity = 특정 도시
+RandomStatus = 무작위
+YearsBefore = 현재 +
+YearsAfter = 년 사이 무작위
+IncludeHidden = 미등장 장수 포함
+PickUnit = 명
+Pick = 무작위 선택
+PickTip = 후보 전체에서 입력한 인원만큼 무작위로 골라 체크합니다. 지금 체크는 지웁니다.
+Shuffle = 다시 섞기
+ShuffleTip = 체크는 그대로 두고 도시와 몰년을 다시 뽑습니다. 신분이 무작위이면 신분도 다시 뽑습니다.
+SelectedCount = 선택한 장수 {count}명
+Skipped = 제외 {count}명(임시 생성·지휘 부대)
+InvalidYears = 몰년은 현재 + 1~{max}년 사이로, 앞의 값이 뒤의 값보다 크지 않게 넣으세요.
+InvalidCount = 무작위로 고를 인원을 1 이상으로 넣으세요.
+NoCities = 부활시킬 도시가 없습니다.
+NoCandidates = 등장·부활시킬 수 있는 장수가 없습니다.
+Refused = {officer}: {why}
+Confirm = 장수 {count}명을 순서대로 부활시킵니다.\n\n{names}
+ConfirmGoOn = 중간에 실패하거나 중지하면 남은 장수는 부활시키지 않으며, 이미 부활한 장수는 그대로 둡니다.\n먼저 게임에서 다른 칸에 세이브해 두세요. 부활시킬까요?
+Checking = 부활 대상 {total}명의 현재 상태를 확인 중...
+Progress = 완료 {done}/{total}명 · {officer} 부활 중...
+Completed = 부활 완료 {done}/{total}명
+Refreshing = 부활 완료 {done}/{total}명 · 결과를 다시 읽는 중...
+Done = 장수 {count}명을 부활시켰습니다.
+Stopped = 일괄 부활을 중지했습니다. 완료 {done}/{total}명. 이미 부활한 장수는 그대로 둡니다.
+Failed = 일괄 부활을 중단했습니다. 완료 {done}/{total}명. 이미 부활한 장수는 그대로 둡니다.\n진단: {why}
+Stop = 일괄 부활 중지
+StopTip = 일괄 부활 중지: 지금 장수까지 부활시킨 뒤 멈춥니다.
+
 [StatusChange]
 Title = 신분 변경
 Mode = 변경할 신분
