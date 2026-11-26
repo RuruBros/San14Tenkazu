@@ -179,7 +179,7 @@ internal sealed class InstallationDiagnosticsWindow : W.Window
     private void ShowReport(InstallationAudit audit)
     {
         string counts = string.Join(" · ", Enum.GetValues<InstalledFileStatus>().Select(s => $"{Status(s)} {audit.Installed.Count(f => f.Status == s):N0}"));
-        summary.Text = $"Build {audit.Depots.Build ?? "—"} · Depot {audit.Depots.Sources.Count(s => s.Error == null)}/{audit.Depots.Sources.Count}" +
+        summary.Text = T.Coverage(audit.Depots.Build ?? "—", audit.Depots.Sources.Count(s => s.Error == null), audit.Depots.Sources.Count) +
             (audit.Depots.Complete ? "" : $" ({T.Unknown})") +
             $" · {T.Packages} {audit.Packages.Length:N0}\n{counts} · {T.DepotOverlap} {audit.Installed.Count(f => f.Owners.Count > 1):N0}";
         ShowInstalled();

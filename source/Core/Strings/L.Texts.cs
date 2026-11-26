@@ -250,7 +250,6 @@ internal static partial class L
         internal static string WritingWhileRunning => T();
         internal static string Written(object? count) => Format(T(), (nameof(count), count));
         internal static string WrittenButChanged => T();
-        internal static string AboveCap(object? field, object? value, object? cap) => Format(T(), (nameof(field), field), (nameof(value), value), (nameof(cap), cap));
         internal static string BreaksTies(object? broken) => Format(T(), (nameof(broken), broken));
         internal static string Request(object? record, object? changes) => Format(T(), (nameof(record), record), (nameof(changes), changes));
         internal static string WroteOverGame(object? change) => Format(T(), (nameof(change), change));
@@ -482,8 +481,6 @@ internal static partial class L
         internal static string OfficersPage => T();
         internal static string Governor => T();
         internal static string GovernorTip => T();
-        internal static string FillCaps => T();
-        internal static string FillCapsTip => T();
         internal static string LevelsNote(object? steps, object? levels) => Format(T(), (nameof(steps), steps), (nameof(levels), levels));
         internal static string BulkRow => T();
         internal static string BulkTip(object? field, object? min, object? max) => Format(T(), (nameof(field), field), (nameof(min), min), (nameof(max), max));

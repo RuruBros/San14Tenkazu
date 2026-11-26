@@ -13,6 +13,7 @@ internal static partial class L
         internal static string PackageFolders => T();
         internal static string ClearPackages => T();
         internal static string Packages => T();
+        internal static string Coverage(string build, int read, int total) => Format(T(), (nameof(build), build), (nameof(read), read), (nameof(total), total));
         internal static string Scan => T();
         internal static string Cancel => T();
         internal static string ChooseGame => T();

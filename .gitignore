@@ -47,3 +47,8 @@ source/Seasons/Native/TerrainShaderChecks.exe
 source/Seasons/Native/WeatherChecks.exe
 source/Seasons/tools/__pycache__/
 source/BuildProfiles/__pycache__/
+# Third-party mod packages and files extracted from them for compatibility checks
+/patch.samples/
+/SAN14.*
+/TraitMerger.*
+/page.wav

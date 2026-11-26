@@ -5,6 +5,7 @@ GameFolder = 게임 설치 폴더
 PackageFolders = 패키지 폴더 추가
 ClearPackages = 패키지 선택 해제
 Packages = 패키지 파일
+Coverage = 빌드 {build} · depot {read}/{total}
 Scan = 검사 시작
 Cancel = 중지
 ChooseGame = 설치 폴더를 선택하세요
