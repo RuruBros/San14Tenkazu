@@ -82,7 +82,8 @@ internal static class PersonalityEdits
     // The kinds that are only on or off: every 개성 with them has the value 1 (저돌's 명령설정, 오환's 친오환, ...).
     internal static HashSet<int> Switches(GameSnapshot data) =>
         data.Personalities.SelectMany(p => new[] { (Kind: p.Kind(0), Value: p.Value(0)), (Kind: p.Kind(1), Value: p.Value(1)) })
-            .Where(e => e.Kind != 0).GroupBy(e => e.Kind).Where(g => g.All(e => e.Value == 1)).Select(g => g.Key).ToHashSet();
+            .Where(e => e.Kind != 0 && !EditorValueRanges.UnconfirmedEffect(e.Kind)).GroupBy(e => e.Kind)
+            .Where(g => g.All(e => e.Value == 1)).Select(g => g.Key).ToHashSet();
 
     // What the card writes, in the order the summary tells it.
     private static readonly FieldDef[] Editable =
@@ -105,6 +106,18 @@ internal static class PersonalityEdits
         PersonalityRules.Timing timing = personality.Timing;
         int condition = (int)after[PersonalityFields.Condition];
         bool conditionChanged = condition != personality.Condition;
+        bool preserveConditions = false;
+        for (int effect = 0; effect < PersonalityFields.Kinds.Length; effect++)
+        {
+            int original = personality.Kind(effect);
+            long requested = after[PersonalityFields.Kinds[effect]];
+            if (!EditorValueRanges.UnconfirmedEffect(original) && !EditorValueRanges.UnconfirmedEffect(requested)) continue;
+            if (original != requested || after[PersonalityFields.Values[effect]] != personality.Value(effect)
+                || conditionChanged || after[PersonalityFields.ConditionValue] != personality.ConditionValue
+                || after[PersonalityFields.Filter] != personality.Filter)
+                return EditPlan.Refuse(L.EditRanges.EffectHold(EditorValueRanges.UnconfirmedEffect(original) ? original : requested));
+            preserveConditions = true;
+        }
         if (conditionChanged && PersonalityRules.ConditionProblem(timing, condition) is { Length: > 0 } conditionProblem)
             return EditPlan.Refuse(L.Edits.PersonalityCondition(name, conditionProblem));
         PersonalityRules.Target target = PersonalityRules.TargetOf(condition);
@@ -113,6 +126,14 @@ internal static class PersonalityEdits
         for (int effect = 0; effect < PersonalityFields.Kinds.Length; effect++)
         {
             FieldDef kindField = PersonalityFields.Kinds[effect], valueField = PersonalityFields.Values[effect];
+            if (preserveConditions)
+            {
+                int original = personality.Kind(effect);
+                long originalValue = personality.Value(effect);
+                if (after[kindField] == original && after[valueField] == originalValue) continue;
+                if (EditorValueRanges.NonstandardEventSlot(personality.Condition, original, originalValue))
+                    return EditPlan.Refuse(L.EditRanges.EventSlotHold(original, originalValue));
+            }
             if (target == PersonalityRules.Target.Event)
                 after[kindField] = after[valueField] != 0 ? PersonalityRules.EventMorale : 0;
             int kind = (int)after[kindField];
@@ -134,11 +155,11 @@ internal static class PersonalityEdits
         }
 
         bool filterAsked = after[PersonalityFields.Filter] != personality.Filter;
-        int filter = PersonalityRules.FilterFor(index, timing, condition, (int)after[PersonalityFields.Filter]);
+        int filter = preserveConditions ? personality.Filter : PersonalityRules.FilterFor(index, timing, condition, (int)after[PersonalityFields.Filter]);
         if (filterAsked && filter != after[PersonalityFields.Filter]) return EditPlan.Refuse(L.Edits.PersonalityFilter(name));
         after[PersonalityFields.Filter] = filter;
 
-        switch (PersonalityRules.NumberOf(index, condition))
+        switch (preserveConditions ? PersonalityRules.Number.None : PersonalityRules.NumberOf(index, condition))
         {
             case PersonalityRules.Number.Troops when after[PersonalityFields.ConditionValue] is < 1 or > PersonalityRules.MaxTroops:
                 return EditPlan.Refuse(L.Edits.PersonalityNumber(name, L.Personality.TroopsLabel, 1, PersonalityRules.MaxTroops));

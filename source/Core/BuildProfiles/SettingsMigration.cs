@@ -74,6 +74,31 @@ internal static class SettingsHistory
     }
 }
 
+internal sealed record RuleImportConflict(RuleKey Key, int Original, int TargetDefault, int Current, int Incoming);
+internal sealed record RuleImportPlan(RuleProfile Target, RuleChange[] Changes, RuleImportConflict[] Conflicts, RuleKey[] Unavailable,
+    RuleImportCompatibility Compatibility)
+{
+    internal RuleProfile Resolve(IReadOnlySet<RuleKey>? takeIncoming = null)
+    {
+        if (Unavailable.Length != 0 && (takeIncoming is null || Changes.Length == 0 && takeIncoming.Count == 0))
+        {
+            var held = Unavailable.Where(Compatibility.RangeHeld).Select(k => $"#{k.Record} {FormationRules.Field(k.Field).Label}").ToArray();
+            if (held.Length > 0) throw new InvalidDataException(L.EditRanges.ImportHold(string.Join(", ", held)));
+            throw new InvalidDataException(L.FileComparison.CannotImport(string.Join(", ", Unavailable.Select(k => $"{k.Table} #{k.Record}").Distinct())));
+        }
+        if (takeIncoming is not null && takeIncoming.Except(Conflicts.Select(c => c.Key)).Any())
+            throw new InvalidDataException(L.Rules.Incompatible);
+        var selected = Conflicts.Where(c => takeIncoming?.Contains(c.Key) == true)
+            .Select(c => new RuleChange(c.Key, c.Current, c.Incoming));
+        var edits = Changes.Concat(selected).ToArray();
+        var result = Target.WithChanges(edits) with { AutoApply = false };
+        foreach (var edit in edits)
+            if (!Compatibility.DependenciesMatch(edit.Key, result.Desired))
+                throw new InvalidDataException(L.FileComparison.DependentChoice(edit.Key.Table, edit.Key.Record, edit.Key.Field));
+        return result;
+    }
+}
+
 internal static class SettingsMigration
 {
     internal static RuntimeRulePreference Runtime(RuntimeRulePreference source, string target, SettingsMigrationPolicy? policy = null)
@@ -82,20 +107,30 @@ internal static class SettingsMigration
         // No process ID, pointer, allocation ownership, prepared receipt, or experience data is copied.
         return new(1, target, source.Settings, source.ConvertExperience);
     }
-    internal static RuleProfile Rules(RuleProfile source, RuleProfile targetBaseline, SettingsMigrationPolicy? policy = null)
+    internal static RuleImportPlan PlanRules(RuleProfile source, RuleProfile targetBaseline, SettingsMigrationPolicy? policy = null)
     {
         source = source.Upgrade(); source.Validate(); targetBaseline.Validate();
         (policy ?? SettingsMigrationPolicy.Product).Require(source.Build, targetBaseline.Build, false);
-        foreach (var table in source.Catalogs!)
+        var compatibility = new RuleImportCompatibility(source, targetBaseline);
+        var candidates = source.Overrides.Where(compatibility.Eligible).ToDictionary(o => o.Key, o => o.Value);
+        compatibility.KeepCompatible(candidates, targetBaseline.Desired);
+        var changes = new List<RuleChange>();
+        var conflicts = new List<RuleImportConflict>();
+        var unavailable = new List<RuleKey>();
+        foreach (var incoming in source.Overrides)
         {
-            var target = targetBaseline.Table(table.Table);
-            if (target is null || table.Schema != target.Schema || table.Fingerprint != target.Fingerprint || !table.Records.SequenceEqual(target.Records))
-                throw new InvalidDataException(L.Rules.Incompatible);
+            RuleKey key = incoming.Key;
+            if (!candidates.ContainsKey(key)) { unavailable.Add(key); continue; }
+            int original = source.Default(key), current = targetBaseline.Desired(key);
+            if (current == incoming.Value) continue;
+            // A target override is explicit intent, even when it happens to equal the source default.
+            if (current == original && current == targetBaseline.Default(key) && compatibility.DependenciesMatch(key, targetBaseline.Desired))
+                changes.Add(new(key, current, incoming.Value));
+            else
+                conflicts.Add(new(key, original, targetBaseline.Default(key), current, incoming.Value));
         }
-        var importedTables = source.Catalogs.Select(c => c.Table).ToHashSet();
-        var overrides = targetBaseline.Overrides.Where(o => !importedTables.Contains(o.Key.Table))
-            .Concat(source.Overrides.Where(o => o.Value != targetBaseline.Default(o.Key))).ToArray();
-        var result = targetBaseline with { Overrides = overrides, AutoApply = false };
-        result.Validate(); return result;
+        return new(targetBaseline, [.. changes], [.. conflicts], [.. unavailable], compatibility);
     }
+    internal static RuleProfile Rules(RuleProfile source, RuleProfile targetBaseline, SettingsMigrationPolicy? policy = null) =>
+        PlanRules(source, targetBaseline, policy).Resolve();
 }

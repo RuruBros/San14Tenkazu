@@ -46,12 +46,26 @@ internal static partial class RenderChecks
         try
         {
             Set(editor,"game",identity);Set(editor,"snapshot",new TestGame().Build());Set(editor,"ruleSnapshot",formation);Set(editor,"ruleKept",kept);
-            editor.GetType().GetMethod("SaveImportedRules",Hidden)!.Invoke(editor,[SettingsImportSource.Read(rulesSource),identity,baseline,kept.Stamp]);
+            editor.GetType().GetMethod("SaveImportedRules",Hidden)!.Invoke(editor,[SettingsImportSource.Read(rulesSource),identity,baseline,kept.Stamp,null]);
             var imported=profileFile.Read();Check(imported.Profile!.Desired(key)==20&&!imported.Profile.AutoApply,"rules-import-saves-overrides-with-autoapply-off");
+            var competing = baseline.WithChanges([new(key, 10, 18)]);
+            var merge = SettingsMigration.PlanRules(competing, imported.Profile);
+            var choices = new RuleImportDialog(merge, k => formation.Record(k.Record).Name);
+            try
+            {
+                choices.Show(); choices.UpdateLayout();
+                var rows = ((WC.DockPanel)choices.Content).Children.OfType<WC.ListBox>().Single();
+                var option = rows.Items.OfType<WC.CheckBox>().Single();
+                Check(option.IsChecked == false && choices.TakeIncoming.Count == 0, "conflict-initially-keeps-target");
+                option.IsChecked = true;
+                Check(choices.TakeIncoming.SetEquals([key]) && merge.Resolve(choices.TakeIncoming).Desired(key) == 18,
+                    "selecting-a-conflict-takes-only-that-field");
+            }
+            finally { choices.Close(); }
             Check(imported.Profile.Defaults.SequenceEqual(baseline.Defaults),"rules-import-keeps-verified-target-defaults");
             Check(reads==0&&writes==0&&fixture.Writes==0,"rules-import-never-invokes-game-access");
             byte[] before=File.ReadAllBytes(Path.Combine(storage,"rule_profiles.json"));Set(editor,"game",identity with{ProcessId=2});
-            try{editor.GetType().GetMethod("SaveImportedRules",Hidden)!.Invoke(editor,[SettingsImportSource.Read(rulesSource),identity,imported.Profile,imported.Stamp]);throw new InvalidOperationException("Stale identity accepted");}
+            try{editor.GetType().GetMethod("SaveImportedRules",Hidden)!.Invoke(editor,[SettingsImportSource.Read(rulesSource),identity,imported.Profile,imported.Stamp,null]);throw new InvalidOperationException("Stale identity accepted");}
             catch(System.Reflection.TargetInvocationException e)when(e.InnerException is IOException){}
             Check(File.ReadAllBytes(Path.Combine(storage,"rule_profiles.json")).AsSpan().SequenceEqual(before)&&writes==0,"connection-change-refuses-import-without-saving-or-writing");
         }

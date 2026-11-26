@@ -30,6 +30,8 @@ internal static partial class RenderChecks
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadTraitListDiagnostic")==expected,"Trait diagnostic entry leaked into public build");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadCompatibilityDiagnostic")==expected,"Compatibility diagnostic entry leaked into public build");
         Require((typeof(EditorWindow).GetMethod("ReadDeveloperCompatibility",Hidden)!=null)==expected,"Compatibility menu entry leaked into public build");
+        Require((typeof(EditorWindow).GetMethod("ReadLoadedRules",Hidden)!=null)==expected
+            && (typeof(EditorWindow).Assembly.GetType("San14Tenkazu.LoadedRuleComparison")!=null)==expected, "Loaded rule diagnostic build flavor");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="RoundTripDeveloperCities")==expected,"City roundtrip entry leaked into public build");
         Require(typeof(GameMemory).GetMethods(Hidden|BindingFlags.Static).Any(m=>m.Name=="ReadDeveloperGeographyTopology")==expected,"Raw geography diagnostic leaked into public build");
         Require((typeof(EditorWindow).GetMethod("RunDeveloperGeography",Hidden)!=null)==expected,"City diagnostics leaked into public build");
@@ -73,6 +75,7 @@ internal static partial class RenderChecks
         CheckNoticeTypographyReader();
         CheckTraitListDiagnostic();
         CheckCompatibilityDiagnostic();
+        CheckLoadedRuleComparison();
         CheckDeveloperEntry();
         CheckNativeCommandContinuation();
         CheckDeveloperGeography();
@@ -211,6 +214,7 @@ internal static partial class RenderChecks
             Require(first.IsVisible&&first.Tabs.Items.Count==7&&!log.Open,"One click must open the tabbed window without expanding the log");
             Require(first.Tabs.Items[6] is WC.TabItem held && Equals(held.Header, L.DeveloperUi.ProvocationTab), "Held provocation tab is missing");
             first.Tabs.SelectedIndex = 2; Pump(); first.UpdateLayout();
+            Require(first.CompareLoadedRules.IsVisible && !first.CompareLoadedRules.IsEnabled, "Offline rule-load comparison entry");
             Require(first.ProfiledRulesEdit.IsVisible && !first.ProfiledRulesEdit.IsEnabled,
                 "The rule test button must be visible in the compatibility tab and unavailable offline");
             Require(first.ProfiledAiEdit.IsVisible&&!first.ProfiledAiEdit.IsEnabled,"The AI test button must be visible and unavailable offline");

@@ -54,7 +54,7 @@ internal static class SteamInstallation
         }
     }
 
-    internal static string? FindGameDirectory(string? executablePath, IEnumerable<string>? configuredRoots = null)
+    internal static string? FindGameDirectory(string? executablePath, IEnumerable<string>? configuredRoots = null, bool requireResources = true)
     {
         string? directory = executablePath is null ? null : Path.GetDirectoryName(executablePath);
         if (HasResources(directory)) return directory;
@@ -66,7 +66,8 @@ internal static class SteamInstallation
             {
                 string common = Path.GetFullPath(Path.Combine(library, "steamapps", "common")) + Path.DirectorySeparatorChar;
                 string candidate = Path.GetFullPath(Path.Combine(common, install));
-                if (candidate.StartsWith(common, StringComparison.OrdinalIgnoreCase) && HasResources(candidate)) return candidate;
+                if (candidate.StartsWith(common, StringComparison.OrdinalIgnoreCase)
+                    && (requireResources ? HasResources(candidate) : Directory.Exists(candidate))) return candidate;
             }
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or IOException) { }
         }
@@ -75,7 +76,19 @@ internal static class SteamInstallation
 
     private static bool HasResources(string? directory) => directory is not null && File.Exists(Path.Combine(directory, "0002", "ScreenLayout.rdb"));
 
-    private static IEnumerable<string> FindLibraries(string[] roots)
+    internal static ulong? InstalledDepotManifest(string? gameDirectory, uint depot)
+    {
+        if (gameDirectory is null) return null;
+        var directory = new DirectoryInfo(gameDirectory);
+        var apps = directory.Parent?.Parent;
+        if (apps is null) return null;
+        Node? app = ReadMetadata(Path.Combine(apps.FullName, $"appmanifest_{AppId}.acf"))?.Child("AppState");
+        if (app?.Child("appid")?.Value != AppId || !directory.Name.Equals(app.Child("installdir")?.Value, StringComparison.OrdinalIgnoreCase))
+            return null;
+        return ulong.TryParse(app.Child("InstalledDepots")?.Child(depot.ToString())?.Child("manifest")?.Value, out ulong id) ? id : null;
+    }
+
+    internal static IEnumerable<string> FindLibraries(string[] roots)
     {
         var libraries = new HashSet<string>(roots, StringComparer.OrdinalIgnoreCase);
         foreach (string root in roots)
@@ -94,13 +107,13 @@ internal static class SteamInstallation
         return libraries;
     }
 
-    private sealed record Node(string Key, string? Value, List<Node> Children)
+    internal sealed record Node(string Key, string? Value, List<Node> Children)
     {
         internal Node? Child(string key) => Children.FirstOrDefault(n => n.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
     }
 
     // Only text KeyValues metadata is needed: pairs, nested blocks, quoted escapes and line comments.
-    private static Node? ReadMetadata(string path)
+    internal static Node? ReadMetadata(string path, Action<Exception>? onError = null)
     {
         try
         {
@@ -159,6 +172,10 @@ internal static class SteamInstallation
                 throw new InvalidDataException("Unclosed metadata string");
             }
         }
-        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or SecurityException) { return null; }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or SecurityException)
+        {
+            onError?.Invoke(ex);
+            return null;
+        }
     }
 }

@@ -8,6 +8,9 @@ internal static partial class L
     {
         private static string T([CallerMemberName] string key = "") => Get(nameof(DeveloperUi)+"."+key);
         internal static string Flood => T();
+        internal static string RuleLoad => T();
+        internal static string RuleLoadResult(object count, object differences, object unidentified, object unavailable, object path) => Format(T(),
+            (nameof(count), count), (nameof(differences), differences), (nameof(unidentified), unidentified), (nameof(unavailable), unavailable), (nameof(path), path));
         internal static string ReadGeography => T();
         internal static string EditGeography => T();
         internal static string GeographyTab => T();

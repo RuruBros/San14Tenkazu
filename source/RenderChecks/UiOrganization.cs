@@ -90,7 +90,8 @@ internal static partial class RenderChecks
             var popup = Field<System.Windows.Controls.Primitives.Popup>(editor, "settingsPopup");
             Check("settings-popup-opens", popup.IsOpen && popup.Child is WC.Border);
             var popupRoot = (W.FrameworkElement)popup.Child;
-            Layout(popupRoot, 260, 105); Capture(popupRoot, "settings-menu");
+            popupRoot.Measure(new W.Size(300, double.PositiveInfinity));
+            Layout(popupRoot, 300, (int)Math.Ceiling(popupRoot.DesiredSize.Height)); Capture(popupRoot, "settings-menu");
             Check("disconnected-rules-allow-saved-settings", Field<PlateButton>(editor, "runtimeRulesButton").IsEnabled);
             ((Action)typeof(PlateButton).GetField("Click", Hidden)!.GetValue(button)!).Invoke();
             Check("settings-popup-toggles-closed", !popup.IsOpen);

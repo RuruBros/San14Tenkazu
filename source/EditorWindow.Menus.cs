@@ -24,7 +24,27 @@ internal sealed partial class EditorWindow
             Child = new WC.Border { Background = CardSkin.Parchment, BorderBrush = CardSkin.Gold,
                 BorderThickness = new W.Thickness(1), Padding = new W.Thickness(10), Child = options }
         };
-        foreach (PlateButton option in new[] { BuildRuntimeRulesMenu(), BuildEnvironmentMenu(), BuildRulesImportMenu() })
+        PlateButton FileMenu(string title, Func<string?, W.Window> create)
+        {
+            var item = new PlateButton(title);
+            item.Click += () =>
+            {
+                popup.IsOpen = false;
+                try
+                {
+                    var directory = SteamInstallation.FindGameDirectory(game is { } identity ? GameMemory.ExecutablePath(identity) : null);
+                    var window = create(directory);
+                    window.Owner = this;
+                    window.ShowDialog();
+                }
+                catch (Exception ex) { ReportError(ex); }
+            };
+            return item;
+        }
+        foreach (PlateButton option in new[] { BuildRuntimeRulesMenu(), BuildEnvironmentMenu(), BuildRulesImportMenu(),
+            FileMenu(L.FileComparison.Title, directory => new FormationComparisonWindow(directory)),
+            FileMenu(L.FileExport.Title, directory => new RuleFileExportWindow(directory)),
+            FileMenu(L.InstallationAudit.Title, directory => new InstallationDiagnosticsWindow(directory)) })
         {
             option.Margin = new W.Thickness(0, 3, 0, 3);
             options.Children.Add(option);

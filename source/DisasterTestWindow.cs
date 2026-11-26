@@ -22,6 +22,7 @@ internal sealed class DisasterTestWindow:W.Window
     internal readonly WC.TextBox TraitLog=new(){IsReadOnly=true,AcceptsReturn=true,TextWrapping=W.TextWrapping.Wrap,VerticalScrollBarVisibility=WC.ScrollBarVisibility.Auto};
     internal readonly WC.TabControl Tabs=new(){Background=CardSkin.Parchment,BorderBrush=CardSkin.Gold,Padding=new W.Thickness(0)};
     internal readonly PlateButton ReadCompatibility=new(L.DeveloperUi.ReadCompatibility),CancelCompatibility=new(L.DeveloperUi.CancelDiagnostic);
+    internal readonly PlateButton CompareLoadedRules = new(L.DeveloperUi.RuleLoad) { IsEnabled = false };
     internal readonly PlateButton ProfiledRulesEdit = new(L.DeveloperUi.ProfiledRuleRoundTrip) { IsEnabled = false };
     internal readonly PlateButton ProfiledAiEdit = new(L.DeveloperUi.ProfiledAiRoundTrip) { IsEnabled = false };
     internal readonly PlateButton ProfiledAiExtension = new(L.DeveloperUi.ProfiledAiExtensionRoundTrip) { IsEnabled = false };
@@ -75,7 +76,7 @@ internal sealed class DisasterTestWindow:W.Window
         var compatibility=new WC.DockPanel{Margin=new W.Thickness(20)};
         var heading=new WC.StackPanel();
         heading.Children.Add(new WC.TextBlock{Text=L.DeveloperUi.CompatibilityInstructions,TextWrapping=W.TextWrapping.Wrap,Margin=new W.Thickness(0,0,0,14)});
-        var reads=new WC.WrapPanel();foreach(var b in new[]{ReadCompatibility,CancelCompatibility}){b.Margin=new W.Thickness(0,0,8,14);reads.Children.Add(b);}heading.Children.Add(reads);
+        var reads=new WC.WrapPanel();foreach(var b in new[]{ReadCompatibility,CompareLoadedRules,CancelCompatibility}){b.Margin=new W.Thickness(0,0,8,14);reads.Children.Add(b);}heading.Children.Add(reads);
         var edits=new WC.WrapPanel();
         foreach(var button in new[]{ProfiledRulesEdit,ProfiledAiEdit,ProfiledAiExtension,ProfiledRuntimeRules,NativeCommandSuite}){button.Margin=new W.Thickness(0,0,8,14);edits.Children.Add(button);}
         heading.Children.Add(edits);

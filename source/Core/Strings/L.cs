@@ -14,7 +14,9 @@ internal static partial class L
 {
     internal const string SetName = "Strings.ko.txt";
 
-    private static readonly Lazy<IReadOnlyDictionary<string, string>> texts = new(() => Parse(ReadSet(SetName)));
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> texts = new(() =>
+        Parse(string.Join("\n", ReadSet(SetName), ReadSet("Strings.ko.installation.txt"),
+            ReadSet("Strings.edit-ranges.ko.txt"), ReadSet("Strings.ko.fileexport.txt"))));
 
     internal static IReadOnlyDictionary<string, string> Texts => texts.Value;
 

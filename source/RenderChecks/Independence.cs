@@ -16,9 +16,9 @@ internal static partial class RenderChecks
         Directory.CreateDirectory(output);
         using var log = new StreamWriter(Path.Combine(output, "checks.jsonl")) { AutoFlush = true };
         int count = 0;
-        void Record(string scenario, bool passed)
+        void Record(string scenario, bool passed, object? bounds = null)
         {
-            log.WriteLine(JsonSerializer.Serialize(new { scenario, passed }));
+            log.WriteLine(JsonSerializer.Serialize(new { scenario, passed, bounds }));
             Require(passed, scenario); count++;
         }
         var fixture = new TestGame().Force(3, 557, 3).Force(44, 0).Force(45, 0)
@@ -62,7 +62,8 @@ internal static partial class RenderChecks
             card.Measure(new W.Size(width, 800)); card.Arrange(new W.Rect(0, 0, width, 800)); card.UpdateLayout();
             W.Point at = button.TranslatePoint(new W.Point(), card);
             Record("independence-fits-card-" + width, button.ActualWidth > 0 && button.ActualHeight > 0
-                && at.X >= 0 && at.X + button.ActualWidth <= width && at.Y + button.ActualHeight <= 800);
+                && at.X >= 0 && at.X + button.ActualWidth <= width && at.Y + button.ActualHeight <= 800,
+                new { at.X, at.Y, button.ActualWidth, button.ActualHeight, width });
             var bitmap = new WMI.RenderTargetBitmap(width, 800, 96, 96, WM.PixelFormats.Pbgra32); bitmap.Render(card);
             var encoder = new WMI.PngBitmapEncoder(); encoder.Frames.Add(WMI.BitmapFrame.Create(bitmap));
             using var image = File.Create(Path.Combine(output, $"city-{width}.png")); encoder.Save(image);

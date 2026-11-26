@@ -113,7 +113,8 @@ internal sealed partial class EditorWindow
             attemptedIdentity = identity;
             var session = await Task.Run(() => GameMemory.RequirePlayingSession(identity), token);
             ObserveSession(identity, session);
-            StartFaceLibrary(GameMemory.ExecutablePath(identity));
+            string? executable = GameMemory.ExecutablePath(identity);
+            StartFaceLibrary(executable);
             if(!await DisconnectAsync(null))return;
             lists.TableDrafts.Clear();
             aiView?.DiscardDrafts();
@@ -141,6 +142,10 @@ internal sealed partial class EditorWindow
             officerEditor.SetCatalog(catalog);
             forceEditor.SetNames(countryNames, catalog);
             if (catalog.Personalities.Length == 0 || catalog.Tactics.Length == 0) AddLog(L.Connection.NoNameLists);
+            var ranges = await Task.Run(() => EditorRangeEvidence.AtConnection(executable), token);
+            cityEditor.RangeEvidence = ranges.City;
+            formationEditor.RangeEvidence = ranges.Formation;
+            personalityEditor.RangeEvidence = ranges.Personality;
             game = identity;
             layout = found;
             snapshot = data;

@@ -14,5 +14,11 @@ internal static partial class L
         internal static string ImportDraft => T();
         internal static string ImportSaved => T();
         internal static string ImportConfirm => T();
+        internal static string ImportChoices(object count, object conflicts) => Format(T(), (nameof(count), count), (nameof(conflicts), conflicts));
+        internal static string ImportField(object name, object id, object field, object original, object baseline, object current, object incoming) =>
+            Format(T(), (nameof(name), name), (nameof(id), id), (nameof(field), field), (nameof(original), original), (nameof(baseline), baseline), (nameof(current), current), (nameof(incoming), incoming));
+        internal static string RuleDatasetChanged => T();
+        internal static string BindLegacy(object file, object hash) => Format(T(), (nameof(file), file), (nameof(hash), hash));
+        internal static string RuleDatasetSelected(object hash, object file) => Format(T(), (nameof(hash), hash), (nameof(file), file));
     }
 }

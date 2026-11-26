@@ -31,6 +31,12 @@ internal sealed class PersonalityEditorCard : EditorCard
     private readonly WC.TextBlock description = new() { TextWrapping = W.TextWrapping.Wrap, Margin = new W.Thickness(0, 2, 0, 4) };
     private readonly WC.WrapPanel holders = new();
     private readonly WC.TextBlock holderNote = new() { Foreground = CardSkin.InkMuted, TextWrapping = W.TextWrapping.Wrap };
+    private readonly WC.TextBlock rangeNote = new() { TextWrapping = W.TextWrapping.Wrap, Foreground = CardSkin.InkMuted };
+    private readonly WC.TextBlock[] slotNotes = [new() { TextWrapping = W.TextWrapping.Wrap }, new() { TextWrapping = W.TextWrapping.Wrap }];
+    internal FeatureRangeEvidence RangeEvidence
+    {
+        set => rangeNote.Text = L.EditRanges.EffectBasis + "\n" + EditorRangeNotes.Evidence(value);
+    }
     private View? view;
     private bool settling;
     private int pending;
@@ -49,6 +55,8 @@ internal sealed class PersonalityEditorCard : EditorCard
         page.Children.Add(Heading(L.Personality.Does));
         page.Children.Add(description);
         page.Children.Add(Heading(L.Personality.Effects));
+        RangeEvidence = FeatureRangeEvidence.Unknown;
+        page.Children.Add(rangeNote);
         WC.DockPanel timingLine = Line(L.Personality.Timing, timing);
         timingLine.ToolTip = L.Personality.TimingTip;
         page.Children.Add(timingLine);
@@ -62,6 +70,7 @@ internal sealed class PersonalityEditorCard : EditorCard
         {
             page.Children.Add(Line(effect == 0 ? L.Personality.Effect1 : L.Personality.Effect2, kinds[effect].Box));
             page.Children.Add(Line(L.Personality.Value, values[effect].Box));
+            page.Children.Add(slotNotes[effect]);
             values[effect].Edited += Settle;
             kinds[effect].Box.SelectionChanged += (_, _) => Settle();
         }
@@ -109,8 +118,14 @@ internal sealed class PersonalityEditorCard : EditorCard
         if (shown.Index != Personality) return;
         view = shown;
         settling = true;
+        condition.Follow(shown.Condition);
+        filter.Follow(shown.Filter);
         number.Follow(shown.ConditionValue);
-        for (int effect = 0; effect < values.Length; effect++) values[effect].Follow(shown.Effects[effect].Value);
+        for (int effect = 0; effect < values.Length; effect++)
+        {
+            kinds[effect].Follow(shown.Effects[effect].Kind);
+            values[effect].Follow(shown.Effects[effect].Value);
+        }
         settling = false;
         Show(shown);
         Settle();
@@ -127,7 +142,6 @@ internal sealed class PersonalityEditorCard : EditorCard
             PersonalityRules.Timing.WhileMet => L.Personality.TimingWhileMet,
             _ => L.Personality.TimingAfterAttack(shown.Days)
         };
-        condition.Box.IsEnabled = shown.Timing != PersonalityRules.Timing.AfterAttack;
         holders.Children.Clear();
         foreach ((int officer, string name, bool _) in shown.Holders.OrderByDescending(h => h.Active).Take(ShownHolders))
             holders.Children.Add(Chip(name, "", added: false, remove: null, open: () => RaiseLink(new OfficerTarget(officer))));
@@ -145,19 +159,33 @@ internal sealed class PersonalityEditorCard : EditorCard
         int picked = condition.Picked;
         PersonalityRules.Target target = PersonalityRules.TargetOf(picked);
         bool eventMorale = target == PersonalityRules.Target.Event;
+        bool preserveConditions = view.Effects.Any(e => EditorValueRanges.UnconfirmedEffect(e.Kind));
+        condition.Box.IsEnabled = !preserveConditions && view.Timing != PersonalityRules.Timing.AfterAttack;
+        filter.Box.IsEnabled = number.Box.IsEnabled = !preserveConditions;
         PersonalityRules.Number numberMeaning = PersonalityRules.NumberOf(view.Index, picked);
         numberLine.Visibility = numberMeaning == PersonalityRules.Number.None ? W.Visibility.Collapsed : W.Visibility.Visible;
         numberLabel.Text = numberMeaning == PersonalityRules.Number.Range ? L.Personality.RangeLabel : L.Personality.TroopsLabel;
         bool filtered = view.Timing == PersonalityRules.Timing.WhileMet && target is PersonalityRules.Target.Own or PersonalityRules.Target.Others;
         filterLine.Visibility = filtered ? W.Visibility.Visible : W.Visibility.Collapsed;
-        if (filtered && !PersonalityRules.Filters.Contains(filter.Picked)) filter.Pick(PersonalityRules.FilterArmy);
+        if (filtered && !preserveConditions && !PersonalityRules.Filters.Contains(filter.Picked)) filter.Pick(PersonalityRules.FilterArmy);
         for (int effect = 0; effect < values.Length; effect++)
         {
             int gameKind = view.Effects[effect].Kind;
+            bool extended = EditorValueRanges.UnconfirmedEffect(gameKind);
+            bool preserveSlot = extended || preserveConditions &&
+                EditorValueRanges.NonstandardEventSlot(view.Condition, gameKind, view.Effects[effect].Value);
+            slotNotes[effect].Visibility = preserveSlot ? W.Visibility.Visible : W.Visibility.Collapsed;
+            if (preserveSlot)
+            {
+                slotNotes[effect].Text = extended ? L.EditRanges.EffectHold(gameKind)
+                    : L.EditRanges.EventSlotHold(gameKind, view.Effects[effect].Value);
+                kinds[effect].Box.IsEnabled = values[effect].Box.IsEnabled = false;
+                continue;
+            }
             if (eventMorale) kinds[effect].Pick(values[effect].Value != 0 ? PersonalityRules.EventMorale : 0);
             else if (kinds[effect].Picked == PersonalityRules.EventMorale && gameKind != PersonalityRules.EventMorale) kinds[effect].Pick(gameKind);
             kinds[effect].Box.IsEnabled = !eventMorale;
-            kinds[effect].Allow(k => PersonalityRules.KindProblem(view.Timing, picked, k));
+            kinds[effect].Allow(k => EditorValueRanges.UnconfirmedEffect(k) ? L.EditRanges.EffectHold(k) : PersonalityRules.KindProblem(view.Timing, picked, k));
             int kind = kinds[effect].Picked;
             bool free = eventMorale || kind != 0 && !view.Switches.Contains(kind);
             values[effect].Box.IsEnabled = free;

@@ -219,7 +219,11 @@ public sealed class SettingsMigrationTests
         var baseline=Baseline();var key=baseline.Defaults[0].Key;
         var source=baseline.WithChanges([new(key,baseline.Default(key),20)]);
         var target=baseline with{Build=Next,Defaults=baseline.Defaults.Select(v=>v.Key==key?v with{Value=12}:v).ToArray()};
-        var result=SettingsMigration.Rules(source,target,Policy());
+        var plan=SettingsMigration.PlanRules(source,target,Policy());
+        var conflict=Assert.Single(plan.Conflicts);
+        Assert.Equal(new RuleImportConflict(key,10,12,12,20),conflict);
+        Assert.Equal(12,plan.Resolve().Desired(key));
+        var result=plan.Resolve(new HashSet<RuleKey>{key});
         Assert.Equal(12,result.Default(key));Assert.Equal(20,result.Desired(key));Assert.False(result.AutoApply);
         Assert.Equal(10,baseline.Default(key));
         Assert.Throws<InvalidDataException>(()=>SettingsMigration.Rules(source,target));
@@ -227,6 +231,62 @@ public sealed class SettingsMigrationTests
         Assert.Throws<InvalidDataException>(()=>SettingsMigration.Rules(source,changed,Policy()));
         Assert.Throws<InvalidDataException>(()=>SettingsMigration.Rules(source with{Overrides=[new(key,999)]},target,Policy()));
     }
+    [Fact]
+    public void ImportMergesIndependentFieldsAndRequiresAnExplicitSameFieldDecision()
+    {
+        var baseline = Baseline();
+        var keys = baseline.Defaults.Take(5).Select(d => d.Key).ToArray();
+        RuleChange Change(int index, int delta) => new(keys[index], baseline.Default(keys[index]), baseline.Default(keys[index]) + delta);
+        var target = baseline.WithChanges([Change(0, 1), Change(2, 1), Change(3, 2)]);
+        var source = baseline.WithChanges([Change(1, 1), Change(2, 2), Change(3, 2)]);
+        var plan = SettingsMigration.PlanRules(source, target);
+        Assert.Equal(keys[1], Assert.Single(plan.Changes).Key);
+        Assert.Equal(keys[2], Assert.Single(plan.Conflicts).Key);
+        var keep = plan.Resolve();
+        var take = plan.Resolve(new HashSet<RuleKey>{keys[2]});
+        Assert.Equal(target.Desired(keys[0]), keep.Desired(keys[0]));
+        Assert.Equal(source.Desired(keys[1]), keep.Desired(keys[1]));
+        Assert.Equal(target.Desired(keys[2]), keep.Desired(keys[2]));
+        Assert.Equal(source.Desired(keys[2]), take.Desired(keys[2]));
+        Assert.Equal(source.Desired(keys[3]), keep.Desired(keys[3]));
+        Assert.True(take.SameAs(SettingsMigration.PlanRules(source,take).Resolve()));
+        Assert.Throws<InvalidDataException>(() => plan.Resolve(new HashSet<RuleKey>{keys[4]}));
+    }
+
+    [Fact]
+    public void SameExecutableKeepsSeparateDatasetDefaultsAndBindsLegacyOnlyOnce()
+    {
+        using var scratch = new TestRuleDirectory();
+        var legacy = new RuleProfileFile(Path.Combine(scratch.Path, "rule_profiles.json"));
+        var original = Baseline();
+        var key = original.Defaults[0].Key;
+        var modified = original with { Defaults = original.Defaults.Select(d => d.Key == key ? d with { Value = 12 } : d).ToArray() };
+        string stock = new('A',64), mod = new('B',64);
+        var before = legacy.Save(original.WithChanges([new(key,10,20)]), "");
+        var alternate = legacy.ForDataset(mod, null);
+        Assert.Null(legacy.UnboundLegacy(mod));
+        Assert.Throws<IOException>(() => legacy.ForDataset(mod, before));
+        alternate.Save(modified, "");
+        Assert.Equal(before.Stamp, legacy.UnboundLegacy(stock)!.Stamp);
+        Assert.Throws<IOException>(() => legacy.ForDataset(stock, before with { Stamp = "changed" }));
+        var selected = legacy.ForDataset(stock, before);
+        Assert.Equal(before.Stamp, selected.Read().Stamp);
+        Assert.Equal(12, legacy.ForDataset(mod, null).Read().Profile!.Default(key));
+        Assert.Equal(20, legacy.ForDataset(stock, null).Read().Profile!.Desired(key));
+        Assert.NotEqual(selected.FileName, alternate.FileName);
+        Assert.Throws<InvalidDataException>(() => legacy.ForDataset("../invalid", null));
+        string file = Path.Combine(scratch.Path, "fixdataexce.s14");
+        File.WriteAllBytes(file, [1,2,3]);
+        Assert.Equal(64, RuleDataset.Fingerprint(file, DateTime.UtcNow.AddHours(1)).Length);
+        Assert.Throws<IOException>(() => RuleDataset.Fingerprint(file, DateTime.UnixEpoch));
+    }
+
+    private sealed class TestRuleDirectory : IDisposable
+    {
+        internal string Path { get; } = Directory.CreateTempSubdirectory("rule-datasets-").FullName;
+        public void Dispose() => Directory.Delete(Path, true);
+    }
+
     [Fact]
     public void GuardedImportPreservesExactOriginalBytesAndRefusesSourceOrTargetRaces()
     {

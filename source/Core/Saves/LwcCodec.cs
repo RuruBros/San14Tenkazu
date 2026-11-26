@@ -12,7 +12,7 @@ internal static class LwcCodec
     internal static bool IsBlock(ReadOnlySpan<byte> data, int offset)
         => offset >= 0 && data.Length - offset >= HeaderSize && data.Slice(offset, 4).SequenceEqual(Magic);
 
-    internal static byte[] Decode(ReadOnlySpan<byte> file, int offset)
+    internal static byte[] Decode(ReadOnlySpan<byte> file, int offset, bool requireCompletePayload = false)
     {
         if (!IsBlock(file, offset)) throw new InvalidDataException(L.RuntimeErrors.SaveFormat("magic"));
         int decoded = BitConverter.ToInt32(file.Slice(offset + 4, 4)), payload = BitConverter.ToInt32(file.Slice(offset + 8, 4));
@@ -26,12 +26,14 @@ internal static class LwcCodec
         {
             int code = bits.Gamma();
             if (code < 256) { output[written++] = table[code]; continue; }
-            int distance = code - 256, length = bits.Gamma() + 3;
-            if (distance <= 0 || distance > written || length > decoded - written)
+            int distance = code - 256, lengthCode = bits.Gamma();
+            if (distance <= 0 || distance > written || lengthCode > decoded - written - 3)
                 throw new InvalidDataException(L.RuntimeErrors.SaveFormat($"copy {written}"));
+            int length = lengthCode + 3;
             for (int i = 0; i < length; i++) output[written + i] = output[written - distance + i];
             written += length;
         }
+        if (requireCompletePayload && !bits.AtPaddedEnd) throw new InvalidDataException(L.RuntimeErrors.SaveFormat("payload"));
         return output;
     }
 
@@ -39,6 +41,7 @@ internal static class LwcCodec
     {
         private readonly ReadOnlySpan<byte> data = data;
         private int position, current, left;
+        internal readonly bool AtPaddedEnd => position == data.Length && current == 0;
         private int Bit()
         {
             if (left == 0)

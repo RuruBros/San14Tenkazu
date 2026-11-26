@@ -10,6 +10,11 @@ internal sealed class FormationEditorCard : EditorCard
     private readonly Dictionary<FormationField, WC.TextBlock> details = [];
     private readonly WC.CheckBox auto = new() { Content = L.Rules.AutoApply, ToolTip = L.Rules.AutoTip };
     private readonly PlateButton restore = new(L.Rules.Restore, icon: Icons.Revert) { ToolTip = L.Rules.RestoreTip };
+    private readonly WC.TextBlock rangeNote = new() { TextWrapping = W.TextWrapping.Wrap, Foreground = CardSkin.InkMuted };
+    internal FeatureRangeEvidence RangeEvidence
+    {
+        set => rangeNote.Text = L.EditRanges.FormationBasis + "\n" + EditorRangeNotes.Evidence(value);
+    }
     private bool showing;
     internal event Action? RestoreClicked;
     internal event Action<bool>? AutoChanged;
@@ -22,6 +27,8 @@ internal sealed class FormationEditorCard : EditorCard
         var page = new WC.StackPanel();
         page.Children.Add(new WC.TextBlock { Text = L.Rules.Note, TextWrapping = W.TextWrapping.Wrap, Foreground = CardSkin.InkMuted, Margin = new W.Thickness(0, 0, 0, 12) });
         page.Children.Add(auto);
+        RangeEvidence = FeatureRangeEvidence.Unknown;
+        page.Children.Add(rangeNote);
         foreach (FormationField f in FormationRules.Fields)
         {
             var input = new NumberField(f.Input, 80);
@@ -59,9 +66,11 @@ internal sealed class FormationEditorCard : EditorCard
             RuleKey key = FormationRules.Key(Formation, f.Key);
             int now = view.Record.Value(f.Key), baseline = view.Profile.Default(key), desired = view.Profile.Desired(key);
             f.Value.Follow(now);
+            f.Value.Box.IsReadOnly = EditorValueRanges.PreserveFormation(view.Profile, key, now);
             string state = desired == baseline ? now == baseline ? L.Rules.Unchanged : L.Rules.Conflict
                 : now == desired ? L.Rules.Applied : now == baseline ? L.Rules.Waiting : L.Rules.Conflict;
-            details[f.Key].Text = $"{L.Rules.Current} {now} · {L.Rules.Baseline} {baseline}\n{L.Rules.Setting} {desired} · {state}";
+            details[f.Key].Text = $"{L.Rules.Current} {now} · {L.Rules.Baseline} {baseline}\n{L.Rules.Setting} {desired} · "
+                + (f.Value.Box.IsReadOnly ? L.EditRanges.FormationHold : state);
         }
         Count();
     }
@@ -71,6 +80,7 @@ internal sealed class FormationEditorCard : EditorCard
         var changes = new List<RuleChange>();
         foreach (var f in fields.Where(f => f.Value.IsChanged))
         {
+            if (f.Value.Box.IsReadOnly) { error = L.EditRanges.FormationHold; return null; }
             if (!f.Value.TryRead(out long value, out error)) return null;
             changes.Add(new(FormationRules.Key(Formation, f.Key), (int)f.Value.Current, (int)value));
         }

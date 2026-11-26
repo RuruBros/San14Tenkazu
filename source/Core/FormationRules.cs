@@ -11,6 +11,8 @@ internal sealed record FormationField(string Id, string Label, int Plain, int Ve
 
 internal static class FormationRules
 {
+    internal const int IdentityBytes = 12; // ID, ten name bytes, kind.
+    internal const int IdentityHexChars = IdentityBytes * 2;
     internal static readonly int[] EditableIds = Enumerable.Range(1, 20).ToArray();
     // Native getters: 2B0210, 2B2720, 2B2690, 2A9DC0, 2B27B0. Only these five verified scalars.
     internal static readonly FormationField[] Fields = [
@@ -37,6 +39,12 @@ internal sealed record FormationRecord(int Id, ulong Address, byte[] Data, ulong
     internal int Value(FormationField field) => Vector.Length == 32
         ? FormationRules.Decode(Vector[field.Vector], field.Rotate, Id) : Data[field.Plain];
     internal bool MirrorsAgree => FormationRules.Fields.All(f => Value(f) == Data[f.Plain]);
+    internal void WriteIdentity(Stream output)
+    {
+        output.WriteByte((byte)Id);
+        output.Write(Data, 0x10, 10);
+        output.WriteByte(Data[0x7E]);
+    }
 }
 
 internal sealed record FormationSnapshot(ulong Root, ulong State, ulong Array, FormationRecord[] Records, string Catalog)
@@ -47,9 +55,18 @@ internal sealed record FormationSnapshot(ulong Root, ulong State, ulong Array, F
     internal RuleProfile Baseline(string build)
     {
         if (Records.Any(r => !r.MirrorsAgree)) throw new InvalidDataException(L.Rules.WriteFailed);
-        RuleProfile profile = RuleProfile.Create(build, Catalog, Values.Select(v => new RuleDefault(v.Key, v.Value)));
+        RuleProfile profile = WithIdentities(RuleProfile.Create(build, Catalog, Values.Select(v => new RuleDefault(v.Key, v.Value))));
         profile.Validate();
         return profile;
+    }
+    internal RuleProfile WithIdentities(RuleProfile profile)
+    {
+        if (profile.FormationIdentities is not null) return profile;
+        using var bytes = new MemoryStream();
+        foreach (var record in Records) record.WriteIdentity(bytes);
+        byte[] identities = bytes.ToArray();
+        if (Convert.ToHexString(SHA256.HashData(identities)) != profile.Catalog) throw new InvalidDataException(L.Rules.Incompatible);
+        return profile with { FormationIdentities = Convert.ToHexString(identities) };
     }
     internal void Check(RuleProfile profile, string build)
     {
@@ -95,10 +112,9 @@ internal static class FormationMemory
             bool empty = start == end && (start == 0 && cap == 0 || Address(start) && cap >= end);
             if (!empty && (!Address(start) || end != start + 32 || cap < end || cap - start > 4096)) throw new InvalidDataException(L.Rules.NotReady);
             byte[] vector = empty ? [] : memory.Read(start, 32);
-            records.Add(new(id, address, data, start, vector));
-            catalog.WriteByte((byte)id);
-            catalog.Write(data, 0x10, 10); // Name and kind identify the catalog, not values changed by this editor.
-            catalog.WriteByte(data[0x7E]);
+            var record = new FormationRecord(id, address, data, start, vector);
+            records.Add(record);
+            record.WriteIdentity(catalog);
         }
         if (Pointer(memory, rootSlot) != root || Pointer(memory, root + StateOffset) != state
             || !memory.Read(root + TableOffset, pointers.Length).AsSpan().SequenceEqual(pointers)) throw new InvalidDataException(L.Rules.Stale);

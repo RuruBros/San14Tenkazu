@@ -134,6 +134,36 @@ internal static partial class RenderChecks
             Record("reset-discards-old-read", window.GetType().GetField("ruleSnapshot", Hidden)!.GetValue(window) is null
                 && window.GetType().GetField("ruleKept", Hidden)!.GetValue(window) is null,
                 new { staleReadDiscarded = window.GetType().GetField("ruleSnapshot", Hidden)!.GetValue(window) is null });
+
+            string digest = new('A', 64);
+            var datasetAccess = new RuleGameAccess(_ => fixture.Snapshot(), (_, _) => GamePace.Paused,
+                (_, _, _) => throw new InvalidOperationException("Unexpected dataset write"), ReadDataset: _ => digest);
+            string datasetRoot = Path.Combine(storage, "datasets");
+            var scoped = OfflineEditor(() => false, datasetRoot, datasetRoot, datasetRoot, datasetAccess);
+            try
+            {
+                Set(scoped, "layout", Field<GameLayout>(window, "layout"));
+                Set(scoped, "snapshot", new TestGame().Build());
+                var key = FormationRules.Key(1, FormationRules.Fields[0]);
+                int DefaultForProcess(int pid)
+                {
+                    Call(scoped, "ResetRules");
+                    Set(scoped, "game", fixture.Identity with { ProcessId = pid });
+                    Await((Task)Call(scoped, "PollRulesAsync")!);
+                    return Field<RuleProfileRead>(scoped, "ruleKept").Profile!.Default(key);
+                }
+                fixture.Load();
+                int stock = DefaultForProcess(1);
+                digest = new('B', 64);
+                FormationMemory.Apply(fixture, fixture.Identity, fixture.Snapshot(), [new(key, stock, stock + 1)]);
+                int mod = DefaultForProcess(2);
+                fixture.Load();
+                digest = new('A', 64);
+                int returned = DefaultForProcess(3);
+                Record("master-file-selects-and-restores-dataset-baselines", stock == 10 && mod == 11 && returned == 10
+                    && Directory.GetFiles(datasetRoot, "rule_profiles.*.json").Length == 2, new { stock, mod, returned });
+            }
+            finally { scoped.Close(); }
         }
         finally
         {

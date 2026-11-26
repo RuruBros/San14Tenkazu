@@ -62,7 +62,8 @@ internal static partial class RenderChecks
         {
             var popup = Field<WP.Popup>(editor, "settingsPopup");
             var options = (WC.StackPanel)((WC.Border)popup.Child).Child;
-            Check(options.Children.Count == 3, "manual-launch-preparation-menu-removed");
+            Check(options.Children.OfType<PlateButton>().Any(b => b.Text == L.FileComparison.Title && b.IsEnabled)
+                && !options.Children.OfType<PlateButton>().Any(b => b.Text == L.Preparation.Menu), "offline-file-comparison-replaces-no-existing-entry");
             Check(Field<PlateButton>(editor, "runtimeRulesButton").IsEnabled && window.Apply.IsEnabled, "settings-available-without-game");
             window.TraitList.IsChecked = true; window.Ability.SelectedIndex = (int)AbilityRuleMode.Growth200;
             Check(window.HasPendingChanges && window.Traits.IsChecked == true, "offline-draft-tracks-nine-slots");

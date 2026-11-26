@@ -33,12 +33,20 @@ internal sealed record TacticRecord(int Id, ulong Address, byte[] Data, ulong Ve
 {
     internal string Name => GameMemory.ReadName(Data, 0x10, 5);
     internal bool Named => !GameMemory.IsPlaceholder(Name);
+    internal bool SameSlotContext(TacticField field, TacticRecord old)
+    {
+        if (field.Slot < 0) return true;
+        if (field.Id.StartsWith("kind", StringComparison.Ordinal))
+            return TacticRules.Fields.Where(f => f.Slot == field.Slot).All(f => Value(f) == old.Value(f));
+        var kind = TacticRules.Field($"kind{field.Slot + 1}");
+        return Value(kind) == old.Value(kind);
+    }
     internal int Value(TacticField field) => Vector.Length == 40 ? FormationRules.Decode(Vector[field.Vector], field.Rotate, Id) : Data[field.Plain];
     internal bool MirrorsAgree => TacticRules.Fields.All(f => Value(f) == Data[f.Plain])
         && (Vector.Length != 40 || FormationRules.Decode(Vector[0], 1, Id) == Data[0x44]);
 }
 
-internal sealed record TacticSnapshot(ulong Root, ulong State, ulong Array, TacticRecord[] Records, string Catalog)
+internal sealed record TacticSnapshot(ulong Root, ulong State, ulong Array, TacticRecord[] Records, string Catalog, string? Identities = null)
 {
     internal TacticRecord Record(int id) => Records.Single(r => r.Id == id);
     internal Dictionary<RuleKey, int> Values => Records.SelectMany(r => TacticRules.Fields.Select(f => new KeyValuePair<RuleKey, int>(TacticRules.Key(r.Id, f), r.Value(f)))).ToDictionary();
@@ -87,7 +95,8 @@ internal static class TacticMemory
         if (records.Count == 0) throw new InvalidDataException(L.Rules.NotReady);
         if (Pointer(memory, rootSlot) != root || Pointer(memory, root + FormationMemory.StateOffset) != state
             || !memory.Read(root + TableOffset, pointers.Length).AsSpan().SequenceEqual(pointers)) throw new InvalidDataException(L.Rules.Stale);
-        return new(root, state, array, records.ToArray(), Convert.ToHexString(SHA256.HashData(catalog.ToArray())));
+        var identityBytes = catalog.ToArray();
+        return new(root, state, array, records.ToArray(), Convert.ToHexString(SHA256.HashData(identityBytes)), Convert.ToHexString(identityBytes));
     }
 
     internal static TacticSnapshot Apply(IRecordMemory memory, GameIdentity game, TacticSnapshot expected, IReadOnlyList<RuleChange> changes)
@@ -99,7 +108,8 @@ internal static class TacticMemory
         {
             TacticRecord r = fresh.Record(c.Key.Record), old = expected.Record(c.Key.Record); TacticField f = TacticRules.Field(c.Key.Field);
             if (r.Address != old.Address || r.VectorAddress != old.VectorAddress || r.Vector.Length != old.Vector.Length
-                || r.Value(f) != c.Before || r.Data[f.Plain] != old.Data[f.Plain] || !r.MirrorsAgree) throw new InvalidOperationException(L.Rules.Stale);
+                || r.Value(f) != c.Before || r.Data[f.Plain] != old.Data[f.Plain] || !r.SameSlotContext(f, old)
+                || !r.MirrorsAgree) throw new InvalidOperationException(L.Rules.Stale);
         }
         var writes = new List<(ulong At, byte[] Before, byte[] After)>();
         foreach (var group in changes.Where(c => c.Before != c.After).GroupBy(c => c.Key.Record))

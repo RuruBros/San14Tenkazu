@@ -157,13 +157,10 @@ internal sealed partial class EditorWindow
             long scale = CityFields.Scale.Read(edit.Expected);
             foreach (FieldChange change in edit.Changes)
                 if (change.Field == CityFields.Scale) scale = change.Value;
-            if (CityFields.Caps(scale) is not { } caps) continue;
             foreach (FieldChange change in edit.Changes)
             {
-                long? cap = change.Field == CityFields.Gold ? caps.Gold : change.Field == CityFields.Food ? caps.Food
-                    : change.Field == CityFields.Troops ? caps.Troops : null;
-                if (cap is not null && change.Value > cap)
-                    AddLog("  " + L.Apply.AboveCap(change.Field.Label, change.Value.ToString("N0"), cap));
+                if (EditorValueRanges.OfficialCityFill(scale, change.Field) is int cap && change.Value > cap)
+                    AddLog("  " + L.EditRanges.AboveOfficial(change.Field.Label, change.Value, cap));
             }
         }
     }

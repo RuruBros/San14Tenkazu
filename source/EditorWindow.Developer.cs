@@ -29,6 +29,7 @@ internal sealed partial class EditorWindow
         window.PerformanceStop.Click+=()=>performanceCancellation?.Cancel();
         window.ReadTraits.Click+=async()=>await ReadDeveloperTraitList();
         window.ReadCompatibility.Click+=()=>compatibilityTask=ReadDeveloperCompatibility();
+        window.CompareLoadedRules.Click += async () => await ReadLoadedRules();
         window.CancelCompatibility.Click+=()=>compatibilityCancellation?.Cancel();
         window.ReadGeography.Click+=async()=>await RunDeveloperGeography(false);
         window.EditGeography.Click+=async()=>await RunDeveloperGeography(true);
@@ -94,6 +95,7 @@ internal sealed partial class EditorWindow
         window.HeldProvocationFinish.IsEnabled = window.HeldProvocationRestore.IsEnabled =
             !developerChanging && !seasonClosing && !seasonDisconnecting && heldProvocationReceipt is not null && game == heldProvocationReceipt.Identity;
         window.ProfiledRulesEdit.IsEnabled = available && CanRunProfiledRuleEdit;
+        window.CompareLoadedRules.IsEnabled = available && CanReadLoadedRules;
         window.ProfiledAiEdit.IsEnabled = available && CanRunProfiledAi;
         window.ProfiledAiExtension.IsEnabled = available && CanRunProfiledAi;
         window.ProfiledRuntimeRules.IsEnabled = available && CanRunProfiledRuntimeRules;

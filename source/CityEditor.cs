@@ -34,6 +34,21 @@ internal sealed class CityEditorCard : EditorCard
     private readonly WC.TextBlock governorNote = new() { Foreground = CardSkin.InkMuted, VerticalAlignment = W.VerticalAlignment.Center, TextWrapping = W.TextWrapping.Wrap, MaxWidth = 240 };
     private readonly PlateButton give;
     private readonly PlateButton independence;
+    private readonly PlateButton fillCaps;
+    private readonly WC.TextBlock rangeNote = new() { TextWrapping = W.TextWrapping.Wrap, Foreground = CardSkin.InkMuted };
+    private FeatureRangeEvidence rangeEvidence = FeatureRangeEvidence.Unknown;
+    internal FeatureRangeEvidence RangeEvidence
+    {
+        get => rangeEvidence;
+        set
+        {
+            rangeEvidence = value;
+            rangeNote.Text = L.EditRanges.CityBasis + "\n" + EditorRangeNotes.Evidence(value);
+            if (value.HasClues) rangeNote.Text += "\n" + L.EditRanges.CityHold;
+            fillCaps.IsEnabled = !value.HasClues;
+            fillCaps.ToolTip = fillCaps.IsEnabled ? L.EditRanges.CityFillTip : L.EditRanges.CityHold;
+        }
+    }
     private bool actionsEnabled = true;
     private string? independenceBlock;
     private int pending;
@@ -60,6 +75,9 @@ internal sealed class CityEditorCard : EditorCard
         give = Shortcut(L.Give.Button, L.Give.ButtonTip, () => GiveClicked?.Invoke(), Icons.Force);
         give.Margin = new W.Thickness(8, 2, 0, 2);
         independence = Shortcut(L.Independence.Button, L.Independence.ButtonTip, () => IndependenceClicked?.Invoke(), Icons.Force);
+        fillCaps = Shortcut(L.EditRanges.CityFill, L.EditRanges.CityFillTip, FillCaps);
+        RangeEvidence = FeatureRangeEvidence.Unknown;
+        WC.ToolTipService.SetShowOnDisabled(fillCaps, true);
         WC.ToolTipService.SetShowOnDisabled(independence, true);
         OffersGoTo();
         AddPage(L.City.CityPage, CityPage());
@@ -78,10 +96,11 @@ internal sealed class CityEditorCard : EditorCard
         foreach (FieldDef field in CityFields.All)
             page.Children.Add(Line(field.Label, fields[field].Box, new WC.TextBlock { Text = field.Hint, Foreground = CardSkin.InkMuted, VerticalAlignment = W.VerticalAlignment.Center, TextWrapping = W.TextWrapping.Wrap, MaxWidth = 250 }));
         var shortcuts = new WC.WrapPanel { Margin = new W.Thickness(0, 6, 0, 0) };
-        shortcuts.Children.Add(Shortcut(L.City.FillCaps, L.City.FillCapsTip, FillCaps));
+        shortcuts.Children.Add(fillCaps);
         shortcuts.Children.Add(independence);
         shortcuts.Children.Add(Shortcut(L.Card.RevertInput, L.Card.RevertInputTip, Revert, Icons.Revert));
         page.Children.Add(shortcuts);
+        page.Children.Add(rangeNote);
         page.Children.Add(new WC.TextBlock
         {
             Text = CapsText(),
@@ -309,10 +328,12 @@ internal sealed class CityEditorCard : EditorCard
 
     private void FillCaps()
     {
-        if (CityFields.Caps(fields[CityFields.Scale].Value) is not { } caps) return;
-        fields[CityFields.Gold].Set(caps.Gold);
-        fields[CityFields.Food].Set(caps.Food);
-        fields[CityFields.Troops].Set(caps.Troops);
+        var scale = fields[CityFields.Scale];
+        if (RangeEvidence.HasClues || !scale.IsValid) return;
+        foreach (var (field, input) in fields)
+            if (input.Box.IsEnabled && !input.Box.IsReadOnly && !input.IsChanged
+                && EditorValueRanges.OfficialCityFill(scale.Value, field) is int cap && input.Current < cap)
+                input.Set(cap);
     }
 
     private void Revert()

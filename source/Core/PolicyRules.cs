@@ -36,15 +36,20 @@ internal sealed record PolicyRecord(string Table, int Id, ulong Address, byte[] 
 internal sealed record PolicySnapshot(ulong Root, ulong State, ulong PolicyArray, ulong EffectArray, PolicyRecord[] Records, RuleCatalog[] Catalogs)
 {
     internal PolicyRecord Record(string table, int id) => Records.Single(r => r.Table == table && r.Id == id);
+    internal IEnumerable<RuleKey> EffectUsers(int effect) =>
+        from row in Records where row.Table == "policy" from slot in PolicyRules.Effects
+        where row.Value(slot) == effect select PolicyRules.Key(row.Id, slot);
     internal Dictionary<RuleKey, int> Values => Records.SelectMany(r => PolicyRules.Fields(r.Table).Select(f => new KeyValuePair<RuleKey, int>(PolicyRules.Key(r.Id, f), r.Value(f)))).ToDictionary();
     internal bool SameStorage(PolicySnapshot other) => Root == other.Root && State == other.State && PolicyArray == other.PolicyArray && EffectArray == other.EffectArray
-        && Catalogs.Zip(other.Catalogs).All(p => p.First.Table == p.Second.Table && p.First.Fingerprint == p.Second.Fingerprint)
+        && Catalogs.Zip(other.Catalogs).All(p => p.First.Table == p.Second.Table && p.First.Fingerprint == p.Second.Fingerprint
+            && p.First.Identities == p.Second.Identities)
         && Catalogs.Length == other.Catalogs.Length;
     internal void Check(RuleProfile profile, string build)
     {
         profile.Validate();
         if (!string.Equals(profile.Build, build, StringComparison.OrdinalIgnoreCase) || Catalogs.Any(c => profile.Table(c.Table) is not { } saved
-            || c.Fingerprint != saved.Fingerprint || !c.Records.SequenceEqual(saved.Records))) throw new InvalidDataException(L.Rules.Incompatible);
+            || c.Fingerprint != saved.Fingerprint || saved.Identities != null && c.Identities != saved.Identities
+            || !c.Records.SequenceEqual(saved.Records))) throw new InvalidDataException(L.Rules.Incompatible);
     }
 }
 
@@ -72,7 +77,9 @@ internal static class PolicyMemory
             byte[] pointers = memory.Read(root + t.Offset, t.Count * 8);
             ulong array = BinaryPrimitives.ReadUInt64LittleEndian(pointers); arrays.Add(array);
             if (!Address(array)) throw new InvalidDataException(L.Rules.NotReady);
-            using var catalog = new MemoryStream(); var ids = new List<int>();
+            using var catalog = new MemoryStream();
+            using var identities = new MemoryStream();
+            var ids = new List<int>();
             for (int id = 1; id < t.Count; ++id)
             {
                 ulong address = BinaryPrimitives.ReadUInt64LittleEndian(pointers.AsSpan(id * 8));
@@ -80,6 +87,8 @@ internal static class PolicyMemory
                 byte[] data = memory.Read(address, t.Size);
                 if (BinaryPrimitives.ReadUInt64LittleEndian(data) != t.Class) throw new InvalidDataException(L.Rules.NotReady);
                 catalog.WriteByte((byte)id); catalog.Write(data, 0x10, 12);
+                identities.WriteByte((byte)id);
+                identities.Write(data, 0x10, t.Table == "policyeffect" ? 22 : 12);
                 ulong start = 0; byte[] vector = [];
                 if (t.Table == "policyeffect")
                 {
@@ -93,7 +102,8 @@ internal static class PolicyMemory
                 if (r.Named) { rows.Add(r); ids.Add(id); }
             }
             if (ids.Count == 0) throw new InvalidDataException(L.Rules.NotReady);
-            catalogs.Add(new(t.Table, t.Table + "-v1", Convert.ToHexString(SHA256.HashData(catalog.ToArray())), ids.ToArray()));
+            catalogs.Add(new(t.Table, t.Table + "-v1", Convert.ToHexString(SHA256.HashData(catalog.ToArray())), ids.ToArray(),
+                Convert.ToHexString(identities.ToArray())));
             if (!memory.Read(root + t.Offset, pointers.Length).AsSpan().SequenceEqual(pointers)) throw new InvalidDataException(L.Rules.Stale);
         }
         if (Pointer(memory, rootSlot) != root || Pointer(memory, root + FormationMemory.StateOffset) != state) throw new InvalidDataException(L.Rules.Stale);
@@ -107,6 +117,8 @@ internal static class PolicyMemory
             || c.After < 0 || c.After > (c.Key.Table == "policy" ? byte.MaxValue : ushort.MaxValue))) throw new InvalidDataException(L.Rules.BadProfile);
         PolicySnapshot fresh = Read(memory, game);
         if (!fresh.SameStorage(expected)) throw new InvalidOperationException(L.Rules.Stale);
+        foreach (int effect in changes.Where(c => c.Key.Table == "policyeffect").Select(c => c.Key.Record).Distinct())
+            if (!expected.EffectUsers(effect).SequenceEqual(fresh.EffectUsers(effect))) throw new InvalidOperationException(L.Rules.Stale);
         foreach (RuleChange c in changes)
         {
             PolicyRecord r = fresh.Record(c.Key.Table, c.Key.Record), old = expected.Record(c.Key.Table, c.Key.Record); PolicyField f = PolicyRules.Field(c.Key);

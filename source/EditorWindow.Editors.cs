@@ -534,6 +534,7 @@ internal sealed partial class EditorWindow
     // Whom an effect kind reaches, as the game reads it.
     private static string ReachText(int kind) => PersonalityRules.ReachOf(kind) switch
     {
+        _ when EditorValueRanges.UnconfirmedEffect(kind) => L.EditRanges.EffectHold(kind),
         PersonalityRules.Reach.Unit => L.PersonalityRules.ReachUnit,
         PersonalityRules.Reach.Received => L.PersonalityRules.ReachReceived,
         PersonalityRules.Reach.Own => L.PersonalityRules.ReachOwn,

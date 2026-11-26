@@ -1,0 +1,22 @@
+[
+  {"Id": 1, "Kind": 1, "Values": {"mobility": 14, "attack": 30, "siege": 13, "break": 6, "defense": 30}, "NameBytes": "B4C5B0B90000B4C5B0B9"},
+  {"Id": 2, "Kind": 1, "Values": {"mobility": 20, "attack": 45, "siege": 13, "break": 8, "defense": 18}, "NameBytes": "09BDDCC2000009BDDCC2"},
+  {"Id": 3, "Kind": 1, "Values": {"mobility": 12, "attack": 30, "siege": 25, "break": 5, "defense": 12}, "NameBytes": "48C589D5000048C589D5"},
+  {"Id": 4, "Kind": 1, "Values": {"mobility": 13, "attack": 10, "siege": 5, "break": 5, "defense": 40}, "NameBytes": "29BCD0C6000029BCD0C6"},
+  {"Id": 5, "Kind": 1, "Values": {"mobility": 16, "attack": 18, "siege": 12, "break": 13, "defense": 30}, "NameBytes": "59D575C7000059D575C7"},
+  {"Id": 6, "Kind": 1, "Values": {"mobility": 18, "attack": 21, "siege": 10, "break": 10, "defense": 21}, "NameBytes": "A5C7ACC00000A5C7ACC0"},
+  {"Id": 7, "Kind": 1, "Values": {"mobility": 26, "attack": 5, "siege": 5, "break": 5, "defense": 5}, "NameBytes": "94CD89D5000094CD89D5"},
+  {"Id": 8, "Kind": 1, "Values": {"mobility": 9, "attack": 10, "siege": 70, "break": 20, "defense": 20}, "NameBytes": "15C880B7000015C880B7"},
+  {"Id": 9, "Kind": 1, "Values": {"mobility": 10, "attack": 10, "siege": 15, "break": 60, "defense": 18}, "NameBytes": "A9CD28CC0000A9CD28CC"},
+  {"Id": 10, "Kind": 1, "Values": {"mobility": 12, "attack": 14, "siege": 45, "break": 45, "defense": 16}, "NameBytes": "2CD21DC100002CD21DC1"},
+  {"Id": 11, "Kind": 2, "Values": {"mobility": 10, "attack": 16, "siege": 2, "break": 2, "defense": 14}, "NameBytes": "FCC800AC0000FCC800AC"},
+  {"Id": 12, "Kind": 2, "Values": {"mobility": 20, "attack": 20, "siege": 2, "break": 2, "defense": 18}, "NameBytes": "BDBAA9CD0000BDBAA9CD"},
+  {"Id": 13, "Kind": 2, "Values": {"mobility": 30, "attack": 28, "siege": 2, "break": 2, "defense": 24}, "NameBytes": "04B220C1000004B220C1"},
+  {"Id": 14, "Kind": 1, "Values": {"mobility": 26, "attack": 45, "siege": 13, "break": 5, "defense": 21}, "NameBytes": "ACC074C70000ACC074C7"},
+  {"Id": 15, "Kind": 0, "Values": {"mobility": 0, "attack": 0, "siege": 0, "break": 0, "defense": 0}, "NameBytes": "C4C915D60000C4C915D6"},
+  {"Id": 16, "Kind": 0, "Values": {"mobility": 0, "attack": 0, "siege": 0, "break": 0, "defense": 0}, "NameBytes": "C4C915D60000C4C915D6"},
+  {"Id": 17, "Kind": 2, "Values": {"mobility": 10, "attack": 1, "siege": 1, "break": 1, "defense": 1}, "NameBytes": "18C220C1000018C220C1"},
+  {"Id": 18, "Kind": 2, "Values": {"mobility": 10, "attack": 1, "siege": 1, "break": 1, "defense": 1}, "NameBytes": "18C220C1000018C220C1"},
+  {"Id": 19, "Kind": 1, "Values": {"mobility": 12, "attack": 1, "siege": 1, "break": 1, "defense": 1}, "NameBytes": "18C2A1C1000018C2A1C1"},
+  {"Id": 20, "Kind": 2, "Values": {"mobility": 10, "attack": 1, "siege": 1, "break": 1, "defense": 1}, "NameBytes": "18C220C1000018C220C1"}
+]

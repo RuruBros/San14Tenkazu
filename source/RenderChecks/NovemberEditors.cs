@@ -26,7 +26,10 @@ internal static partial class RenderChecks
             false, TestGame.Classes with { DoctrinePanel = 0x7015 });
         var data = EditorCoverageFixture.Snapshot();
         var storage = Path.GetFullPath(Path.Combine(output, "storage"));
-        var editor = OfflineEditor(() => false, storage, storage, storage);
+        var ruleAccess = new RuleGameAccess(_ => throw new InvalidOperationException("Unexpected rule read"),
+            (_, _) => throw new InvalidOperationException("Unexpected pace read"),
+            (_, _, _) => throw new InvalidOperationException("Unexpected rule write"));
+        var editor = OfflineEditor(() => false, storage, storage, storage, ruleAccess);
         try
         {
             void Set(string field, object? value) => typeof(EditorWindow).GetField(field, Hidden)!.SetValue(editor, value);
@@ -73,7 +76,7 @@ internal static partial class RenderChecks
             string sourcePath = Path.Combine(output, "import-source.json");
             var key = baseline.Defaults[0].Key;
             File.WriteAllText(sourcePath, JsonSerializer.Serialize(baseline.WithChanges([new(key, baseline.Default(key), baseline.Default(key) + 1)])));
-            Call(editor, "SaveImportedRules", SettingsImportSource.Read(sourcePath), identity, baseline, kept.Stamp);
+            Call(editor, "SaveImportedRules", SettingsImportSource.Read(sourcePath), identity, baseline, kept.Stamp, null);
             Check(target.Read().Profile!.Desired(key) == baseline.Default(key) + 1 && File.ReadAllText(legacyPath) == "preserve-other-build",
                 "import-writes-only-november-target-profile");
             Set("busy", true); Call(editor, "UpdateControls");

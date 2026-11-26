@@ -15,6 +15,10 @@ internal static partial class RenderChecks
     {
         try
         {
+            if (args is ["--formation-files", ..]) { CheckFormationFiles(args[1..]); return 0; }
+            if (args is ["--editor-value-ranges"]) { CheckEditorValueRanges(); return 0; }
+            if (args is ["--rule-export-preview", var ruleExportInput, var ruleExportProfile]) { CheckRuleExportPreview(ruleExportInput, ruleExportProfile); return 0; }
+            if (args is ["--installation-diagnostics", ..]) { CheckInstallationDiagnostics(args[1..]); return 0; }
             if (args.Contains("--loaded-geography")) { var paths = args.Where(a => !a.StartsWith("--")).ToArray(); CheckLoadedGeography(paths[0], paths.ElementAtOrDefault(1), paths.ElementAtOrDefault(2)); return 0; }
             if (args.Contains("--map-reload")) { MapReloadChecks.Run(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--memory-lifetimes")) { CheckMemoryLifetimes(args.First(a => !a.StartsWith("--"))); return 0; }
@@ -55,11 +59,11 @@ internal static partial class RenderChecks
             if (args.Contains("--unit-conditions")) { CheckUnitConditions(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--officer-merit")) { CheckOfficerMerit(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--officer-revival")) { CheckOfficerRevival(args.First(a => !a.StartsWith("--"))); return 0; }
+            if (args.Contains("--batch-revival")) { CheckBatchRevival(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--officer-status")) { CheckOfficerStatusChanges(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--force-policies")) { CheckForcePolicies(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--pending-inputs")) { CheckPendingInputs(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--pending-cards-game-read")) { ReadPendingCardsGame(args.First(a => !a.StartsWith("--"))); return 0; }
-            if (args.Contains("--batch-revival")) { CheckBatchRevival(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--unit-conditions-game-read")) { ReadUnitConditionsGame(args.First(a => !a.StartsWith("--"))); return 0; }
             if (args.Contains("--tooltips")) { CheckTooltips(args.FirstOrDefault(a => !a.StartsWith("--")) ?? "source/RenderChecks/artifacts/tooltips"); return 0; }
             if (args.Contains("--choices")) { CheckChoices(args.FirstOrDefault(a => !a.StartsWith("--")) ?? "source/RenderChecks/artifacts/choices"); return 0; }

@@ -21,7 +21,8 @@ internal sealed record RuleGameAccess(
     Func<GameIdentity,PlainRuleSnapshot>? ReadRanks = null,
     Func<GameIdentity,PlainRuleSnapshot,RuleChange[],PlainRuleSnapshot>? ApplyRanks = null,
     Func<GameIdentity,PlainRuleSnapshot>? ReadDoctrines = null,
-    Func<GameIdentity,PlainRuleSnapshot,RuleChange[],PlainRuleSnapshot>? ApplyDoctrines = null)
+    Func<GameIdentity,PlainRuleSnapshot,RuleChange[],PlainRuleSnapshot>? ApplyDoctrines = null,
+    Func<GameIdentity, string>? ReadDataset = null, Func<GameIdentity, string, IDisposable>? GuardDataset = null)
 {
     internal static readonly RuleGameAccess Live = new(GameMemory.ReadFormations, GameMemory.ReadPace,
         (game, snapshot, changes) => GameMemory.ApplyFormations(game, snapshot, changes), GameMemory.ReadTactics,
@@ -29,7 +30,7 @@ internal sealed record RuleGameAccess(
         (game, snapshot, changes) => GameMemory.ApplyPolicies(game, snapshot, changes), GameMemory.ReadOffices,
         (game, snapshot, changes) => GameMemory.ApplyOffices(game, snapshot, changes),GameMemory.ReadRanks,
         (game,snapshot,changes) => GameMemory.ApplyPlainRules(game,snapshot,changes),GameMemory.ReadDoctrines,
-        (game,snapshot,changes) => GameMemory.ApplyPlainRules(game,snapshot,changes));
+        (game,snapshot,changes) => GameMemory.ApplyPlainRules(game,snapshot,changes), RuleDataset.Read, RuleDataset.Guard);
 }
 
 internal sealed record RuleReadState(FormationSnapshot Formation, TacticSnapshot? Tactic, PolicySnapshot? Policy = null, OfficeSnapshot? Office = null, PlainRuleSnapshot? Rank = null, PlainRuleSnapshot? Doctrine = null)
@@ -64,6 +65,8 @@ internal sealed partial class EditorWindow
 {
     private readonly RuleProfileFile ruleFile;
     private (string Build, RuleProfileFile File)? profiledRuleFile;
+    private sealed record DatasetBinding(GameIdentity Identity, RuleProfileFile File, string Digest);
+    private DatasetBinding? datasetRuleFile;
     private readonly RuleGameAccess ruleAccess;
     private RuleProfileRead? ruleKept;
     private FormationSnapshot? ruleSnapshot;
@@ -82,11 +85,65 @@ internal sealed partial class EditorWindow
 
     private RuleProfileFile RuleFileFor(GameIdentity identity)
     {
+        if (ruleAccess.ReadDataset is null) return BuildRuleFile(identity);
+        if (datasetRuleFile is { } selected && selected.Identity == identity) return selected.File;
+        throw new InvalidOperationException(L.Rules.NotReady);
+    }
+
+    private RuleProfileFile BuildRuleFile(GameIdentity identity)
+    {
         if (identity.DataProfile is not { } profile) return ruleFile;
         if (profiledRuleFile is { } current && current.Build == profile.ExeSha256) return current.File;
         var file = ruleFile.ForBuild(profile);
         profiledRuleFile = (profile.ExeSha256, file);
         return file;
+    }
+
+    private T WithRuleDataset<T>(GameIdentity identity, Func<T> operation)
+    {
+        if (ruleAccess.ReadDataset is null) return operation();
+        var binding = datasetRuleFile;
+        if (binding?.Identity != identity) throw new IOException(L.Compatibility.RuleDatasetChanged);
+        using var guard = ruleAccess.GuardDataset?.Invoke(identity, binding.Digest);
+        if (guard == null && ruleAccess.ReadDataset(identity) != binding.Digest) throw new IOException(L.Compatibility.RuleDatasetChanged);
+        return operation();
+    }
+
+    private async Task BindRuleDatasetAsync(GameIdentity identity, GameLayout currentLayout, RuleReadState state,
+        Func<GameIdentity, string> readDataset, Func<bool> current)
+    {
+        var buildFile = BuildRuleFile(identity);
+        var observed = await Task.Run(() =>
+        {
+            if (ruleAccess.Pace(identity, currentLayout with { State = state.Formation.State }) != GamePace.Paused)
+                throw new InvalidOperationException(L.Rules.PauseFirst);
+            string hash = readDataset(identity);
+            var confirmed = ReadRules(identity);
+            if (!state.SameValues(confirmed)) throw new InvalidOperationException(L.Rules.Stale);
+            var candidate = buildFile.UnboundLegacy(hash);
+            if (candidate?.Profile is { } previous)
+            {
+                try { confirmed.Check(previous, identity.ExeHash); }
+                catch (InvalidDataException) { candidate = null; }
+                var values = confirmed.Values;
+                if (previous.Defaults.Any(d => !values.TryGetValue(d.Key, out int v)
+                    || v != d.Value && v != previous.Desired(d.Key))) candidate = null;
+            }
+            return (hash, candidate);
+        });
+        if (!current()) return;
+        bool useLegacy = observed.candidate?.Profile is not null && Confirm(L.Compatibility.BindLegacy(buildFile.FileName, observed.hash),
+            System.Windows.MessageBoxImage.Question, defaultNo: true);
+        if (!current()) return;
+        var file = await Task.Run(() =>
+        {
+            using var guard = ruleAccess.GuardDataset?.Invoke(identity, observed.hash);
+            if (guard == null && readDataset(identity) != observed.hash) throw new IOException(L.Compatibility.RuleDatasetChanged);
+            return buildFile.ForDataset(observed.hash, useLegacy ? observed.candidate : null);
+        });
+        if (!current()) return;
+        datasetRuleFile = new(identity, file, observed.hash);
+        AddLog(L.Compatibility.RuleDatasetSelected(observed.hash, file.FileName));
     }
 
     private void WireRules()
@@ -153,7 +210,6 @@ internal sealed partial class EditorWindow
     private async Task PollRulesAsync()
     {
         if (busy || refreshing || layoutRecovering || rulePolling || game is not { } identity || !SupportsRuleTables(identity) || layout is null) return;
-        RuleProfileFile file = RuleFileFor(identity);
         rulePolling = true;
         long revision = ruleRevision;
         GameLayout currentLayout = layout;
@@ -172,6 +228,12 @@ internal sealed partial class EditorWindow
             RuleReadState state = await Task.Run(() => ReadRules(identity));
             FormationSnapshot fresh = state.Formation;
             if (!Current()) return;
+            if (ruleAccess.ReadDataset is { } readDataset && datasetRuleFile?.Identity != identity)
+            {
+                await BindRuleDatasetAsync(identity, currentLayout, state, readDataset, Current);
+                if (!Current()) return;
+            }
+            RuleProfileFile file = RuleFileFor(identity);
             RuleProfileRead read = await Task.Run(file.Read);
             if (!Current()) return;
             if (read.Profile is null && ruleKept?.Profile is not null) throw new InvalidOperationException(L.Rules.ProfileMoved);
@@ -180,7 +242,11 @@ internal sealed partial class EditorWindow
             bool addingOffices = state.Office is not null && read.Profile?.Table("office") is null;
             bool addingRanks=state.Rank is not null && read.Profile?.Table("rank") is null;
             bool addingDoctrines=state.Doctrine is not null && read.Profile?.Table("doctrine") is null;
-            if (read.Profile is null || addingTactics || addingPolicies || addingOffices || addingRanks || addingDoctrines)
+            bool addingIdentities = read.Profile is { } existing && (existing.FormationIdentities is null
+                || state.Tactic?.Identities is not null && existing.Table("tactic") is { Identities: null }
+                || state.Policy is not null && state.Policy.Catalogs.Any(c => c.Identities != null && existing.Table(c.Table) is { Identities: null }));
+            if (addingIdentities) fresh.Check(read.Profile!, identity.ExeHash);
+            if (read.Profile is null || addingIdentities || addingTactics || addingPolicies || addingOffices || addingRanks || addingDoctrines)
             {
                 GamePace pace = await Task.Run(() => ruleAccess.Pace(identity, currentLayout with { State = fresh.State }));
                 if (!Current()) return;
@@ -194,6 +260,7 @@ internal sealed partial class EditorWindow
                     throw new InvalidOperationException(L.Rules.Stale);
                 RuleProfile baseline = read.Profile ?? checkedValues.Baseline(identity.ExeHash);
                 checkedValues.Check(baseline, identity.ExeHash);
+                baseline = checkedValues.WithIdentities(baseline);
                 if (checkedState.Tactic is { } tactics) baseline = baseline.AddTactics(tactics);
                 if (checkedState.Policy is { } policies) baseline = baseline.AddPolicies(policies);
                 if (checkedState.Office is { } offices) baseline = baseline.AddOffices(offices);
@@ -201,8 +268,8 @@ internal sealed partial class EditorWindow
                 if (checkedState.Doctrine is { } doctrines) baseline=baseline.AddPlain(doctrines);
                 BeginWrite();
                 string previousStamp = read.Stamp;
-                read = await Task.Run(() => file.Save(baseline, read.Stamp));
-                if ((addingTactics || addingPolicies || addingOffices || addingRanks || addingDoctrines) && ruleKept?.Stamp == previousStamp)
+                read = await Task.Run(() => WithRuleDataset(identity, () => file.Save(baseline, read.Stamp)));
+                if ((addingIdentities || addingTactics || addingPolicies || addingOffices || addingRanks || addingDoctrines) && ruleKept?.Stamp == previousStamp)
                 {
                     int latest = undoHistory.FindLastIndex(h => h.Rule is not null);
                     for (int i = 0; i < undoHistory.Count; ++i)
@@ -229,9 +296,9 @@ internal sealed partial class EditorWindow
                     BeginWrite();
                     // Auto-reapply uses the same before/after file guard and recovery as an explicit edit.
                     RuleReadState? written = null;
-                    read = await Task.Run(() => file.Commit(profile, read.Stamp,
+                    read = await Task.Run(() => WithRuleDataset(identity, () => file.Commit(profile, read.Stamp,
                         () => written = ApplyRules(identity, state, plan.Apply),
-                        () => ApplyRules(identity, written!, Reverse(plan.Apply))));
+                        () => ApplyRules(identity, written!, Reverse(plan.Apply)))));
                     state = written!; fresh = state.Formation;
                     AddLog(L.Rules.AppliedCount(plan.Apply.Length));
                 }
@@ -288,7 +355,7 @@ internal sealed partial class EditorWindow
         if (busy || ruleKept?.Profile is not { } profile || ruleSnapshot is null || formationEditor.Target is null) return;
         FormationRecord record = ruleSnapshot.Record(formationEditor.Formation);
         if (!Confirm(L.Rules.RestoreAsk(record.Name))) return;
-        RuleChange[] changes = FormationRules.Fields.Select(f => new RuleChange(FormationRules.Key(record.Id, f), record.Value(f), profile.Default(FormationRules.Key(record.Id, f)))).ToArray();
+        RuleChange[] changes = EditorValueRanges.FormationRestore(record, profile);
         await WriteRuleAsync(changes, profile.WithChanges(changes, restoreDefaults: true), L.Rules.Restore);
     }
 
@@ -309,9 +376,9 @@ internal sealed partial class EditorWindow
             if (changes.Any(c => c.Before != c.After) && await Task.Run(() => ruleAccess.Pace(identity, layout with { State = expected.State })) != GamePace.Paused)
                 throw new InvalidOperationException(L.Rules.PauseFirst);
             RuleReadState? written = null;
-            ruleKept = await Task.Run(() => file.Commit(after, stamp,
+            ruleKept = await Task.Run(() => WithRuleDataset(identity, () => file.Commit(after, stamp,
                 () => written = ApplyRules(identity, expectedState, changes),
-                () => ApplyRules(identity, written!, Reverse(changes))));
+                () => ApplyRules(identity, written!, Reverse(changes)))));
             ruleSnapshot = written!.Formation; tacticRuleSnapshot = written.Tactic; policyRuleSnapshot = written.Policy; officeRuleSnapshot = written.Office; rankRuleSnapshot=written.Rank; doctrineRuleSnapshot=written.Doctrine;
             FollowOfficeCatalog();
             if (undoable)
@@ -396,6 +463,7 @@ internal sealed partial class EditorWindow
         card is (FormationEditorCard or TacticEditorCard or PolicyEditorCard or OfficeEditorCard or PlainRuleEditorCard) && card.Pending > 0;
     private static RuleProfile AddNewBaselines(RuleProfile profile, RuleReadState state)
     {
+        profile = state.Formation.WithIdentities(profile);
         if (state.Tactic is { } tactics) profile = profile.AddTactics(tactics);
         if (state.Policy is { } policies) profile = profile.AddPolicies(policies);
         if (state.Office is { } offices) profile = profile.AddOffices(offices);

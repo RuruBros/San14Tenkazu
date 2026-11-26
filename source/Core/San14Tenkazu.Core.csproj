@@ -12,6 +12,8 @@
     <EmbeddedResource Include="..\BuildProfiles\current.json" LogicalName="BuildProfiles.current.json" />
     <EmbeddedResource Include="..\BuildProfiles\november2026.json" LogicalName="BuildProfiles.november2026.json" />
     <EmbeddedResource Include="BuildProfiles\NovemberCommands.json" LogicalName="BuildProfiles.NovemberCommands.json" />
+    <EmbeddedResource Include="BuildProfiles\OfficialFormationRows.json" LogicalName="BuildProfiles.OfficialFormationRows.json" />
+    <EmbeddedResource Include="BuildProfiles\PreviousFixedRules.json.gz" LogicalName="BuildProfiles.PreviousFixedRules.json.gz" />
     <EmbeddedResource Include="Ai\November2026.json" LogicalName="Ai.November2026.json" />
     <EmbeddedResource Include="RuntimeRules\patches.json" LogicalName="RuntimeRules.patches.json" />
     <EmbeddedResource Include="RuntimeRules\trait-list.json" LogicalName="RuntimeRules.trait-list.json" />
@@ -23,6 +25,9 @@
   <ItemGroup>
     <!-- The editor's words, the Korean set (L reads it by this name). -->
     <EmbeddedResource Include="Strings\ko.txt" LogicalName="Strings.ko.txt" />
+    <EmbeddedResource Include="Strings\ko.installation.txt" LogicalName="Strings.ko.installation.txt" WithCulture="false" />
+    <EmbeddedResource Include="Strings\edit-ranges.ko.txt" LogicalName="Strings.edit-ranges.ko.txt" WithCulture="false" />
+    <EmbeddedResource Include="Strings\ko.fileexport.txt" LogicalName="Strings.ko.fileexport.txt" WithCulture="false" />
     <EmbeddedResource Include="RegisteredNames.txt" LogicalName="RegisteredNames.txt" />
     <EmbeddedResource Include="..\Seasons\Assets\climate.json" LogicalName="Seasons.climate.json" />
     <EmbeddedResource Include="..\Seasons\Assets\tree-catalog.json" LogicalName="Seasons.tree-catalog.json" />
